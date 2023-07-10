@@ -287,13 +287,17 @@ def load_one_model(
 
 
 @cli.command()
-@click.argument("config-file", type=click.Path(exists=True))
+@click.argument("model-config-file", type=click.Path(exists=True))
+@click.argument("data-config-file", type=click.Path(exists=True))
 @click.argument("checkpoint-files", type=click.Path(exists=True), nargs=-1)
-def reverse_models(config_file: str, checkpoint_files: Tuple[str]):
-    with open(config_file) as f:
-        config = yaml.safe_load(f)
+def reverse_models(model_config_file: str, data_config_file: str, checkpoint_files: Tuple[str]):
+    with open(model_config_file) as f:
+        model_config = yaml.safe_load(f)
 
-    annotation_file = config["training_data"]["dataset_config"]["annotation_file"]
+    with open(data_config_file) as f:
+        data_config = yaml.safe_load(f)
+
+    annotation_file = data_config["data"]["dataset_config"]["annotation_file"]
 
     if torch.cuda.is_available():
         logger.info("Using GPU")
@@ -305,7 +309,7 @@ def reverse_models(config_file: str, checkpoint_files: Tuple[str]):
     plof_df = (
         dd.read_parquet(
             annotation_file,
-            columns=config["data"]["dataset_config"]["rare_embedding"]["config"][
+            columns=data_config["data"]["dataset_config"]["rare_embedding"]["config"][
                 "annotations"
             ],
         )
@@ -325,7 +329,7 @@ def reverse_models(config_file: str, checkpoint_files: Tuple[str]):
             # Ignore checkpoints that were chosen to be dropped
             continue
 
-        agg_model = load_one_model(config, checkpoint, device=device)
+        agg_model = load_one_model(data_config, checkpoint, device=device)
         score = agg_model(
             torch.tensor(plof, dtype=torch.float, device=device).reshape((n_variants, 1, -1, 1))
         ).reshape(n_variants)
@@ -407,7 +411,8 @@ def load_models(
 @click.option("--chunk", type=int)
 @click.option("--dataset-file", type=click.Path(exists=True))
 @click.option("--link-burdens", type=click.Path())
-@click.argument("config-file", type=click.Path(exists=True))
+@click.argument("data-config-file", type=click.Path(exists=True))
+@click.argument("model-config-file", type=click.Path(exists=True))
 @click.argument("checkpoint-files", type=click.Path(exists=True), nargs=-1)
 @click.argument("out-dir", type=click.Path(exists=True))
 def compute_burdens(
@@ -417,15 +422,19 @@ def compute_burdens(
     chunk: Optional[int],
     dataset_file: Optional[str],
     link_burdens: Optional[str],
-    config_file: str,
+    data_config_file: str,
+    model_config_file: str,
     checkpoint_files: Tuple[str],
     out_dir: str,
 ):
     if len(checkpoint_files) == 0:
         raise ValueError("At least one checkpoint file must be supplied")
 
-    with open(config_file) as f:
-        config = yaml.safe_load(f)
+    with open(data_config_file) as f:
+        data_config = yaml.safe_load(f)
+
+    with open(model_config_file) as f:
+        model_config = yaml.safe_load(f)
 
     if dataset_file is not None:
         logger.info("Loading pickled dataset")
@@ -442,13 +451,13 @@ def compute_burdens(
         device = torch.device("cpu")
 
     if link_burdens is None:
-        agg_models = load_models(config, checkpoint_files, device=device)
+        agg_models = load_models(model_config, checkpoint_files, device=device)
     else:
         agg_models = None
 
     genes, _, _, _ = compute_burdens_(
         debug,
-        config,
+        data_config,
         dataset,
         out_dir,
         agg_models,

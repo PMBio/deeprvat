@@ -42,19 +42,30 @@ Instructions [here](https://github.com/bfclarke/deeprvat/blob/master/deeprvat/an
 ### Try the full training and association testing pipeline on some example data
 
 ```
-cp -R [path_to_deeprvat]/example .
+mkdir example
 cd example
+ln -s [path_to_deeprvat]/example/* .
 snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/training_association_testing.snakefile
 ```
 
 Replace `[path_to_deeprvat]` with the path to your clone of the repository.
 
-Note that the example data is
+Note that the example data is randomly generated, and so is only suited for testing whether the `deeprvat` package has been correctly installed.
 
 
 ### Run the association testing pipeline with pretrained models
 
-Coming soon
+```
+mkdir example
+cd example
+ln -s [path_to_deeprvat]/example/* .
+ln -s [path_to_deeprvat]/pretrained_models
+snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/association_testing_pretrained.snakefile
+```
+
+Replace `[path_to_deeprvat]` with the path to your clone of the repository.
+
+Again, note that the example data is randomly generated, and so is only suited for testing whether the `deeprvat` package has been correctly installed.
 
 
 ## Credits
