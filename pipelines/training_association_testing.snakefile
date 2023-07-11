@@ -107,7 +107,8 @@ rule link_burdens:
             for repeat in range(n_repeats) for bag in range(n_bags)
         ],
         dataset = '{phenotype}/deeprvat/association_dataset.pkl',
-        config = 'models/repeat_0/config.yaml'
+        data_config = '{phenotype}/deeprvat/hpopt_config.yaml',
+        model_config = 'models/config.yaml',
     output:
         '{phenotype}/deeprvat/burdens/chunk{chunk}.linked'
     threads: 8
@@ -119,7 +120,8 @@ rule link_burdens:
              f'--link-burdens ../../../{phenotypes[0]}/deeprvat/burdens/burdens.zarr '
              '--chunk {wildcards.chunk} '
              '--dataset-file {input.dataset} '
-             '{input.config} '
+             '{input.data_config} '
+             '{input.model_config} '
              '{input.checkpoints} '
              '{wildcards.phenotype}/deeprvat/burdens'),
             'touch {output}'
@@ -134,7 +136,8 @@ rule compute_burdens:
             for repeat in range(n_repeats) for bag in range(n_bags)
         ],
         dataset = '{phenotype}/deeprvat/association_dataset.pkl',
-        config = 'models/repeat_0/config.yaml'
+        data_config = '{phenotype}/deeprvat/hpopt_config.yaml',
+        model_config = 'models/config.yaml',
     output:
         '{phenotype}/deeprvat/burdens/chunk{chunk}.finished'
     threads: 8
@@ -145,7 +148,8 @@ rule compute_burdens:
              ' --n-chunks '+ str(n_burden_chunks) + ' '
              '--chunk {wildcards.chunk} '
              '--dataset-file {input.dataset} '
-             '{input.config} '
+             '{input.data_config} '
+             '{input.model_config} '
              '{input.checkpoints} '
              '{wildcards.phenotype}/deeprvat/burdens'),
             'touch {output}'
@@ -172,14 +176,16 @@ rule reverse_models:
     input:
         checkpoints = expand('models/repeat_{repeat}/best/bag_{bag}.ckpt',
                              bag=range(n_bags), repeat=range(n_repeats)),
-        config = 'models/repeat_0/config.yaml',
+        model_config = 'models/config.yaml',
+        data_config = Path(phenotypes[0]) / "deeprvat/hpopt_config.yaml",
     output:
         "models/reverse_finished.tmp"
     threads: 4
     shell:
         " && ".join([
             ("deeprvat_associate reverse-models "
-             "{input.config} "
+             "{input.model_config} "
+             "{input.data_config} "
              "{input.checkpoints}"),
             "touch {output}"
         ])
@@ -188,8 +194,17 @@ rule all_training:
     input:
         expand('models/repeat_{repeat}/best/bag_{bag}.ckpt',
                bag=range(n_bags), repeat=range(n_repeats)),
-        expand('models/repeat_{repeat}/config.yaml',
-               repeat=range(n_repeats))
+        "models/config.yaml"
+
+rule link_config:
+    input:
+        'models/repeat_0/config.yaml'
+    output:
+        "models/config.yaml"
+    threads: 1
+    shell:
+        "ln -s repeat_0/config.yaml {output}"
+
 
 rule best_training_run:
     input:
@@ -198,7 +213,7 @@ rule best_training_run:
     output:
         checkpoints = expand('models/repeat_{{repeat}}/best/bag_{bag}.ckpt',
                              bag=range(n_bags)),
-        config = 'models/config.yaml'
+        config = 'models/repeat_{repeat}/config.yaml'
     threads: 1
     shell:
         (

@@ -24,8 +24,8 @@ baseline_results:
 
 alpha: 0.05
 
-n_burden_chunks: 4
-n_regression_chunks: 10
+n_burden_chunks: 2
+n_regression_chunks: 2
 
 n_repeats: 2
 

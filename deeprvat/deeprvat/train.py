@@ -784,10 +784,11 @@ def best_training_run(
 
     logger.info(f"Best trial:\n{best_trial}")
 
-    shutil.copy(Path(log_dir) / f"trial{best_trial_id}/config.yaml", config_file_out)
-    with open(config_file_out, "w") as f:
+    with open(Path(log_dir) / f"trial{best_trial_id}/config.yaml") as f:
         config = yaml.safe_load(f)
-        yaml.dump(config["model"])
+
+    with open(config_file_out, "w") as f:
+        yaml.dump({"model": config["model"]}, f)
 
     n_bags = config["training"]["n_bags"] if not debug else 3
     for k in range(n_bags):
