@@ -22,9 +22,9 @@ mamba env create -n deeprvat -f deeprvat_env.yaml
 
 ### Customize pipelines
 
-Before running any of the snakefiles, you may want to adjust the number of threads used by different steps in the pipeline. To do this, modify the `threads:** property of a given rule.
+Before running any of the snakefiles, you may want to adjust the number of threads used by different steps in the pipeline. To do this, modify the `threads:` property of a given rule.
 
-If you are running on an computing cluster, you will need a [profile](https://github.com/snakemake-profiles) and may need to add `resources:** directives to the snakefiles.
+If you are running on an computing cluster, you will need a [profile](https://github.com/snakemake-profiles) and may need to add `resources:` directives to the snakefiles.
 
 
 ### Run the preprocessing pipeline on VCF files
@@ -34,7 +34,7 @@ Instructions [here](https://github.com/bfclarke/deeprvat/blob/master/deeprvat/pr
 
 ### Annotate variants
 
-Instructions [here](https://github.com/bfclarke/deeprvat/blob/master/deeprvat/annotations/README.md**
+Instructions [here](https://github.com/bfclarke/deeprvat/blob/master/deeprvat/annotations/README.md)
 
 **NOTE:** The annotation pipeline does not yet provide full output as required by DeepRVAT, but will be continually updated to be more complete.
 
