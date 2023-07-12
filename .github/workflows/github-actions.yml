@@ -20,8 +20,8 @@ jobs:
           directory: 'example'
           snakefile: 'pipelines/seed_gene_discovery.snakefile'
           args: '-j 1 -n'
-      - name: Copy pretraines models
-        run: ln -vs ${{ github.workspace }}/pretrained_models ${{ github.workspace }}/example
+      - name: Copy pretrained models
+        run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
       - name: List examples dir
         run: ls -lah ${{ github.workspace }}/example
       - name: Association Testing Pretrained Smoke Test
