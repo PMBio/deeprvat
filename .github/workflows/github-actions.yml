@@ -20,7 +20,7 @@ jobs:
         with:
           directory: 'example'
           snakefile: 'pipelines/annotations.snakefile'
-          args: '-j 1 -n --configfile ../pipelines/config/deeprvat_annotation_config.yaml'
+          args: '-j 1 -n --configfile pipelines/config/deeprvat_annotation_config.yaml'
       - name: Seed Gene Discovery Smoke Test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
@@ -38,4 +38,4 @@ jobs:
         with:
           directory: 'example'
           snakefile: 'pipelines/preprocess.snakefile'
-          args: '-j 1 -n --configfile ../pipelines/config/deeprvat_preprocess_config.yaml'
+          args: '-j 1 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
