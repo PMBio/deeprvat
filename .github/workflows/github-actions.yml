@@ -6,6 +6,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
       - name: Training Association Testing smoke tests
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
