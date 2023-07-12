@@ -2,9 +2,8 @@ name: DeepRVAT
 run-name: DeepRVAT 🧬🧪💻🧑‍🔬
 on: [ push ]
 jobs:
-  Pipeline-Smoke-Tests:
+  DeepRVAT-Pipeline-Smoke-Tests:
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
@@ -27,6 +26,26 @@ jobs:
           directory: 'example'
           snakefile: 'pipelines/seed_gene_discovery.snakefile'
           args: '-j 1 -n'
+      - name: Association Testing Pretrained Smoke Test
+        uses: snakemake/snakemake-github-action@v1.24.0
+        with:
+          directory: 'example'
+          snakefile: 'pipelines/association_testing_pretrained.snakefile'
+          args: '-j 1 -n'
+      - name: Preprocess Smoke Test
+        uses: snakemake/snakemake-github-action@v1.24.0
+        with:
+          directory: 'example'
+          snakefile: 'pipelines/preprocess.snakefile'
+          args: '-j 1 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
+  Pre-DeepRVAT-Pipeline-Smoke-Tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Training Association Testing smoke test
+        uses: snakemake/snakemake-github-action@v1.24.0
+        with:
       - name: Association Testing Pretrained Smoke Test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
