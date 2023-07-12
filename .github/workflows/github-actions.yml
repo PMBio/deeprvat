@@ -41,6 +41,8 @@ jobs:
           directory: 'example'
           snakefile: 'pipelines/annotations.snakefile'
           args: '-j 1 -n --configfile pipelines/config/deeprvat_annotation_config.yaml'
+      - name: Create pvcf_blocks.txt
+        run: mkdir -pv /data/metadata && touch /data/metadata/pvcf_blocks.txt
       - name: Preprocess Smoke Test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
