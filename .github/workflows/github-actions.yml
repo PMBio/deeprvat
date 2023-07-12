@@ -34,7 +34,7 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v3
       - name: Copy pretraines models
-        run: mkdir -pv vcf/metadata && touh vcf/metadata/pvcf_blocks.txt
+        run: mkdir -pv vcf/metadata && touch vcf/metadata/pvcf_blocks.txt
       - name: Annotations Smoke Test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
