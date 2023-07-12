@@ -8,11 +8,34 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
-      - name: Training Association Testing smoke tests
+      - name: Training Association Testing smoke test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
           directory: 'example'
           snakefile: 'pipelines/training_association_testing.snakefile'
           args: '-j 1 -n'
           stagein: 'pip install -e ${{ github.workspace }}'
-          task: 'run'
+      - name: annotations Smoke Test
+        uses: snakemake/snakemake-github-action@v1.24.0
+        with:
+          directory: 'example'
+          snakefile: 'pipelines/annotations.snakefile'
+          args: '-j 1 -n'
+      - name: Seed Gene Discovery Smoke Test
+        uses: snakemake/snakemake-github-action@v1.24.0
+        with:
+          directory: 'example'
+          snakefile: 'pipelines/seed_gene_discovery.snakefile'
+          args: '-j 1 -n'
+      - name: Association Testing Pretrained Smoke Test
+        uses: snakemake/snakemake-github-action@v1.24.0
+        with:
+          directory: 'example'
+          snakefile: 'pipelines/association_testing_pretrained.snakefile'
+          args: '-j 1 -n'
+      - name: Preprocess Smoke Test
+        uses: snakemake/snakemake-github-action@v1.24.0
+        with:
+          directory: 'example'
+          snakefile: 'pipelines/preprocess.snakefile'
+          args: '-j 1 -n'
