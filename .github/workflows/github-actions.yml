@@ -25,7 +25,6 @@ jobs:
       - name: Association Testing Pretrained Smoke Test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
-          stagein: 'ln -s ${{ github.workspace }}/pretrained_models ${{ github.workspace }}/example'
           directory: 'example'
           snakefile: 'pipelines/association_testing_pretrained.snakefile'
           args: '-j 1 -n'
