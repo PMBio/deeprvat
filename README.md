@@ -15,7 +15,7 @@ git clone git@github.com:PMBio/deeprvat.git
 mamba env create -n deeprvat -f deeprvat_env.yaml
 ```
 1. Activate the environment: `mamba activate deeprvat`
-1. Install the `deeprvat` package: `pip install -e .**
+1. Install the `deeprvat` package: `pip install -e .`
 
 
 ## Basic usage
