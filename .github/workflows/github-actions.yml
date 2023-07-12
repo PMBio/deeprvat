@@ -2,7 +2,7 @@ name: DeepRVAT
 run-name: DeepRVAT 🧬🧪💻🧑‍🔬
 on: [ push ]
 jobs:
-  DeepRVAT-Pipeline-Smoke-Tests:
+  Main-DeepRVAT-Pipeline-Smoke-Tests:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
@@ -23,6 +23,7 @@ jobs:
       - name: Association Testing Pretrained Smoke Test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
+          stagein: 'ln -s pretrained_models example/pretrained_models'
           directory: 'example'
           snakefile: 'pipelines/association_testing_pretrained.snakefile'
           args: '-j 1 -n'
