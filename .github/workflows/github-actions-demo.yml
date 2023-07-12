@@ -4,11 +4,13 @@ on: [ push ]
 jobs:
   Pipeline-Smoke-Tests:
     runs-on: ubuntu-latest
+
     steps:
       - name: Training Association Testing smoke tests
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
-          directory: '.example'
-          snakefile: 'pipelines/training_association_testing.snakefile'
-          args: '-n'
+          directory: '${{ github.workspace }}/example'
+          snakefile: '${{ github.workspace }}/pipelines/training_association_testing.snakefile'
+          args: '-j 1 -n'
+          stagein: 'pip install -e ${{ github.workspace }}'
           task: 'run'
