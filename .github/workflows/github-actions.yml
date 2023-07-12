@@ -14,12 +14,6 @@ jobs:
           snakefile: 'pipelines/training_association_testing.snakefile'
           args: '-j 1 -n'
           stagein: 'pip install -e ${{ github.workspace }}'
-      - name: Annotations Smoke Test
-        uses: snakemake/snakemake-github-action@v1.24.0
-        with:
-          directory: 'example'
-          snakefile: 'pipelines/annotations.snakefile'
-          args: '-j 1 -n --configfile pipelines/config/deeprvat_annotation_config.yaml'
       - name: Seed Gene Discovery Smoke Test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
@@ -32,26 +26,17 @@ jobs:
           directory: 'example'
           snakefile: 'pipelines/association_testing_pretrained.snakefile'
           args: '-j 1 -n'
-      - name: Preprocess Smoke Test
-        uses: snakemake/snakemake-github-action@v1.24.0
-        with:
-          directory: 'example'
-          snakefile: 'pipelines/preprocess.snakefile'
-          args: '-j 1 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
   Pre-DeepRVAT-Pipeline-Smoke-Tests:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
-      - name: Training Association Testing smoke test
-        uses: snakemake/snakemake-github-action@v1.24.0
-        with:
-      - name: Association Testing Pretrained Smoke Test
+      - name: Annotations Smoke Test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
           directory: 'example'
-          snakefile: 'pipelines/association_testing_pretrained.snakefile'
-          args: '-j 1 -n'
+          snakefile: 'pipelines/annotations.snakefile'
+          args: '-j 1 -n --configfile pipelines/config/deeprvat_annotation_config.yaml'
       - name: Preprocess Smoke Test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
