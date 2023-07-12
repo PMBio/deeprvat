@@ -21,7 +21,7 @@ jobs:
           snakefile: 'pipelines/seed_gene_discovery.snakefile'
           args: '-j 1 -n'
       - name: Copy pretraines models
-        run: ln -s pretrained_models example/pretrained_models
+        run: ln -vs ${{ github.workspace }}/pretrained_models ${{ github.workspace }}/example
       - name: Association Testing Pretrained Smoke Test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
