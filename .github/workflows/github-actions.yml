@@ -15,3 +15,6 @@ jobs:
           create-args: >-
             python=3.10
             numpy
+            pip
+      - name: Install DeepRVAT
+        run: pip install -e git+https://github.com/PMBio/deeprvat
