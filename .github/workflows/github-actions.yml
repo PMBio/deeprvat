@@ -5,6 +5,8 @@ jobs:
   DeepRVAT-Pipeline-Smoke-Tests:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
       - uses: mamba-org/setup-micromamba@v1.4.3
         with:
           # the create command looks like this:
