@@ -17,4 +17,4 @@ jobs:
             numpy
             pip
       - name: Install DeepRVAT
-        run: pip install -e git+https://github.com/PMBio/deeprvat
+        run: pip install -e ${{ github.workspace }}
