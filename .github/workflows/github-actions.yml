@@ -17,13 +17,9 @@ jobs:
           environment-file: ${{ github.workspace }}/deeprvat_env_non_cuda.yaml
           cache-environment: true
           cache-downloads: true
-
       - name: Install DeepRVAT
         run: pip install -e ${{ github.workspace }}
         shell: micromamba-shell {0}
-      - name: Run custom command in micromamba environment
-        run: snakemake --version
-        shell: micromamba-shell {0}
       - name: Run pipeline
-        run: python -m snakemake -j 2 --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --configfile  ${{ github.workspace }}/example/config_no_gpu.yaml --show-failed-logs
+        run: python -m snakemake -j 2 --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --configfile ${{ github.workspace }}/example/config_no_gpu.yaml --show-failed-logs
         shell: micromamba-shell {0}
