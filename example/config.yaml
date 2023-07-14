@@ -42,7 +42,7 @@ training:
         num_workers: 32
 
 pl_trainer:
-    gpus: 1
+    gpus: 0
     precision: 16
     min_epochs: 3
     max_epochs: 5
