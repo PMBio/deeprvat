@@ -13,7 +13,10 @@ jobs:
           # `micromamba create -n test-env python=3.10 numpy`
           environment-name: deeprvat-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_env.yaml
-          create-args: -v
+          create-args: >-
+            python=3.10
+            snakemake
+            pip
       - name: Install DeepRVAT
         run: micromamba run -n deeprvat-gh-action pip install -e ${{ github.workspace }}
       - name: Run pipeline
