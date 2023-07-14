@@ -1,6 +1,10 @@
 name: DeepRVAT
 run-name: DeepRVAT 🧬🧪💻🧑‍🔬
-on: [ push ]
+on: [push]
+
+env:
+  CUDA_VISIBLE_DEVICES: ""
+
 jobs:
   DeepRVAT-Pipeline-Smoke-Tests:
     runs-on: ubuntu-latest
@@ -13,6 +17,7 @@ jobs:
           environment-file: ${{ github.workspace }}/deeprvat_env.yaml
           cache-environment: true
           cache-downloads: true
+
       - name: Install DeepRVAT
         run: pip install -e ${{ github.workspace }}
         shell: micromamba-shell {0}
