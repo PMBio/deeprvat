@@ -24,7 +24,7 @@ git clone git@github.com:PMBio/deeprvat.git
 Change directory to the repository: `cd deeprvat`
 
 ```shell
-mammba env create --file deeprvat_preprocess.yml
+mammba env create --file deeprvat_preprocessing_env.yml
 ```
 
 Activate the environment
