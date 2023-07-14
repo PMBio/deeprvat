@@ -15,6 +15,6 @@ jobs:
           environment-file: ${{ github.workspace }}/deeprvat_env.yaml
           create-args: -v
       - name: Install DeepRVAT
-        run: pip install -e ${{ github.workspace }}
+        run: micromamba run -n deeprvat-gh-action pip install -e ${{ github.workspace }}
       - name: Run pipeline
-        run: snakemake --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
+        run: micromamba run -n deeprvat-gh-action snakemake --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
