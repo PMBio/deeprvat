@@ -24,7 +24,7 @@ git clone git@github.com:PMBio/deeprvat.git
 Change directory to the repository: `cd deeprvat`
 
 ```shell
-mammba env create --file deeprvat_preprocess.yml
+mammba env create --file deeprvat_preprocessing_env.yml
 ```
 
 Activate the environment
@@ -117,5 +117,5 @@ parent_directory
 After configuration and activating the environment run the pipeline using snakemake:
 
 ```shell
-snakemake -j<nr_cores> --configfile config/deeprvat_preprocessing_env.yml -s preprocess.snakefile  
+snakemake -j<nr_cores> --configfile config/deeprvat_preprocess.yml -s preprocess.snakefile  
 ```
