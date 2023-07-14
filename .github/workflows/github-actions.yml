@@ -25,5 +25,5 @@ jobs:
         run: snakemake --version
         shell: micromamba-shell {0}
       - name: Run pipeline
-        run: python -m snakemake -j 1 --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
+        run: python -m snakemake -j 1 --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs --config pl_trainer.gpus=0
         shell: micromamba-shell {0}
