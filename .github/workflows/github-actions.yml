@@ -11,8 +11,8 @@ jobs:
         with:
           # the create command looks like this:
           # `micromamba create -n test-env python=3.10 numpy`
-          environment-name: deeprvat-gh-action
-          environment-file: ${{ github.workspace }}/deeprvat_env.yaml
+#          environment-name: deeprvat-gh-action
+#          environment-file: ${{ github.workspace }}/deeprvat_env.yaml
           create-args: >-
             python=3.10
             snakemake
