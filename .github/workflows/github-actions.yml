@@ -20,4 +20,4 @@ jobs:
       - name: Install DeepRVAT
         run: pip install -e ${{ github.workspace }}
       - name: Run pipeline
-        run: snakemake --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
+        run: python -m snakemake --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
