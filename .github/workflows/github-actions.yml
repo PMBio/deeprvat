@@ -14,7 +14,7 @@ jobs:
       - uses: mamba-org/setup-micromamba@v1.4.3
         with:
           environment-name: deeprvat-gh-action
-          environment-file: ${{ github.workspace }}/deeprvat_env.yaml
+          environment-file: ${{ github.workspace }}/deeprvat_env_non_cuda.yaml
           cache-environment: true
           cache-downloads: true
 
@@ -25,5 +25,5 @@ jobs:
         run: snakemake --version
         shell: micromamba-shell {0}
       - name: Run pipeline
-        run: python -m snakemake -j 2 --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --configfile ${{ github.workspace }}/example/config.yaml --show-failed-logs --config pl_trainer={gpus:0}
+        run: python -m snakemake -j 2 --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
         shell: micromamba-shell {0}
