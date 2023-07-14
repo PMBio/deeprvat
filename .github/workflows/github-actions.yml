@@ -18,3 +18,4 @@ jobs:
         run: pip install -e ${{ github.workspace }}
       - name: Run pipeline
         run: python -m snakemake --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
+        shell: bash -el {0}
