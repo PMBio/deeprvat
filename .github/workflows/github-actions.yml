@@ -11,11 +11,14 @@ jobs:
         with:
           environment-name: deeprvat-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_env.yaml
-          init-shell: >-
-              bash
           cache-environment: true
+          cache-downloads: true
       - name: Install DeepRVAT
         run: pip install -e ${{ github.workspace }}
+        shell: micromamba-shell {0}
+      - name: Run custom command in micromamba environment
+        run: snakemake --version
+        shell: micromamba-shell {0}
       - name: Run pipeline
         run: python -m snakemake -j 1 --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
-        shell: bash -el {0}
+        shell: micromamba-shell {0}
