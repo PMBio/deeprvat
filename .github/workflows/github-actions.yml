@@ -14,9 +14,13 @@ jobs:
 #          environment-name: deeprvat-gh-action
 #          environment-file: ${{ github.workspace }}/deeprvat_env.yaml
           create-args: >-
-            python=3.10
+            python=3.8
             snakemake
             pip
+          init-shell: >-
+              bash
+          cache-environment: true
+  
       - name: Install DeepRVAT
         run: pip install -e ${{ github.workspace }}
       - name: Run pipeline
