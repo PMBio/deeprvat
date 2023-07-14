@@ -42,7 +42,7 @@ jobs:
       - uses: mamba-org/setup-micromamba@v1.4.3
         with:
           environment-name: deeprvat-gh-action
-          environment-file: ${{ github.workspace }}/deeprvat_env_non_cuda.yaml
+          environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yaml
           cache-environment: true
           cache-downloads: true
       - name: Install DeepRVAT
