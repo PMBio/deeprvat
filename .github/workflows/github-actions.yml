@@ -21,5 +21,5 @@ jobs:
         run: pip install -e ${{ github.workspace }}
         shell: micromamba-shell {0}
       - name: Run pipeline
-        run: python -m snakemake -j 2 --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --config "pl_trainer={'gpus':0}"
+        run: python -m snakemake -j 2 --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --configfile ${{ github.workspace }}/example/config_no_gpu.yaml
         shell: micromamba-shell {0}
