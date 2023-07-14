@@ -16,14 +16,14 @@ jobs:
         with:
           directory: 'example'
           snakefile: 'pipelines/training_association_testing.snakefile'
-          args: '-j 1 -n'
+          args: '-j 2 -n'
           stagein: 'pip install -e ${{ github.workspace }}'
       - name: Seed Gene Discovery Smoke Test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
           directory: 'example'
           snakefile: 'pipelines/seed_gene_discovery.snakefile'
-          args: '-j 1 -n'
+          args: '-j 2 -n'
       - name: Link pretrained models
         run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
       - name: Association Testing Pretrained Smoke Test
@@ -31,7 +31,7 @@ jobs:
         with:
           directory: 'example'
           snakefile: 'pipelines/association_testing_pretrained.snakefile'
-          args: '-j 1 -n'
+          args: '-j 2 -n'
 
   DeepRVAT-Pipeline-Tests:
     runs-on: ubuntu-latest
@@ -54,4 +54,13 @@ jobs:
         shell: bash -el {0}
       - name: Run training_association_testing pipeline
         run: python -m snakemake -j 2 --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
-        shell: micromamba-shell {0
+        shell: micromamba-shell {0}
+      - name: Link pretrained models
+        run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
+        shell: bash -el {0}
+      - name: Run association_testing_pretrained pipeline
+        run: python -m snakemake -j 2 --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained.snakefile --show-failed-logs
+        shell: micromamba-shell {0}
+      - name: Run seed_gene_discovery pipeline
+        run: python -m snakemake -j 2 --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/seed_gene_discovery.snakefile --show-failed-logs
+        shell: micromamba-shell {0}
