@@ -53,7 +53,10 @@ jobs:
         run: "sed -i 's/gpus: 1/gpus: 0/' ${{ github.workspace }}/example/config.yaml"
         shell: bash -el {0}
       - name: Run training_association_testing pipeline
-        run: python -m snakemake -j 2 --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
+        #run: python -m snakemake -j 2 --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
+        run: |
+          python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
+          --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
         shell: micromamba-shell {0}
       - name: Link pretrained models
         run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
