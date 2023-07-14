@@ -11,6 +11,34 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
+      - name: Training Association Testing smoke test
+        uses: snakemake/snakemake-github-action@v1.24.0
+        with:
+          directory: 'example'
+          snakefile: 'pipelines/training_association_testing.snakefile'
+          args: '-j 1 -n'
+          stagein: 'pip install -e ${{ github.workspace }}'
+      - name: Seed Gene Discovery Smoke Test
+        uses: snakemake/snakemake-github-action@v1.24.0
+        with:
+          directory: 'example'
+          snakefile: 'pipelines/seed_gene_discovery.snakefile'
+          args: '-j 1 -n'
+      - name: Link pretrained models
+        run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
+      - name: Association Testing Pretrained Smoke Test
+        uses: snakemake/snakemake-github-action@v1.24.0
+        with:
+          directory: 'example'
+          snakefile: 'pipelines/association_testing_pretrained.snakefile'
+          args: '-j 1 -n'
+
+  DeepRVAT-Pipeline-Tests:
+    runs-on: ubuntu-latest
+    needs: DeepRVAT-Pipeline-Smoke-Tests
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
       - uses: mamba-org/setup-micromamba@v1.4.3
         with:
           environment-name: deeprvat-gh-action
@@ -24,6 +52,6 @@ jobs:
       - name: Update config to use no gpus
         run: "sed -i 's/gpus: 1/gpus: 0/' ${{ github.workspace }}/example/config.yaml"
         shell: bash -el {0}
-      - name: Run pipeline
+      - name: Run training_association_testing pipeline
         run: python -m snakemake -j 2 --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
-        shell: micromamba-shell {0}
+        shell: micromamba-shell {0
