@@ -18,6 +18,6 @@ jobs:
             snakemake
             pip
       - name: Install DeepRVAT
-        run: micromamba run -n deeprvat-gh-action pip install -e ${{ github.workspace }}
+        run: pip install -e ${{ github.workspace }}
       - name: Run pipeline
-        run: micromamba run -n deeprvat-gh-action snakemake --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
+        run: snakemake --directory ${{ github.workspace }}/example --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
