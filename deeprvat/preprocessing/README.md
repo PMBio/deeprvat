@@ -117,5 +117,5 @@ parent_directory
 After configuration and activating the environment run the pipeline using snakemake:
 
 ```shell
-snakemake -j<nr_cores> --configfile config/deeprvat_preprocess.yml -s preprocess.snakefile  
+snakemake -j<nr_cores> --configfile config/deeprvat_preprocess_config.yml -s preprocess.snakefile  
 ```
