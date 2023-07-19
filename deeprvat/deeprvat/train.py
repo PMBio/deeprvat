@@ -13,6 +13,7 @@ import torch.nn.functional as F
 import numpy as np
 import click
 import math
+import random
 import optuna
 import pandas as pd
 import pytorch_lightning as pl
@@ -130,12 +131,13 @@ def make_dataset_(
             with open(training_dataset_file, "wb") as f:
                 pickle.dump(ds, f)
         if pickle_only:
-            return None, None, None
+            return None, None, None, None
     else:
         logger.info("  Loading saved dataset")
         with open(training_dataset_file, "rb") as f:
             ds = pickle.load(f)
 
+    meta_data = ds.get_metadata()["rare_embedding_metadata"]["genes"]
     n_samples = len(ds)
     collate_fn = ds.collate_fn
     pad_value = ds.rare_embedding.pad_value
@@ -173,7 +175,7 @@ def make_dataset_(
     covariates = torch.cat([b["x_phenotypes"] for b in batches])
     y = torch.cat([b["y"] for b in batches])
 
-    return input_tensor, covariates, y
+    return input_tensor, covariates, y, meta_data
 
 
 @cli.command()
@@ -185,6 +187,7 @@ def make_dataset_(
 @click.argument("input-tensor-out-file", type=click.Path())
 @click.argument("covariates-out-file", type=click.Path())
 @click.argument("y-out-file", type=click.Path())
+@click.argument("meta-data-out-file", type=click.Path())
 def make_dataset(
     debug: bool,
     pickle_only: bool,
@@ -194,11 +197,12 @@ def make_dataset(
     input_tensor_out_file: str,
     covariates_out_file: str,
     y_out_file: str,
+    meta_data_out_file: str
 ):
     with open(config_file) as f:
         config = yaml.safe_load(f)
 
-    input_tensor, covariates, y = make_dataset_(
+    input_tensor, covariates, y, meta_data = make_dataset_(
         config,
         debug=debug,
         training_dataset_file=training_dataset_file,
@@ -215,6 +219,7 @@ def make_dataset(
         del input_tensor
         zarr.save_array(covariates_out_file, covariates.numpy())
         zarr.save_array(y_out_file, y.numpy())
+        zarr.save_array(meta_data_out_file, meta_data)
 
 
 class MultiphenoDataset(Dataset):
@@ -228,6 +233,7 @@ class MultiphenoDataset(Dataset):
         batch_size: int,
         split: str = "train",
         cache_tensors: bool = False,
+        normalization: str = ""
         # samples: Optional[Union[slice, np.ndarray]] = None,
         # genes: Optional[Union[slice, np.ndarray]] = None
     ):
@@ -235,6 +241,7 @@ class MultiphenoDataset(Dataset):
         super().__init__()
 
         self.data = data
+        self.normalization = normalization
         self.phenotypes = self.data.keys()
         logger.info(
             f"Initializing MultiphenoDataset with phenotypes:\n{pformat(list(self.phenotypes))}"
@@ -259,6 +266,15 @@ class MultiphenoDataset(Dataset):
             for pheno, pheno_data in self.data.items()
         }
         self.subset_samples()
+
+        if self.normalization == "standardization" or self.normalization == "both":
+            if self.normalization == "both":
+                self.norm_params = self.get_min_max_params()
+            logger.info(f"normalizing annotations with {self.normalization}")
+            self.standardization_params = self.get_standardization_params()
+        elif self.normalization == "min-max" or self.normalization == "neg-min-max":
+            logger.info(f"normalizing annotations with {self.normalization}")
+            self.norm_params = self.get_min_max_params()
 
         self.total_samples = sum([s.shape[0] for s in self.samples.values()])
 
@@ -302,11 +318,22 @@ class MultiphenoDataset(Dataset):
                 else self.data[pheno]["input_tensor_zarr"].oindex[idx, :, :, :]
             )
 
+            if self.normalization == "standardization":
+                annotations = self.standardization_annotations(annotations)
+            elif self.normalization == "min-max":
+                annotations = self.min_max_annotations(annotations)
+            elif self.normalization == "neg-min-max":
+                annotations = self.neg_min_max_annotations(annotations)
+            elif self.normalization == "both":
+                annotations = self.min_max_annotations(annotations)
+                annotations = self.standardization_annotations(annotations)
+
             result[pheno] = {
                 "indices": self.samples[pheno][idx],
                 "covariates": self.data[pheno]["covariates"][idx],
                 "rare_variant_annotations": annotations,
                 "y": self.data[pheno]["y"][idx],
+                "gene_id": self.data[pheno]["gene_id"]
             }
 
         return result
@@ -345,6 +372,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         batch_size: Optional[int] = None,
         num_workers: Optional[int] = 0,
         cache_tensors: bool = False,
+        normalization: str = ""
     ):
         logger.info("Intializing datamodule")
 
@@ -353,6 +381,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         if upsampling_factor < 1:
             raise ValueError("upsampling_factor must be at least 1")
 
+        self.normalization = normalization
         self.data = data
         self.n_genes = {
             pheno: self.data[pheno]["genes"].shape[0] for pheno in self.data.keys()
@@ -364,10 +393,14 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         self.n_annotations = any_pheno_data["input_tensor_zarr"].shape[2]
         self.n_covariates = any_pheno_data["covariates"].shape[1]
 
+
+        self.max_n_variants = 0
         for _, pheno_data in self.data.items():
             n_samples = pheno_data["input_tensor_zarr"].shape[0]
             assert pheno_data["covariates"].shape[0] == n_samples
             assert pheno_data["y"].shape[0] == n_samples
+            num_variants = pheno_data["input_tensor_zarr"].shape[-1]
+            if self.max_n_variants < num_variants: self.max_n_variants = num_variants
 
             # TODO: Rewrite this for multiphenotype data
             self.upsampling_factor = upsampling_factor
@@ -443,6 +476,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
             self.hparams.batch_size,
             split="train",
             cache_tensors=self.hparams.cache_tensors,
+            normalization=self.normalization
         )
         return DataLoader(
             dataset, batch_size=None, num_workers=self.hparams.num_workers
@@ -464,10 +498,17 @@ class MultiphenoBaggingData(pl.LightningDataModule):
             dataset, batch_size=None, num_workers=self.hparams.num_workers
         )
 
+def set_random_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
 def run_bagging(
     config: Dict,
     data: Dict[str, Dict],
+    gene_count: Dict[str, Dict],
     log_dir: str,
     checkpoint_file: Optional[str] = None,
     trial: Optional[optuna.trial.Trial] = None,
@@ -490,6 +531,11 @@ def run_bagging(
     n_bags = config["training"]["n_bags"] if not debug else 3
     train_proportion = config["training"].get("train_proportion", None)
     logger.info(f"Training {n_bags} bagged models")
+
+    if hasattr(config['model'], "seed"):
+        set_random_seed(config['model']["seed"])
+        logger.info(f'Set seed from config file')
+
     results = []
     checkpoint_paths = []
     for k in range(n_bags):
@@ -529,6 +575,8 @@ def run_bagging(
             n_annotations=dm.n_annotations,
             n_covariates=dm.n_covariates,
             n_genes=dm.n_genes,
+            gene_count=gene_count,
+            max_n_variants=dm.max_n_variants,
             phenotypes=list(data.keys()),
             **config["model"].get("kwargs", {}),
         )
@@ -639,7 +687,8 @@ def run_bagging(
         click.Path(exists=True),
         click.Path(exists=True),
         click.Path(exists=True),
-    ),
+        click.Path(exists=True)
+    ) # phenotype_name, input_tensor_file, covariates_file, y_files, meta_data_file
 )
 @click.argument("config-file", type=click.Path(exists=True))
 @click.argument("log-dir", type=click.Path())
@@ -650,7 +699,7 @@ def train(
     n_trials: int,
     trial_id: Optional[int],
     sample_file: Optional[str],
-    phenotype: Tuple[Tuple[str, str, str, str]],
+    phenotype: Tuple[Tuple[str, str, str, str, str]],
     config_file: str,
     log_dir: str,
     hpopt_file: str,
@@ -682,13 +731,15 @@ def train(
         samples = slice(None)
 
     data = dict()
-    for pheno, input_tensor_file, covariates_file, y_file in phenotype:
+    for pheno, input_tensor_file, covariates_file, y_file, meta_data_file in phenotype:
         data[pheno] = dict()
         data[pheno]["input_tensor_zarr"] = zarr.open(input_tensor_file, mode="r")
         data[pheno]["covariates"] = torch.tensor(
             zarr.open(covariates_file, mode="r")[:]
         )[samples]
         data[pheno]["y"] = torch.tensor(zarr.open(y_file, mode="r")[:])[samples]
+        data[pheno]["gene_id"] = torch.tensor(zarr.open(meta_data_file, 
+                                                        mode='r')[:])[samples]
 
         if training_gene_file is not None:
             with open(training_gene_file, "rb") as f:
@@ -708,6 +759,21 @@ def train(
             }
 
         data[pheno]["training_genes"] = training_genes
+
+    genes = []
+    for pheno in data:
+        for key in data[pheno]["gene_id"]:
+            if key not in genes:
+                genes.append(key.item())
+    gene_count = len(genes)
+
+    gene2id = dict(zip(genes, range(gene_count)))
+    for pheno in data:
+        tmp = []
+        for key in data[pheno]["gene_id"]:
+            tmp.append(gene2id[key.item()])
+        data[pheno]["gene_id"] = tmp
+    gene_count = len(genes)
 
     hparam_optim = config.get("hyperparameter_optimization", None)
     if hparam_optim is None:
@@ -745,10 +811,11 @@ def train(
             lambda trial: run_bagging(
                 config,
                 data,
+                gene_count,
                 log_dir,
                 trial=trial,
                 trial_id=trial_id,
-                debug=debug,
+                debug=debug
             ),
             n_trials=n_trials,
             timeout=hparam_optim.get("timeout", None),

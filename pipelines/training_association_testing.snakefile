@@ -234,6 +234,8 @@ rule train:
                             phenotype=phenotypes),
         y = expand('{phenotype}/deeprvat/y.zarr',
                    phenotype=phenotypes),
+        meta_data = expand('{phenotype}/deeprvat/meta_data.zarr',
+                   phenotype=phenotypes)
     output:
         config = 'models/repeat_{repeat}/trial{trial_number}/config.yaml',
         finished = 'models/repeat_{repeat}/trial{trial_number}/finished.tmp'
@@ -242,7 +244,8 @@ rule train:
             [f"--phenotype {p} "
              f"{p}/deeprvat/input_tensor.zarr "
              f"{p}/deeprvat/covariates.zarr "
-             f"{p}/deeprvat/y.zarr"
+             f"{p}/deeprvat/y.zarr "
+             f"{p}/deeprvat/meta_data.zarr"
              for p in phenotypes])
     shell:
         ' && '.join([
@@ -263,7 +266,10 @@ rule all_training_dataset:
         covariates = expand('{phenotype}/deeprvat/covariates.zarr',
                             phenotype=phenotypes, repeat=range(n_repeats)),
         y = expand('{phenotype}/deeprvat/y.zarr',
+                   phenotype=phenotypes, repeat=range(n_repeats)),
+        meta_data = expand('{phenotype}/deeprvat/meta_data.zarr',
                    phenotype=phenotypes, repeat=range(n_repeats))
+
 
 rule training_dataset:
     input:
@@ -272,7 +278,8 @@ rule training_dataset:
     output:
         input_tensor = directory('{phenotype}/deeprvat/input_tensor.zarr'),
         covariates = directory('{phenotype}/deeprvat/covariates.zarr'),
-        y = directory('{phenotype}/deeprvat/y.zarr')
+        y = directory('{phenotype}/deeprvat/y.zarr'),
+        meta_data = directory('{phenotype}/deeprvat/meta_data.zarr')
     threads: 8
     priority: 50
     shell:
@@ -284,7 +291,8 @@ rule training_dataset:
             '{input.config} '
             '{output.input_tensor} '
             '{output.covariates} '
-            '{output.y}'
+            '{output.y} '
+            '{output.meta_data}'
         )
 
 rule training_dataset_pickle:
@@ -299,7 +307,7 @@ rule training_dataset_pickle:
             '--pickle-only '
             '--training-dataset-file {output} '
             '{input} '
-            'dummy dummy dummy'
+            'dummy dummy dummy dummy'
         )
 
 rule all_config:
@@ -309,7 +317,7 @@ rule all_config:
         config = expand('{phenotype}/deeprvat/hpopt_config.yaml',
                         phenotype=phenotypes),
         baseline = expand('{phenotype}/deeprvat/baseline_results.parquet',
-                          phenotype=phenotypes),
+                          phenotype=phenotypes)
 
 rule config:
     input:

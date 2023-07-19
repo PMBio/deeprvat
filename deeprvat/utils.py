@@ -5,12 +5,15 @@ import math
 import shutil
 import sys
 import pickle
+from pprint import pprint
 from typing import Any, Callable, Dict, Iterable
 
 import optuna
 import numpy as np
 import pandas as pd
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from sklearn.preprocessing import quantile_transform
 from statsmodels.stats.multitest import fdrcorrection
 
@@ -230,3 +233,87 @@ def suggest_batch_size(
         f"and gpu_mem_bytes {gpu_mem_bytes}: {batch_size}"
     )
     return batch_size
+
+def weights_init(init_type='normal', gain=0.02, bias=False, activation="LeakyReLU"):
+    r"""Initialize weights in the network.
+    Args:
+        init_type (str): The name of the initialization scheme.
+        gain (float): The parameter that is required for the initialization
+            scheme.
+        bias (object): If not ``None``, specifies the initialization parameter
+            for bias.
+    Returns:
+        (obj): init function to be applied.
+    """
+    
+    def init_func(m):
+        r"""Init function
+        Args:
+            m: module to be weight initialized.
+        """
+        class_name = m.__class__.__name__
+        if hasattr(m, 'weight') and (
+                class_name.find('Conv') != -1 or
+                class_name.find('Linear') != -1 or
+                class_name.find('Embedding') != -1):
+            lr_mul = getattr(m, 'lr_mul', 1.)
+            gain_final = gain / lr_mul
+            if init_type == 'normal':
+                nn.init.normal_(m.weight.data, 0.0, gain_final)
+            elif init_type == 'xavier':
+                nn.init.xavier_normal_(m.weight.data, gain=gain_final)
+            elif init_type == 'xavier_uniform':
+                nn.init.xavier_uniform_(m.weight.data, gain=gain_final)
+            elif init_type == 'kaiming':
+                if activation == "ReLU":
+                    nn.init.kaiming_normal_(m.weight.data, a=0, mode='fan_in', nonlinearity='relu')
+                elif activation == "LeakyReLu":
+                    nn.init.kaiming_normal_(m.weight.data, a=0, mode='fan_in', nonlinearity='leaky_relu')
+                # with torch.no_grad(): m.weight.data *= gain_final
+            elif init_type == 'orthogonal':
+                nn.init.orthogonal_(m.weight.data, gain=gain_final)
+            elif init_type == 'none':
+                m.reset_parameters()
+            else:
+                raise NotImplementedError('Initialization method [%s] is not implemented' % init_type)
+        if hasattr(m, 'bias') and m.bias is not None:
+            if init_type == 'none': pass
+            elif bias is not None:
+                bias_type = getattr(bias, 'type', 'normal')
+                if bias_type == 'normal':
+                    bias_gain = getattr(bias, 'gain', 0.5)
+                    nn.init.normal_(m.bias.data, 0.0, bias_gain)
+                else:
+                    raise NotImplementedError('Initialization method [%s] is not implemented' % bias_type)
+            else:
+                nn.init.constant_(m.bias.data, 0.0)
+    return init_func
+
+def init_model(model, init, activation):
+    if init == "none":
+        gain = 1
+    elif init == "normal":
+        gain = 1
+    elif init == "xavier":
+        gain = math.sqrt(2)
+    elif init == "xavier_uniform":
+        gain = 1
+    elif init  == "orthogonal":
+        gain = 1
+    elif init  == "kaiming":
+        if activation == "ReLU":
+            gain =math.sqrt(2) 
+        elif activation == "LeakyReLU":
+            gain = math.sqrt(1/0.01**2 + 1)
+        else:
+            raise("Kaiming init has to be used with ReLU or LeakyReLU")
+    else:
+        pprint("Weight init not implemented.")
+        return model
+    return model.apply(weights_init(init_type=init, gain=gain, bias=None, activation=activation))
+
+def pad_variants(input_tensor,padding_size):
+    #zero pad last dimension to size of max num variants across all phenotypes
+    pad_dim = (0, padding_size-input_tensor.shape[-1])
+    input_tensor = F.pad(input_tensor,pad_dim,"constant",0)
+    return input_tensor
