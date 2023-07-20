@@ -29,12 +29,12 @@ If you are running on an computing cluster, you will need a [profile](https://gi
 
 ### Run the preprocessing pipeline on VCF files
 
-Instructions [here](https://github.com/bfclarke/deeprvat/blob/master/deeprvat/preprocessing/README.md)
+Instructions [here](https://github.com/PMBio/deeprvat/blob/main/deeprvat/preprocessing/README.md)
 
 
 ### Annotate variants
 
-Instructions [here](https://github.com/bfclarke/deeprvat/blob/master/deeprvat/annotations/README.md)
+Instructions [here](https://github.com/PMBio/deeprvat/blob/main/deeprvat/annotations/README.md)
 
 **NOTE:** The annotation pipeline does not yet provide full output as required by DeepRVAT, but will be continually updated to be more complete.
 
