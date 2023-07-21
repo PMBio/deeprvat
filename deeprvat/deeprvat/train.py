@@ -777,7 +777,7 @@ def train(
 
     hparam_optim = config.get("hyperparameter_optimization", None)
     if hparam_optim is None:
-        run_bagging(config, data, log_dir, debug=debug)
+        run_bagging(config, data, gene_count, log_dir, debug=debug)
     else:
         pruner_config = config["hyperparameter_optimization"].get("pruning", None)
         if pruner_config is not None:

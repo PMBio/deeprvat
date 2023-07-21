@@ -60,6 +60,8 @@ class BaseModel(pl.LightningModule):
                  n_annotations: Dict[str, int],
                  n_covariates: Dict[str, int],
                  n_genes: Dict[str, int],
+                 gene_count: int,
+                 max_n_variants: int,
                  phenotypes: List[str],
                  stage: str = "train",
                  **kwargs):
@@ -67,6 +69,7 @@ class BaseModel(pl.LightningModule):
         self.save_hyperparameters(config)
         self.save_hyperparameters(kwargs)
         self.save_hyperparameters("n_annotations", "n_covariates", "n_genes",
+                                  "gene_count", "max_n_variants",
                                   "phenotypes", "stage")
 
         self.metric_fns = {name: METRICS[name]()
@@ -260,6 +263,39 @@ class Classifier(pl.LightningModule):
         model = nn.Sequential(OrderedDict(model))
         return init_params(self.hparams_, model)
 
+class DeepSetAgg(pl.LightningModule):
+    def __init__(
+        self,
+        deep_rvat: int,
+        pool_layer: str,
+        use_sigmoid: bool = False,
+        reverse: bool = False,
+    ):
+        super().__init__()
+
+        self.deep_rvat = deep_rvat
+        self.pool_layer = pool_layer
+        self.use_sigmoid = use_sigmoid
+        self.reverse = reverse
+
+    def set_reverse(self, reverse: bool = True):
+        self.reverse = reverse
+
+    def forward(self, x):
+        x = x.permute((0, 1, 3, 2))
+        # x.shape = samples x genes x variants x annotations
+        # pytorch attention only accepts 3D input
+        if self.pool_layer == "attention": x = [x[:,i,:,:] for i in range(x.shape[1])] 
+        else: x = [x]
+        x = [self.deep_rvat(x_i) for x_i in x]  
+        # x.shape = samples x genes x latent
+        if self.use_sigmoid: x = [torch.sigmoid(x_i) for x_i in x]
+        if self.reverse: x = [-x_i for x_i in x]
+        if len(x) == 1: burden_score = x[0]
+        else: burden_score = torch.cat([x_i.unsqueeze(1) for x_i in x], 1)
+         
+        return burden_score
+
 class DeepSet(BaseModel):
     def __init__(
             self,
@@ -270,12 +306,14 @@ class DeepSet(BaseModel):
             gene_count: int,
             max_n_variants: int,
             phenotypes: List[str],
+            agg_model: Optional[nn.Module] = None,
             **kwargs):
         super().__init__(
             config,
             n_annotations,
             n_covariates,
             n_genes,
+            gene_count,
             max_n_variants,
             phenotypes,
             **kwargs)
@@ -283,9 +321,6 @@ class DeepSet(BaseModel):
         logger.info("Initializing DeepSet model with parameters:")
         pprint(self.hparams)
 
-        self.n_genes = n_genes
-        self.gene_count = gene_count
-            
         self.normalization = getattr(self.hparams, "normalization", False)
         self.activation = getattr(nn, getattr(self.hparams, "activation", "LeakyReLU"))()
         self.use_sigmoid = getattr(self.hparams, "use_sigmoid", False)
@@ -309,6 +344,18 @@ class DeepSet(BaseModel):
         self.gene_pheno = Classifier(self.hparams, phenotypes, n_genes, gene_count)
 
         self.deep_rvat = lambda x : self.rho(self.pool(self.phi(x)))
+
+        if agg_model is not None:
+            self.agg_model = agg_model
+        else:
+            self.agg_model = DeepSetAgg(
+                self.deep_rvat,
+                self.pool_layer,
+                use_sigmoid=self.use_sigmoid,
+                reverse=self.reverse
+            )
+        self.agg_model.train(False if self.hparams.stage == "val" else True)
+
         self.train(False if self.hparams.stage == "val" else True)
     
     def get_model(self, prefix, input_dim, output_dim, n_layers, res_layers):
@@ -327,17 +374,7 @@ class DeepSet(BaseModel):
         for pheno, this_batch in batch.items():
             x = this_batch["rare_variant_annotations"] 
             # x.shape = samples x genes x annotations x variants
-            x = x.permute((0, 1, 3, 2))
-            # x.shape = samples x genes x variants x annotations
-            # pytorch attention only accepts 3D input
-            if self.pool_layer == "attention": x = [x[:,i,:,:] for i in range(x.shape[1])] 
-            else: x = [x]
-            x = [self.deep_rvat(x_i) for x_i in x]  
-            # x.shape = samples x genes x latent
-            if self.use_sigmoid: x = [torch.sigmoid(x_i) for x_i in x]
-            if self.reverse: x = [-x_i for x_i in x]
-            if len(x) == 1: burden_score = x[0].squeeze(2)
-            else: burden_score = torch.cat([x_i.unsqueeze(1) for x_i in x], 1).squeeze(2)
+            burden_score = self.agg_model(x).squeeze(dim=2)
             result[pheno] = self.gene_pheno.forward(burden_score, 
                                                     this_batch["covariates"], 
                                                     pheno, 
