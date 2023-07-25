@@ -338,6 +338,63 @@ class MultiphenoDataset(Dataset):
 
         return result
 
+    def get_standardization_params(self):
+        tmp = False
+        counter = 0
+        for pheno in self.data:   
+            annotations = self.data[pheno]["input_tensor" if self.cache_tensors else "input_tensor_zarr"]
+            if not tmp: tmp = dict(zip(range(annotations.shape[-2]), [0 for _ in range(annotations.shape[-2])]))
+            for i in range(annotations.shape[-2]):
+                annotation = annotations[:, :, i, :]
+                if self.normalization == "both": 
+                    min = self.norm_params[i]["min"]
+                    max = self.norm_params[i]["max"]
+                    annotation = (annotation - min) / (max - min)     
+                tmp[i] += annotation.sum() #sum across all elements
+            counter += 1
+
+        standarization_params = dict()
+        for key in tmp:
+            mean = tmp[key] / counter   
+            std = np.sqrt( ((tmp[key] - mean)**2) / counter )
+            standarization_params.update({key: {"mean": mean, "std": std}})
+        del tmp
+        return standarization_params
+    
+    def standardization_annotations(self, annotations):
+        for key in self.standardization_params:
+            mean = self.standardization_params[key]["mean"]
+            std = self.standardization_params[key]["std"]
+            annotations[:, :, key, :] = (annotations[:, :, key, :] - mean) / std   
+        return annotations
+    
+    def get_min_max_params(self):
+        min_max_params = False
+        for pheno in self.data:   
+            annotations = self.data[pheno]["input_tensor" if self.cache_tensors else "input_tensor_zarr"]
+            if not min_max_params: min_max_params = dict(zip(range(annotations.shape[-2]), 
+                                                             [{"min": np.inf, "max": -np.inf} for _ in range(annotations.shape[-2])]))
+            for i in range(annotations.shape[-2]):
+                i_max = annotations[:, :, i, :].max() 
+                i_min = annotations[:, :, i, :].min() 
+                if min_max_params[i]["min"] > i_min: min_max_params[i]["min"] = i_min
+                if min_max_params[i]["max"] < i_max: min_max_params[i]["max"] = i_max
+        return min_max_params  
+
+    def min_max_annotations(self, annotations):
+        for key in self.norm_params:
+            min = self.norm_params[key]["min"]
+            max = self.norm_params[key]["max"]
+            annotations[:, :, key, :] = (annotations[:, :, key, :] - min) / (max - min)    
+        return annotations
+    
+    def neg_min_max_annotations(self, annotations):
+        for key in self.norm_params:
+            min = self.norm_params[key]["min"]
+            max = self.norm_params[key]["max"]
+            annotations[:, :, key, :] = (2 * ((annotations[:, :, key, :] - min) / (max - min)) ) - 1    
+        return annotations
+
     def subset_samples(self):
         for pheno, pheno_data in self.data.items():
             # First sum over annotations (dim 2) for each variant in each gene.
