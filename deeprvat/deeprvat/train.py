@@ -241,6 +241,7 @@ class MultiphenoDataset(Dataset):
         super().__init__()
 
         self.data = data
+        self.split = split
         self.normalization = normalization
         self.phenotypes = self.data.keys()
         logger.info(
@@ -297,6 +298,49 @@ class MultiphenoDataset(Dataset):
         return math.ceil(len(self.sample_order) / self.batch_size)
 
     def __getitem__(self, index):
+        if self.split == "train": return self.__getitem___train(index)
+        else: return self.__getitem__val(index)
+
+    def __getitem___train(self, index):
+        'Generates one batch of data'
+        phenotype = list(self.phenotypes)[self.current_pheno % self.pheno_count]
+        samples4pheno = len(self.samples[phenotype])
+        start_idx = int(self.index_dict[phenotype])
+        end_idx = int(min(samples4pheno, start_idx + self.batch_size))
+        if end_idx == samples4pheno: self.index_dict[phenotype] = 0
+        else: self.index_dict[phenotype] += end_idx - start_idx
+        samples_by_pheno = self.data_dict[phenotype][start_idx:end_idx].groupby("phenotype")
+
+        result = dict()
+        for pheno, df in samples_by_pheno:
+            idx = df["index"].to_numpy()
+            # input(idx)
+            annotations = (
+                self.data[pheno]["input_tensor"][idx]
+                if self.cache_tensors else
+                self.data[pheno]["input_tensor_zarr"].oindex[idx, :, :, :])
+            
+            if self.normalization == "standardization":
+                annotations = self.standardization_annotations(annotations)
+            elif self.normalization == "min-max":
+                annotations = self.min_max_annotations(annotations)
+            elif self.normalization == "neg-min-max":
+                annotations = self.neg_min_max_annotations(annotations)
+            elif self.normalization == "both":
+                annotations = self.min_max_annotations(annotations)
+                annotations = self.standardization_annotations(annotations)
+                
+            result[pheno] = {
+                "indices": self.samples[pheno][idx],
+                "covariates": self.data[pheno]["covariates"][idx],
+                "rare_variant_annotations": annotations,
+                "y": self.data[pheno]["y"][idx],
+                "gene_id": self.data[pheno]["gene_id"]
+            }
+        self.current_pheno += 1
+        return result
+
+    def __getitem__val(self, index):
         "Generates one batch of data"
 
         # 1. grab min(batch_size, len(self)) from computed indices of self.phenotype_order
