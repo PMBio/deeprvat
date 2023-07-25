@@ -293,6 +293,17 @@ class MultiphenoDataset(Dataset):
         self.sample_order = self.sample_order.sample(n=self.total_samples)  # shuffle
         self.sample_order["index"] = self.sample_order.groupby("phenotype").cumcount()
 
+        self.current_pheno = 0
+        self.pheno_count = len(self.phenotypes) - 1
+        self.index_dict = dict(zip(list(self.phenotypes), np.zeros(len(list(self.phenotypes)))))
+        self.data_dict = dict()
+        for phenotype in self.phenotypes:
+            pheno_samples = pd.DataFrame({"phenotype": itertools.chain(*[[pheno] * len(self.samples[pheno]) for pheno in [phenotype]])})
+            pheno_samples = pheno_samples.astype({"phenotype": pd.api.types.CategoricalDtype()})
+            pheno_samples = pheno_samples.sample(n=len(self.samples[phenotype]))  # shuffle
+            pheno_samples["index"] = pheno_samples.groupby("phenotype").cumcount()
+            self.data_dict[phenotype] = pheno_samples
+
     def __len__(self):
         "Denotes the total number of batches"
         return math.ceil(len(self.sample_order) / self.batch_size)
