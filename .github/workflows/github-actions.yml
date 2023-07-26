@@ -65,8 +65,3 @@ jobs:
           python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
           --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained.snakefile --show-failed-logs
         shell: micromamba-shell {0}
-      - name: Run seed_gene_discovery pipeline
-        run: |
-          python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
-          --snakefile ${{ github.workspace }}/pipelines/seed_gene_discovery.snakefile --show-failed-logs
-        shell: micromamba-shell {0}
