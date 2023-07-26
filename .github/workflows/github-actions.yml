@@ -2,9 +2,6 @@ name: DeepRVAT
 run-name: DeepRVAT 🧬🧪💻🧑‍🔬
 on: [ push ]
 
-env:
-  CUDA_VISIBLE_DEVICES: ""
-
 jobs:
   DeepRVAT-Pipeline-Smoke-Tests:
     runs-on: ubuntu-latest
