@@ -8,7 +8,7 @@ To run the pipeline, an experiment directory with the `config.yaml` has to be cr
 
 The experiment directory in addition requires to have the same input data as specified for [DeepRVAT](https://github.com/PMBio/deeprvat/tree/main/README.md), including
 - `annotations.parquet`
-- `genes.parquet`
+- `protein_coding_genes.parquet`
 - `genotypes.h5`
 - `variants.parquet`
 - `phenotypes.parquet`
@@ -19,4 +19,20 @@ The `annotations.parquet` data frame should have the following columns:
 - gene_ids (list) gene(s) the variant is assigned to
 - is_plof (binary, indicating if the variant is loss of function)
 - Consequence_missense_variant: 
-- combined_UKB_NFE_AF:  Maximum of the MAF in the UK Biobank cohort and in gnomAD release 3.0 (non-Finnish European population) can also be changed by using the --maf-column {maf_col_name} flag for the rule config and replacing combined_UKB_NFE_AF in the config.yaml with the {maf_col_name} but it must contain the string '_AF' or '_MAF'
+- MAF:  Maximum of the MAF in the UK Biobank cohort and in gnomAD release 3.0 (non-Finnish European population) can also be changed by using the --maf-column {maf_col_name} flag for the rule config and replacing MAF in the config.yaml with the {maf_col_name} but it must contain the string '_AF', '_MAF' OR '^MAF'
+
+### Run the seed gene discovery pipeline with example data  
+
+Create the conda environment and activate it, (instructions can be found in the [DeepRVAT README](https://github.com/PMBio/deeprvat/tree/main/README.md) )
+
+
+```
+mkdir example
+cd example
+ln -s [path_to_deeprvat]/example/* .
+cp [path_to_deeprvat]/deeprvat/seed_gene_discovery/config.yaml  .
+snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/seed_gene_discovery.snakefile
+```
+
+Replace `[path_to_deeprvat]` with the path to your clone of the repository.
+
