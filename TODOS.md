@@ -94,7 +94,7 @@ For each file:
 * [x] Create a minimal conda env with all required packages
 * [x] Create example files showing the input data format - **Brian**
   * `annotations.parquet`
-  * `genes.parquet`
+  * `protein_coding_genes.parquet`
   * `genotypes.h5`
   * `variants.parquet`
   * `config.yaml`

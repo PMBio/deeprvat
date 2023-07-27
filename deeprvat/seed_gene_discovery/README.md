@@ -8,7 +8,7 @@ To run the pipeline, an experiment directory with the `config.yaml` has to be cr
 
 The experiment directory in addition requires to have the same input data as specified for [DeepRVAT](https://github.com/PMBio/deeprvat/tree/main/README.md), including
 - `annotations.parquet`
-- `genes.parquet`
+- `protein_coding_genes.parquet`
 - `genotypes.h5`
 - `variants.parquet`
 - `phenotypes.parquet`

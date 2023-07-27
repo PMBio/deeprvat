@@ -82,7 +82,7 @@ data:
             - MAF
             - is_plof
             - Consequence_missense_variant
-        gene_file: genes.parquet
+        gene_file: protein_coding_genes.parquet
         use_common_variants: False
         use_rare_variants: True
         rare_embedding:
@@ -92,7 +92,7 @@ data:
                     - MAF
                     - is_plof
                     - Consequence_missense_variant
-                gene_file: genes.parquet
+                gene_file: protein_coding_genes.parquet
                 verbose: True
         verbose: True
     dataloader_config:
