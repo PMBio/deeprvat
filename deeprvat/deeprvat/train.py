@@ -438,16 +438,22 @@ class MultiphenoDataset(Dataset):
 
     def min_max_annotations(self, annotations):
         for key in self.norm_params:
-            min = self.norm_params[key]["min"]
-            max = self.norm_params[key]["max"]
-            annotations[:, :, key, :] = (annotations[:, :, key, :] - min) / (max - min)    
+            min_val = self.norm_params[key]["min"]
+            max_val = self.norm_params[key]["max"]
+            if min_val == max_val:
+                annotations[:, :, key, :] = max_val
+            else: 
+                annotations[:, :, key, :] = (annotations[:, :, key, :] - min_val) / (max_val - min_val)    
         return annotations
     
     def neg_min_max_annotations(self, annotations):
         for key in self.norm_params:
-            min = self.norm_params[key]["min"]
-            max = self.norm_params[key]["max"]
-            annotations[:, :, key, :] = (2 * ((annotations[:, :, key, :] - min) / (max - min)) ) - 1    
+            min_val = self.norm_params[key]["min"]
+            max_val = self.norm_params[key]["max"]
+            if min_val == max_val:
+                annotations[:, :, key, :] = max_val
+            else:
+                annotations[:, :, key, :] = (2 * ((annotations[:, :, key, :] - min_val) / (max_val - min_val)) ) - 1    
         return annotations
 
     def subset_samples(self):
