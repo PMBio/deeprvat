@@ -484,30 +484,38 @@ class MultiphenoDataset(Dataset):
         return annotations
 
 
+
 class MultiphenoBaggingData(pl.LightningDataModule):
     def __init__(
-        self,
-        data: Dict[str, Dict],
-        train_proportion: float,
-        sample_with_replacement: bool = True,
-        min_variant_count: int = 1,
-        upsampling_factor: int = 1,
-        batch_size: Optional[int] = None,
-        num_workers: Optional[int] = 0,
-        cache_tensors: bool = False,
-        normalization: str = ""
-    ):
+            self,
+            # input_tensor: torch.Tensor,
+            # covariates: torch.Tensor,
+            # y: torch.Tensor,
+            data: Dict[str, Dict],
+            train_proportion: float,
+            sample_with_replacement: bool = True,
+            min_variant_count: int = 1,
+            upsampling_factor: int = 1,  # NOTE: Changed
+            batch_size: Optional[int] = None,
+            num_workers: Optional[int] = 0,
+            cache_tensors: bool = False,
+            normalization: str = "",
+            balance_dataset: bool = False,
+            single_pheno: bool = False):
         logger.info("Intializing datamodule")
-
         super().__init__()
 
         if upsampling_factor < 1:
             raise ValueError("upsampling_factor must be at least 1")
 
+        # self.input_tensor = input_tensor
+        # self.covariates = covariates
+        # self.y = y
         self.normalization = normalization
         self.data = data
         self.n_genes = {
-            pheno: self.data[pheno]["genes"].shape[0] for pheno in self.data.keys()
+            pheno: self.data[pheno]["genes"].shape[0]
+            for pheno in self.data.keys()
         }
 
         # Get the number of annotations and covariates
@@ -516,20 +524,19 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         self.n_annotations = any_pheno_data["input_tensor_zarr"].shape[2]
         self.n_covariates = any_pheno_data["covariates"].shape[1]
 
-
         self.max_n_variants = 0
-        for _, pheno_data in self.data.items():
+        for pheno, pheno_data in self.data.items():
             n_samples = pheno_data["input_tensor_zarr"].shape[0]
             assert pheno_data["covariates"].shape[0] == n_samples
             assert pheno_data["y"].shape[0] == n_samples
+            # self.n_genes = pheno_data["input_tensor_zarr"].shape[1]
             num_variants = pheno_data["input_tensor_zarr"].shape[-1]
             if self.max_n_variants < num_variants: self.max_n_variants = num_variants
 
+            # NOTE: Do upsampling here
             # TODO: Rewrite this for multiphenotype data
             self.upsampling_factor = upsampling_factor
             if self.upsampling_factor > 1:
-                raise NotImplementedError("Upsampling is not yet implemented")
-
                 logger.info(
                     f"Upsampling data with original sample number: {self.y.shape[0]}"
                 )
@@ -548,78 +555,91 @@ class MultiphenoBaggingData(pl.LightningDataModule):
                 n_train_samples = round(n_samples * train_proportion)
                 rng = np.random.default_rng()
                 train_samples = np.sort(
-                    rng.choice(
-                        samples, size=n_train_samples, replace=sample_with_replacement
-                    )
-                )
+                    rng.choice(samples,
+                               size=n_train_samples,
+                               replace=sample_with_replacement))
                 pheno_data["samples"] = {
                     "train": train_samples,
-                    "val": np.setdiff1d(samples, train_samples),
+                    "val": np.setdiff1d(samples, train_samples)
                 }
+                
+        self.balance_dataset = balance_dataset
+        self.single_pheno = single_pheno
+        self.save_hyperparameters("min_variant_count", "train_proportion",
+                                  "batch_size", "num_workers", "cache_tensors")
 
-        self.save_hyperparameters(
-            "min_variant_count",
-            "train_proportion",
-            "batch_size",
-            "num_workers",
-            "cache_tensors",
-        )
+        # batch_size = self.hparams.batch_size
+        # if batch_size is None:
+        #     if torch.cuda.is_available():
+        #         # n_samples = len(self.train_samples)
+        #         # batch_size = min(suggest_batch_size(self.input_tensor.shape[1:]),
+        #         #                  n_samples)
+        #         batch_size = suggest_batch_size(self.train_tensor.shape[1:])
+        #     else:
+        #         batch_size = 50_000
+        # logger.info(f"Using batch size: {batch_size}")
+        # self.batch_size = batch_size
 
     def upsample(self) -> np.ndarray:
         unique_values = self.y.unique()
         if unique_values.size() != torch.Size([2]):
-            raise ValueError(
-                "Upsampling is only supported for binary y, "
-                f"but y has unique values {unique_values}"
-            )
+            raise ValueError("Upsampling is only supported for binary y, "
+                             f"but y has unique values {unique_values}")
 
-        class_indices = [(self.y == v).nonzero(as_tuple=True)[0] for v in unique_values]
+        class_indices = [(self.y == v).nonzero(as_tuple=True)[0]
+                         for v in unique_values]
         class_sizes = [idx.shape[0] for idx in class_indices]
         minority_class = 0 if class_sizes[0] < class_sizes[1] else 1
         minority_indices = class_indices[minority_class].detach().numpy()
         rng = np.random.default_rng()
-        upsampled_indices = rng.choice(
-            minority_indices,
-            size=(self.upsampling_factor - 1) * class_sizes[minority_class],
-        )
+        upsampled_indices = rng.choice(minority_indices,
+                                       size=(self.upsampling_factor - 1) *
+                                       class_sizes[minority_class])
         logger.info(f"Minority class: {unique_values[minority_class]}")
         logger.info(f"Minority class size: {class_sizes[minority_class]}")
-        logger.info(f"Increasing minority class size by {upsampled_indices.shape[0]}")
+        logger.info(
+            f"Increasing minority class size by {upsampled_indices.shape[0]}")
 
         self.samples = upsampled_indices
 
     def train_dataloader(self):
-        logger.info(
-            "Instantiating training dataloader "
-            f"with batch size {self.hparams.batch_size}"
-        )
+        logger.info("Instantiating training dataloader "
+                    f"with batch size {self.hparams.batch_size}")
         dataset = MultiphenoDataset(
+            # self.train_tensor,
+            # self.covariates[self.train_samples, :],
+            # self.y[self.train_samples, :],
             self.data,
             self.hparams.min_variant_count,
             self.hparams.batch_size,
             split="train",
             cache_tensors=self.hparams.cache_tensors,
-            normalization=self.normalization
-        )
-        return DataLoader(
-            dataset, batch_size=None, num_workers=self.hparams.num_workers
-        )
+            normalization=self.normalization,
+            balance_dataset=self.balance_dataset,
+            single_pheno=self.single_pheno)
+        return DataLoader(dataset,
+                          shuffle=True,
+                          batch_size=None,
+                          num_workers=self.hparams.num_workers)
 
     def val_dataloader(self):
-        logger.info(
-            "Instantiating validation dataloader "
-            f"with batch size {self.hparams.batch_size}"
-        )
+        logger.info("Instantiating validation dataloader "
+                    f"with batch size {self.hparams.batch_size}")
         dataset = MultiphenoDataset(
+            # self.val_tensor,
+            # self.covariates[self.val_samples, :],
+            # self.y[self.val_samples, :],
             self.data,
             self.hparams.min_variant_count,
             self.hparams.batch_size,
             split="val",
             cache_tensors=self.hparams.cache_tensors,
-        )
-        return DataLoader(
-            dataset, batch_size=None, num_workers=self.hparams.num_workers
-        )
+            normalization=self.normalization,
+            balance_dataset=self.balance_dataset,
+            single_pheno=self.single_pheno)
+        return DataLoader(dataset,
+                          batch_size=None,
+                          num_workers=self.hparams.num_workers)
 
 def set_random_seed(seed):
     random.seed(seed)
