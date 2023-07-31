@@ -205,30 +205,10 @@ class Classifier(pl.LightningModule):
             self.classifier = self.get_model(dim, 1, getattr(self.hparams_, "classification_layers", 1), 0)
         else:
             self.classifier = nn.ModuleDict({
-                pheno: self.get_model(self.hparams_.n_covariates + self.dim_mlp_padding, 1, 
+                pheno: self.get_model("Classification", self.hparams_.n_covariates + self.hparams_.n_genes[pheno], 1, 
                                       getattr(self.hparams_, "classification_layers", 1), 0)
                 for pheno in self.hparams_.phenotypes
             })
-            
-    def forward(self, x, covariates, pheno, gene_id):
-        if self.pad_genes: x = self.pad_genes_(x, gene_id)
-        if self.do_mlp_padding: x = self.mlp_padding(x)
-
-        if self.embed_pheno:
-            if self.co_embed_cov: 
-                x = torch.cat((x, covariates), dim=1)
-                if self.do_mlp_covariantes: x = self.mlp_covariantes(x)
-            pheno_label = torch.tensor(self.pheno2id[pheno])
-            if x.is_cuda: pheno_label = pheno_label.cuda()
-            x *= self.burden_pheno_embedding(pheno_label)
-            if self.do_mlp_burden: x = self.mlp_burden(x)
-            if not self.co_embed_cov and self.do_mlp_covariantes: 
-                covariates *= self.covariances_pheno_embedding(pheno_label)
-                covariates = self.mlp_covariantes(covariates)
-            
-        if not self.co_embed_cov: x = torch.cat((x, covariates), dim=1)
-        if self.embed_pheno: return self.classifier(x).squeeze(dim=1)
-        else: return self.classifier[pheno](x).squeeze(dim=1)  #samples
             
     def add_mlp(self, param, default):
         dim_mlp = default
@@ -254,14 +234,34 @@ class Classifier(pl.LightningModule):
         padding_mask[:, gene_id] = x
         return padding_mask
     
-    def get_model(self, input_dim, output_dim, n_layers, res_layers):
+    def get_model(self, prefix, input_dim, output_dim, n_layers, res_layers):
         Layers_obj = Layers(n_layers, res_layers, input_dim, output_dim, self.activation, self.normalization, False, True)
         model = []  
         for l in range(n_layers):         
-            model.append((f"Classification_layer_{l}", Layers_obj.get_layer(l)))
-            if l != n_layers - 1: model.append((f"Classification_activation_{l}", self.activation))
+            model.append((f'{prefix}__layer_{l}', Layers_obj.get_layer(l)))
+            if l != n_layers - 1 or prefix != "Classification": model.append((f'{prefix}_activation_{l}', self.activation))
         model = nn.Sequential(OrderedDict(model))
         return init_params(self.hparams_, model)
+    
+    def forward(self, x, covariates, pheno, gene_id):
+        if self.pad_genes: x = self.pad_genes_(x, gene_id)
+        if self.do_mlp_padding: x = self.mlp_padding(x)
+
+        if self.embed_pheno:
+            if self.co_embed_cov: 
+                x = torch.cat((x, covariates), dim=1)
+                if self.do_mlp_covariantes: x = self.mlp_covariantes(x)
+            pheno_label = torch.tensor(self.pheno2id[pheno])
+            if x.is_cuda: pheno_label = pheno_label.cuda()
+            x *= self.burden_pheno_embedding(pheno_label)
+            if self.do_mlp_burden: x = self.mlp_burden(x)
+            if not self.co_embed_cov and self.do_mlp_covariantes: 
+                covariates *= self.covariances_pheno_embedding(pheno_label)
+                covariates = self.mlp_covariantes(covariates)
+            
+        if not self.co_embed_cov: x = torch.cat((x, covariates), dim=1)
+        if self.embed_pheno: return self.classifier(x).squeeze(dim=1)
+        else: return self.classifier[pheno](x).squeeze(dim=1)  #samples
 
 class DeepSetAgg(pl.LightningModule):
     def __init__(
