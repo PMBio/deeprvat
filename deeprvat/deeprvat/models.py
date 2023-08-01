@@ -179,30 +179,30 @@ class Classifier(pl.LightningModule):
 
         self.init_function = getattr(self.hparams_, "init", False)
         self.normalization = getattr(self.hparams_, "normalization", False)
-        self.activation = getattr(nn, getattr(self.hparams_, "activation", "LeakyReLU"))()
+        self.activation = getattr(nn, getattr(self.hparams_, "activation", 'LeakyReLU'))()
         self.embed_pheno = hasattr(self.hparams_, "embed_pheno")
         self.co_embed_cov = hasattr(self.hparams_, "co_embed_cov")
         self.pad_genes = getattr(self.hparams_, "pad_genes", False)
         
-        self.do_mlp_padding, self.dim_mlp_padding = self.add_mlp("dim_padding", self.gene_count)
-        if self.do_mlp_padding: self.mlp_padding = self.get_linear(self.gene_count, self.dim_mlp_padding) 
+        self.do_mlp_padding, dim_mlp_padding, layers_mlp_padding = self.add_mlp("dim_padding", self.gene_count)
+        if self.do_mlp_padding: self.mlp_padding = self.get_model("padding", self.gene_count, dim_mlp_padding, layers_mlp_padding, 0) 
         
         if self.embed_pheno:
-            dim = self.hparams_.n_covariates + self.dim_mlp_padding if self.co_embed_cov else self.hparams_.n_covariates
-            self.do_mlp_covariantes, self.dim_mlp_covariantes = self.add_mlp("dim_covariantes", dim)
-            if self.do_mlp_covariantes: self.mlp_covariantes = self.get_linear(dim, self.dim_mlp_covariantes)      
+            dim = self.hparams_.n_covariates + dim_mlp_padding if self.co_embed_cov else self.hparams_.n_covariates
+            self.do_mlp_covariantes, dim_mlp_covariantes, layers_mlp_covariantes = self.add_mlp("dim_covariantes", dim)
+            if self.do_mlp_covariantes: self.mlp_covariantes = self.get_model("covariantes", dim, dim_mlp_covariantes, layers_mlp_covariantes, 0)      
             
             self.pheno2id = dict(zip(phenotypes, range(len(phenotypes))))
-            dim = self.dim_mlp_covariantes if self.co_embed_cov else self.dim_mlp_padding
+            dim = dim_mlp_covariantes if self.co_embed_cov else dim_mlp_padding
             self.burden_pheno_embedding = self.get_embedding(len(phenotypes), dim)
             self.covariances_pheno_embedding = self.get_embedding(len(phenotypes), self.hparams_.n_covariates)
             
-            dim = self.dim_mlp_covariantes if self.co_embed_cov else self.dim_mlp_padding
-            self.do_mlp_burden, self.dim_mlp_burden = self.add_mlp("dim_burden", dim)  
-            if self.do_mlp_burden: self.mlp_burden = self.get_linear(dim, self.dim_mlp_burden)  
+            dim = dim_mlp_covariantes if self.co_embed_cov else dim_mlp_padding
+            self.do_mlp_burden, dim_mlp_burden, layers_mlp_burden = self.add_mlp("dim_burden", dim)  
+            if self.do_mlp_burden: self.mlp_burden = self.get_model("burden", dim, dim_mlp_burden, layers_mlp_burden, 0)  
              
-            dim = self.dim_mlp_covariantes + self.dim_mlp_burden if not self.co_embed_cov else self.dim_mlp_burden
-            self.classifier = self.get_model(dim, 1, getattr(self.hparams_, "classification_layers", 1), 0)
+            dim = dim_mlp_covariantes + dim_mlp_burden if not self.co_embed_cov else dim_mlp_burden
+            self.classifier = self.get_model("Classification", dim, 1, getattr(self.hparams_, "classification_layers", 1), 0)
         else:
             self.classifier = nn.ModuleDict({
                 pheno: self.get_model("Classification", self.hparams_.n_covariates + self.hparams_.n_genes[pheno], 1, 
@@ -212,17 +212,15 @@ class Classifier(pl.LightningModule):
             
     def add_mlp(self, param, default):
         dim_mlp = default
+        layers = 0
         do_mlp = hasattr(self.hparams_, param)
         if do_mlp: 
-            dim = getattr(self.hparams_, param)
+            mlp_dict = getattr(self.hparams_, param)
+            dim, layers = mlp_dict["out_dim"], mlp_dict["layers"]
             if dim == 0: do_mlp = False
             elif dim < 0: dim_mlp = default
             else: dim_mlp = dim
-        return do_mlp, dim_mlp
-    
-    def get_linear(self, in_dim, out_dim):
-        layer = nn.Linear(in_dim, out_dim)
-        return init_params(self.hparams_, layer)
+        return do_mlp, dim_mlp, layers
     
     def get_embedding(self, in_dim, out_dim):
         embedding = nn.Embedding(in_dim, out_dim)
@@ -233,7 +231,7 @@ class Classifier(pl.LightningModule):
         if x.is_cuda: padding_mask = padding_mask.cuda()
         padding_mask[:, gene_id] = x
         return padding_mask
-    
+ 
     def get_model(self, prefix, input_dim, output_dim, n_layers, res_layers):
         Layers_obj = Layers(n_layers, res_layers, input_dim, output_dim, self.activation, self.normalization, False, True)
         model = []  
@@ -242,9 +240,9 @@ class Classifier(pl.LightningModule):
             if l != n_layers - 1 or prefix != "Classification": model.append((f'{prefix}_activation_{l}', self.activation))
         model = nn.Sequential(OrderedDict(model))
         return init_params(self.hparams_, model)
-    
+
     def forward(self, x, covariates, pheno, gene_id):
-        if self.pad_genes: x = self.pad_genes_(x, gene_id)
+        x = self.pad_genes_(x, gene_id)
         if self.do_mlp_padding: x = self.mlp_padding(x)
 
         if self.embed_pheno:
@@ -261,7 +259,8 @@ class Classifier(pl.LightningModule):
             
         if not self.co_embed_cov: x = torch.cat((x, covariates), dim=1)
         if self.embed_pheno: return self.classifier(x).squeeze(dim=1)
-        else: return self.classifier[pheno](x).squeeze(dim=1)  #samples
+        else: return self.classifier[pheno](x).squeeze(dim=1)  
+
 
 class DeepSetAgg(pl.LightningModule):
     def __init__(
