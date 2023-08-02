@@ -28,7 +28,7 @@ norm_dir_name : norm
 sparse_dir_name : sparse
 
 # Expected to be found in working_dir/reference_dir
-reference_fasta_file : GRCh38.p14.genome.fa
+reference_fasta_file : GRCh38.primary_assembly.genome.fa
 
 # The format of the name of the "raw" vcf files
 vcf_filename_pattern: test_vcf_data_c{chr}_b{block}
