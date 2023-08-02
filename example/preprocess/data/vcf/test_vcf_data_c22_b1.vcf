@@ -1,0 +1,22 @@
+##fileformat=VCFv4.2
+##source=VCFake 0.1.0
+##FILTER=<ID=PASS,Description="All filters passed">
+##INFO=<ID=NS,Number=1,Type=Integer,Description="Number of Samples With Data">
+##contig=<ID=chr22>
+##reference=ftp://ftp.example.com/sample.fa
+##INFO=<ID=AF,Number=A,Type=Float,Description="Estimated allele frequency in the range (0,1)">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Approximate read depth; some reads may have been filtered">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Phased Genotype">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read Depth">
+##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	10000001	10000002	10000003	10000004	10000005	10000006	10000007	10000008	10000009	10000010
+chr22	10516173	.	A	G	.	PASS	.	GT:AD	0/0:10,20	0/0:15,25	0/0:12,18	0/0:22,25	0/0:30,15	0/0:13,17	0/0:40,40	0/0:28,30	0/0:14,18	0/0:10,10
+chr22	10522217	.	G	A	.	PASS	.	GT:AD	0/0:20,30	1/0:25,35	0/0:30,40	0/0:35,45	0/0:40,50	1/0:30,35	0/0:45,55	0/0:32,38	0/0:27,33	0/0:20,25
+chr22	10526445	.	A	G	.	PASS	.	GT:AD	0/0:40,50	0/1:35,45	0/0:25,30	0/0:20,25	0/0:38,42	0/0:23,27	0/0:35,40	0/0:40,40	0/0:30,30	0/0:25,25
+chr22	10527034	.	G	T	.	PASS	.	GT:AD	0/0:30,20	0/0:25,15	0/0:35,30	0/0:40,25	0/0:45,20	0/0:30,15	0/0:28,12	0/0:22,8	0/0:20,10	0/0:15,5
+chr22	10527038	.	C	G	.	PASS	.	GT:AD	0/0:40,40	1/0:35,35	0/0:30,30	0/0:25,25	0/0:20,20	0/0:15,15	0/0:10,10	0/0:5,5	0/0:45,45	0/0:50,50
+chr22	10527074	.	A	G	.	PASS	.	GT:AD	0/0:20,15	0/0:25,20	0/0:30,25	0/0:35,30	0/0:40,35	0/0:45,40	0/0:50,45	0/0:55,50	0/0:60,55	0/0:65,60
+chr22	10530662	.	A	G	.	PASS	.	GT:AD	0/0:30,25	0/1:25,20	1/0:20,15	0/0:15,10	0/0:10,5	0/0:5,0	0/0:0,0	0/0:0,0	0/0:0,0	0/0:0,0
+chr22	10530667	.	G	A	.	PASS	.	GT:AD	0/0:20,20	0/0:30,30	0/1:25,25	0/0:35,35	0/0:40,40	0/0:50,50	0/0:45,45	0/0:35,35	0/0:25,25	0/0:20,20
+chr22	10530699	.	A	G	.	PASS	.	GT:AD	0/0:30,30	0/0:25,25	0/0:20,20	1/1:15,15	0/0:10,10	0/0:5,5	0/0:0,0	0/0:0,0	0/0:0,0	0/0:0,0
+chr22	10530754	.	A	C	.	PASS	.	GT:AD	0/0:20,10	0/0:25,15	0/0:30,20	0/1:35,25	0/0:40,30	0/0:45,35	0/0:50,40	0/0:55,45	0/0:60,50	0/0:65,55
