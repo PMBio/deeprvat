@@ -115,6 +115,8 @@ parent_directory
 ## Running the preprocess pipeline
 
 ### Run the preprocess pipeline with example data
+*The vcf files in the example data folder was generated using [fake-vcf](https://github.com/endast/fake-vcf) (with some manual editing). 
+hence does not contain real data.*
 
 ```shell
 cd <path_to_repo>
