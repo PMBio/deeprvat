@@ -31,18 +31,33 @@ jobs:
       - name: Install DeepRVAT
         run: pip install -e ${{ github.workspace }}
         shell: micromamba-shell {0}
-      - name: Cache wget download
-        id: cache-genome-download
+
+      - name: Create directory for reference files
+        run: mkdir -p example/preprocess/workdir/reference
+
+      - name: Restore Cache
+        id: restore-cache
         uses: actions/cache@v2
         with:
-          path: ${{ github.workspace }}/example/preprocess/workdir/reference # Path to the directory where you want to store the downloaded file.
-          key: ${{ runner.os }}-wget-${{ hashFiles('${{ github.workspace }}/example/preprocess/GRCh38.primary_assembly.genome.fa.gz') }}
-      - name: Download fasta file
-        if: steps.cache-genome-download.outputs.cache-hit != 'true' # Only run the download step if cache was not hit
+          path: example/preprocess/workdir/reference
+          key: reference-genome-${{ runner.os }}-v1
+
+      - name: Check if Cache Hit
         run: |
-          cd ${{ github.workspace }}/example/preprocess && \
-          wget -P example/preprocess/workdir/reference https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38.primary_assembly.genome.fa.gz
-        shell: bash -el {0}
+          echo "Cache hit: ${{ steps.restore-cache.outputs.cache-hit }}"
+
+      - name: Download Genome File
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+        run: |
+          wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38.primary_assembly.genome.fa.gz -O example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa.gz
+
+      - name: Cache Genome File
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+        uses: actions/cache@v2
+        with:
+          path: example/preprocess/workdir/reference
+          key: reference-genome-${{ runner.os }}-v1
+
 #      - name: Download fasta file for preprocessing pipeline
 #        run: |
 #          cd ${{ github.workspace }}/example/preprocess \
