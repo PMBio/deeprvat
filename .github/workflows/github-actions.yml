@@ -81,7 +81,7 @@ jobs:
         with:
           directory: 'example/preprocess'
           snakefile: 'pipelines/preprocess.snakefile'
-          args: '-j 2 -n --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml'
+          args: '-j 2 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
 
   DeepRVAT-Preprocessing-And-Annotation-Pipeline-Tests:
     runs-on: ubuntu-latest
