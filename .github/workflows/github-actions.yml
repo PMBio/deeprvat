@@ -81,7 +81,7 @@ jobs:
         with:
           directory: 'example'
           snakefile: 'pipelines/preprocess.snakefile'
-          args: '-j 2 -n'
+          args: '-j 2 -n --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml '
 
   DeepRVAT-Preprocessing-And-Annotation-Pipeline-Tests:
     runs-on: ubuntu-latest
@@ -109,5 +109,5 @@ jobs:
         run: |
           python -m snakemake -j 2 --directory ${{ github.workspace }}/example/preprocess \
           --snakefile ${{ github.workspace }}/pipelines/preprocess.snakefile \
-          --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml--show-failed-logs
+          --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml --show-failed-logs
         shell: micromamba-shell {0}
