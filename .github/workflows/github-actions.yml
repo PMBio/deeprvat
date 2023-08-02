@@ -82,6 +82,7 @@ jobs:
           directory: 'example/preprocess'
           snakefile: 'pipelines/preprocess.snakefile'
           args: '-j 2 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
+          stagein: 'touch workdir/reference/GRCh38.primary_assembly.genome.fa'
 
   DeepRVAT-Preprocessing-And-Annotation-Pipeline-Tests:
     runs-on: ubuntu-latest
