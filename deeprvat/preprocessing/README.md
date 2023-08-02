@@ -114,6 +114,20 @@ parent_directory
 
 ## Running the preprocess pipeline
 
+### Run the preprocess pipeline with example data
+
+```shell
+cd <path_to_repo>
+cd example/preprocess
+# Download the fasta file
+wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38.primary_assembly.genome.fa.gz -P workdir/reference
+# Unpack the fasta file
+gzip -d workdir/reference/GRCh38.primary_assembly.genome.fa.gz
+# Run with the example config
+snakemake -j 1 --snakefile ../../pipelines/preprocess.snakefile --configfile ../../pipelines/config/deeprvat_preprocess_config.yaml
+```
+
+### Run on your own data
 After configuration and activating the environment run the pipeline using snakemake:
 
 ```shell
