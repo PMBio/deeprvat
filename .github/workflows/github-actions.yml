@@ -36,7 +36,7 @@ jobs:
         run: mkdir -p example/preprocess/workdir/reference
 
       - name: Restore Cache
-        id: restore-cache
+        id: restore-fasta-cache
         uses: actions/cache@v2
         with:
           path: example/preprocess/workdir/reference
@@ -44,15 +44,16 @@ jobs:
 
       - name: Check if Cache Hit
         run: |
-          echo "Cache hit: ${{ steps.restore-cache.outputs.cache-hit }}"
+          echo "Cache hit: ${{ steps.restore-fasta-cache.outputs.cache-hit }}"
 
       - name: Download Genome File
-        if: steps.restore-cache.outputs.cache-hit != 'true'
+        if: steps.restore-fasta-cache.outputs.cache-hit != 'true'
         run: |
-          wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38.primary_assembly.genome.fa.gz -O example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa.gz
+          wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.primary_assembly.annotation.gtf.gz \
+          -O example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa.gz
 
       - name: Cache Genome File
-        if: steps.restore-cache.outputs.cache-hit != 'true'
+        if: steps.restore-fasta-cache.outputs.cache-hit != 'true'
         uses: actions/cache@v2
         with:
           path: example/preprocess/workdir/reference
