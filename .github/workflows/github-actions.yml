@@ -35,34 +35,19 @@ jobs:
       - name: Create directory for reference files
         run: mkdir -p example/preprocess/workdir/reference
 
-      - name: Restore Cache
-        id: restore-fasta-cache
+      - name: Cache Primes
+        id: cache-primes
         uses: actions/cache@v3
         with:
           path: example/preprocess/workdir/reference
-          key: reference-genome-${{ runner.os }}-v1
+          key: ${{ runner.os }}-reference-fasta
 
-      - name: Check if Cache Hit
+      - name: Generate Prime Numbers
+        if: steps.cache-primes.outputs.cache-hit != 'true'
         run: |
-          echo "Cache hit: ${{ steps.restore-fasta-cache.outputs.cache-hit }}"
-
-      - name: Download Genome File
-        if: steps.restore-fasta-cache.outputs.cache-hit != 'true'
-        run: |
+          cd ${{ github.workspace }}/example/preprocess && \
           wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.primary_assembly.annotation.gtf.gz \
           -O example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa.gz
-
-      - name: Cache Genome File
-        if: steps.restore-fasta-cache.outputs.cache-hit != 'true'
-        uses: actions/cache@v2
-        with:
-          path: example/preprocess/workdir/reference
-          key: reference-genome-${{ runner.os }}-v1
-
-#      - name: Download fasta file for preprocessing pipeline
-#        run: |
-#          cd ${{ github.workspace }}/example/preprocess \
-#          && wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38.primary_assembly.genome.fa.gz -P workdir/reference
       - name: Unpack fasta file
         run: cd ${{ github.workspace }}/example/preprocess && gzip -d workdir/reference/GRCh38.primary_assembly.genome.fa.gz
       - name: Run preprocessing pipeline
