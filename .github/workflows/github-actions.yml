@@ -14,7 +14,6 @@ jobs:
           directory: 'example'
           snakefile: 'pipelines/training_association_testing.snakefile'
           args: '-j 2 -n'
-          stagein: 'pip install -e ${{ github.workspace }}'
       - name: Link pretrained models
         run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
       - name: Association Testing Pretrained Smoke Test
@@ -82,7 +81,7 @@ jobs:
           directory: 'example/preprocess'
           snakefile: 'pipelines/preprocess.snakefile'
           args: '-j 2 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
-          stagein: 'mkdir -pv ${{ github.workspace }}/example/preprocess/workdir/reference && touch ${{ github.workspace }}/example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa && pip install -e ${{ github.workspace }}'
+          stagein: 'mkdir -pv ${{ github.workspace }}/example/preprocess/workdir/reference && touch ${{ github.workspace }}/example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa'
 
   DeepRVAT-Preprocessing-Pipeline-Tests:
     runs-on: ubuntu-latest
