@@ -11,10 +11,10 @@ jobs:
       - name: Preprocessing Smoke Test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
-          directory: 'example/preprocess'
-          snakefile: 'pipelines/preprocess.snakefile'
+          directory: './example/preprocess'
+          snakefile: './pipelines/preprocess.snakefile'
           args: '-j 2 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
-          stagein: 'mkdir -pv workdir/reference && touch workdir/reference/GRCh38.primary_assembly.genome.fa && ls -Rl'
+          stagein: 'touch workdir/reference/GRCh38.primary_assembly.genome.fa && ls -Rl'
 
   DeepRVAT-Preprocessing-Pipeline-Tests:
     runs-on: ubuntu-latest
