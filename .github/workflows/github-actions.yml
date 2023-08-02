@@ -79,7 +79,7 @@ jobs:
       - name: Preprocessing Smoke Test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
-          directory: 'example'
+          directory: 'example/preprocess'
           snakefile: 'pipelines/preprocess.snakefile'
           args: '-j 2 -n --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml'
 
