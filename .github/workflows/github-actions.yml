@@ -37,7 +37,7 @@ jobs:
 
       - name: Restore Cache
         id: restore-fasta-cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: example/preprocess/workdir/reference
           key: reference-genome-${{ runner.os }}-v1
