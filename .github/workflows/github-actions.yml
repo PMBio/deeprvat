@@ -70,3 +70,44 @@ jobs:
           python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
           --snakefile ${{ github.workspace }}/pipelines/seed_gene_discovery.snakefile --show-failed-logs
         shell: micromamba-shell {0}
+
+  DeepRVAT-Preprocessing-And-Annotation-Pipeline-Smoke-Tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Preprocessing Smoke Test
+        uses: snakemake/snakemake-github-action@v1.24.0
+        with:
+          directory: 'example'
+          snakefile: 'pipelines/preprocess.snakefile'
+          args: '-j 2 -n'
+
+  DeepRVAT-Preprocessing-And-Annotation-Pipeline-Tests:
+    runs-on: ubuntu-latest
+    needs: DeepRVAT-Preprocessing-And-Annotation-Pipeline-Smoke-Tests
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - uses: mamba-org/setup-micromamba@v1.4.3
+        with:
+          environment-name: deeprvat-preprocess-gh-action
+          environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
+          cache-environment: true
+          cache-downloads: true
+      - name: Install DeepRVAT
+        run: pip install -e ${{ github.workspace }}
+        shell: micromamba-shell {0}
+      - name: Download fasta file for preprocessing pipeline
+        run: |
+          cd ${{ github.workspace }}/example/preprocess \
+          && wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38.primary_assembly.genome.fa.gz -P workdir/reference
+        shell: bash -el {0}
+      - name: Unpack fasta file
+        run: cd ${{ github.workspace }}/example/preprocess && gzip -d workdir/reference/GRCh38.primary_assembly.genome.fa.gz
+      - name: Run preprocessing pipeline
+        run: |
+          python -m snakemake -j 2 --directory ${{ github.workspace }}/example/preprocess \
+          --snakefile ${{ github.workspace }}/pipelines/preprocess.snakefile \
+          --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml--show-failed-logs
+        shell: micromamba-shell {0}
