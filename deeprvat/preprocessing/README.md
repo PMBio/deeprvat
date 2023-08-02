@@ -18,9 +18,11 @@ The important files that this pipeline produces that are needed in DeepRVAT are:
 Create the DeepRVAT processing environment
 
 Clone this repository:
+
 ```shell
 git clone git@github.com:PMBio/deeprvat.git
 ```
+
 Change directory to the repository: `cd deeprvat`
 
 ```shell
@@ -115,21 +117,48 @@ parent_directory
 ## Running the preprocess pipeline
 
 ### Run the preprocess pipeline with example data
-*The vcf files in the example data folder was generated using [fake-vcf](https://github.com/endast/fake-vcf) (with some manual editing). 
+
+*The vcf files in the example data folder was generated using [fake-vcf](https://github.com/endast/fake-vcf) (with some
+manual editing).
 hence does not contain real data.*
+
+1. cd into the preprocessing example dir
 
 ```shell
 cd <path_to_repo>
 cd example/preprocess
-# Download the fasta file
+```
+
+2. Download the fasta file
+
+```shell
 wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38.primary_assembly.genome.fa.gz -P workdir/reference
-# Unpack the fasta file
+```
+
+3. Unpack the fasta file
+
+```shell
 gzip -d workdir/reference/GRCh38.primary_assembly.genome.fa.gz
-# Run with the example config
+```
+
+4. Run with the example config
+
+```shell
 snakemake -j 1 --snakefile ../../pipelines/preprocess.snakefile --configfile ../../pipelines/config/deeprvat_preprocess_config.yaml
 ```
 
+5. Enjoy the preprocessed data 🎉
+
+```shell
+ls -l workdir/preprocesed
+total 48
+-rw-r--r--  1 user  staff  6404 Aug  2 14:06 genotypes.h5
+-rw-r--r--  1 user  staff  6354 Aug  2 14:06 genotypes_chr21.h5
+-rw-r--r--  1 user  staff  6354 Aug  2 14:06 genotypes_chr22.h5
+```
+
 ### Run on your own data
+
 After configuration and activating the environment run the pipeline using snakemake:
 
 ```shell
