@@ -1,5 +1,6 @@
 
 example/**/.snakemake/**
+example/**/.snakemake_*
 
 
 # Byte-compiled / optimized / DLL files
