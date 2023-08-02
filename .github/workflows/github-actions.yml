@@ -3,72 +3,72 @@ run-name: DeepRVAT 🧬🧪💻🧑‍🔬
 on: [ push ]
 
 jobs:
-#  DeepRVAT-Pipeline-Smoke-Tests:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Check out repository code
-#        uses: actions/checkout@v3
-#      - name: Training Association Testing smoke test
-#        uses: snakemake/snakemake-github-action@v1.24.0
-#        with:
-#          directory: 'example'
-#          snakefile: 'pipelines/training_association_testing.snakefile'
-#          args: '-j 2 -n'
-#      - name: Link pretrained models
-#        run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
-#      - name: Association Testing Pretrained Smoke Test
-#        uses: snakemake/snakemake-github-action@v1.24.0
-#        with:
-#          directory: 'example'
-#          snakefile: 'pipelines/association_testing_pretrained.snakefile'
-#          args: '-j 2 -n'
-#      - name: Seed Gene Discovery Smoke Test
-#        uses: snakemake/snakemake-github-action@v1.24.0
-#        with:
-#          directory: 'example'
-#          snakefile: 'pipelines/seed_gene_discovery.snakefile'
-#          args: '-j 2 -n'
-#
-#  DeepRVAT-Pipeline-Tests:
-#    runs-on: ubuntu-latest
-#    needs: DeepRVAT-Pipeline-Smoke-Tests
-#    steps:
-#      - name: Check out repository code
-#        uses: actions/checkout@v3
-#      - uses: mamba-org/setup-micromamba@v1.4.3
-#        with:
-#          environment-name: deeprvat-gh-action
-#          environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
-#          cache-environment: true
-#          cache-downloads: true
-#      - name: Install DeepRVAT
-#        run: pip install -e ${{ github.workspace }}
-#        shell: micromamba-shell {0}
-#      # There are no GPUs on the gh worker, so we disable it in the config
-#      - name: Update config to use no gpus
-#        run: "sed -i 's/gpus: 1/gpus: 0/' ${{ github.workspace }}/example/config.yaml"
-#        shell: bash -el {0}
-#      - name: Run training_association_testing pipeline
-#        run: |
-#          python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
-#          --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
-#        shell: micromamba-shell {0}
-#      - name: Link pretrained models
-#        run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
-#        shell: bash -el {0}
-#      - name: Run association_testing_pretrained pipeline
-#        run: |
-#          python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
-#          --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained.snakefile --show-failed-logs
-#        shell: micromamba-shell {0}
-#      - name: Copy seed gene discovery snakemake config
-#        run: cd ${{ github.workspace }}/example && cp ../deeprvat/seed_gene_discovery/config.yaml .
-#        shell: bash -el {0}
-#      - name: Run seed_gene_discovery pipeline
-#        run: |
-#          python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
-#          --snakefile ${{ github.workspace }}/pipelines/seed_gene_discovery.snakefile --show-failed-logs
-#        shell: micromamba-shell {0}
+  DeepRVAT-Pipeline-Smoke-Tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Training Association Testing smoke test
+        uses: snakemake/snakemake-github-action@v1.24.0
+        with:
+          directory: 'example'
+          snakefile: 'pipelines/training_association_testing.snakefile'
+          args: '-j 2 -n'
+      - name: Link pretrained models
+        run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
+      - name: Association Testing Pretrained Smoke Test
+        uses: snakemake/snakemake-github-action@v1.24.0
+        with:
+          directory: 'example'
+          snakefile: 'pipelines/association_testing_pretrained.snakefile'
+          args: '-j 2 -n'
+      - name: Seed Gene Discovery Smoke Test
+        uses: snakemake/snakemake-github-action@v1.24.0
+        with:
+          directory: 'example'
+          snakefile: 'pipelines/seed_gene_discovery.snakefile'
+          args: '-j 2 -n'
+
+  DeepRVAT-Pipeline-Tests:
+    runs-on: ubuntu-latest
+    needs: DeepRVAT-Pipeline-Smoke-Tests
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - uses: mamba-org/setup-micromamba@v1.4.3
+        with:
+          environment-name: deeprvat-gh-action
+          environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
+          cache-environment: true
+          cache-downloads: true
+      - name: Install DeepRVAT
+        run: pip install -e ${{ github.workspace }}
+        shell: micromamba-shell {0}
+      # There are no GPUs on the gh worker, so we disable it in the config
+      - name: Update config to use no gpus
+        run: "sed -i 's/gpus: 1/gpus: 0/' ${{ github.workspace }}/example/config.yaml"
+        shell: bash -el {0}
+      - name: Run training_association_testing pipeline
+        run: |
+          python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
+          --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
+        shell: micromamba-shell {0}
+      - name: Link pretrained models
+        run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
+        shell: bash -el {0}
+      - name: Run association_testing_pretrained pipeline
+        run: |
+          python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
+          --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained.snakefile --show-failed-logs
+        shell: micromamba-shell {0}
+      - name: Copy seed gene discovery snakemake config
+        run: cd ${{ github.workspace }}/example && cp ../deeprvat/seed_gene_discovery/config.yaml .
+        shell: bash -el {0}
+      - name: Run seed_gene_discovery pipeline
+        run: |
+          python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
+          --snakefile ${{ github.workspace }}/pipelines/seed_gene_discovery.snakefile --show-failed-logs
+        shell: micromamba-shell {0}
 
 
   DeepRVAT-Preprocessing-Pipeline-Smoke-Tests:
@@ -109,7 +109,7 @@ jobs:
           path: example/preprocess/workdir/reference
           key: ${{ runner.os }}-reference-fasta
 
-      - name: Download And Unpack Fasta Data
+      - name: Download and unpack fasta data
         if: steps.cache-fasta.outputs.cache-hit != 'true'
         run: |
           cd ${{ github.workspace }}/example/preprocess && \
@@ -117,9 +117,9 @@ jobs:
           -O workdir/reference/GRCh38.primary_assembly.genome.fa.gz \
           && gzip -d workdir/reference/GRCh38.primary_assembly.genome.fa.gz
 
-#      - name: Run preprocessing pipeline
-#        run: |
-#          python -m snakemake -j 2 --directory ${{ github.workspace }}/example/preprocess \
-#          --snakefile ${{ github.workspace }}/pipelines/preprocess.snakefile \
-#          --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml --show-failed-logs
-#        shell: micromamba-shell {0}
+      - name: Run preprocessing pipeline
+        run: |
+          python -m snakemake -j 2 --directory ${{ github.workspace }}/example/preprocess \
+          --snakefile ${{ github.workspace }}/pipelines/preprocess.snakefile \
+          --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml --show-failed-logs
+        shell: micromamba-shell {0}
