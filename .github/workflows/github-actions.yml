@@ -82,7 +82,7 @@ jobs:
           directory: 'example/preprocess'
           snakefile: 'pipelines/preprocess.snakefile'
           args: '-j 2 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
-          stagein: 'touch workdir/reference/GRCh38.primary_assembly.genome.fa'
+          stagein: 'touch  ${{ github.workspace }}/example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa && pip install -e ${{ github.workspace }}'
 
   DeepRVAT-Preprocessing-And-Annotation-Pipeline-Tests:
     runs-on: ubuntu-latest
