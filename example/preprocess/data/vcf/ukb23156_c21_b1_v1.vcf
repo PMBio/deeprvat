@@ -1,0 +1,32 @@
+##fileformat=VCFv4.2
+##source=VCFake 0.1.0
+##FILTER=<ID=PASS,Description="All filters passed">
+##INFO=<ID=NS,Number=1,Type=Integer,Description="Number of Samples With Data">
+##contig=<ID=chr21>
+##reference=ftp://ftp.example.com/sample.fa
+##INFO=<ID=AF,Number=A,Type=Float,Description="Estimated allele frequency in the range (0,1)">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Approximate read depth; some reads may have been filtered">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Phased Genotype">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read Depth">
+##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	10000001	10000002	10000003	10000004	10000005	10000006	10000007	10000008	10000009	10000010
+chr21	5033871	.	G	A	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5033884	.	G	A	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5033887	.	G	A	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5035658	.	C	T	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5038298	.	A	G	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5038313	.	C	T	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5051437	.	C	A	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5051474	.	T	A	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5052251	.	C	A	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5053701	.	T	A	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5053702	.	G	A	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5053936	.	T	C	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5053962	.	G	T	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5062849	.	G	A	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5063904	.	A	C	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5063917	.	T	C	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5064679	.	C	T	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5065720	.	G	A	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5065982	.	T	C	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
+chr21	5066005	.	G	A	.	PASS	DP=5;AF=0.5;NS=20	GT	0/0	0/0	0/1	0/1	0/1	0/1	0/1	0/1	0/1	0/1
