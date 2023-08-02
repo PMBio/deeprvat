@@ -1,6 +1,7 @@
 
 example/**/.snakemake/**
 example/**/.snakemake_*
+example/preprocess/workdir/reference/GRCh38.p14.genome.fa
 
 
 # Byte-compiled / optimized / DLL files
