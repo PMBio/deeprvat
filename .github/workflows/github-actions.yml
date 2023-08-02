@@ -71,7 +71,7 @@ jobs:
           --snakefile ${{ github.workspace }}/pipelines/seed_gene_discovery.snakefile --show-failed-logs
         shell: micromamba-shell {0}
 
-  DeepRVAT-Preprocessing-And-Annotation-Pipeline-Smoke-Tests:
+  DeepRVAT-Preprocessing-Pipeline-Smoke-Tests:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
@@ -84,9 +84,9 @@ jobs:
           args: '-j 2 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
           stagein: 'touch  ${{ github.workspace }}/example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa && pip install -e ${{ github.workspace }}'
 
-  DeepRVAT-Preprocessing-And-Annotation-Pipeline-Tests:
+  DeepRVAT-Preprocessing-Pipeline-Tests:
     runs-on: ubuntu-latest
-    needs: DeepRVAT-Preprocessing-And-Annotation-Pipeline-Smoke-Tests
+    needs: DeepRVAT-Preprocessing-Pipeline-Smoke-Tests
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
