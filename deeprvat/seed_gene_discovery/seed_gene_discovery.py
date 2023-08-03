@@ -346,7 +346,9 @@ def run_association_(
     # Get column with minor allele frequency
     annotations = config["data"]["dataset_config"]["annotations"]
     maf_col = [
-        annotation for annotation in annotations if re.search(r"_AF|_MAF|^MAF", annotation)
+        annotation
+        for annotation in annotations
+        if re.search(r"_AF|_MAF|^MAF", annotation)
     ]
     assert len(maf_col) == 1
     maf_col = maf_col[0]
