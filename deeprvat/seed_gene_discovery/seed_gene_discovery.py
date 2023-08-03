@@ -169,7 +169,6 @@ def get_anno(
     var_weight_function: str,
     maf_col: str,
 ):
-
     # temp_genotypes -= np.nanmean(temp_genotypes, axis=0)
     # G1 = np.ma.masked_invalid(temp_genotypes).filled(0.)
     assert np.all(np.isfinite(G))
@@ -191,12 +190,12 @@ def call_score(GV, null_model_score, pval_dict, test_type):
             f"Negative value encountered in p-value computation "
             f"p-value: {pv}, using saddle instead."
         )
-        #get test time
+        # get test time
         start_time = time.time()
         pv = null_model_score.pv_alt_model(GV, method="saddle")
         end_time = time.time()
         time_diff = end_time - start_time
-        pval_dict['time'] = time_diff
+        pval_dict["time"] = time_diff
     pval_dict["pval"] = pv
     if pv < 1e-3 and test_type == "burden":
         logger.info("Computing regression coefficient")
@@ -206,6 +205,7 @@ def call_score(GV, null_model_score, pval_dict, test_type):
         pval_dict["beta"] = beta["beta"][0, 0]
         pval_dict["betaSd"] = np.sqrt(beta["var_beta"][0, 0])
     return pval_dict
+
 
 # set up the test-function for a single gene
 def test_gene(
@@ -233,7 +233,7 @@ def test_gene(
     # Important: cast G into numpy array. Otherwise it will be a matrix and
     # the * operator does matrix mutiplication (.dot()) instead of scalar multiplication (.multiply())
     G = np.asarray(G)
-    logger.info(f'G shape and sum {G.shape, G.sum()}')
+    logger.info(f"G shape and sum {G.shape, G.sum()}")
     # GET expected allele count (EAC) as in Karczewski et al. 2022/Genebass
     vars_per_sample = np.sum(G, axis=1)
     samples_with_variant = vars_per_sample[vars_per_sample > 0].shape[0]
@@ -257,7 +257,10 @@ def test_gene(
 
     # keep backwards compatibility
 
-    weights, _, = get_anno(
+    (
+        weights,
+        _,
+    ) = get_anno(
         G, variant_ids, annotation_df, weight_cols, var_weight_function, maf_col
     )
     variant_weight_th = (
@@ -320,7 +323,7 @@ def test_gene(
     else:
         GW = GW_full = np.zeros(G.shape[0])
 
-    return pval_dict, GW, GW_full  
+    return pval_dict, GW, GW_full
 
 
 def run_association_(
@@ -348,7 +351,9 @@ def run_association_(
     # Get column with minor allele frequency
     annotations = config["data"]["dataset_config"]["annotations"]
     maf_col = [
-        annotation for annotation in annotations if re.search(r"_AF|_MAF|^MAF", annotation)
+        annotation
+        for annotation in annotations
+        if re.search(r"_AF|_MAF|^MAF", annotation)
     ]
     assert len(maf_col) == 1
     maf_col = maf_col[0]
@@ -366,7 +371,7 @@ def run_association_(
                 config["test_config"],
                 var_type,
                 test_type,
-                maf_col
+                maf_col,
             )
             if persist_burdens:
                 GW_list[gene] = GW
