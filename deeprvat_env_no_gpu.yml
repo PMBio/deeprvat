@@ -1,0 +1,33 @@
+name: deeprvat_non_cuda
+channels:
+  - pytorch
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - click=8.1
+  - dask=2023.5
+  - fastparquet=0.5
+  - h5py=3.1
+  - numcodecs=0.11
+  - numpy=1.21
+  - optuna=2.10
+  - pandas=1.5
+  - pyarrow=11.0
+  - python=3.8
+  - pytorch=1.13
+  - pytorch-lightning=1.5
+  - pyyaml=5.4
+  - scikit-learn=1.1
+  - scipy=1.10
+  - setuptools=59.5
+  - snakemake=7.17
+  - sqlalchemy=1.4
+  - statsmodels=0.13
+  - tqdm=4.59
+  - zarr=2.13
+  - Cython=0.29
+  - pip=23.1.2
+  - plotnine=0.10.1
+  - pip:
+    - git+https://github.com/HealthML/seak@v0.4.3
