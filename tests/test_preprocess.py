@@ -24,61 +24,61 @@ def load_h5_archive(h5_path):
     "test_data_name_dir, extra_cli_params, genotype_file_name",
     [
         (
-                "no_filters_minimal",
-                [
-                    "--chromosomes",
-                    "1",
-                ],
-                "genotypes_chr1.h5",
+            "no_filters_minimal",
+            [
+                "--chromosomes",
+                "1",
+            ],
+            "genotypes_chr1.h5",
         ),
         (
-                "filter_variants_minimal",
-                [
-                    "--chromosomes",
-                    "1",
-                    "--exclude-variants",
-                    f"{(tests_data_dir / 'process_sparse_gt/filter_variants_minimal/input/qc').as_posix()}",
-                ],
-                "genotypes_chr1.h5",
+            "filter_variants_minimal",
+            [
+                "--chromosomes",
+                "1",
+                "--exclude-variants",
+                f"{(tests_data_dir / 'process_sparse_gt/filter_variants_minimal/input/qc').as_posix()}",
+            ],
+            "genotypes_chr1.h5",
         ),
         (
-                "filter_samples_minimal",
-                [
-                    "--chromosomes",
-                    "1",
-                    "--exclude-samples",
-                    f"{(tests_data_dir / 'process_sparse_gt/filter_samples_minimal/input/qc').as_posix()}",
-                ],
-                "genotypes_chr1.h5",
+            "filter_samples_minimal",
+            [
+                "--chromosomes",
+                "1",
+                "--exclude-samples",
+                f"{(tests_data_dir / 'process_sparse_gt/filter_samples_minimal/input/qc').as_posix()}",
+            ],
+            "genotypes_chr1.h5",
         ),
         (
-                "filter_calls_minimal",
-                [
-                    "--chromosomes",
-                    "1",
-                    "--exclude-calls",
-                    f"{(tests_data_dir / 'process_sparse_gt/filter_calls_minimal/input/qc').as_posix()}",
-                ],
-                "genotypes_chr1.h5",
+            "filter_calls_minimal",
+            [
+                "--chromosomes",
+                "1",
+                "--exclude-calls",
+                f"{(tests_data_dir / 'process_sparse_gt/filter_calls_minimal/input/qc').as_posix()}",
+            ],
+            "genotypes_chr1.h5",
         ),
         (
-                "filter_calls_vars_samples_minimal",
-                [
-                    "--chromosomes",
-                    "1",
-                    "--exclude-calls",
-                    f"{(tests_data_dir / 'process_sparse_gt/filter_calls_vars_samples_minimal/input/qc/calls/').as_posix()}",
-                    "--exclude-samples",
-                    f"{(tests_data_dir / 'process_sparse_gt/filter_calls_vars_samples_minimal/input/qc/samples/').as_posix()}",
-                    "--exclude-variants",
-                    f"{(tests_data_dir / 'process_sparse_gt/filter_calls_vars_samples_minimal/input/qc/variants/').as_posix()}",
-                ],
-                "genotypes_chr1.h5",
+            "filter_calls_vars_samples_minimal",
+            [
+                "--chromosomes",
+                "1",
+                "--exclude-calls",
+                f"{(tests_data_dir / 'process_sparse_gt/filter_calls_vars_samples_minimal/input/qc/calls/').as_posix()}",
+                "--exclude-samples",
+                f"{(tests_data_dir / 'process_sparse_gt/filter_calls_vars_samples_minimal/input/qc/samples/').as_posix()}",
+                "--exclude-variants",
+                f"{(tests_data_dir / 'process_sparse_gt/filter_calls_vars_samples_minimal/input/qc/variants/').as_posix()}",
+            ],
+            "genotypes_chr1.h5",
         ),
     ],
 )
 def test_process_sparse_gt_file(
-        test_data_name_dir, extra_cli_params, genotype_file_name, tmp_path
+    test_data_name_dir, extra_cli_params, genotype_file_name, tmp_path
 ):
     cli_runner = CliRunner()
 
@@ -125,12 +125,12 @@ def test_process_sparse_gt_file(
     "test_data_name_dir, input_h5, result_h5",
     [
         (
-                "combine_chr1_chr2",
-                [
-                    "genotypes_chr1.h5",
-                    "genotypes_chr2.h5",
-                ],
-                "genotypes.h5",
+            "combine_chr1_chr2",
+            [
+                "genotypes_chr1.h5",
+                "genotypes_chr2.h5",
+            ],
+            "genotypes.h5",
         ),
     ],
 )
@@ -171,21 +171,21 @@ def test_combine_genotypes(test_data_name_dir, input_h5, result_h5, tmp_path):
     "test_data_name_dir, input_variants, output_variants, output_duplicates",
     [
         (
-                "add_variant_ids_tsv",
-                "variants_no_id.tsv.gz",
-                "variants.tsv.gz",
-                "duplicates.tsv",
+            "add_variant_ids_tsv",
+            "variants_no_id.tsv.gz",
+            "variants.tsv.gz",
+            "duplicates.tsv",
         ),
         (
-                "add_variant_ids_parquet",
-                "variants_no_id.tsv.gz",
-                "variants.parquet",
-                "duplicates.parquet",
+            "add_variant_ids_parquet",
+            "variants_no_id.tsv.gz",
+            "variants.parquet",
+            "duplicates.parquet",
         ),
     ],
 )
 def test_add_variant_ids(
-        test_data_name_dir, input_variants, output_variants, output_duplicates, tmp_path
+    test_data_name_dir, input_variants, output_variants, output_duplicates, tmp_path
 ):
     cli_runner = CliRunner()
 
@@ -226,44 +226,44 @@ def test_add_variant_ids(
     "test_data_name_dir, extra_cli_params, input_h5, result_h5",
     [
         (
-                "no_filters_minimal_split",
-                [
-                    "--chromosomes",
-                    "1,2",
-                ],
-                [
-                    "genotypes_chr1.h5",
-                    "genotypes_chr2.h5",
-                ],
-                "genotypes.h5",
+            "no_filters_minimal_split",
+            [
+                "--chromosomes",
+                "1,2",
+            ],
+            [
+                "genotypes_chr1.h5",
+                "genotypes_chr2.h5",
+            ],
+            "genotypes.h5",
         ),
         (
-                "filter_calls_variants_samples_minimal_split",
-                [
-                    "--chromosomes",
-                    "1,2",
-                    "--exclude-calls",
-                    f"{(tests_data_dir / 'process_and_combine_sparse_gt/filter_calls_variants_samples_minimal_split/input/qc/calls/').as_posix()}",
-                    "--exclude-samples",
-                    f"{(tests_data_dir / 'process_and_combine_sparse_gt/filter_calls_variants_samples_minimal_split/input/qc/samples/').as_posix()}",
-                    "--exclude-variants",
-                    f"{(tests_data_dir / 'process_and_combine_sparse_gt/filter_calls_variants_samples_minimal_split/input/qc/variants/').as_posix()}",
-                ],
-                [
-                    "genotypes_chr1.h5",
-                    "genotypes_chr2.h5",
-                ],
-                "genotypes.h5",
+            "filter_calls_variants_samples_minimal_split",
+            [
+                "--chromosomes",
+                "1,2",
+                "--exclude-calls",
+                f"{(tests_data_dir / 'process_and_combine_sparse_gt/filter_calls_variants_samples_minimal_split/input/qc/calls/').as_posix()}",
+                "--exclude-samples",
+                f"{(tests_data_dir / 'process_and_combine_sparse_gt/filter_calls_variants_samples_minimal_split/input/qc/samples/').as_posix()}",
+                "--exclude-variants",
+                f"{(tests_data_dir / 'process_and_combine_sparse_gt/filter_calls_variants_samples_minimal_split/input/qc/variants/').as_posix()}",
+            ],
+            [
+                "genotypes_chr1.h5",
+                "genotypes_chr2.h5",
+            ],
+            "genotypes.h5",
         ),
     ],
 )
 def test_process_and_combine_sparse_gt(
-        test_data_name_dir, extra_cli_params, input_h5, result_h5, tmp_path
+    test_data_name_dir, extra_cli_params, input_h5, result_h5, tmp_path
 ):
     cli_runner = CliRunner()
 
     current_test_data_dir = (
-            tests_data_dir / "process_and_combine_sparse_gt" / test_data_name_dir
+        tests_data_dir / "process_and_combine_sparse_gt" / test_data_name_dir
     )
 
     test_data_input_dir = current_test_data_dir / "input"
