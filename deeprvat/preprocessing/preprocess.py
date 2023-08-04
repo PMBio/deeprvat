@@ -178,9 +178,7 @@ def process_sparse_gt(
     total_variants = len(variants)
     if len(exclude_variants) > 0:
         variant_exclusion_files = [
-            Path(directory) / v
-            for directory in exclude_variants
-            for v in Path(directory).glob("*.tsv*")
+            v for directory in exclude_variants for v in Path(directory).glob("*.tsv*")
         ]
 
         variants_to_exclude = pd.concat(

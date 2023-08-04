@@ -9,14 +9,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import click
-import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 import yaml
-import random
 from scipy.stats import beta
 from scipy.sparse import coo_matrix, spmatrix
-from statsmodels.stats.multitest import fdrcorrection
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
@@ -169,8 +166,6 @@ def get_anno(
     var_weight_function: str,
     maf_col: str,
 ):
-    # temp_genotypes -= np.nanmean(temp_genotypes, axis=0)
-    # G1 = np.ma.masked_invalid(temp_genotypes).filled(0.)
     assert np.all(np.isfinite(G))
 
     weights, plof_mask = get_weights(
@@ -634,7 +629,6 @@ def run_association(
     if isinstance(G_full, spmatrix):
         G_full = G_full.tocsr()
     G_full = G_full[this_data_idx]
-    ## HAKIME
     logger.info(f"all_variants shape: {all_variants.shape}")
 
     X = data_full["x_phenotypes"].numpy()[this_data_idx]
@@ -662,7 +656,6 @@ def run_association(
 
     logger.info(f"Number of genes to test: {len(gene_ids)}")
     # grouped annotations also contains non-coding gene ids
-    # gene_ids = list(grouped_annotations.groups.keys())
 
     if debug:
         logger.info("Debug mode: Using only 100 genes")
@@ -739,8 +732,6 @@ def combine_results(result_files: Tuple[str], out_file: str):
     logger.info("Doing simple postprocessing of results")
 
     cols_to_keep = ["gene", "EAC", "pval"]
-
-    # res_df.to_parquet(out_file)
 
     if "EAC" in res_df.columns:
         logger.info("Filtering for genes with EAC > 50")
