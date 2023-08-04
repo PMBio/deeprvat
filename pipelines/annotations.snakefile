@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 
-configfile: "anno-workbench.yaml"
+configfile: "config/deeprvat_annotation_config.yaml"
 
 
 # init general
@@ -151,6 +151,8 @@ rule concat_deepSea:
         
     output:
         anno_dir / "all_variants.deepSea.csv",
+    resources:
+        mem_mb=lambda wildcards, attempt: 30000 * (attempt + 1),
     shell:
         " ".join(
         [
@@ -159,7 +161,8 @@ rule concat_deepSea:
             "concatenate-deepripe",
             "--included-chromosomes",
             ",".join(included_chromosomes),
-            "--sep '\\t'" f"{anno_dir}",
+            "--sep '\\t'",
+            f"{anno_dir}",
             str(vcf_pattern + ".CLI.deepseapredict.diff.tsv").format(
         chr="{{chr}}", block="{{block}}"
                 ),
