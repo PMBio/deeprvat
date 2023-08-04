@@ -1,5 +1,5 @@
-fasta_dir : reference
-fasta_file_name : GRCh38.primary_assembly.genome.fa.gz
+fasta_dir : /omics/groups/OE0540/internal/users/mueck/ukbb_workdir/reference/
+fasta_file_name : hg38.fa
 bcftools_load_cmd : module load bcftools/1.9
 htslib_load_cmd : module load htslib/1.9
 perl_load_cmd : module load perl/5.20.2
@@ -8,22 +8,25 @@ vep_load_cmd : module load vep/108.1
 vcf_file_pattern : ukb23156_c{chr}_b{block}_v1
 included_chromosomes : ['21','22']
 
-metadata_dir : vcf/metadata
+metadata_dir : input_path/vcf/metadata
 pvcf_blocks_file : pvcf_blocks.txt
-vcf_dir : vcf/raw
-anno_tmp_dir : annotations/tmp
-anno_dir : annotations
+vcf_dir : input_path/vcf
+anno_tmp_dir : output_dir/annotations/tmp
+anno_dir : output_dir/annotations
 
-cadd_src_dir  : software/CADD-scripts
-cadd_snv_file : annotation_data/cadd/whole_genome_SNVs.tsv.gz
-cadd_indel_file : annotation_data/cadd/gnomad.genomes.r3.0.indel.tsv.gz
-vep_src_dir : software/ensembl-vep
-vep_cache_dir : software/ensembl-vep/cache/vep109
-vep_plugin_dir : software/ensembl-vep/Plugins
+repo_dir : repo_dir 
+
+vep_cache_dir : repo_dir/ensembl-vep/cache/vep109
+vep_plugin_dir : repo_dir/ensembl-vep/Plugins
 spliceAI_snv_file : annotation_data/spliceAI/spliceai_scores.raw.snv.hg38.vcf.gz
 spliceAI_indel_file : annotation_data/spliceAI/spliceai_scores.raw.indel.hg38.vcf.gz
 primateAI_file : annotation_data/primateAI/PrimateAI_scores_v0.2_GRCh38_sorted.tsv.bgz
+cadd_snv_file : annotation_data/cadd/whole_genome_SNVs.tsv.gz
+cadd_indel_file : annotation_data/cadd/gnomad.genomes.r3.0.indel.tsv.gz
 
+deeprvat_repo_dir : deeprvat_repo_dir
+variant_file_path : preprocessing_workdir/norm/variants/variants.tsv.gz
+pybedtools_tmp_path : output_dir/annotations/tmp/pybedtools
 
 
 
