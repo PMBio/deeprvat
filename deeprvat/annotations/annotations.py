@@ -21,20 +21,20 @@ import keras.backend as K
 
 def precision(y_true, y_pred):
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    #TPs=K.sum(K.round(K.clip(y_true * y_pred , 0, 1)))
+    
     predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
     precision = true_positives / (predicted_positives + K.epsilon())
     return precision
 
 def recall(y_true, y_pred):
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    #TPs=K.sum(K.round(K.clip(y_ture * y_pred , 0, 1)))
+    
     possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
     recall = true_positives / (possible_positives + K.epsilon())
     return recall
 
 def deepripe_get_model_info(saved_models_dict, saved_deepripe_models_path):
-    #path_to_model = 'Results/PARCLIP_models/'
+    
     shared_path = Path(saved_deepripe_models_path)
     
     # parclip
@@ -74,11 +74,11 @@ def deepripe_get_model_info(saved_models_dict, saved_deepripe_models_path):
     pc_RBPnames_med=np.array(['TARDBP', 'ELAVL2', 'ELAVL3', 'ELAVL4', 'RBM20', 
                               'IGF2BP1', 'IGF2BP2', 'IGF2BP3','EWSR1', 'HNRNPD', 
                               'RBPMS', 'SRRM4', 'AGO2', 'NUDT21', 'FIP1L1', 'CAPRIN1', 
-                              'FMR1iso7', 'FXR2', 'AGO1', 'L1RE1', 'ORF1']) #21
+                              'FMR1iso7', 'FXR2', 'AGO1', 'L1RE1', 'ORF1']) 
     
     pc_RBPnames_high=np.array(['DND1', 'CPSF7', 'CPSF6', 'CPSF1', 'CSTF2', 
                                'CSTF2T', 'ZC3H7B', 'FMR1iso1', 
-                               'RBM10', 'MOV10', 'ELAVL1']) #11
+                               'RBM10', 'MOV10', 'ELAVL1']) 
     
     
     ### eclip HepG2
@@ -154,7 +154,7 @@ def seq_to_1hot(seq,randomsel=True):
 def convert2bed(variants_file, output_dir):
     file_name = variants_file.split('/')[-1]
     print(f'Generating BED file: {output_dir}/{file_name[:-3]}bed')
-    #df_variants = pd.read_csv(variants_file, skiprows=97, sep='\t') #hg19_lifted
+    
     df_variants = pd.read_csv(variants_file, sep='\t', names = ['#CHROM', 'POS', 'ID', 'REF', 'ALT']) #hg38
 
     print(df_variants.head())
@@ -181,7 +181,6 @@ def deepripe_encode_variant_bedline(bedline,genomefasta,flank_size=75):
         else:
             mut_pos= flank_size-1
                             
-        #wild = pybedtools.BedTool(bedline[0] + "\t" + bedline[1] + "\t" + bedline[2] + "\t" + bedline[3] + "\t"+ bedline[4] + "\t" + bedline[5], from_string=True)
         wild = wild.sequence(fi=genomefasta, tab=True, s=True)
         fastalist = open(wild.seqfn).read().split("\n")
         del fastalist[-1]
@@ -285,10 +284,7 @@ def deepsea_pca(debug: bool, n_components: int, deepsea_files: List[str],
         print(e)
         import ipdb
         ipdb.set_trace()
-    # assert all([
-    #     ((df[c] == df[c + '_deepsea'] | df[c + '_deepsea'].isna()).all())
-    #     for c in key_cols
-    # ])
+
     df = df.drop(columns=[c + '_deepsea' for c in key_cols])
 
     logger.info('Adding default of 0 for missing variants')
@@ -315,7 +311,7 @@ def deepsea_pca(debug: bool, n_components: int, deepsea_files: List[str],
     pca_df = pd.DataFrame(
         X_pca, columns=[f'DeepSEA_PC_{i}' for i in range(1, n_components + 1)])
     del X_pca
-    pca_df = pd.concat([key_df, pca_df], axis=1)  # , ignore_index=True
+    pca_df = pd.concat([key_df, pca_df], axis=1)  
 
     logger.info('Sanity check of results')
     assert pca_df.isna().sum().sum() == 0
@@ -414,7 +410,7 @@ def scorevariants_deepripe(variants_file:str,
     
     saved_paths, saved_RBP_names = deepripe_get_model_info(saved_models_dict, saved_deepripe_models_path)
     
-    #print("Num GPUs Available: ", len(K._get_available_gpus()))
+    
 
     ## Experiment. parclip
     parclip_RBPs = saved_RBP_names['parclip']
@@ -564,9 +560,7 @@ def get_abscores(current_annotation_file : str,
                 'missing AbSplice values with 0')
     merged['AbSplice_DNA'] = merged['AbSplice_DNA'].fillna(0)
 
-    # logger.info(f'Filling {merged["SpliceAI_delta_score"].isna().sum()} '
-    #             'missing SpliceAI values with 0')
-    # merged['SpliceAI_delta_score'] = merged['SpliceAI_delta_score'].fillna(0)
+
     annotation_out_file = out_file
     
 
@@ -719,7 +713,6 @@ def concatenate_deepripe(
 @click.argument("annotation_dir", type=click.Path(exists=True))
 @click.argument("vep_name_pattern", type=str)
 @click.argument("variant_file", type = click.Path(exists = True))
-#@click.argument("cadd_name_pattern", type=str)
 @click.argument("pvcf-blocks_file", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
 def concatenate_annotations(
@@ -770,10 +763,9 @@ def concatenate_annotations(
                     "MOTIF_POS", "HIGH_INF_POS", "MOTIF_SCORE_CHANGE", "TRANSCRIPTION_FACTORS", 
                     "CADD_PHRED", "CADD_RAW", "SpliceAI_pred", "PrimateAI"]
     
-  # cadd_file_paths = [cadd_name_pattern.format(chr = p[0], block = p[1] ) for p in pvcf_blocks]
     
     vep_file = pd.concat([pd.read_csv(v, comment = "#", sep = "\t", names = vep_colnames, dtype = {"STRAND":str, "TSL":str, "GENE_PHENO": str, "CADD_PHRED":str, "CADD_RAW": str}) for v in vep_file_paths])
-    # cadd_files = [pd.read_csv(c, sep = "\t") for c in cadd_file_paths]
+    
      
 
     
@@ -800,8 +792,6 @@ def concatenate_annotations(
     result = pd.merge(vep_file, variants,  on = ["chrom", "pos", "ref", "alt"])
     logger.info(f"Shape of annotations after merge is {result.shape}")
     
-    #cadd_file = pd.concat(cadd_files)
-    #combined_annotations = pd.merge(vep_file, cadd_file, on=["CHROM", "POS", "REF", "ALT"])
     combined_annotations = result
     combined_annotations.to_parquet(out_file)
     logger.info("Finished")
