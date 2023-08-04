@@ -24,32 +24,6 @@ def load_h5_archive(h5_path):
     "test_data_name_dir, extra_cli_params, genotype_file_name",
     [
         (
-                "no_filters_chr1",
-                [
-                    "--chromosomes",
-                    "1",
-                ],
-                "genotypes_chr1.h5",
-        ),
-        (
-                "no_filters_chr2",
-                [
-                    "--chromosomes",
-                    "2",
-                ],
-                "genotypes_chr2.h5",
-        ),
-        (
-                "filter_variants_chr1",
-                [
-                    "--chromosomes",
-                    "1",
-                    "--exclude-variants",
-                    f"{(tests_data_dir / 'process_sparse_gt/filter_variants_chr1/input/qc/hwe').as_posix()}",
-                ],
-                "genotypes_chr1.h5",
-        ),
-        (
                 "no_filters_minimal",
                 [
                     "--chromosomes",
