@@ -152,7 +152,7 @@ rule concat_deepSea:
     output:
         anno_dir / "all_variants.deepSea.csv",
     resources:
-        mem_mb=lambda wildcards, attempt: 30000 * (attempt + 1),
+        mem_mb=lambda wildcards, attempt: 50000 * (attempt + 2),
     shell:
         " ".join(
         [
@@ -389,43 +389,6 @@ rule vep:
                 f"--plugin CADD,{cadd_snv_file},{cadd_indel_file}",
                 f"--plugin SpliceAI,snv={spliceAI_snv_file},indel={spliceAI_indel_file}",
                 f"--plugin PrimateAI,{primateAIfile}",
-            ]
-        )
-
-
-rule all_cadd:
-    input:
-        expand(
-            [
-                anno_dir / (vcf_pattern + "_cadd_anno.tsv.gz"),
-            ],
-            zip,
-            chr=chromosomes,
-            block=block,
-        ),
-
-
-rule annototate_cadd:
-    input:
-        variants =anno_tmp_dir / (vcf_pattern + "_stripped.vcf.gz"),
-        setup = repo_dir / "annotation-workflow-setup.done",
-    output:
-        anno_dir / (vcf_pattern + "_cadd_anno.tsv.gz"),
-    threads: cadd_ncores
-    resources:
-        mem_mb=20000,
-    shell:
-        " ".join(
-            [
-                str(cadd_shell_path),
-                "-a",
-                "-g",
-                str(genome_assembly),
-                "-c",
-                str(cadd_ncores),
-                "-o",
-                "{output}",
-                "{input.variants}",
             ]
         )
 
