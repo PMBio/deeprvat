@@ -4,16 +4,17 @@
 # https://github.com/cclauss/autoblack
 
 name: autoblack_pull_request
-on: [pull_request]
+on: [ pull_request ]
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
         with:
-            ref: ${{ github.head_ref }}
-            python-version: '3.11'
+          ref: ${{ github.head_ref }}
       - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
       - run: pip install black
       - run: black --check .
       - name: If needed, commit black changes to the pull request
