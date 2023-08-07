@@ -5,7 +5,7 @@ channels:
   - conda-forge
   - nvidia
 dependencies:
-  - python=3.8.17
+  - python=3.9.16
   - click=8.0.4
   - scikit-learn=0.23.2
   - dask=2021.3.0
