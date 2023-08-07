@@ -3,7 +3,6 @@ channels:
   - defaults
   - bioconda
   - conda-forge
-  - nvidia
 dependencies:
   - python=3.9.16
   - click=8.0.4
