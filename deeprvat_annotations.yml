@@ -3,6 +3,7 @@ channels:
   - defaults
   - bioconda
   - conda-forge
+  - nvidia
 dependencies:
   - click=8.0.4
   - scikit-learn=0.23.2
