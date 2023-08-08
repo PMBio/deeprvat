@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 from deeprvat.data import DenseGTDataset
-from seak.scoretest import ScoretestNoK
+from seak import scoretest
 
 logging.basicConfig(
     format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
@@ -202,10 +202,15 @@ def call_score(GV, null_model_score, pval_dict, test_type):
     if pv < 1e-3 and test_type == "burden":
         logger.info("Computing regression coefficient")
         # if gene is quite significant get the regression coefficient + SE
-        beta = null_model_score.coef(GV)
-        logger.info(f"Regression coefficient: {beta}")
-        pval_dict["beta"] = beta["beta"][0, 0]
-        pval_dict["betaSd"] = np.sqrt(beta["var_beta"][0, 0])
+        # only works for quantitative traits
+        try:
+            beta = null_model_score.coef(GV)
+            logger.info(f"Regression coefficient: {beta}")
+            pval_dict["beta"] = beta["beta"][0, 0]
+            pval_dict["betaSd"] = np.sqrt(beta["var_beta"][0, 0])
+        except:
+            pval_dict["beta"] = None
+            pval_dict["betaSd"] = None
     return pval_dict
 
 # set up the test-function for a single gene
@@ -215,7 +220,7 @@ def test_gene(
     grouped_annotations: pd.DataFrame,
     dataset: DenseGTDataset,
     weight_cols: List[str],
-    null_model_score: ScoretestNoK,
+    null_model_score: scoretest.ScoretestNoK,
     test_config: Dict,
     var_type,
     test_type,
@@ -338,7 +343,11 @@ def run_association_(
 ) -> pd.DataFrame:
     # initialize the null models
     # ScoretestNoK automatically adds a bias column if not present
-    null_model_score = ScoretestNoK(Y, X)
+    if len(np.unique(Y)) == 2:
+        print('Fitting binary model since only found two distinct y values')
+        null_model_score = scoretest.ScoretestLogit(Y, X)
+    else:
+        null_model_score = scoretest.ScoretestNoK(Y, X)
     stats = []
     GW_list = {}
     GW_full_list = {}
@@ -412,7 +421,7 @@ def _add_annotation_cols(annotations, config):
 @click.option("--phenotype", type=str)
 @click.option("--variant-type", type=str)
 @click.option("--rare-maf", type=float)
-@click.option("--maf-column", type=str, default="combined_UKB_NFE_AF")
+@click.option("--maf-column", type=str)
 @click.option("--simulated-phenotype-file", type=str)
 @click.argument("old_config_file", type=click.Path(exists=True))
 @click.argument("new_config_file", type=click.Path())
@@ -432,6 +441,12 @@ def update_config(
         config["data"]["dataset_config"][
             "sim_phenotype_file"
         ] = simulated_phenotype_file
+    if maf_column is None:
+        annotations = config['data']["dataset_config"]['annotations']
+        af_pattern = re.compile(r'.*(_MAF|_AF)\b')
+        rare_maf_col = [s for s in annotations if af_pattern.match(s)]
+        assert len(rare_maf_col) == 1
+        maf_column = rare_maf_col[0]
 
     if phenotype is not None:
         config["data"]["dataset_config"]["y_phenotypes"] = [phenotype]
@@ -722,6 +737,8 @@ def run_association(
 @click.argument("result-files", type=click.Path(exists=True), nargs=-1)
 @click.argument("out-file", type=click.Path())
 def combine_results(result_files: Tuple[str], out_file: str):
+    print('hi')
+    print(f"Concatenating results to {out_file}")
     logger.info(f"Concatenating results to {out_file}")
     if "/results/" in out_file:
         out_file_eval = Path(out_file.replace("/results/", "/eval/"))
@@ -733,6 +750,7 @@ def combine_results(result_files: Tuple[str], out_file: str):
     res_df.to_parquet(out_file, engine="pyarrow")
 
     logger.info("Doing simple postprocessing of results")
+    print("Doing simple postprocessing of results")
 
     cols_to_keep = ["gene", "EAC", "pval"]
 
@@ -743,6 +761,8 @@ def combine_results(result_files: Tuple[str], out_file: str):
         res_df = res_df.query("EAC > 50")
 
     res_df = res_df.dropna(subset=["pval"])[cols_to_keep]
+    print(f"Writing filtered results to {out_file_eval}")
+
     logger.info(f"Writing filtered results to {out_file_eval}")
     out_file_eval.parent.mkdir(exist_ok=True, parents=True)
     res_df.to_parquet(out_file_eval)
