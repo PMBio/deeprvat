@@ -1,5 +1,6 @@
 import logging
 import sys
+import os
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
@@ -77,10 +78,17 @@ def get_baseline_results(
         (
             r["type"].split("/")[0],
             r["type"].split("/")[1],
-        ): f"{r['base']}/{pheno}/{r['type']}/eval/burden_associations_testing.parquet"
+        ): f"{r['base']}/{pheno}/{r['type']}/eval/burden_associations.parquet"
         for r in config["baseline_results"]
     }
-
+    if not os.path.isfile(list(baseline_paths.values())[0]):
+        baseline_paths = {
+            (
+                r["type"].split("/")[0],
+                r["type"].split("/")[1],
+            ): f"{r['base']}/{pheno}/{r['type']}/eval/burden_associations_testing.parquet"
+            for r in config["baseline_results"]
+        }
     for (t, m), p in baseline_paths.items():
         result_list.append(
             get_baseline(
@@ -99,32 +107,44 @@ def get_baseline_results(
 
 def combine_results(
     deeprvat_results: pd.DataFrame,
+    deeprvat_results_with_seed_genes: pd.DataFrame,
     baseline_results: pd.DataFrame,
     correction_method: str = "FDR",
     alpha: float = 0.05,
 ):
+
     baseline_original = baseline_results.copy()
 
     baseline_original["Discovery type"] = "Baseline"
     deeprvat_results["Discovery type"] = "New DeepRVAT discovery"
+    deeprvat_original = deeprvat_results_with_seed_genes
+    deeprvat_original["Discovery type"] = "New DeepRVAT discovery"
+
     baseline_results["Discovery type"] = "Seed gene"
     combined_results = pd.concat([deeprvat_results, baseline_results])
-
     combined = pval_correction(
         combined_results, alpha, correction_type=correction_method
     )
-
+    deeprvat_original = pval_correction(
+        deeprvat_original, alpha, correction_type=correction_method
+    )
     baseline_combined = baseline_original.copy()
     baseline_combined["experiment_group"] = "baseline_combined"
-    baseline_combined = pval_correction(
-        baseline_combined, alpha, correction_type=correction_method
-    )
+    if len(baseline_combined) > 0:
+        baseline_combined = pval_correction(
+            baseline_combined, alpha, correction_type=correction_method
+        )
+    else:
+        logger.info('not correction pvals for baseline combined because its empty (likely no seed genes provided)')
 
     combined["experiment"] = "DeepRVAT"
     combined["experiment_group"] = "DeepRVAT"
     combined["correction_method"] = correction_method
+    deeprvat_original["experiment"] = "DeepRVAT wo baseline"
+    deeprvat_original["experiment_group"] = "DeepRVAT wo baseline"
+    deeprvat_original["correction_method"] = correction_method
 
-    combined = pd.concat([combined, baseline_original, baseline_combined])
+    combined = pd.concat([combined, baseline_original, baseline_combined, deeprvat_original])
 
     combined["-log10pval"] = -np.log10(combined["pval"])
 
@@ -172,26 +192,41 @@ def get_pvals(results, method_mapping=None, phenotype_mapping={}):
 
 def process_results(
     results: pd.DataFrame,
+    seed_genes,
     n_repeats: int = 6,
     alpha: float = 0.05,
     correction_method: str = "FDR",
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    deeprvat_results = results.query(
+    #remove seed genes because we don't want to do double dipping
+    if seed_genes is not None:
+        seed_gene_ids = seed_genes["id"]
+        deeprvat_results = results.query(
+            f'experiment == "DeepRVAT ({n_repeats} repeats)"'
+            ' and experiment_group == "DeepRVAT"'
+        ).query("gene not in @seed_gene_ids")
+    else:
+        deeprvat_results = results.query(
+            f'experiment == "DeepRVAT ({n_repeats} repeats)"'
+            ' and experiment_group == "DeepRVAT"'
+        )
+    deeprvat_results_with_seed_genes = results.query(
         f'experiment == "DeepRVAT ({n_repeats} repeats)"'
         ' and experiment_group == "DeepRVAT"'
     )
-    baseline_results = results.query(
-        "experiment_group in @BASELINE_GROUPS"
-        " and correction_method == @correction_method"
-    )
-
+    try:
+        baseline_results = results.query(
+            "experiment_group in @BASELINE_GROUPS"
+            " and correction_method == @correction_method"
+        )
+    except:
+        baseline_results = pd.DataFrame()
     combined_results = combine_results(
         deeprvat_results,
+        deeprvat_results_with_seed_genes,
         baseline_results,
         correction_method=correction_method,
         alpha=alpha,
     )
-
     all_pvals = get_pvals(combined_results, method_mapping=METHOD_NAMES)
 
     significant = all_pvals.query("significant")
@@ -213,9 +248,9 @@ def evaluate_(
     debug: bool = False,
     correction_method: str = "FDR",
 ):
-    if seed_genes is not None:
-        seed_gene_ids = seed_genes["id"]
-        associations = associations.query("gene not in @seed_gene_ids")
+    # if seed_genes is not None:
+    #     seed_gene_ids = seed_genes["id"]
+    #     associations = associations.query("gene not in @seed_gene_ids")
 
     n_total_repeats = (
         repeats
@@ -247,11 +282,12 @@ def evaluate_(
 
     results["-log10pval"] = -np.log10(results["pval"])
     results["experiment_group"] = "DeepRVAT"
-
     results = pd.concat([results, baseline_results])
+
 
     significant, all_pvalues = process_results(
         results,
+        seed_genes,
         n_repeats=n_total_repeats,
         alpha=alpha,
         correction_method=correction_method,
@@ -315,7 +351,6 @@ def evaluate(
         )
     else:
         baseline_results = pd.DataFrame()
-
     significant, all_pvals = evaluate_(
         associations,
         alpha,
