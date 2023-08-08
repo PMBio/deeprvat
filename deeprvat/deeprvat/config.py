@@ -41,10 +41,10 @@ def update_config(
     seed_genes_out: Optional[str],
     new_config_file: str,
 ):
-    if seed_gene_dir is None and len(baseline_results) == 0:
-        raise ValueError(
-            "One of --seed-gene-dir and --baseline-results " "must be specified"
-        )
+    # if seed_gene_dir is None and len(baseline_results) == 0:
+    #     raise ValueError(
+    #         "One of --seed-gene-dir and --baseline-results " "must be specified"
+    #     )
 
     with open(old_config_file) as f:
         config = yaml.safe_load(f)
@@ -62,11 +62,18 @@ def update_config(
                     "--phenotype and --seed-genes-out must be "
                     "specified if --baseline-results is"
                 )
-            seed_config = config["phenotypes"][phenotype]
-            correction_method = seed_config.get("correction_method", None)
-            min_seed_genes = seed_config.get("min_seed_genes", None)
-            max_seed_genes = seed_config.get("max_seed_genes", None)
-            threshold = seed_config.get("pvalue_threshold", None)
+            # seed_config = config["phenotypes"].get(phenotype, None)
+            if isinstance(config["phenotypes"], dict):
+                correction_method = seed_config.get("correction_method", None)
+                min_seed_genes = seed_config.get("min_seed_genes", None)
+                max_seed_genes = seed_config.get("max_seed_genes", None)
+                threshold = seed_config.get("pvalue_threshold", None)
+            else:
+                logger.info('seed gene config not set, defaulting to correction method FDR')
+                min_seed_genes = None
+                max_seed_genes = None
+                threshold =  None
+                correction_method = 'FDR'
             assert (
                 min_seed_genes is None
                 or max_seed_genes is None
