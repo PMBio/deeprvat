@@ -96,9 +96,15 @@ def make_dataset_(
         with open(ds_pickled, "rb") as f:
             ds = pickle.load(f)
     else:
-        variant_file = data_config.get(
-            "variant_file", f'{data_config["gt_file"][:-3]}_variants.parquet'
-        )
+        if data_config["dataset_config"].get('variant_file', None) is not None:
+            logger.info('Reading variants from file specified in config')
+            variant_file = data_config["dataset_config"]['variant_file']
+            del data_config["dataset_config"]['variant_file']
+        else:
+            variant_file = data_config.get(
+                "variant_file", f'{data_config["gt_file"][:-3]}_variants.parquet'
+            )
+            
         ds = DenseGTDataset(
             data_config["gt_file"],
             variant_file=variant_file,
@@ -106,7 +112,6 @@ def make_dataset_(
             skip_y_na=False,
             **copy.deepcopy(data_config["dataset_config"]),
         )
-
         restrict_samples = config.get("restrict_samples", None)
         if debug:
             logger.info("Debug flag set; Using only 1000 samples")
@@ -432,7 +437,6 @@ def compute_burdens(
 
     with open(data_config_file) as f:
         data_config = yaml.safe_load(f)
-
     with open(model_config_file) as f:
         model_config = yaml.safe_load(f)
 
@@ -493,8 +497,11 @@ def regress_on_gene_scoretest(gene: str, burdens: np.ndarray, model_score):
             f"gene {gene}, p-value: {pv}, using saddle instead."
         )
         pv = model_score.pv_alt_model(burdens, method="saddle")
-
-    beta = model_score.coef(burdens)["beta"][0, 0]
+    #beta only for linear models   
+    try:
+        beta = model_score.coef(burdens)["beta"][0, 0]
+    except:
+        beta = None
 
     genes_params_pvalues = ([], [], [])
     genes_params_pvalues[0].append(gene)
@@ -573,7 +580,14 @@ def regress_(
         logger.info(f"X shape: {X.shape}, Y shape: {y.shape}")
 
         # compute null_model for score test
-        model_score = scoretest.ScoretestNoK(y, X)
+        print(np.unique(y))
+        print(len(np.unique(y)))
+        if len(np.unique(y)) == 2:
+            print('Fitting binary model since only found two distinct y values')
+            model_score = scoretest.ScoretestLogit(y, X)
+        else:
+            print('Fitting linear model')
+            model_score = scoretest.ScoretestNoK(y, X)
         genes_betas_pvals = [
             regress_on_gene_scoretest(gene, burdens[mask, i], model_score)
             for i, gene in tqdm(
