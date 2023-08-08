@@ -1,4 +1,4 @@
-fasta_dir : /omics/groups/OE0540/internal/users/mueck/ukbb_workdir/reference/
+fasta_dir : reference
 fasta_file_name : hg38.fa
 bcftools_load_cmd : module load bcftools/1.9
 htslib_load_cmd : module load htslib/1.9
