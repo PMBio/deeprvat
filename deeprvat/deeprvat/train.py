@@ -113,7 +113,6 @@ def make_dataset_(
         or training_dataset_file is None
         or not Path(training_dataset_file).is_file()
     ):
-
         variant_file = config["training_data"].get(
             "variant_file",
             f'{config["training_data"]["gt_file"][:-3]}_variants.parquet',
