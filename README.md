@@ -10,7 +10,7 @@ Rare variant association testing using deep learning and data-driven burden scor
 git clone git@github.com:PMBio/deeprvat.git
 ```
 1. Change directory to the repository: `cd deeprvat`
-1. Install the conda environment. We recommend using `mamba`, though you may also replace `mamba` with `conda` 
+1. Install the conda environment. We recommend using [mamba](https://mamba.readthedocs.io/en/latest/index.html), though you may also replace `mamba` with `conda` 
  
    *note: [the current deeprvat env does not support cuda when installed with conda](https://github.com/PMBio/deeprvat/issues/16), install using mamba for cuda support.*
 ```
