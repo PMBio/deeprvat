@@ -8,9 +8,9 @@ vep_load_cmd : module load vep/108.1
 vcf_file_pattern : ukb23156_c{chr}_b{block}_v1
 included_chromosomes : ['21','22']
 
-metadata_dir : input_path/vcf/metadata
+metadata_dir : input_dir/vcf/metadata
 pvcf_blocks_file : pvcf_blocks.txt
-vcf_dir : input_path/vcf
+vcf_dir : input_dir/vcf
 anno_tmp_dir : output_dir/annotations/tmp
 anno_dir : output_dir/annotations
 

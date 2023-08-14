@@ -40,7 +40,7 @@ cadd_snv_file = config["cadd_snv_file"]
 cadd_indel_file = config["cadd_indel_file"]
 
 # init vep
-vep_source_dir = repo_dir / "ensembl_vep"
+vep_source_dir = repo_dir / "ensembl-vep"
 vep_cache_dir = Path(config["vep_cache_dir"])
 vep_plugin_dir = Path(config.get("vep_plugin_dir")) or ""
 vep_input_format = config.get("vep_input_format") or "vcf"
@@ -80,6 +80,9 @@ block = pvcf_blocks_df["Block"]
 rule all:
     input:
         anno_dir / "current_annotations.parquet",
+        anno_dir / "current_annotations_deepripe_deepSea.parquet",
+        anno_dir / "current_annotations_deepripe.parquet"
+
 
 
 rule merge_deepripe_pcas:
@@ -102,6 +105,23 @@ rule merge_deepripe_pcas:
             ]
         )
 
+rule merge_deepsea_pcas:
+    input:
+        annotations=anno_dir / "current_annotations_deepripe.parquet",
+        deepsea_pcas=anno_dir / "deepSea_pca" / "deepsea_pca.parquet"
+    output:anno_dir / "current_annotations_deepripe_deepSea.parquet",
+    resources:mem_mb=lambda wildcards, attempt: 12500 * (attempt + 1),
+    shell:
+        " ".join(
+            [
+                "python",
+                f"{annotation_python_file}",
+                "merge-deepsea-pcas",
+                "{input.annotations}",
+                "{input.deepsea_pcas}",
+                "{output}",
+            ]
+        )
 
 rule all_deepSea:
     input:
@@ -120,7 +140,9 @@ rule deepSea_PCA:
     input:
         anno_dir / "all_variants.deepSea.csv",
     output:
-        directory(anno_dir / "deepSea_pca" / "deepsea_pca.parquet"),
+        anno_dir / "deepSea_pca" / "deepsea_pca.parquet",
+    resources:
+        mem_mb=100000
     shell:
         " ".join(
             [
@@ -151,8 +173,7 @@ rule concat_deepSea:
         
     output:
         anno_dir / "all_variants.deepSea.csv",
-    resources:
-        mem_mb=lambda wildcards, attempt: 50000 * (attempt + 2),
+
     shell:
         " ".join(
         [
@@ -161,7 +182,7 @@ rule concat_deepSea:
             "concatenate-deepripe",
             "--included-chromosomes",
             ",".join(included_chromosomes),
-            "--sep '\\t'",
+            "--sep '\t'",
             f"{anno_dir}",
             str(vcf_pattern + ".CLI.deepseapredict.diff.tsv").format(
         chr="{{chr}}", block="{{block}}"
@@ -235,8 +256,7 @@ rule concat_deepRiPe:
             zip,
             chr=chromosomes,
             block=block,
-        ),
-        setup = repo_dir / "annotation-workflow-setup.done"
+        )
     output:
         anno_dir / "all_variants.deepripe.csv",
     resources:
@@ -249,7 +269,7 @@ rule concat_deepRiPe:
             "concatenate-deepripe",
             "--included-chromosomes",
             ",".join(included_chromosomes),
-            "--comment-lines" f"{anno_dir}",
+            f"{anno_dir}",
             str(vcf_pattern + "_variants.parclip_deepripe.csv").format(
         chr="{{chr}}", block="{{block}}"
                 ),
@@ -265,6 +285,7 @@ rule deepRiPe:
     input:
         variants=anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
         fasta=fasta_dir / fasta_file_name,
+        setup = repo_dir / "annotation-workflow-setup.done"
     output:
         anno_dir / (vcf_pattern + "_variants.parclip_deepripe.csv"),
     resources:
@@ -354,7 +375,9 @@ rule vep:
         mem_mb=lambda wildcards, attempt: 5000 * (attempt + 1),
     shell:
         " ".join(
-            [
+            [   load_perl,
+                load_hts,
+                load_bfc,
                 str(vep_source_dir / "vep"),
                 "--input_file",
                 "{input.vcf}",

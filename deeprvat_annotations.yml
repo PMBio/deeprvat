@@ -14,3 +14,4 @@ dependencies:
   - snakemake=7.17.1
   - numpy=1.21.2
   - tensorflow=2.11.0
+  - pyarrow=11.0.0

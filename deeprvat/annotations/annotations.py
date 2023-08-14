@@ -7,9 +7,8 @@ import sys
 import pickle
 from typing import List, Optional
 from sklearn.decomposition import PCA
-import dask.dataframe as dd
 import os
-import tqdm
+from tqdm import tqdm
 import pybedtools
 import time
 import random 
@@ -241,14 +240,12 @@ def deepsea_pca(debug: bool, n_components: int, deepsea_files: List[str],
     logger.info('Reading deepsea file(s)')
     if len(deepsea_files) == 1:
         if debug:
-            columns = dd.read_parquet(deepsea_files[0],
-                                      engine='pyarrow').columns
-            df = dd.read_parquet(deepsea_files[0],
-                                 engine='pyarrow',
-                                 columns=columns[:20]).compute()
+            columns = pd.read_csv(deepsea_files[0]).columns
+            df = pd.read_csv(deepsea_files[0],
+                                 columns=columns[:20])
             n_components = 10
         else:
-            df = dd.read_parquet(deepsea_files[0], engine='pyarrow').compute()
+            df = pd.read_csv(deepsea_files[0])
     else:
         df = pd.concat([
             pd.read_csv(f, index_col=0)
@@ -258,7 +255,7 @@ def deepsea_pca(debug: bool, n_components: int, deepsea_files: List[str],
     df = df.rename(columns={
         '#CHROM': 'chrom',
         'POS': 'pos',
-        'ID': 'id',
+        'ID':'variant_name',
         'REF': 'ref',
         'ALT': 'alt'
     })
@@ -266,30 +263,14 @@ def deepsea_pca(debug: bool, n_components: int, deepsea_files: List[str],
     key_cols = ['chrom', 'pos', 'ref', 'alt']
 
     logger.info('Sanity check of DeepSEA file IDs')
-    all_variants = dd.read_parquet(annotation_file,
+    all_variants = pd.read_parquet(annotation_file,
                                    engine='pyarrow',
-                                   columns=['id'] + key_cols).compute()
+                                   columns=['id'] + key_cols)
     df = pd.merge(all_variants,
                   df,
-                  on='id',
-                  how='left',
-                  validate='1:1',
-                  suffixes=('', '_deepsea'))
-    try:
-        assert len(df) == len(all_variants)
-        assert (df['DeepSEA/predict/8988T_DNase_None/diff'].notna().sum() ==
-                n_deepsea_variants)
-        assert df[['id'] + key_cols].isna().sum().sum() == 0
-    except Exception as e:
-        print(e)
-        import ipdb
-        ipdb.set_trace()
-
-    df = df.drop(columns=[c + '_deepsea' for c in key_cols])
-
-    logger.info('Adding default of 0 for missing variants')
+                  on=key_cols,
+                  how='left')
     df = df.fillna(0)
-
     logger.info('Extracting matrix for PCA')
     key_df = df[['id'] + key_cols].reset_index(drop=True)
     X = df[[c for c in df.columns if c.startswith('DeepSEA')]].to_numpy()
@@ -316,11 +297,10 @@ def deepsea_pca(debug: bool, n_components: int, deepsea_files: List[str],
     logger.info('Sanity check of results')
     assert pca_df.isna().sum().sum() == 0
 
-    dd.from_pandas(pca_df, chunksize=len(pca_df) // 24).to_parquet(
+    pca_df.to_parquet(
         out_path / 'deepsea_pca.parquet', engine='pyarrow')
 
     logger.info('Done')
-
 
 
 @cli.command()
@@ -362,7 +342,7 @@ def deepripe_pca(n_components: int, deepripe_file: str, out_dir: str):
         columns=[f'DeepRipe_PC_{i}' for i in range(1, n_components + 1)])
     del X_pca
     pca_df = pd.concat([key_df, pca_df], axis=1)
-    dd.from_pandas(pca_df, chunksize=len(pca_df) // 24).to_parquet(
+    pca_df.to_parquet(
         out_path / 'deepripe_pca.parquet', engine='pyarrow')
 
     logger.info('Done')
@@ -565,9 +545,7 @@ def get_abscores(current_annotation_file : str,
     
 
     logger.info(f'Writing to {annotation_out_file}')
-    dd.from_pandas(merged,
-                    chunksize=len(merged) // 24).to_parquet(annotation_out_file,
-                                                            engine='pyarrow')
+    merged.to_parquet(annotation_out_file, engine='pyarrow')
 
 pd.options.mode.chained_assignment = None
 
@@ -614,7 +592,7 @@ def deepripe_pca(n_components: int, deepripe_file: str, out_dir: str):
         columns=[f'DeepRipe_PC_{i}' for i in range(1, n_components + 1)])
     del X_pca
     pca_df = pd.concat([key_df, pca_df], axis=1)
-    dd.from_pandas(pca_df, chunksize=len(pca_df) // 24).to_parquet(
+    pca_df.to_parquet(
         out_path / 'deepripe_pca.parquet', engine='pyarrow')
 
     logger.info('Done')
@@ -631,6 +609,7 @@ def merge_deepripe_pcas(annotation_file:str, deepripe_pca_file:str, out_file:str
     merged = annotations.merge(deepripe_pcas, how = "left", on = ["chrom", "pos", "ref", "alt"])
     assert len(merged)== orig_len
     merged.to_parquet(out_file)
+
 
 @cli.command()
 @click.argument("annotation_file", type = click.Path(exists = True))
@@ -666,7 +645,7 @@ def process_annotations(in_variants:str, out_variants:str):
 
 @cli.command()
 @click.option("--included-chromosomes", type=str)
-@click.option("--comment-lines", is_flag = True, default = True)
+@click.option("--comment-lines", is_flag = True)
 @click.option("--sep", type=str, default = ",")
 @click.argument("annotation_dir", type=click.Path(exists=True))
 @click.argument("deepripe_name_pattern", type=str)
@@ -701,12 +680,24 @@ def concatenate_deepripe(
         ]
     pvcf_blocks = zip(pvcf_blocks_df["Chromosome"], pvcf_blocks_df["Block"])
     file_paths = [annotation_dir / deepripe_name_pattern.format(chr = p[0], block = p[1] ) for p in pvcf_blocks]
-    logger.info("reading in f")
-    if comment_lines:
-        concatted_file = pd.concat([pd.read_csv(v, comment = "#", sep = sep, ) for v in file_paths])
+    logger.info("check if out_file already exists")
+    if(os.path.exists(out_file)):
+        logger.info("file exists, removing existing file")
+        os.remove(out_file)
     else:
-        concatted_file = pd.concat([pd.read_csv(v, sep = sep, ) for v in file_paths])
-    concatted_file.to_csv(out_file)
+        logger.info("out_file does not yet exist")
+
+    logger.info("reading in f")
+    for f in tqdm(file_paths):
+        if comment_lines:
+            current_file = pd.read_csv(f, comment = "#", sep = sep, low_memory = False) 
+        else:
+            current_file = pd.read_csv(f, sep = sep, low_memory = False ) 
+        if f==file_paths[0]:
+            logger.info("creating new file")
+            current_file.to_csv(out_file, mode = 'a', index = False)
+        else:
+            current_file.to_csv(out_file, mode = 'a', index = False, header = False)
 
 @cli.command()
 @click.option("--included-chromosomes", type=str)
