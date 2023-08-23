@@ -178,7 +178,7 @@ class Layers(nn.Module):
 class Pooling(pl.LightningModule):
     def __init__(self, normalization, pool, dim, n_variants):
         super().__init__()
-        if pool not in ('sum', 'max', 'attention','softmax'):  raise ValueError(f'Unknown pooling operation {pool}')
+        if pool not in ('sum', 'max','softmax'):  raise ValueError(f'Unknown pooling operation {pool}')
         self.layer = Layer(normalization)
         self.pool = pool
         self.dim = dim
@@ -188,19 +188,6 @@ class Pooling(pl.LightningModule):
             
     def get_function(self):
         if self.pool == "sum": return torch.sum, {"dim": 2} 
-        elif self.pool == "attention":
-            '''
-                Modeled after Set Transformer (Lee et al., 2019)
-                paper: http://proceedings.mlr.press/v97/lee19d.html
-                original code: https://github.com/juho-lee/set_transformer/blob/master/models.py#L3 
-            '''
-            self.fc_q = self.layer.__getitem__(self.n_variants, 1)
-            self.fc_k = self.layer.__getitem__(self.n_variants, 1)
-            self.fc_v = self.layer.__getitem__(self.n_variants, 1)
-
-            self.S = nn.Parameter(torch.Tensor(1, self.dim, self.n_variants))
-            nn.init.xavier_uniform_(self.S)
-            return  nn.MultiheadAttention(1, bias=False, num_heads=1, batch_first=True), {} 
         elif self.pool == 'softmax':
             '''
                 Modeled after Enformer from DeepMind
@@ -216,12 +203,6 @@ class Pooling(pl.LightningModule):
         else: return torch.max, {"dim": 2} 
 
     def forward(self, x):
-        if self.pool == "attention": 
-            x = x.permute((0,2,1)) # make input x.shape = samples x phi_latent x variants --> to pool across variant dimension   
-            #pad variant dim to max_num_variants across all the phenotypes
-            if x.shape[-1] < self.n_variants: x = pad_variants(x,self.n_variants)  
-            x, k, v = self.fc_q(self.S.repeat(x.size(0), 1, 1)), self.fc_k(x), self.fc_v(x)
-            self.f_args = {"key": k, "value": v, "need_weights": False}
         if self.pool == "softmax":
             x = x.permute((0,1,3,2))
             if x.shape[-1] < self.n_variants: x = pad_variants(x,self.n_variants)  
@@ -229,8 +210,7 @@ class Pooling(pl.LightningModule):
             x = x * self.to_attn_logits(x).softmax(dim=-1)
             
         x = self.f(x, **self.f_args)
-        
-        if self.pool == "attention": x = x[0].squeeze(2)
+
         if self.pool == "softmax": x = x.squeeze(-1)
         if self.pool == "max": x = x.values
         return x

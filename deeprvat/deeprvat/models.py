@@ -168,10 +168,11 @@ class BaseModel(pl.LightningModule):
     def configure_callbacks(self):
         return [ModelSummary()]
 
-class Classifier(pl.LightningModule):
+class Phenotype_classifier(pl.LightningModule):
     def __init__(self, hparams, phenotypes, n_genes, gene_count):
         super().__init__()
-        # pl.LightningModule already has attribute self.hparams
+        # pl.LightningModule already has attribute self.hparams,
+        #  which is inherited from its parent class
         self.hparams_ = hparams
         self.phenotypes = phenotypes
         self.n_genes = n_genes
@@ -180,88 +181,53 @@ class Classifier(pl.LightningModule):
         self.init_function = getattr(self.hparams_, "init", False)
         self.normalization = getattr(self.hparams_, "normalization", False)
         self.activation = getattr(nn, getattr(self.hparams_, "activation", "LeakyReLU"))()
+        self.dropout = getattr(self.hparams_, "classifier_dropout", False)
+        if self.dropout: self.drop_layer = nn.Dropout(p=self.dropout)
+
         self.embed_pheno = hasattr(self.hparams_, "embed_pheno")
-        self.co_embed_cov = hasattr(self.hparams_, "co_embed_cov")
-        self.pad_genes = getattr(self.hparams_, "pad_genes", False)
-        
-        self.do_mlp_padding, self.dim_mlp_padding = self.add_mlp("dim_padding", self.gene_count)
-        if self.do_mlp_padding: self.mlp_padding = self.get_linear(self.gene_count, self.dim_mlp_padding) 
-        
         if self.embed_pheno:
-            dim = self.hparams_.n_covariates + self.dim_mlp_padding if self.co_embed_cov else self.hparams_.n_covariates
-            self.do_mlp_covariantes, self.dim_mlp_covariantes = self.add_mlp("dim_covariantes", dim)
-            if self.do_mlp_covariantes: self.mlp_covariantes = self.get_linear(dim, self.dim_mlp_covariantes)      
-            
             self.pheno2id = dict(zip(phenotypes, range(len(phenotypes))))
-            dim = self.dim_mlp_covariantes if self.co_embed_cov else self.dim_mlp_padding
+            dim = self.hparams_.n_covariates + self.gene_count
             self.burden_pheno_embedding = self.get_embedding(len(phenotypes), dim)
-            self.covariances_pheno_embedding = self.get_embedding(len(phenotypes), self.hparams_.n_covariates)
-            
-            dim = self.dim_mlp_covariantes if self.co_embed_cov else self.dim_mlp_padding
-            self.do_mlp_burden, self.dim_mlp_burden = self.add_mlp("dim_burden", dim)  
-            if self.do_mlp_burden: self.mlp_burden = self.get_linear(dim, self.dim_mlp_burden)  
-             
-            dim = self.dim_mlp_covariantes + self.dim_mlp_burden if not self.co_embed_cov else self.dim_mlp_burden
-            self.classifier = self.get_model(dim, 1, getattr(self.hparams_, "classification_layers", 1), 0)
+            self.geno_pheno = self.get_model("Classification", dim, 1,
+                                             getattr(self.hparams_, "classification_layers", 1), 0)
         else:
-            self.classifier = nn.ModuleDict({
-                pheno: self.get_model(self.hparams_.n_covariates + self.dim_mlp_padding, 1, 
+            self.geno_pheno = nn.ModuleDict({
+                pheno: self.get_model("Classification", self.hparams_.n_covariates + self.hparams_.n_genes[pheno], 1, 
                                       getattr(self.hparams_, "classification_layers", 1), 0)
                 for pheno in self.hparams_.phenotypes
             })
-            
-    def forward(self, x, covariates, pheno, gene_id):
-        if self.pad_genes: x = self.pad_genes_(x, gene_id)
-        if self.do_mlp_padding: x = self.mlp_padding(x)
-
-        if self.embed_pheno:
-            if self.co_embed_cov: 
-                x = torch.cat((x, covariates), dim=1)
-                if self.do_mlp_covariantes: x = self.mlp_covariantes(x)
-            pheno_label = torch.tensor(self.pheno2id[pheno])
-            if x.is_cuda: pheno_label = pheno_label.cuda()
-            x *= self.burden_pheno_embedding(pheno_label)
-            if self.do_mlp_burden: x = self.mlp_burden(x)
-            if not self.co_embed_cov and self.do_mlp_covariantes: 
-                covariates *= self.covariances_pheno_embedding(pheno_label)
-                covariates = self.mlp_covariantes(covariates)
-            
-        if not self.co_embed_cov: x = torch.cat((x, covariates), dim=1)
-        if self.embed_pheno: return self.classifier(x).squeeze(dim=1)
-        else: return self.classifier[pheno](x).squeeze(dim=1)  #samples
-            
-    def add_mlp(self, param, default):
-        dim_mlp = default
-        do_mlp = hasattr(self.hparams_, param)
-        if do_mlp: 
-            dim = getattr(self.hparams_, param)
-            if dim == 0: do_mlp = False
-            elif dim < 0: dim_mlp = default
-            else: dim_mlp = dim
-        return do_mlp, dim_mlp
-    
-    def get_linear(self, in_dim, out_dim):
-        layer = nn.Linear(in_dim, out_dim)
-        return init_params(self.hparams_, layer)
     
     def get_embedding(self, in_dim, out_dim):
         embedding = nn.Embedding(in_dim, out_dim)
         return init_params(self.hparams_, embedding)
     
-    def pad_genes_(self, x, gene_id):
+    def pad_genes(self, x, gene_id):
         padding_mask = torch.zeros((x.shape[0], self.gene_count), dtype=x.dtype)
         if x.is_cuda: padding_mask = padding_mask.cuda()
         padding_mask[:, gene_id] = x
         return padding_mask
     
-    def get_model(self, input_dim, output_dim, n_layers, res_layers):
+    def get_model(self, prefix, input_dim, output_dim, n_layers, res_layers):
         Layers_obj = Layers(n_layers, res_layers, input_dim, output_dim, self.activation, self.normalization, False, True)
         model = []  
         for l in range(n_layers):         
-            model.append((f"Classification_layer_{l}", Layers_obj.get_layer(l)))
-            if l != n_layers - 1: model.append((f"Classification_activation_{l}", self.activation))
+            model.append((f'{prefix}_layer_{l}', Layers_obj.get_layer(l)))
+            if l != n_layers - 1 or prefix != "Classification":
+                model.append((f'{prefix}_activation_{l}', self.activation))
         model = nn.Sequential(OrderedDict(model))
         return init_params(self.hparams_, model)
+
+    def forward(self, x, covariates, pheno, gene_id):
+        if self.dropout: x = self.drop_layer(x)
+        if self.embed_pheno: x = self.pad_genes(x, gene_id)
+        x = torch.cat((x, covariates), dim=1)        
+        if self.embed_pheno:
+            pheno_label = torch.tensor(self.pheno2id[pheno])
+            if x.is_cuda: pheno_label = pheno_label.cuda()
+            x *= self.burden_pheno_embedding(pheno_label)
+            return self.geno_pheno(x).squeeze(dim=1)
+        else: return self.geno_pheno[pheno](x).squeeze(dim=1)
 
 class DeepSetAgg(pl.LightningModule):
     def __init__(
@@ -284,17 +250,12 @@ class DeepSetAgg(pl.LightningModule):
     def forward(self, x):
         x = x.permute((0, 1, 3, 2))
         # x.shape = samples x genes x variants x annotations
-        # pytorch attention only accepts 3D input
-        if self.pool_layer == "attention": x = [x[:,i,:,:] for i in range(x.shape[1])] 
-        else: x = [x]
-        x = [self.deep_rvat(x_i) for x_i in x]  
+        x = self.deep_rvat(x) 
         # x.shape = samples x genes x latent
-        if self.use_sigmoid: x = [torch.sigmoid(x_i) for x_i in x]
-        if self.reverse: x = [-x_i for x_i in x]
-        if len(x) == 1: burden_score = x[0]
-        else: burden_score = torch.cat([x_i.unsqueeze(1) for x_i in x], 1)
-         
-        return burden_score
+        if self.use_sigmoid: x = torch.sigmoid(x)
+        if self.reverse: x = -x
+        # burden_score
+        return x
 
 class DeepSet(BaseModel):
     def __init__(
@@ -341,7 +302,7 @@ class DeepSet(BaseModel):
                                   self.hparams.rho_hidden_dim, 
                                   self.hparams.rho_layers - 1, 
                                   self.hparams.rho_res_layers)
-        self.gene_pheno = Classifier(self.hparams, phenotypes, n_genes, gene_count)
+        self.gene_pheno = Phenotype_classifier(self.hparams, phenotypes, n_genes, gene_count)
 
         self.deep_rvat = lambda x : self.rho(self.pool(self.phi(x)))
 
@@ -349,8 +310,8 @@ class DeepSet(BaseModel):
             self.agg_model = agg_model
         else:
             self.agg_model = DeepSetAgg(
-                self.deep_rvat,
-                self.pool_layer,
+                deep_rvat=self.deep_rvat,
+                pool_layer=self.pool_layer,
                 use_sigmoid=self.use_sigmoid,
                 reverse=self.reverse
             )
