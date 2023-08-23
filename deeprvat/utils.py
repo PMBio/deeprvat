@@ -116,7 +116,6 @@ def standardize_series_with_params(x: pd.Series, std, mean) -> pd.Series:
     x = x.apply(lambda x: (x - mean) / std if x != 0 else 0)
     return x
 
-
 def calculate_mean_std(x: pd.Series, ignore_zero=True) -> pd.Series:
     x = x.astype(np.float32)
     if ignore_zero:
@@ -126,6 +125,18 @@ def calculate_mean_std(x: pd.Series, ignore_zero=True) -> pd.Series:
     std = variance**0.5
     return std, mean
 
+def normalize_series_with_params(x: pd.Series, min_val, max_val, neg_min_max_calc=False) -> pd.Series:
+    if neg_min_max_calc:
+        x = x.apply(lambda x: (2 * ((x - min_val) / (max_val - min_val)) ) - 1 if x != 0 else 0)
+    else:
+        x = x.apply(lambda x: ((x - min_val) / (max_val - min_val)) if x != 0 else 0)
+    return x
+
+def calculate_min_max(x: pd.Series) -> pd.Series:
+    x = x.astype(np.float32)
+    min_val = x.min()
+    max_val = x.max()
+    return min_val, max_val
 
 def safe_merge(
     left: pd.DataFrame,
@@ -317,3 +328,60 @@ def pad_variants(input_tensor,padding_size):
     pad_dim = (0, padding_size-input_tensor.shape[-1])
     input_tensor = F.pad(input_tensor,pad_dim,"constant",0)
     return input_tensor
+
+def soft_threshold(l, x):
+    return torch.sign(x) * torch.relu(torch.abs(x) - l)
+
+def sign_binary(x):
+    ones = torch.ones_like(x)
+    return torch.where(x >= 0, ones, -ones)
+
+def prox(v, u, *, lambda_, lambda_bar, M):
+    """
+    v has shape (m,) or (m, batches)
+    u has shape (k,) or (k, batches)
+
+    supports GPU tensors
+    """
+    onedim = len(v.shape) == 1
+    if onedim:
+        v = v.unsqueeze(-1)
+        u = u.unsqueeze(-1)
+
+    u_abs_sorted = torch.sort(u.abs(), dim=0, descending=True).values
+
+    k, batch = u.shape
+
+    s = torch.arange(k + 1.0).view(-1, 1).to(v)
+    zeros = torch.zeros(1, batch).to(u)
+
+    a_s = lambda_ - M * torch.cat(
+        [zeros, torch.cumsum(u_abs_sorted - lambda_bar, dim=0)]
+    )
+
+    norm_v = torch.norm(v, p=2, dim=0)
+
+    x = F.relu(1 - a_s / norm_v) / (1 + s * M ** 2)
+
+    w = M * x * norm_v
+    intervals = soft_threshold(lambda_bar, u_abs_sorted)
+    lower = torch.cat([intervals, zeros])
+
+    idx = torch.sum(lower > w, dim=0).unsqueeze(0)
+
+    x_star = torch.gather(x, 0, idx).view(1, batch)
+    w_star = torch.gather(w, 0, idx).view(1, batch)
+
+    beta_star = x_star * v
+    theta_star = sign_binary(u) * torch.min(soft_threshold(lambda_bar, u.abs()), w_star)
+
+    if onedim:
+        beta_star.squeeze_(-1)
+        theta_star.squeeze_(-1)
+
+    return beta_star, theta_star
+
+def inplace_prox(beta, theta, lambda_, lambda_bar, M):
+    beta.weight.data, theta.weight.data = prox(
+        beta.weight.data, theta.weight.data, lambda_=lambda_, lambda_bar=lambda_bar, M=M
+    )

@@ -115,13 +115,9 @@ def make_dataset_(
         or not Path(training_dataset_file).is_file()
     ):
 
-        variant_file = config["training_data"].get(
-            "variant_file",
-            f'{config["training_data"]["gt_file"][:-3]}_variants.parquet',
-        )
         ds = DenseGTDataset(
             gt_file=config["training_data"]["gt_file"],
-            variant_file=variant_file,
+            variant_file=config["training_data"]["variant_file"], # variant_file,
             split="",
             skip_y_na=True,
             **config["training_data"]["dataset_config"],
@@ -225,24 +221,17 @@ def make_dataset(
 class MultiphenoDataset(Dataset):
     def __init__(
         self,
-        # input_tensor: zarr.core.Array,
-        # covariates: zarr.core.Array,
-        # y: zarr.core.Array,
         data: Dict[str, Dict],
         min_variant_count: int,
         batch_size: int,
         split: str = "train",
-        cache_tensors: bool = False,
-        normalization: str = ""
-        # samples: Optional[Union[slice, np.ndarray]] = None,
-        # genes: Optional[Union[slice, np.ndarray]] = None
+        cache_tensors: bool = False
     ):
         "Initialization"
         super().__init__()
 
         self.data = data
         self.split = split
-        self.normalization = normalization
         self.phenotypes = self.data.keys()
         logger.info(
             f"Initializing MultiphenoDataset with phenotypes:\n{pformat(list(self.phenotypes))}"
@@ -268,15 +257,6 @@ class MultiphenoDataset(Dataset):
         }
         self.subset_samples()
 
-        if self.normalization == "standardization" or self.normalization == "both":
-            if self.normalization == "both":
-                self.norm_params = self.get_min_max_params()
-            logger.info(f"normalizing annotations with {self.normalization}")
-            self.standardization_params = self.get_standardization_params()
-        elif self.normalization == "min-max" or self.normalization == "neg-min-max":
-            logger.info(f"normalizing annotations with {self.normalization}")
-            self.norm_params = self.get_min_max_params()
-
         self.total_samples = sum([s.shape[0] for s in self.samples.values()])
 
         self.batch_size = batch_size
@@ -293,71 +273,12 @@ class MultiphenoDataset(Dataset):
         self.sample_order = self.sample_order.sample(n=self.total_samples)  # shuffle
         self.sample_order["index"] = self.sample_order.groupby("phenotype").cumcount()
 
-        self.current_pheno = 0
-        self.pheno_count = len(self.phenotypes) - 1
-        self.index_dict = dict(zip(list(self.phenotypes), np.zeros(len(list(self.phenotypes)))))
-        self.data_dict = dict()
-        for phenotype in self.phenotypes:
-            pheno_samples = pd.DataFrame({"phenotype": itertools.chain(*[[pheno] * len(self.samples[pheno]) for pheno in [phenotype]])})
-            pheno_samples = pheno_samples.astype({"phenotype": pd.api.types.CategoricalDtype()})
-            pheno_samples = pheno_samples.sample(n=len(self.samples[phenotype]))  # shuffle
-            pheno_samples["index"] = pheno_samples.groupby("phenotype").cumcount()
-            self.data_dict[phenotype] = pheno_samples
-
     def __len__(self):
         "Denotes the total number of batches"
         return math.ceil(len(self.sample_order) / self.batch_size)
 
     def __getitem__(self, index):
-        if self.split == "train": return self.__getitem___train(index)
-        else: return self.__getitem__val(index)
-
-    def __getitem___train(self, index):
-        'Generates one batch of data'
-        phenotype = list(self.phenotypes)[self.current_pheno % self.pheno_count]
-        samples4pheno = len(self.samples[phenotype])
-        start_idx = int(self.index_dict[phenotype])
-        end_idx = int(min(samples4pheno, start_idx + self.batch_size))
-        if end_idx == samples4pheno: self.index_dict[phenotype] = 0
-        else: self.index_dict[phenotype] += end_idx - start_idx
-        samples_by_pheno = self.data_dict[phenotype][start_idx:end_idx].groupby("phenotype")
-
-        result = dict()
-        for pheno, df in samples_by_pheno:
-            idx = df["index"].to_numpy()
-            # input(idx)
-            annotations = (
-                self.data[pheno]["input_tensor"][idx]
-                if self.cache_tensors else
-                self.data[pheno]["input_tensor_zarr"].oindex[idx, :, :, :])
-            
-            if self.normalization == "standardization":
-                annotations = self.standardization_annotations(annotations)
-            elif self.normalization == "min-max":
-                annotations = self.min_max_annotations(annotations)
-            elif self.normalization == "neg-min-max":
-                annotations = self.neg_min_max_annotations(annotations)
-            elif self.normalization == "both":
-                annotations = self.min_max_annotations(annotations)
-                annotations = self.standardization_annotations(annotations)
-                
-            result[pheno] = {
-                "indices": self.samples[pheno][idx],
-                "covariates": self.data[pheno]["covariates"][idx],
-                "rare_variant_annotations": annotations,
-                "y": self.data[pheno]["y"][idx],
-                "gene_id": self.data[pheno]["gene_id"]
-            }
-        self.current_pheno += 1
-        return result
-
-    def __getitem__val(self, index):
-        "Generates one batch of data"
-
-        # 1. grab min(batch_size, len(self)) from computed indices of self.phenotype_order
-        # 2. count phenotypes with np.unique
-        # 3. return that many samples from that phenotype
-
+  
         start_idx = index * self.batch_size
         end_idx = min(self.total_samples, start_idx + self.batch_size)
         batch_samples = self.sample_order.iloc[start_idx:end_idx]
@@ -373,16 +294,6 @@ class MultiphenoDataset(Dataset):
                 else self.data[pheno]["input_tensor_zarr"].oindex[idx, :, :, :]
             )
 
-            if self.normalization == "standardization":
-                annotations = self.standardization_annotations(annotations)
-            elif self.normalization == "min-max":
-                annotations = self.min_max_annotations(annotations)
-            elif self.normalization == "neg-min-max":
-                annotations = self.neg_min_max_annotations(annotations)
-            elif self.normalization == "both":
-                annotations = self.min_max_annotations(annotations)
-                annotations = self.standardization_annotations(annotations)
-
             result[pheno] = {
                 "indices": self.samples[pheno][idx],
                 "covariates": self.data[pheno]["covariates"][idx],
@@ -392,63 +303,6 @@ class MultiphenoDataset(Dataset):
             }
 
         return result
-
-    def get_standardization_params(self):
-        tmp = False
-        counter = 0
-        for pheno in self.data:   
-            annotations = self.data[pheno]["input_tensor" if self.cache_tensors else "input_tensor_zarr"]
-            if not tmp: tmp = dict(zip(range(annotations.shape[-2]), [0 for _ in range(annotations.shape[-2])]))
-            for i in range(annotations.shape[-2]):
-                annotation = annotations[:, :, i, :]
-                if self.normalization == "both": 
-                    min = self.norm_params[i]["min"]
-                    max = self.norm_params[i]["max"]
-                    annotation = (annotation - min) / (max - min)     
-                tmp[i] += annotation.sum() #sum across all elements
-            counter += 1
-
-        standarization_params = dict()
-        for key in tmp:
-            mean = tmp[key] / counter   
-            std = np.sqrt( ((tmp[key] - mean)**2) / counter )
-            standarization_params.update({key: {"mean": mean, "std": std}})
-        del tmp
-        return standarization_params
-    
-    def standardization_annotations(self, annotations):
-        for key in self.standardization_params:
-            mean = self.standardization_params[key]["mean"]
-            std = self.standardization_params[key]["std"]
-            annotations[:, :, key, :] = (annotations[:, :, key, :] - mean) / std   
-        return annotations
-    
-    def get_min_max_params(self):
-        min_max_params = False
-        for pheno in self.data:   
-            annotations = self.data[pheno]["input_tensor" if self.cache_tensors else "input_tensor_zarr"]
-            if not min_max_params: min_max_params = dict(zip(range(annotations.shape[-2]), 
-                                                             [{"min": np.inf, "max": -np.inf} for _ in range(annotations.shape[-2])]))
-            for i in range(annotations.shape[-2]):
-                i_max = annotations[:, :, i, :].max() 
-                i_min = annotations[:, :, i, :].min() 
-                if min_max_params[i]["min"] > i_min: min_max_params[i]["min"] = i_min
-                if min_max_params[i]["max"] < i_max: min_max_params[i]["max"] = i_max
-        return min_max_params  
-
-    def min_max_annotations(self, annotations):
-        for key in self.norm_params:
-            min = self.norm_params[key]["min"]
-            max = self.norm_params[key]["max"]
-            annotations[:, :, key, :] = (annotations[:, :, key, :] - min) / (max - min)    
-        return annotations
-    
-    def neg_min_max_annotations(self, annotations):
-        for key in self.norm_params:
-            min = self.norm_params[key]["min"]
-            max = self.norm_params[key]["max"]
-            annotations[:, :, key, :] = (2 * ((annotations[:, :, key, :] - min) / (max - min)) ) - 1    
-        return annotations
 
     def subset_samples(self):
         for pheno, pheno_data in self.data.items():
@@ -475,25 +329,22 @@ class MultiphenoDataset(Dataset):
 
 class MultiphenoBaggingData(pl.LightningDataModule):
     def __init__(
-        self,
-        data: Dict[str, Dict],
-        train_proportion: float,
-        sample_with_replacement: bool = True,
-        min_variant_count: int = 1,
-        upsampling_factor: int = 1,
-        batch_size: Optional[int] = None,
-        num_workers: Optional[int] = 0,
-        cache_tensors: bool = False,
-        normalization: str = ""
-    ):
+            self,
+            data: Dict[str, Dict],
+            train_proportion: float,
+            sample_with_replacement: bool = True,
+            min_variant_count: int = 1,
+            upsampling_factor: int = 1,
+            batch_size: Optional[int] = None,
+            num_workers: Optional[int] = 0,
+            cache_tensors: bool = False):
+        
         logger.info("Intializing datamodule")
-
         super().__init__()
 
         if upsampling_factor < 1:
             raise ValueError("upsampling_factor must be at least 1")
 
-        self.normalization = normalization
         self.data = data
         self.n_genes = {
             pheno: self.data[pheno]["genes"].shape[0] for pheno in self.data.keys()
@@ -504,7 +355,6 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         any_pheno_data = next(iter(self.data.values()))
         self.n_annotations = any_pheno_data["input_tensor_zarr"].shape[2]
         self.n_covariates = any_pheno_data["covariates"].shape[1]
-
 
         self.max_n_variants = 0
         for _, pheno_data in self.data.items():
@@ -559,8 +409,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         if unique_values.size() != torch.Size([2]):
             raise ValueError(
                 "Upsampling is only supported for binary y, "
-                f"but y has unique values {unique_values}"
-            )
+                f"but y has unique values {unique_values}")
 
         class_indices = [(self.y == v).nonzero(as_tuple=True)[0] for v in unique_values]
         class_sizes = [idx.shape[0] for idx in class_indices]
@@ -588,26 +437,25 @@ class MultiphenoBaggingData(pl.LightningDataModule):
             self.hparams.batch_size,
             split="train",
             cache_tensors=self.hparams.cache_tensors,
-            normalization=self.normalization
         )
-        return DataLoader(
-            dataset, batch_size=None, num_workers=self.hparams.num_workers
-        )
+        return DataLoader(dataset, 
+                          shuffle=True,
+                          batch_size=None, 
+                          num_workers=self.hparams.num_workers)
 
     def val_dataloader(self):
-        logger.info(
-            "Instantiating validation dataloader "
-            f"with batch size {self.hparams.batch_size}"
-        )
+        logger.info("Instantiating validation dataloader "
+                    f"with batch size {self.hparams.batch_size}")
         dataset = MultiphenoDataset(
             self.data,
             self.hparams.min_variant_count,
             self.hparams.batch_size,
             split="val",
-            cache_tensors=self.hparams.cache_tensors,
-        )
+            cache_tensors=self.hparams.cache_tensors)
         return DataLoader(
-            dataset, batch_size=None, num_workers=self.hparams.num_workers
+            dataset,
+            batch_size=None, 
+            num_workers=self.hparams.num_workers
         )
 
 def set_random_seed(seed):

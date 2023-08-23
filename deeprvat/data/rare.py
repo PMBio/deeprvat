@@ -12,9 +12,10 @@ import copy
 import torch
 import torch.nn.functional as F
 import zarr
+import pickle
 from torch.utils.data import Dataset
 
-from deeprvat.utils import calculate_mean_std, standardize_series_with_params
+from deeprvat.utils import calculate_mean_std, standardize_series_with_params, calculate_min_max, normalize_series_with_params
 
 logging.basicConfig(
     format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
@@ -167,40 +168,6 @@ class PaddedAnnotations:
         annotation_df = annotation_df.loc[
             mask, set(self.annotations + [self.grouping_column] + threshold_cols)
         ].copy()
-        # standardize here
-        if (
-            self.base_dataset.standardize_rare_anno
-            or self.base_dataset.standardize_rare_anno_columns
-        ):
-            logger.debug("  Standardizing annotations")
-
-            if self.base_dataset.standardize_rare_anno_columns:
-                cols = self.base_dataset.standardize_rare_anno_columns
-            else:
-                # all columns will be standardized
-                cols = self.annotations
-
-            self.stand_params = {}
-            for col in cols:
-                if self.base_dataset.standardize_rare_anno_params:
-                    logger.info("Using pre-defined std and mean for standardization")
-                    std, mean = self.base_dataset.standardize_rare_anno_params[col]
-
-                else:
-                    logger.info(
-                        f"Calculating mean and standard deviation for col {col}"
-                    )
-                    std, mean = calculate_mean_std(annotation_df[col])
-
-                logger.info(
-                    f"Standardising annotation {col} with mean {mean} and std {std}"
-                )
-                annotation_df[col] = standardize_series_with_params(
-                    annotation_df[col], std, mean
-                )
-                self.stand_params[col] = (std, mean)
-
-                # return standardization params
 
         logger.debug("  Exploding annotations by groups")
         annotation_df[self.grouping_column] = annotation_df[self.grouping_column].apply(
@@ -234,6 +201,85 @@ class PaddedAnnotations:
         if len(self.exploded_annotations) == 0:
             raise RuntimeError(f"No rare variants found in provided genes")
 
+    def standardize_anno(self):
+        if self.base_dataset.standardize_rare_anno or self.base_dataset.standardize_rare_anno_columns:
+            logger.debug("  Standardizing Rare Variant Annotations")
+
+            if self.base_dataset.standardize_rare_anno_columns:
+                cols = self.base_dataset.standardize_rare_anno_columns
+            else:
+                logger.info("  Omitting boolean annotations in Standardization")
+                cols = []
+                for col in self.annotations:
+                    if not self.annotation_df[col].isin([0,1]).all():
+                        cols.append(col)
+
+            if self.base_dataset.standardize_rare_anno_params:
+                    logger.info("   Using pre-defined std and mean for standardization")
+                    with open(f'./{self.base_dataset.y_phenotypes[0]}/deeprvat/{self.base_dataset.standardize_rare_anno_params}', 'rb') as f:
+                        std_param_data = pickle.load(f)
+
+            self.stand_params = {}
+            for col in cols:
+                if self.base_dataset.standardize_rare_anno_params:
+                    std, mean = std_param_data[col]
+                else:
+                    logger.info(f"  Calculating mean and standard deviation for col {col}")
+                    std, mean = calculate_mean_std(self.annotation_df[col]) 
+                    self.stand_params[col] = (std, mean)
+            
+                logger.info(f"  Standardising annotation {col} with mean {mean} and std {std}")
+                self.exploded_annotations_df[col] = standardize_series_with_params(
+                    self.exploded_annotations_df[col], std, mean)
+                
+            if self.stand_params: #empty dict evaluate to False
+                with open(f'./{self.base_dataset.y_phenotypes[0]}/deeprvat/rare_anno_std_params.pkl', 'wb') as f:
+                    pickle.dump(self.stand_params, f)
+
+    def normalize_anno(self):
+        if self.base_dataset.norm_neg_min_max_rare_anno or self.base_dataset.norm_min_max_rare_anno:
+            logger.debug("  Normalizing Rare Variant Annotations")
+
+            if self.base_dataset.norm_neg_min_max_rare_anno_columns:
+                cols = self.base_dataset.norm_neg_min_max_rare_anno_columns
+            elif self.base_dataset.norm_min_max_rare_anno_columns:
+                cols = self.base_dataset.norm_min_max_rare_anno_columns
+            else:
+                logger.info("  Omitting boolean annotations in Normalization")
+                cols = []
+                for col in self.annotations:
+                    if not self.annotation_df[col].isin([0,1]).all():
+                        cols.append(col)
+
+            if self.base_dataset.norm_neg_min_max_rare_anno: neg_min_max = True
+            else: neg_min_max = False
+
+            if self.base_dataset.norm_neg_min_max_rare_anno_params:
+                logger.info("   Using pre-defined min and max for neg-min-max normalization")
+                with open(f'./{self.base_dataset.y_phenotypes[0]}/deeprvat/{self.base_dataset.norm_neg_min_max_rare_anno_params}', 'rb') as f:
+                    norm_param_data = pickle.load(f)
+            if self.base_dataset.norm_min_max_rare_anno_params:
+                logger.info("   Using pre-defined min and max for min-max normalization")
+                with open(f'./{self.base_dataset.y_phenotypes[0]}/deeprvat/{self.base_dataset.norm_min_max_rare_anno_params}', 'rb') as f:
+                    norm_param_data = pickle.load(f)
+
+            self.norm_params = {}
+            for col in cols:
+                if self.base_dataset.norm_neg_min_max_rare_anno_params or self.base_dataset.norm_min_max_rare_anno_params:
+                    min_val, max_val = norm_param_data[col]
+                else:
+                    logger.info(f"  Calculating min and max for col {col}")
+                    min_val, max_val = calculate_min_max(self.annotation_df[col]) 
+                    self.norm_params[col] = (min_val, max_val)
+            
+                logger.info(f"  Normalizing annotation {col} with min {min_val} and max {max_val}")
+                self.exploded_annotations_df[col] = normalize_series_with_params(
+                    self.exploded_annotations_df[col], min_val, max_val, neg_min_max)
+                
+            if self.norm_params: #empty dict evaluate to False
+                with open(f'./{self.base_dataset.y_phenotypes[0]}/deeprvat/rare_anno_norm_params.pkl', 'wb') as f:
+                    pickle.dump(self.norm_params, f)
+
     def apply_thresholds(self, thresholds: Optional[Dict[str, str]]):
         if thresholds is not None:
             self.annotation_df["mask"] = True
@@ -258,10 +304,17 @@ class PaddedAnnotations:
             raise RuntimeError(f"  No variants passed thresholding")
 
         logger.info(f" {len(self.annotation_df)} variants passed thresholding")
+        
+        self.exploded_annotations_df = self.exploded_annotations[self.annotations]
+        logger.debug("Standardizing Rare Variant Annotations")
+        if self.base_dataset.standardize_rare_anno:
+            self.standardize_anno()
+        if self.base_dataset.norm_neg_min_max_rare_anno or self.base_dataset.norm_min_max_rare_anno:
+            self.normalize_anno()
 
-        self.exploded_annotations_np = self.exploded_annotations[
-            self.annotations
-        ].to_numpy()
+        # self.exploded_annotations_np = self.exploded_annotations[self.annotations].to_numpy()
+        self.exploded_annotations_np = self.exploded_annotations_df.to_numpy()
+
         self.genes_np = copy.deepcopy(self.exploded_annotations[self.grouping_column].to_numpy())
 
     def remap_group_ids(self):

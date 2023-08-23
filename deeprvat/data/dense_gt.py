@@ -45,7 +45,13 @@ class DenseGTDataset(Dataset):
         standardize_anno: bool = False,
         standardize_rare_anno: bool = False,
         standardize_rare_anno_columns: Optional[List] = None,
-        standardize_rare_anno_params: Optional[Dict] = None,
+        standardize_rare_anno_params: Optional[str] = None, #Optional[Dict] = None,
+        norm_neg_min_max_rare_anno: bool = False,
+        norm_neg_min_max_rare_anno_params: Optional[str] = None,
+        norm_neg_min_max_rare_anno_columns: Optional[List] = None,
+        norm_min_max_rare_anno: bool = False,
+        norm_min_max_rare_anno_params: Optional[str] = None,
+        norm_min_max_rare_anno_columns: Optional[List] = None,
         permute_y: bool = False,
         y_transformation: Optional[str] = None,
         x_phenotypes: List[str] = [],
@@ -98,8 +104,14 @@ class DenseGTDataset(Dataset):
 
         self.standardize_rare_anno = standardize_rare_anno
         self.standardize_rare_anno_columns = standardize_rare_anno_columns
-        self.standardize_rare_anno = standardize_rare_anno_params
+        self.standardize_rare_anno_params = standardize_rare_anno_params
         self.skip_y_na = skip_y_na
+        self.norm_neg_min_max_rare_anno = norm_neg_min_max_rare_anno
+        self.norm_neg_min_max_rare_anno_params = norm_neg_min_max_rare_anno_params
+        self.norm_neg_min_max_rare_anno_columns = norm_neg_min_max_rare_anno_columns
+        self.norm_min_max_rare_anno = norm_min_max_rare_anno
+        self.norm_min_max_rare_anno_params = norm_min_max_rare_anno_params
+        self.norm_min_max_rare_anno_columns = norm_min_max_rare_anno_columns
 
         self.x_phenotypes = x_phenotypes
         self.y_phenotypes = y_phenotypes
@@ -184,7 +196,7 @@ class DenseGTDataset(Dataset):
             annotation_file, annotation_aggregation, precomputed_annotations
         )
 
-        self.transform_data()
+        self.transform_pheno()
         self.setup_variants(min_common_variant_count, min_common_af, variants)
 
         self.get_variant_metadata(grouping_level)
@@ -193,9 +205,10 @@ class DenseGTDataset(Dataset):
             self.rare_embedding = getattr(rare_embedders, rare_embedding["type"])(
                 self, **rare_embedding["config"]
             )
-
         else:
             self.rare_embedding = None
+
+        # self.transform_anno()
 
     def __getitem__(self, idx: int) -> torch.tensor:
         if self.variant_matrix is None:
@@ -388,19 +401,12 @@ class DenseGTDataset(Dataset):
             self.variant_matrix = self.variant_matrix[:]
             self.genotype_matrix = self.genotype_matrix[:]
 
-    def transform_data(self):
-        logger.debug("Standardizing phenotypes and annotations")
+    def transform_pheno(self):
+        logger.debug("Standardizing phenotypes") # and annotations")
         if self.standardize_xpheno:
             logger.debug("  Standardizing input phenotypes")
             for col in self.x_phenotypes:
                 self.phenotype_df[col] = standardize_series(self.phenotype_df[col])
-
-        if self.standardize_anno:
-            logger.debug("  Standardizing annotations")
-            for col in self.annotations:
-                self.annotation_df[col] = standardize_series(self.annotation_df[col])
-
-        # standardization of annotations for the rare embedding is done by rare.py
 
         if self.permute_y:
             logger.info("  Permuting target phenotypes")
@@ -425,6 +431,16 @@ class DenseGTDataset(Dataset):
                     )
             else:
                 raise ValueError(f"Unknown y_transformation: {self.y_transformation}")
+
+    def transform_anno(self):
+        #TODO: fix commmon variant annotation standardization + normalization
+        logger.debug("Standardizing Common Variant Annotations")
+        if self.standardize_anno:
+            logger.debug("  Standardizing annotations")
+            for col in self.annotations:
+                self.annotation_df[col] = standardize_series(self.annotation_df[col])
+
+        # standardization of annotations for the rare embedding is done by rare.py
 
     def setup_annotations(
         self,

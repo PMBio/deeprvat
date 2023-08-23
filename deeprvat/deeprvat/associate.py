@@ -27,6 +27,7 @@ import re
 
 import deeprvat.deeprvat.models as deeprvat_models
 from deeprvat.data import DenseGTDataset
+from deeprvat.utils import standardize_series_with_params, normalize_series_with_params
 
 logging.basicConfig(
     format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
@@ -44,7 +45,6 @@ PLOF_COLS = [
     "Consequence_splice_donor_variant",
 ]
 
-
 def get_burden(
     batch: Dict,
     agg_models: Dict[str, List[nn.Module]],
@@ -54,6 +54,7 @@ def get_burden(
     with torch.no_grad():
         X = batch["rare_variant_annotations"].to(device)
         burden = []
+
         if not skip_burdens:
             for key in sorted(
                 list(agg_models.keys()), key=lambda x: int(x.split("_")[1])
@@ -96,12 +97,9 @@ def make_dataset_(
         with open(ds_pickled, "rb") as f:
             ds = pickle.load(f)
     else:
-        variant_file = data_config.get(
-            "variant_file", f'{data_config["gt_file"][:-3]}_variants.parquet'
-        )
         ds = DenseGTDataset(
             data_config["gt_file"],
-            variant_file=variant_file,
+            variant_file= data_config["variant_file"],
             split="",
             skip_y_na=False,
             **copy.deepcopy(data_config["dataset_config"]),
@@ -320,6 +318,50 @@ def reverse_models(model_config_file: str, data_config_file: str, checkpoint_fil
     plof_zero_df = plof_df.copy()
     plof_zero_df.loc[:, PLOF_COLS] = 0.0
 
+    #######################################
+    if "standardize_rare_anno" in data_config["data"]["dataset_config"]: 
+        if data_config["data"]["dataset_config"]["standardize_rare_anno"]: 
+            logger.info("Standardizing PLOF for reverse rule")
+            logger.info("  Omitting boolean annotations in Standardization")
+            logger.info("   Using pre-defined std and mean for standardization")
+            pheno_path = data_config_file[:-len('/hpopt_config.yaml')] #.removesuffix('/hpopt_config.yaml')
+            with open(f'./{pheno_path}/{data_config["data"]["dataset_config"]["standardize_rare_anno_params"]}', 'rb') as f:
+                std_param_data = pickle.load(f)
+            for col in std_param_data:
+                std, mean = std_param_data[col]
+                logger.info(f"  Standardizing PLOF annotation {col} with mean {mean} and std {std}")
+                plof_df[col] = standardize_series_with_params(plof_df[col], std, mean)
+                logger.info(f"  Standardizing PLOFzero annotation {col} with mean {mean} and std {std}")
+                plof_zero_df[col] = standardize_series_with_params(plof_zero_df[col], std, mean)
+
+    if "norm_neg_min_max_rare_anno" or "norm_min_max_rare_anno" in data_config["data"]["dataset_config"]: 
+        pheno_path = data_config_file[:-len('/hpopt_config.yaml')]
+        if "norm_neg_min_max_rare_anno" in data_config["data"]["dataset_config"]:
+            if data_config["data"]["dataset_config"]["norm_neg_min_max_rare_anno"]:
+                param_path = f'./{pheno_path}/{data_config["data"]["dataset_config"]["norm_neg_min_max_rare_anno_params"]}'
+                neg_min_max = True
+            else: param_path = ''
+        if "norm_min_max_rare_anno" in data_config["data"]["dataset_config"]: 
+            if data_config["data"]["dataset_config"]["norm_min_max_rare_anno"]: 
+                param_path = f'./{pheno_path}/{data_config["data"]["dataset_config"]["norm_min_max_rare_anno_params"]}'
+                neg_min_max = False
+            else: param_path = ''
+        
+        if param_path:
+            logger.info("Normalizing PLOF for reverse rule")
+            logger.info("  Omitting boolean annotations in Normalization")
+            logger.info("   Using pre-defined min and max for normalization")
+          
+            with open (param_path, 'rb') as f:
+                norm_param_data = pickle.load(f)
+            for col in norm_param_data:
+                min_val, max_val = norm_param_data[col]
+                logger.info(f"  Normalizing PLOF annotation {col} with min {min_val} and max {max_val}")
+                plof_df[col] = normalize_series_with_params(plof_df[col], min_val, max_val, neg_min_max)
+                logger.info(f"  Normalizing PLOFzero annotation {col} with min {min_val} and max {max_val}")
+                plof_zero_df[col] = normalize_series_with_params(plof_zero_df[col], min_val, max_val, neg_min_max)
+    #########################################
+
     plof = plof_df.to_numpy()
     plof_zero = plof_zero_df.to_numpy()
 
@@ -341,8 +383,7 @@ def reverse_models(model_config_file: str, data_config_file: str, checkpoint_fil
         if mean_difference < 0:
             logger.info(f"Reversed model at checkpoint {checkpoint}")
             Path(checkpoint + ".reverse").touch()
-
-
+    
 def load_models(
     config: Dict,
     checkpoint_files: Tuple[str],
