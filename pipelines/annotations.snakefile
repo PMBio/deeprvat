@@ -39,13 +39,14 @@ cadd_shell_path = repo_dir/ "CADD-scripts" / "CADD.sh"
 cadd_snv_file = config["cadd_snv_file"]
 cadd_indel_file = config["cadd_indel_file"]
 
+
 # init vep
 vep_source_dir = repo_dir / "ensembl-vep"
 vep_cache_dir = Path(config["vep_cache_dir"])
 vep_plugin_dir = Path(config.get("vep_plugin_dir")) or ""
 vep_input_format = config.get("vep_input_format") or "vcf"
-vep_nfork = config.get("vep_nfork") or 5
-cadd_ncores = config.get("cadd_ncores") or 5
+vep_nfork = int(config.get("vep_nfork") or 5)
+
 
 # init plugIns
 spliceAI_snv_file = config["spliceAI_snv_file"]
@@ -59,7 +60,8 @@ pvcf_blocks_df = pd.read_csv(
     names=["Index", "Chromosome", "Block", "First position", "Last position"],
     dtype={"Chromosome": str},
 ).set_index("Index")
-
+#init absplice
+n_cores_absplice = int(config.get("n_cores_absplice") or 4)
 # Filter out which chromosomes to work with
 pvcf_blocks_df = pvcf_blocks_df[
     pvcf_blocks_df["Chromosome"].isin([str(c) for c in included_chromosomes])
@@ -73,16 +75,46 @@ inv_chr_mapping = pd.Series(
 )
 
 pvcf_blocks_df["chr_name"] = chr_mapping.loc[pvcf_blocks_df["Chromosome"].values].values
+
 chromosomes = pvcf_blocks_df["chr_name"]
 block = pvcf_blocks_df["Block"]
 
 
 rule all:
     input:
-        anno_dir / "current_annotations.parquet",
-        anno_dir / "current_annotations_deepripe_deepSea.parquet",
-        anno_dir / "current_annotations_deepripe.parquet"
+        anno_dir / "current_annotations_deepripe_deepSea_abSplice.parquet",
 
+
+
+rule aggregate_and_merge_absplice:
+    input:
+        abscore_files = expand(
+            [
+                anno_tmp_dir / "absplice" / (vcf_pattern + "_AbSplice_DNA.csv")
+            ],
+            zip,
+            chr=chromosomes,
+            block=block,
+        ),  
+        current_annotation_file = anno_dir / "current_annotations_deepripe_deepSea.parquet",
+    output:
+        annotations = anno_dir / "current_annotations_deepripe_deepSea_abSplice.parquet",
+        scores = anno_tmp_dir / "abSplice_score_file"
+    resources: mem_mb=15000
+    shell:
+        " ".join(
+        [
+            "python",
+            f"{annotation_python_file}",
+            "get-abscores",
+            
+            "{input.current_annotation_file}",
+            str(anno_tmp_dir / "absplice"),
+
+            "{output.annotations}",
+            "{output.scores}"
+        ]
+            )    
 
 
 rule merge_deepripe_pcas:
@@ -91,6 +123,7 @@ rule merge_deepripe_pcas:
         deepripe_pcas=anno_dir / "deepripe_pca" / "deepripe_pca.parquet",
     output:
         anno_dir / "current_annotations_deepripe.parquet",
+
     resources:
         mem_mb=lambda wildcards, attempt: 12500 * (attempt + 1),
     shell:
@@ -123,6 +156,67 @@ rule merge_deepsea_pcas:
             ]
         )
 
+rule mv_absplice_files:
+    input:
+        str(repo_dir/"absplice"/"example"/"data"/"results"/"hg38" / (vcf_pattern + "_AbSplice_DNA.csv")),
+    output:
+        anno_tmp_dir / "absplice" / (vcf_pattern + "_AbSplice_DNA.csv")
+    shell: 
+        " ".join([
+            "mkdir", "-p", str(anno_tmp_dir / "absplice"), 
+            "&&",
+            "cp",
+            "{input}",
+            "{output}"
+        ])
+
+
+
+rule absplice:
+    conda: "absplice"
+    input: 
+        vcf = expand(
+            [
+                repo_dir / "absplice/example/data/resources/analysis_files/vcf_files" / (vcf_pattern),
+            ],
+            zip,
+            chr=chromosomes,
+            block=block,
+        ),
+        config = repo_dir/"absplice"/"example"/"workflow"/"mv_config.done"
+
+    output: 
+        expand(
+            [
+                str(repo_dir/"absplice"/"example"/"data"/"results"/"hg38" / (vcf_pattern + "_AbSplice_DNA.csv")),
+            ],
+            zip,
+            chr=chromosomes,
+            block=block,
+        ),  
+    resources:mem_mb=15000
+    threads:n_cores_absplice
+    shell:f"""python -m snakemake -s {str(repo_dir/"absplice"/"example"/"workflow"/"Snakefile")} -j 1 --use-conda --rerun-incomplete --directory {str(repo_dir/"absplice"/"example"/"workflow")} -c{n_cores_absplice} """
+
+    
+rule mod_config_absplice:
+    output:
+        repo_dir/"absplice"/"example"/"workflow"/"mv_config.done"
+    shell:
+        f""" rm {repo_dir}/absplice/example/workflow/config.yaml && mv {deeprvat_parent_path}/pipelines/resources/absplice_config.yaml {repo_dir}/absplice/example/workflow/config.yaml && touch {repo_dir}/absplice/example/workflow/mv_config.done"""
+
+
+rule link_files_absplice:
+    input:
+        anno_tmp_dir / (vcf_pattern + "_variants_header.vcf.gz"),
+    output:
+        repo_dir / "absplice/example/data/resources/analysis_files/vcf_files" / (vcf_pattern),
+    shell:
+        " ".join(["ln", "-s", "-r", "{input}", "{output}"])
+       # f"""rm -r {repo_dir}/absplice/example/data/resources/analysis_files/vcf_files && mkdir {repo_dir}/absplice/example/data/resources/analysis_files/vcf_files && ln -s -r {vcf_dir}/* {repo_dir}/absplice/example/data/resources/analysis_files/vcf_files/"""
+
+
+
 rule all_deepSea:
     input:
         expand(
@@ -138,7 +232,7 @@ rule all_deepSea:
 
 rule deepSea_PCA:
     input:
-        anno_dir / "all_variants.deepSea.csv",
+        anno_dir / "all_variants.wID.deepSea.csv",
     output:
         anno_dir / "deepSea_pca" / "deepsea_pca.parquet",
     resources:
@@ -154,11 +248,27 @@ rule deepSea_PCA:
                 "deepsea-pca",
                 "--n-components 100",
                 "{input}",
-                str(anno_dir / "current_annotations.parquet"),
                 str(anno_dir / "deepSea_pca"),
             ]
         )
+rule add_ids_deepSea:
+    input:
+        variant_file = variant_file,
+        annotation_file = anno_dir / "all_variants.deepSea.csv",
+    output:
+        anno_dir / "all_variants.wID.deepSea.csv",
+    resources:mem_mb=15000
+    shell:
+        " ".join(
+        [
+            "python",
+            f"{annotation_python_file}",
+            "add-ids",
+            "{input.annotation_file}",
+            "{input.variant_file}",
+            "{output}"
 
+        ])      
 
 rule concat_deepSea:
     input:
@@ -226,9 +336,9 @@ rule all_deepripe:
 
 rule deepripe_PCA:
     input:
-        anno_dir / "all_variants.deepripe.csv",
+        anno_dir / "all_variants.wID.deepripe.csv",
     output:
-        directory(anno_dir / "deepripe_pca" / "deepripe_pca.parquet"),
+        anno_dir / "deepripe_pca" / "deepripe_pca.parquet",
     resources:
         mem_mb=lambda wildcards, attempt: 25000 * (attempt + 1),
     shell:
@@ -242,10 +352,26 @@ rule deepripe_PCA:
                 "deepripe-pca",
                 "--n-components 59",
                 "{input}",
-                "deepripe_pca",
+                str(anno_dir / "deepripe_pca"),
             ]
         )
 
+rule add_ids_deepripe:
+    input:
+        variant_file = variant_file,
+        annotation_file = anno_dir / "all_variants.deepripe.csv",
+    output:
+        anno_dir / "all_variants.wID.deepripe.csv",
+    shell:
+        " ".join(
+        [
+            "python",
+            f"{annotation_python_file}",
+            "add-ids",
+            "{input.annotation_file}",
+            "{input.variant_file}",
+            "{output}"
+        ])      
 
 rule concat_deepRiPe:
     input:
@@ -291,7 +417,7 @@ rule deepRiPe:
     resources:
         mem_mb=lambda wildcards, attempt: 25000 * (attempt + 1),
     shell:
-        f"python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path} {saved_deepripe_models_path} 'parclip'"
+        f"mkdir -p {pybedtools_tmp_path} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path} {saved_deepripe_models_path} 'parclip'"
 
 
 rule all_vep:
@@ -415,7 +541,6 @@ rule vep:
             ]
         )
 
-
 rule extract_with_header:
     input:
         vcf_dir / (vcf_pattern + ".vcf.gz"),
@@ -460,4 +585,4 @@ rule setup:
     output: 
         repo_dir / "annotation-workflow-setup.done"
     shell:
-        f""" bash {setup_shell_path}  {vep_cache_dir} {vep_plugin_dir} {repo_dir}""" 
+        f""" {load_vep} bash {setup_shell_path}  {vep_cache_dir} {vep_plugin_dir} {repo_dir}""" 

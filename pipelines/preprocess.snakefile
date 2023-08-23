@@ -81,6 +81,7 @@ rule combine_genotypes:
             chr=chromosomes,
             block=block,
         ),
+    resources: mem_mb=15000
     output:
         preprocessed_dir / "genotypes.h5",
     shell:
@@ -132,6 +133,7 @@ rule preprocess:
         qc_filtered_samples=qc_filtered_samples_dir,
     output:
         expand(preprocessed_dir / "genotypes_chr{chr}.h5",chr=set(chromosomes)),
+    resources: mem_mb=15000
     shell:
         " ".join(
             [

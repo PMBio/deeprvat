@@ -230,49 +230,16 @@ def cli():
     pass
 
 @cli.command()
-@click.option('--debug', is_flag=True)
 @click.option('--n-components', type=int, default=100)
-@click.argument('deepsea-files', type=click.Path(exists=True), nargs=-1)
-@click.argument('annotation-file', type=click.Path(exists=True))
+@click.argument('deepsea-file', type=click.Path(exists=True))
 @click.argument('out-dir', type=click.Path(exists=True))
-def deepsea_pca(debug: bool, n_components: int, deepsea_files: List[str],
-                annotation_file, out_dir: str):
-    logger.info('Reading deepsea file(s)')
-    if len(deepsea_files) == 1:
-        if debug:
-            columns = pd.read_csv(deepsea_files[0]).columns
-            df = pd.read_csv(deepsea_files[0],
-                                 columns=columns[:20])
-            n_components = 10
-        else:
-            df = pd.read_csv(deepsea_files[0])
-    else:
-        df = pd.concat([
-            pd.read_csv(f, index_col=0)
-            for f in tqdm(deepsea_files, file=sys.stdout)
-        ])
+def deepsea_pca(n_components: int, deepsea_file:str,
+                 out_dir: str):
 
-    df = df.rename(columns={
-        '#CHROM': 'chrom',
-        'POS': 'pos',
-        'ID':'variant_name',
-        'REF': 'ref',
-        'ALT': 'alt'
-    })
-    n_deepsea_variants = len(df)
-    key_cols = ['chrom', 'pos', 'ref', 'alt']
-
-    logger.info('Sanity check of DeepSEA file IDs')
-    all_variants = pd.read_parquet(annotation_file,
-                                   engine='pyarrow',
-                                   columns=['id'] + key_cols)
-    df = pd.merge(all_variants,
-                  df,
-                  on=key_cols,
-                  how='left')
+    df = pd.read_csv(deepsea_file)
     df = df.fillna(0)
     logger.info('Extracting matrix for PCA')
-    key_df = df[['id'] + key_cols].reset_index(drop=True)
+    key_df = df[['chrom', 'pos', 'ref', 'alt', 'id']].reset_index(drop=True)
     X = df[[c for c in df.columns if c.startswith('DeepSEA')]].to_numpy()
     del df
 
@@ -457,10 +424,11 @@ def scorevariants_deepripe(variants_file:str,
 @click.argument("current_annotation_file", type=click.Path(exists=True))
 @click.argument("abs_splice_res_dir", type=click.Path(exists=True))
 @click.argument("out_file", type = click.Path())
+@click.argument("absplice_score_file", type = click.Path())
 def get_abscores(current_annotation_file : str, 
                  abs_splice_res_dir : str,
                  out_file : str, 
-                 abSplice_score_file : str):
+                 absplice_score_file : str):
     
     
     current_annotation_file = Path(current_annotation_file)
@@ -482,14 +450,14 @@ def get_abscores(current_annotation_file : str,
     tissue_agg_function = 'max'
     tissues_to_exclude = ['Testis']
     tissues_to_exclude = []
-    ab_splice_agg_score_file = abSplice_score_file
+    ab_splice_agg_score_file = absplice_score_file
 
     if not Path(ab_splice_agg_score_file).exists():
         logger.info("creating abSplice score file.. ")
         all_absplice_scores = []
         for chrom_file in os.listdir(abs_splice_res_dir):
             logger.info(f'Reading file {chrom_file}')
-            ab_splice_res = pd.read_parquet(abs_splice_res_dir/ chrom_file).reset_index()
+            ab_splice_res = pd.read_csv(abs_splice_res_dir/ chrom_file).reset_index()
             ab_splice_res = ab_splice_res.query('tissue not in @tissues_to_exclude')
             logger.info(f"AbSplice tissues excluded: {tissues_to_exclude}, Aggregating AbSplice scores using {tissue_agg_function}")
             logger.info(f"Number of unique variants {len(ab_splice_res['variant'].unique())}")
@@ -568,7 +536,7 @@ def deepripe_pca(n_components: int, deepripe_file: str, out_dir: str):
     df = df.drop(['Unnamed: 0', 'Uploaded_variant'], axis=1)
     print(df.columns)
     df = df.dropna()
-    key_df = df[['chr', 'pos', 'ref', 'alt']].reset_index(drop=True)
+    key_df = df[['chrom', 'pos', 'ref', 'alt', 'id']].reset_index(drop=True)
 
     logger.info('Extracting matrix for PCA')
     X = df[[c for c in df.columns if c not in key_df.columns]].to_numpy()
@@ -643,6 +611,45 @@ def process_annotations(in_variants:str, out_variants:str):
     variants.to_parquet(out_variants)
 
 
+
+@cli.command()
+@click.argument("annotation_file", type = click.Path(exists = True))
+@click.argument("variant_file", type = click.Path(exists = True))
+@click.argument("out_file",type = click.Path())
+def add_ids(
+        annotation_file:str,
+        variant_file:str,
+        out_file:str
+ ):
+    df = pd.read_csv(annotation_file)   
+        
+    df = df.rename(columns={
+        '#CHROM': 'chrom',
+        'POS': 'pos',
+        'ID':'variant_name',
+        'REF': 'ref',
+        'ALT': 'alt',
+        'chr':'chrom',
+        })
+    key_cols = ['chrom', 'pos', 'ref', 'alt']
+
+    logger.info('Sanity check of  file IDs')
+    all_variants = pd.read_csv(variant_file, sep="\t")
+    df_shape = df.shape
+    df = pd.merge(df,
+                all_variants,
+              on=key_cols,
+              how='left')
+    #sanity checks
+    #same length 
+    assert df.shape[0]==df_shape[0]
+    #one more column
+    assert df.shape[1]==df_shape[1]+1
+    #all key columns and id are present
+    assert all([x in df.columns for x in key_cols+['id']])
+
+    df.to_csv(out_file, index= False)
+
 @cli.command()
 @click.option("--included-chromosomes", type=str)
 @click.option("--comment-lines", is_flag = True)
@@ -702,14 +709,14 @@ def concatenate_deepripe(
 @cli.command()
 @click.option("--included-chromosomes", type=str)
 @click.argument("annotation_dir", type=click.Path(exists=True))
-@click.argument("vep_name_pattern", type=str)
+@click.argument("file_name_pattern", type=str)
 @click.argument("variant_file", type = click.Path(exists = True))
 @click.argument("pvcf-blocks_file", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
 def concatenate_annotations(
     included_chromosomes: Optional[str],
     annotation_dir: str, 
-    vep_name_pattern: str, 
+    file_name_pattern: str, 
     variant_file:str,
     pvcf_blocks_file: str, 
     out_file: str):
@@ -735,7 +742,7 @@ def concatenate_annotations(
     pvcf_blocks = zip(pvcf_blocks_df["Chromosome"], pvcf_blocks_df["Block"])
 
     logger.info("reading vep files")
-    vep_file_paths = [annotation_dir / vep_name_pattern.format(chr = p[0], block = p[1] ) for p in pvcf_blocks]
+    vep_file_paths = [annotation_dir / file_name_pattern.format(chr = p[0], block = p[1] ) for p in pvcf_blocks]
     vep_colnames = ["Uploaded_variation", "Location", "Allele", "Gene", "Feature", 
                     "Feature_type", "Consequence", "cDNA_position", "CDS_position", 
                     "Protein_position", "Amino_acids", "Codons", "Existing_variation", 
