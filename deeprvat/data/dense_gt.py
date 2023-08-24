@@ -222,6 +222,7 @@ class DenseGTDataset(Dataset):
         )
 
         phenotypes = self.phenotype_df.iloc[idx, :]
+        # put this to loc
 
         x_phenotype_tensor = torch.tensor(
             phenotypes[self.x_phenotypes].to_numpy(dtype=np.float32), dtype=torch.float
@@ -283,7 +284,10 @@ class DenseGTDataset(Dataset):
             f"Number of samples with phenotype and covariates: {self.n_samples}"
         )
         self.samples = self.phenotype_df.index.to_numpy()
-
+        #if you grab samples from phenotype file
+        # make sure that all samples are in the genotype file (or in the genotype and phenotype file)  
+        # if sample file is present 
+        # modfiy the mask 
         self.index_map = np.arange(len(self.phenotype_df))[mask]
 
     def get_variant_ids(self, matrix_indices: np.ndarray) -> np.ndarray:
@@ -409,8 +413,18 @@ class DenseGTDataset(Dataset):
                 self.phenotype_df[col] = rng.permutation(
                     self.phenotype_df[col].to_numpy()
                 )
-
+        if len(self.y_phenotypes) > 0:
+            unique_y_val = self.phenotype_df[self.y_phenotypes[0]].unique()
+            n_unique_y_val = np.count_nonzero(~np.isnan(unique_y_val))
+            print(f'unique y values {unique_y_val}')
+            print(n_unique_y_val)
+        else:
+            n_unique_y_val = 0
+        if n_unique_y_val == 2:
+            logger.info('Not applying y transformation because y only has two values and seems to be binary')
+            self.y_transformation = None
         if self.y_transformation is not None:
+            # import ipdb; ipdb.set_trace()
             if self.y_transformation == "standardize":
                 logger.debug("  Standardizing target phenotype")
                 for col in self.y_phenotypes:
@@ -425,6 +439,9 @@ class DenseGTDataset(Dataset):
                     )
             else:
                 raise ValueError(f"Unknown y_transformation: {self.y_transformation}")
+          
+        else:
+            logger.info('Not tranforming phenotype')
 
     def setup_annotations(
         self,
