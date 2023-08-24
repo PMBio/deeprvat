@@ -334,7 +334,7 @@ def reverse_models(model_config_file: str, data_config_file: str, checkpoint_fil
                 logger.info(f"  Standardizing PLOFzero annotation {col} with mean {mean} and std {std}")
                 plof_zero_df[col] = standardize_series_with_params(plof_zero_df[col], std, mean)
 
-    if "norm_neg_min_max_rare_anno" or "norm_min_max_rare_anno" in data_config["data"]["dataset_config"]: 
+    if {"norm_neg_min_max_rare_anno","norm_min_max_rare_anno"} & set(data_config["data"]["dataset_config"]): #set intersection
         pheno_path = data_config_file[:-len('/hpopt_config.yaml')]
         if "norm_neg_min_max_rare_anno" in data_config["data"]["dataset_config"]:
             if data_config["data"]["dataset_config"]["norm_neg_min_max_rare_anno"]:
