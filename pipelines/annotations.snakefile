@@ -29,7 +29,7 @@ load_vep = " ".join([config["vep_load_cmd"], "&&"])
 
 # init data path
 vcf_pattern = config["vcf_file_pattern"]
-vcf_dir = Path(config["vcf_dir"])
+bcf_dir = Path(config["bcf_dir"])
 anno_tmp_dir = Path(config["anno_tmp_dir"])
 anno_dir = Path(config["anno_dir"])
 metadata_dir = Path(config["metadata_dir"])
@@ -82,7 +82,7 @@ block = pvcf_blocks_df["Block"]
 
 rule all:
     input:
-        anno_dir / "current_annotations_deepripe_deepSea_abSplice.parquet",
+        anno_dir / "current_annotations_absplice_deepsea_deepripe_parclip_hg2_k5.parquet",
 
 
 
@@ -96,10 +96,10 @@ rule aggregate_and_merge_absplice:
             chr=chromosomes,
             block=block,
         ),  
-        current_annotation_file = anno_dir / "current_annotations_deepripe_deepSea.parquet",
+        current_annotation_file = anno_dir / "current_annotations_deepsea_deepripe_parclip_hg2_k5.parquet",
     output:
-        annotations = anno_dir / "current_annotations_deepripe_deepSea_abSplice.parquet",
-        scores = anno_tmp_dir / "abSplice_score_file"
+        annotations = anno_dir / "current_annotations_absplice_deepsea_deepripe_parclip_hg2_k5.parquet",
+        scores = anno_tmp_dir / "abSplice_score_file.parquet"
     resources: mem_mb=15000
     shell:
         " ".join(
@@ -117,12 +117,13 @@ rule aggregate_and_merge_absplice:
             )    
 
 
-rule merge_deepripe_pcas:
+
+rule merge_deepripe_k5:
     input:
-        annotations=anno_dir / "current_annotations_processed.parquet",
-        deepripe_pcas=anno_dir / "deepripe_pca" / "deepripe_pca.parquet",
+        anno_dir / "current_annotations_deepripe_parclip_hg2.parquet",
+        deepripe_file= anno_dir / "all_variants.wID.k5.deepripe.csv",
     output:
-        anno_dir / "current_annotations_deepripe.parquet",
+         anno_dir / "current_annotations_deepripe_parclip_hg2_k5.parquet",
 
     resources:
         mem_mb=lambda wildcards, attempt: 12500 * (attempt + 1),
@@ -131,18 +132,65 @@ rule merge_deepripe_pcas:
             [
                 "python",
                 f"{annotation_python_file}",
-                "merge-deepripe-pcas",
+                "merge-deepripe",
                 "{input.annotations}",
-                "{input.deepripe_pcas}",
+                "{input.deepripe_file}",
                 "{output}",
+                "k5",
+            ]
+        )
+
+rule merge_deepripe_hg2:
+    input:
+        anno_dir / "current_annotations_deepripe_parclip.parquet",
+        deepripe_file= anno_dir / "all_variants.wID.hg2.deepripe.csv",
+    output:
+        anno_dir / "current_annotations_deepripe_parclip_hg2.parquet",
+
+    resources:
+        mem_mb=lambda wildcards, attempt: 12500 * (attempt + 1),
+    shell:
+        " ".join(
+            [
+                "python",
+                f"{annotation_python_file}",
+                "merge-deepripe",
+                "{input.annotations}",
+                "{input.deepripe_file}",
+                "{output}",
+                "hg2",
+            ]
+        )
+
+
+
+rule merge_deepripe_parclip:
+    input:
+        annotations=anno_dir / "current_annotations_processed.parquet",
+        deepripe_file= anno_dir / "all_variants.wID.parclip.deepripe.csv",
+    output:
+        anno_dir / "current_annotations_deepripe_parclip.parquet",
+
+    resources:
+        mem_mb=lambda wildcards, attempt: 12500 * (attempt + 1),
+    shell:
+        " ".join(
+            [
+                "python",
+                f"{annotation_python_file}",
+                "merge-deepripe",
+                "{input.annotations}",
+                "{input.deepripe_file}",
+                "{output}",
+                "parclip",
             ]
         )
 
 rule merge_deepsea_pcas:
     input:
-        annotations=anno_dir / "current_annotations_deepripe.parquet",
+        annotations=anno_dir / "current_annotations_deepripe_parclip_hg2_k5.parquet",
         deepsea_pcas=anno_dir / "deepSea_pca" / "deepsea_pca.parquet"
-    output:anno_dir / "current_annotations_deepripe_deepSea.parquet",
+    output:anno_dir / "current_annotations_deepsea_deepripe_parclip_hg2_k5.parquet",
     resources:mem_mb=lambda wildcards, attempt: 12500 * (attempt + 1),
     shell:
         " ".join(
@@ -194,7 +242,8 @@ rule absplice:
             chr=chromosomes,
             block=block,
         ),  
-    resources:mem_mb=15000
+    resources:
+        mem_mb=15000
     threads:n_cores_absplice
     shell:f"""python -m snakemake -s {str(repo_dir/"absplice"/"example"/"workflow"/"Snakefile")} -j 1 --use-conda --rerun-incomplete --directory {str(repo_dir/"absplice"/"example"/"workflow")} -c{n_cores_absplice} """
 
@@ -283,7 +332,7 @@ rule concat_deepSea:
         
     output:
         anno_dir / "all_variants.deepSea.csv",
-
+    resources: mem_mb=15000
     shell:
         " ".join(
         [
@@ -334,34 +383,13 @@ rule all_deepripe:
         anno_dir / "deepripe_pca" / "deepripe_pca.parquet",
 
 
-rule deepripe_PCA:
-    input:
-        anno_dir / "all_variants.wID.deepripe.csv",
-    output:
-        anno_dir / "deepripe_pca" / "deepripe_pca.parquet",
-    resources:
-        mem_mb=lambda wildcards, attempt: 25000 * (attempt + 1),
-    shell:
-        " ".join(
-            [
-                "mkdir -p",
-                str(anno_dir / "deepripe_pca"),
-                "&&",
-                "python",
-                f"{annotation_python_file}",
-                "deepripe-pca",
-                "--n-components 59",
-                "{input}",
-                str(anno_dir / "deepripe_pca"),
-            ]
-        )
 
-rule add_ids_deepripe:
+rule add_ids_deepripe_parclip:
     input:
         variant_file = variant_file,
-        annotation_file = anno_dir / "all_variants.deepripe.csv",
+        annotation_file = anno_dir / "all_variants.deepripe.parclip.csv",
     output:
-        anno_dir / "all_variants.wID.deepripe.csv",
+        anno_dir / "all_variants.wID.parclip.deepripe.csv",
     shell:
         " ".join(
         [
@@ -373,7 +401,42 @@ rule add_ids_deepripe:
             "{output}"
         ])      
 
-rule concat_deepRiPe:
+rule add_ids_deepripe_hg2:
+    input:
+        variant_file = variant_file,
+        annotation_file = anno_dir / "all_variants.deepripe.hg2.csv",
+    output:
+        anno_dir / "all_variants.wID.hg2.deepripe.csv",
+    shell:
+        " ".join(
+        [
+            "python",
+            f"{annotation_python_file}",
+            "add-ids",
+            "{input.annotation_file}",
+            "{input.variant_file}",
+            "{output}"
+        ])      
+
+
+rule add_ids_deepripe_k5:
+    input:
+        variant_file = variant_file,
+        annotation_file = anno_dir / "all_variants.deepripe.k5.csv",
+    output:
+        anno_dir / "all_variants.wID.k5.deepripe.csv",
+    shell:
+        " ".join(
+        [
+            "python",
+            f"{annotation_python_file}",
+            "add-ids",
+            "{input.annotation_file}",
+            "{input.variant_file}",
+            "{output}"
+        ])      
+
+rule concat_deepRiPe_parclip:
     input:
         files = expand(
             [
@@ -384,7 +447,7 @@ rule concat_deepRiPe:
             block=block,
         )
     output:
-        anno_dir / "all_variants.deepripe.csv",
+        anno_dir / "all_variants.deepripe.parclip.csv",
     resources:
         mem_mb=lambda wildcards, attempt: 15000 * (attempt + 1),
     shell:
@@ -406,8 +469,75 @@ rule concat_deepRiPe:
             ]
         )
 
+rule concat_deepRiPe_eclip_hg2:
+    input:
+        files = expand(
+            [
+                anno_dir / (vcf_pattern + "_variants.eclip_hg2_deepripe.csv"),
+            ],
+            zip,
+            chr=chromosomes,
+            block=block,
+        )
+    output:
+        anno_dir / "all_variants.deepripe.hg2.csv",
+    resources:
+        mem_mb=lambda wildcards, attempt: 15000 * (attempt + 1),
+    shell:
+        " ".join(
+        [
+            "python",
+            f"{annotation_python_file}",
+            "concatenate-deepripe",
+            "--included-chromosomes",
+            ",".join(included_chromosomes),
+            f"{anno_dir}",
+            str(vcf_pattern + "_variants.eclip_hg2_deepripe.csv").format(
+        chr="{{chr}}", block="{{block}}"
+                ),
+                str(metadata_dir / config["pvcf_blocks_file"]),
+                str(
+                    anno_dir / "all_variants.deepripe.csv",
+                ),
+            ]
+        )
 
-rule deepRiPe:
+rule concat_deepRiPe_eclip_k5:
+    input:
+        files = expand(
+            [
+                anno_dir / (vcf_pattern + "_variants.eclip_k5_deepripe.csv"),
+            ],
+            zip,
+            chr=chromosomes,
+            block=block,
+        )
+    output:
+        anno_dir / "all_variants.deepripe.k5.csv",
+    resources:
+        mem_mb=lambda wildcards, attempt: 15000 * (attempt + 1),
+    shell:
+        " ".join(
+        [
+            "python",
+            f"{annotation_python_file}",
+            "concatenate-deepripe",
+            "--included-chromosomes",
+            ",".join(included_chromosomes),
+            f"{anno_dir}",
+            str(vcf_pattern + "_variants.eclip_k5_deepripe.csv").format(
+        chr="{{chr}}", block="{{block}}"
+                ),
+                str(metadata_dir / config["pvcf_blocks_file"]),
+                str(
+                    anno_dir / "all_variants.deepripe.csv",
+                ),
+            ]
+        )
+
+
+
+rule deepRiPe_parclip:
     input:
         variants=anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
         fasta=fasta_dir / fasta_file_name,
@@ -418,6 +548,31 @@ rule deepRiPe:
         mem_mb=lambda wildcards, attempt: 25000 * (attempt + 1),
     shell:
         f"mkdir -p {pybedtools_tmp_path} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path} {saved_deepripe_models_path} 'parclip'"
+
+
+rule deepRiPe_eclip_hg2:
+    input:
+        variants=anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
+        fasta=fasta_dir / fasta_file_name,
+        setup = repo_dir / "annotation-workflow-setup.done"
+    output:
+        anno_dir / (vcf_pattern + "_variants.eclip_hg2_deepripe.csv"),
+    resources:
+        mem_mb=lambda wildcards, attempt: 25000 * (attempt + 1),
+    shell:
+        f"mkdir -p {pybedtools_tmp_path} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path} {saved_deepripe_models_path} 'eclip_hg2'"
+
+rule deepRiPe_eclip_k5:
+    input:
+        variants=anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
+        fasta=fasta_dir / fasta_file_name,
+        setup = repo_dir / "annotation-workflow-setup.done"
+    output:
+        anno_dir / (vcf_pattern + "_variants.eclip_k5_deepripe.csv"),
+    resources:
+        mem_mb=lambda wildcards, attempt: 25000 * (attempt + 1),
+    shell:
+        f"mkdir -p {pybedtools_tmp_path} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path} {saved_deepripe_models_path} 'eclip_k5'"
 
 
 rule all_vep:
@@ -463,6 +618,7 @@ rule combine_annotations:
             chr=chromosomes,
             block=block,
         ),
+        variant_file = variant_file
     output:
         anno_dir / "current_annotations.parquet",
     resources:
@@ -479,12 +635,10 @@ rule combine_annotations:
             str(vcf_pattern + "_vep_anno.tsv").format(
         chr="{{chr}}", block="{{block}}"
                 ),
-                str(variant_file),
+                "{input.variant_file}",
                 # vcf_pattern + "_cadd_anno.tsv.gz",
                 str(metadata_dir / config["pvcf_blocks_file"]),
-                str(
-                    anno_dir / "current_annotations.parquet",
-                ),
+                "{output}"
             ]
         )
 
@@ -504,6 +658,8 @@ rule vep:
             [   load_perl,
                 load_hts,
                 load_bfc,
+                #load_vep,
+                #"vep",
                 str(vep_source_dir / "vep"),
                 "--input_file",
                 "{input.vcf}",
@@ -528,8 +684,6 @@ rule vep:
                 "{input.fasta}",
                 "--everything",
                 "--tab",
-                "--canonical",
-                "--per_gene",
                 "--total_length",
                 "--no_escape",
                 "--xref_refseq",
@@ -543,7 +697,7 @@ rule vep:
 
 rule extract_with_header:
     input:
-        vcf_dir / (vcf_pattern + ".vcf.gz"),
+        bcf_dir / (vcf_pattern + ".bcf"),
     output:
         anno_tmp_dir / (vcf_pattern + "_variants_header.vcf.gz"),
     shell:
@@ -568,7 +722,7 @@ rule strip_chr_name:
 
 rule extract_variants:
     input:
-        vcf_dir / (vcf_pattern + ".vcf.gz"),
+        bcf_dir / (vcf_pattern + ".bcf"),
     output:
         anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
     shell:

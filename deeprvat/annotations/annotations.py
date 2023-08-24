@@ -480,10 +480,11 @@ def get_abscores(current_annotation_file : str,
             del merged
             del ab_splice_res
 
-            
+        logger.info("concatenating files")    
         all_absplice_scores = pd.concat(all_absplice_scores)
+        logger.info(f"saving score file to {ab_splice_agg_score_file}")
         all_absplice_scores.to_parquet(ab_splice_agg_score_file)
-
+        
 
     else:
         logger.info("reading existing abSplice Score file")
@@ -533,7 +534,7 @@ logger = logging.getLogger(__name__)
 def deepripe_pca(n_components: int, deepripe_file: str, out_dir: str):
     logger.info('Reading deepripe file')
     df = pd.read_csv(deepripe_file)
-    df = df.drop(['Unnamed: 0', 'Uploaded_variant'], axis=1)
+    df = df.drop(['Uploaded_variant'], axis=1)
     print(df.columns)
     df = df.dropna()
     key_df = df[['chrom', 'pos', 'ref', 'alt', 'id']].reset_index(drop=True)
@@ -567,14 +568,20 @@ def deepripe_pca(n_components: int, deepripe_file: str, out_dir: str):
 
 @cli.command()
 @click.argument("annotation_file", type = click.Path(exists = True))
-@click.argument("deepripe_pca_file", type = click.Path(exists = True))
+@click.argument("deepripe_file", type = click.Path(exists = True))
 @click.argument("out_file", type = click.Path())
-def merge_deepripe_pcas(annotation_file:str, deepripe_pca_file:str, out_file:str):
+@click.argument("column_prefix", type = str)
+def merge_deepripe(annotation_file:str, deepripe_file:str, out_file:str, column_prefix:str):
     annotations = pd.read_parquet(annotation_file)
-    deepripe_pcas = pd.read_parquet(deepripe_pca_file)
+    deepripe_df = pd.read_csv(deepripe_file)
     orig_len= len(annotations)
-    deepripe_pcas = deepripe_pcas.rename(columns={"chr":"chrom"})
-    merged = annotations.merge(deepripe_pcas, how = "left", on = ["chrom", "pos", "ref", "alt"])
+    deepripe_df = deepripe_df.rename(columns={"chr":"chrom"})
+    deepripe_df = deepripe_df.drop(columns=["Uploaded_variant", "Unnamed: 0"], errors="ignore")
+    key_cols = ["chrom", "pos", "ref", "alt", "id"]
+    prefix_cols = [x for x in deepripe_df.columns if x not in key_cols]
+    new_names = [(i,i+f'_{column_prefix}') for i in prefix_cols]
+    deepripe_df.rename(columns = dict(new_names))
+    merged = annotations.merge(deepripe_df, how = "left", on = ["chrom", "pos", "ref", "alt"])
     assert len(merged)== orig_len
     merged.to_parquet(out_file)
 
@@ -636,18 +643,18 @@ def add_ids(
     logger.info('Sanity check of  file IDs')
     all_variants = pd.read_csv(variant_file, sep="\t")
     df_shape = df.shape
-    df = pd.merge(df,
-                all_variants,
-              on=key_cols,
-              how='left')
+    df = pd.merge(
+        all_variants,
+        df,
+        on = key_cols,
+        how ='left')
     #sanity checks
-    #same length 
-    assert df.shape[0]==df_shape[0]
-    #one more column
+    #same length as variant file
+    assert df.shape[0]==all_variants.shape[0]
+    #one more column as annotation file 
     assert df.shape[1]==df_shape[1]+1
     #all key columns and id are present
     assert all([x in df.columns for x in key_cols+['id']])
-
     df.to_csv(out_file, index= False)
 
 @cli.command()
