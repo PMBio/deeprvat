@@ -290,7 +290,9 @@ def load_one_model(
 @click.argument("model-config-file", type=click.Path(exists=True))
 @click.argument("data-config-file", type=click.Path(exists=True))
 @click.argument("checkpoint-files", type=click.Path(exists=True), nargs=-1)
-def reverse_models(model_config_file: str, data_config_file: str, checkpoint_files: Tuple[str]):
+def reverse_models(
+    model_config_file: str, data_config_file: str, checkpoint_files: Tuple[str]
+):
     with open(model_config_file) as f:
         model_config = yaml.safe_load(f)
 
@@ -331,10 +333,14 @@ def reverse_models(model_config_file: str, data_config_file: str, checkpoint_fil
 
         agg_model = load_one_model(data_config, checkpoint, device=device)
         score = agg_model(
-            torch.tensor(plof, dtype=torch.float, device=device).reshape((n_variants, 1, -1, 1))
+            torch.tensor(plof, dtype=torch.float, device=device).reshape(
+                (n_variants, 1, -1, 1)
+            )
         ).reshape(n_variants)
         score_zero = agg_model(
-            torch.tensor(plof_zero, dtype=torch.float, device=device).reshape((n_variants, 1, -1, 1))
+            torch.tensor(plof_zero, dtype=torch.float, device=device).reshape(
+                (n_variants, 1, -1, 1)
+            )
         ).reshape(n_variants)
         mean_difference = torch.mean(score - score_zero).item()
 

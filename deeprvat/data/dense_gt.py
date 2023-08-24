@@ -480,7 +480,6 @@ class DenseGTDataset(Dataset):
         min_common_af: Optional[Dict[str, float]],
         train_variants: Optional[pd.DataFrame],
     ):
-
         logger.debug("Setting up variants")
         if min_common_variant_count is None and min_common_af is None:
             raise ValueError(
