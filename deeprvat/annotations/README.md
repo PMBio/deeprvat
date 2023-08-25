@@ -12,6 +12,10 @@ The pipeline uses left-normalized bcf files containing variant information, a re
 ## Requirements 
 BCFtools as well as HTSlib should be installed on the machine, 
 [CADD](https://github.com/kircherlab/CADD-scripts/tree/master/src/scripts) as well as [VEP](http://www.ensembl.org/info/docs/tools/vep/script/vep_download.html) will be installed by the pipeline together with the [plugins](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html) for primateAI and spliceAI. Annotation data for CADD, spliceAI and primateAI should be downloaded. The path to the data may be specified in the corresponding [config file](config/deeprvat_annotation_config.yaml). 
+Download path:
+- [CADD](http://cadd.gs.washington.edu/download)
+- [SpliceAI](https://basespace.illumina.com/s/otSPW8hnhaZR)
+- [PrimateAI](https://basespace.illumina.com/s/yYGFdGih1rXL)
 
 ## Output
 
