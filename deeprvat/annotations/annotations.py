@@ -863,17 +863,24 @@ def deepripe_pca(n_components: int, deepripe_file: str, out_dir: str):
 def merge_deepripe(
     annotation_file: str, deepripe_file: str, out_file: str, column_prefix: str
 ):
+    logger.info("reading data")
     annotations = pd.read_parquet(annotation_file)
     deepripe_df = pd.read_csv(deepripe_file)
     orig_len = len(annotations)
+    logger.info("renaming columns")
     deepripe_df = deepripe_df.rename(columns={"chr": "chrom"})
+    logger.info("dropping unwanted columns columns")
     deepripe_df = deepripe_df.drop(
         columns=["Uploaded_variant", "Unnamed: 0"], errors="ignore"
     )
+    logger.info(f"{deepripe_df.shape[1]} columns remain")
     key_cols = ["chrom", "pos", "ref", "alt", "id"]
     prefix_cols = [x for x in deepripe_df.columns if x not in key_cols]
     new_names = [(i, i + f"_{column_prefix}") for i in prefix_cols]
-    deepripe_df.rename(columns=dict(new_names))
+    logger.info(f"adding prefixes to columns")
+    deepripe_df.rename(columns=dict(new_names)
+    )
+    logger.info("merging")
     merged = annotations.merge(
         deepripe_df, how="left", on=["chrom", "pos", "ref", "alt"]
     )
