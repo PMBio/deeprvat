@@ -43,7 +43,6 @@ Instructions [here](https://github.com/PMBio/deeprvat/blob/main/deeprvat/preproc
 
 Instructions [here](https://github.com/PMBio/deeprvat/blob/main/deeprvat/annotations/README.md)
 
-**NOTE:** The annotation pipeline does not yet provide full output as required by DeepRVAT, but will be continually updated to be more complete.
 
 
 ### Try the full training and association testing pipeline on some example data
