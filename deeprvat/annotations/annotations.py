@@ -1157,6 +1157,17 @@ def concatenate_annotations(
     logger.info(
         f"VEP file shape after concatenation of single files is {vep_file.shape}"
     )
+    logger.info("filtering only protein coding variants")
+    vep_file = vep_file[vep_file.BIOTYPE=="protein_coding"]
+    logger.info("splitting variant name")
+    vep_file[["chrom", "pos", "ref", "alt"]] = vep_file["Uploaded_variation"].str.split(
+        "_", expand=True
+    )
+    vep_file["pos"] = vep_file["pos"].astype(int)
+    
+    logger.info(
+        f"VEP file shape after splitting variant name column is  {vep_file.shape}"
+    )
 
     logger.info("splitting Consequence column")
     vep_file = pd.get_dummies(
@@ -1166,17 +1177,11 @@ def concatenate_annotations(
         f"VEP file shape after splitting consequence column is {vep_file.shape}"
     )
 
-    logger.info("splitting variant name")
-    vep_file[["chrom", "pos", "ref", "alt"]] = vep_file["Uploaded_variation"].str.split(
-        "_", expand=True
-    )
-    vep_file["pos"] = vep_file["pos"].astype(int)
-
-    logger.info(
-        f"VEP file shape after splitting variant name column is  {vep_file.shape}"
-    )
-
     logger.info(f"Shape of variant file is {variants.shape}")
+    
+    agg_function= "max"
+    logger.info(f"aggregating so that only one result per variant/gene pair remains using {agg_function}")
+    vep_file = vep_file.groupby(["chrom", "pos", "ref", "alt", "Gene"]).agg(agg_function).reset_index()
 
     logger.info("merging variants and annotations")
     result = pd.merge(vep_file, variants, on=["chrom", "pos", "ref", "alt"])

@@ -499,9 +499,7 @@ rule concat_deepRiPe_parclip:
         chr="{{chr}}", block="{{block}}"
                 ),
                 str(metadata_dir / config["pvcf_blocks_file"]),
-                str(
-                    anno_dir / "all_variants.deepripe.csv",
-                ),
+                "{output}"
             ]
         )
 
@@ -533,9 +531,7 @@ rule concat_deepRiPe_eclip_hg2:
         chr="{{chr}}", block="{{block}}"
                 ),
                 str(metadata_dir / config["pvcf_blocks_file"]),
-                str(
-                    anno_dir / "all_variants.deepripe.csv",
-                ),
+                "{output}"
             ]
         )
 
@@ -567,9 +563,7 @@ rule concat_deepRiPe_eclip_k5:
         chr="{{chr}}", block="{{block}}"
                 ),
             str(metadata_dir / config["pvcf_blocks_file"]),
-            str(
-                    anno_dir / "all_variants.deepripe.csv",
-                ),
+            "{output}"
             ]
         )
 
@@ -582,7 +576,7 @@ rule deepRiPe_parclip:
     output:
         anno_dir / (vcf_pattern + "_variants.parclip_deepripe.csv"),
     resources:
-        mem_mb=lambda wildcards, attempt: 25000 * (attempt + 1),
+        mem_mb=100000
     shell:
         f"mkdir -p {pybedtools_tmp_path/'parclip'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'parclip'} {saved_deepripe_models_path} 'parclip'"
          
@@ -596,7 +590,7 @@ rule deepRiPe_eclip_hg2:
     output:
         anno_dir / (vcf_pattern + "_variants.eclip_hg2_deepripe.csv"),
     resources:
-        mem_mb=lambda wildcards, attempt: 25000 * (attempt + 1),
+        mem_mb=100000
     shell:
         f"mkdir -p {pybedtools_tmp_path/'hg2'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'hg2'} {saved_deepripe_models_path} 'eclip_hg2'"
 
@@ -609,7 +603,7 @@ rule deepRiPe_eclip_k5:
     output:
         anno_dir / (vcf_pattern + "_variants.eclip_k5_deepripe.csv"),
     resources:
-        mem_mb=lambda wildcards, attempt: 25000 * (attempt + 1),
+        mem_mb=100000
     shell:
         f"mkdir -p {pybedtools_tmp_path/'k5'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'k5'} {saved_deepripe_models_path} 'eclip_k5'"
 
@@ -698,9 +692,9 @@ rule vep:
                 load_perl,
                 load_hts,
                 load_bfc,
-                # load_vep,
-                # "vep",
-                str(vep_source_dir / "vep"),
+                load_vep,
+                "vep",
+                #str(vep_source_dir / "vep"),
                 "--input_file",
                 "{input.vcf}",
                 "--output_file",
