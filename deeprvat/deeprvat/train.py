@@ -113,13 +113,9 @@ def make_dataset_(
         or training_dataset_file is None
         or not Path(training_dataset_file).is_file()
     ):
-        variant_file = config["training_data"].get(
-            "variant_file",
-            f'{config["training_data"]["gt_file"][:-3]}_variants.parquet',
-        )
         ds = DenseGTDataset(
             gt_file=config["training_data"]["gt_file"],
-            variant_file=variant_file,
+            variant_file=config["training_data"]["variant_file"],
             split="",
             skip_y_na=True,
             **config["training_data"]["dataset_config"],

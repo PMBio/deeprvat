@@ -96,12 +96,9 @@ def make_dataset_(
         with open(ds_pickled, "rb") as f:
             ds = pickle.load(f)
     else:
-        variant_file = data_config.get(
-            "variant_file", f'{data_config["gt_file"][:-3]}_variants.parquet'
-        )
         ds = DenseGTDataset(
             data_config["gt_file"],
-            variant_file=variant_file,
+            variant_file=data_config["variant_file"],
             split="",
             skip_y_na=False,
             **copy.deepcopy(data_config["dataset_config"]),
