@@ -61,6 +61,7 @@ class DenseGTDataset(Dataset):
         y_phenotypes: List[str] = [],
         skip_y_na: bool = True,
         skip_x_na: bool = False,
+        sample_file: str = None,
         sim_phenotype_file: Optional[str] = None,
         min_common_variant_count: Optional[int] = None,
         min_common_af: Optional[Dict[str, float]] = None,
@@ -135,6 +136,7 @@ class DenseGTDataset(Dataset):
             sim_phenotype_file,
             skip_y_na,
             skip_x_na,
+            sample_file
         )
 
         self.max_rare_af = max_rare_af
@@ -207,10 +209,11 @@ class DenseGTDataset(Dataset):
                 self.variant_matrix = self.variant_matrix[:]
                 self.genotype_matrix = self.genotype_matrix[:]
 
-        idx = self.index_map[idx]
+        idx_pheno = self.index_map_pheno[idx]
+        idx_geno = self.index_map_geno[idx]
 
-        sparse_variants = self.variant_matrix[idx, :]
-        sparse_genotype = self.genotype_matrix[idx, :]
+        sparse_variants = self.variant_matrix[idx_geno, :]
+        sparse_genotype = self.genotype_matrix[idx_geno, :]
         (
             common_variants,
             all_sparse_variants,
@@ -219,9 +222,9 @@ class DenseGTDataset(Dataset):
 
         rare_variant_annotations = self.get_rare_variants(
             idx, all_sparse_variants, sparse_genotype
-        )
+        ) #idx is not used by get_rare_variants
 
-        phenotypes = self.phenotype_df.iloc[idx, :]
+        phenotypes = self.phenotype_df.iloc[idx_pheno, :]
         # put this to loc
 
         x_phenotype_tensor = torch.tensor(
@@ -233,7 +236,7 @@ class DenseGTDataset(Dataset):
         )
 
         return {
-            "sample": self.samples[idx],
+            "sample": self.samples[idx_pheno],
             "x_phenotypes": x_phenotype_tensor,
             "common_variants": common_variants,
             "rare_variant_annotations": rare_variant_annotations,
@@ -257,9 +260,15 @@ class DenseGTDataset(Dataset):
         sim_phenotype_file: Optional[str],
         skip_y_na: bool,
         skip_x_na: bool,
+        sample_file: Optional[str],
     ):
         logger.debug("Reading phenotype dataframe")
         self.phenotype_df = pd.read_parquet(phenotype_file, engine="pyarrow")
+        gt_file = h5py.File(self.gt_filename, "r")
+        samples_gt = gt_file['samples'][:]
+        samples_gt = np.array([item.decode('utf-8') for item in samples_gt]).astype(int)
+        samples_phenotype_df = np.array(self.phenotype_df.index.astype(int))
+        assert all(samples_phenotype_df == samples_gt) #TODO allow this to be different, in principle done by introducing self.index_map_geno and self.index_map_pheno  but needs sanity check
         if sim_phenotype_file is not None:
             logger.info(
                 f"Using phenotypes and covariates from simulated phenotype file {sim_phenotype_file}"
@@ -268,27 +277,46 @@ class DenseGTDataset(Dataset):
             self.phenotype_df = self.phenotype_df.join(
                 sim_phenotype
             )  # TODO on = , validate = "1:1"
+        if sample_file is not None:
+            logger.info(f'Using samples from sample file {sample_file}')
+            samples_to_keep = pd.read_csv(sample_file)['sample_id'] #one column csv file
+            samples_to_keep = np.array(samples_to_keep.astype(int))
+            logger.info(f'Number of samples in sample file: {len(samples_to_keep)}')
+            # samples_to_keep = [i for i in samples_to_keep if i in samples_phenotype_df]
+            samples_to_keep = np.array(list(set(samples_to_keep).intersection(set(samples_phenotype_df))))
+            logger.info(f'Number of samples in sample file and in phenotype_df: {len(samples_to_keep)}')
+        else:
+            logger.info('Using all samples in phenotyp df')
+            samples_to_keep = copy.deepcopy(samples_phenotype_df)
 
+        logger.info('Removing samples that are not in genotype file')
+        # samples_to_keep = [i for i in samples_to_keep if i in set(samples_gt)]
+        samples_to_keep = np.array(list(set(samples_to_keep).intersection(set(samples_gt))))
         binary_cols = [
             c for c in self.y_phenotypes if self.phenotype_df[c].dtype == bool
         ]
-
+        samples_to_keep_mask = [True if i in samples_to_keep else False for i in self.phenotype_df.index.astype(int)]
+        assert sum(samples_to_keep_mask) == len(samples_to_keep)
         mask_cols = copy.deepcopy(self.x_phenotypes)
         if skip_y_na:
             mask_cols += self.y_phenotypes
         if skip_x_na:
             mask_cols += self.x_phenotypes
         mask = (self.phenotype_df[mask_cols].notna()).all(axis=1)
+        logger.info(
+            f"Number of samples with phenotype and covariates: {mask.sum()}"
+        )
+        mask &= samples_to_keep_mask
+        samples_to_keep = self.phenotype_df.index[mask].astype(int)
         self.n_samples = mask.sum()
         logger.info(
-            f"Number of samples with phenotype and covariates: {self.n_samples}"
+            f"Final number of kept samples: {self.n_samples}"
         )
-        self.samples = self.phenotype_df.index.to_numpy()
-        #if you grab samples from phenotype file
-        # make sure that all samples are in the genotype file (or in the genotype and phenotype file)  
-        # if sample file is present 
-        # modfiy the mask 
-        self.index_map = np.arange(len(self.phenotype_df))[mask]
+        self.samples = self.phenotype_df.index.to_numpy() #self.samples from sample file
+        self.index_map_pheno = np.arange(len(self.phenotype_df))[mask]
+
+        geno_mask = [True if i in samples_to_keep else False for i in samples_gt]
+        self.index_map_geno  = np.arange(len(samples_gt))[geno_mask]
 
     def get_variant_ids(self, matrix_indices: np.ndarray) -> np.ndarray:
         return self.variant_id_map.loc[matrix_indices, "id"].to_numpy()
@@ -416,8 +444,8 @@ class DenseGTDataset(Dataset):
         if len(self.y_phenotypes) > 0:
             unique_y_val = self.phenotype_df[self.y_phenotypes[0]].unique()
             n_unique_y_val = np.count_nonzero(~np.isnan(unique_y_val))
-            print(f'unique y values {unique_y_val}')
-            print(n_unique_y_val)
+            logger.info(f'unique y values {unique_y_val}')
+            logger.info(n_unique_y_val)
         else:
             n_unique_y_val = 0
         if n_unique_y_val == 2:
