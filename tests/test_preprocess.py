@@ -85,7 +85,7 @@ def test_process_sparse_gt_file(test_data_name_dir, extra_cli_params,
 
     test_data_input_dir = current_test_data_dir / "input"
 
-    variant_file = test_data_input_dir / "variants.tsv.gz"
+    variant_file = test_data_input_dir / "variants.parquet"
     samples_file = test_data_input_dir / "samples_chr.csv"
     sparse_gt_dir = test_data_input_dir / "sparse_gt"
 
@@ -272,7 +272,7 @@ def test_process_and_combine_sparse_gt(test_data_name_dir, extra_cli_params,
 
     test_data_input_dir = current_test_data_dir / "input"
 
-    variant_file = test_data_input_dir / "variants.tsv.gz"
+    variant_file = test_data_input_dir / "variants.parquet"
     samples_file = test_data_input_dir / "samples_chr.csv"
     sparse_gt_dir = test_data_input_dir / "sparse_gt"
 
