@@ -227,8 +227,7 @@ def process_sparse_gt(
         else:
             logging.info(f"Found no samples to exclude in {exclude_samples}")
 
-    # Assumes only numeric sample names
-    samples = sorted([s for s in samples if int(s) > 0])
+    samples = list(samples)
 
     logging.info("Processing sparse GT files by chromosome")
     total_calls_dropped = 0
