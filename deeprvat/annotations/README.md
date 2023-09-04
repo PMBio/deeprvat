@@ -80,7 +80,7 @@ Create a directory repo_dir, in which all required repositories will be cloned.
 After configuration and activating the environment run the pipeline using snakemake:
 
 ```shell
-  snakemake -j <nr_cores> -s annotations.snakemake --configfile config/deeprvat_annotation.config 
+  snakemake -j <nr_cores> -s annotations.snakemake --configfile config/deeprvat_annotation.config --use-conda
 ```
 ## Running the annotation pipeline without the preprocessing pipeline
 

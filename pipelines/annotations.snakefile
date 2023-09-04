@@ -104,8 +104,7 @@ rule aggregate_and_merge_absplice:
         annotations=anno_dir
         / "current_annotations_absplice_deepsea_deepripe_parclip_hg2_k5.parquet",
         scores=anno_tmp_dir / "abSplice_score_file.parquet",
-    resources:
-        mem_mb=15000,
+
     shell:
         " ".join(
             [
@@ -126,8 +125,7 @@ rule merge_deepripe_k5:
         deepripe_file=anno_dir / "all_variants.wID.k5.deepripe.csv",
     output:
         anno_dir / "current_annotations_deepripe_parclip_hg2_k5.parquet",
-    resources:
-        mem_mb=lambda wildcards, attempt: 12500 * (attempt + 1),
+
     shell:
         " ".join(
             [
@@ -148,8 +146,6 @@ rule merge_deepripe_hg2:
         deepripe_file=anno_dir / "all_variants.wID.hg2.deepripe.csv",
     output:
         anno_dir / "current_annotations_deepripe_parclip_hg2.parquet",
-    resources:
-        mem_mb=lambda wildcards, attempt: 12500 * (attempt + 1),
     shell:
         " ".join(
             [
@@ -170,8 +166,7 @@ rule merge_deepripe_parclip:
         deepripe_file=anno_dir / "all_variants.wID.parclip.deepripe.csv",
     output:
         anno_dir / "current_annotations_deepripe_parclip.parquet",
-    resources:
-        mem_mb=lambda wildcards, attempt: 12500 * (attempt + 1),
+
     shell:
         " ".join(
             [
@@ -192,8 +187,7 @@ rule merge_deepsea_pcas:
         deepsea_pcas=anno_dir / "deepSea_pca" / "deepsea_pca.parquet",
     output:
         anno_dir / "current_annotations_deepsea_deepripe_parclip_hg2_k5.parquet",
-    resources:
-        mem_mb=lambda wildcards, attempt: 12500 * (attempt + 1),
+
     shell:
         " ".join(
             [
@@ -266,9 +260,9 @@ rule absplice:
             chr=chromosomes,
             block=block,
         ),
-    resources:
-        mem_mb=15000,
-    threads: n_cores_absplice
+
+       threads: n_cores_absplice
+    
     shell:
         f"""python -m snakemake -s {str(repo_dir/"absplice"/"example"/"workflow"/"Snakefile")} -j 1 --use-conda --rerun-incomplete --directory {str(repo_dir/"absplice"/"example"/"workflow")} -c{n_cores_absplice} """
 
@@ -312,8 +306,6 @@ rule deepSea_PCA:
         anno_dir / "all_variants.wID.deepSea.csv",
     output:
         anno_dir / "deepSea_pca" / "deepsea_pca.parquet",
-    resources:
-        mem_mb=100000,
     shell:
         " ".join(
             [
@@ -336,8 +328,6 @@ rule add_ids_deepSea:
         annotation_file=anno_dir / "all_variants.deepSea.csv",
     output:
         anno_dir / "all_variants.wID.deepSea.csv",
-    resources:
-        mem_mb=15000,
     shell:
         " ".join(
             [
@@ -363,8 +353,7 @@ rule concat_deepSea:
         ),
     output:
         anno_dir / "all_variants.deepSea.csv",
-    resources:
-        mem_mb=15000,
+
     shell:
         " ".join(
         [
@@ -393,8 +382,6 @@ rule deepSea:
         setup=repo_dir / "annotation-workflow-setup.done",
     output:
         anno_dir / (vcf_pattern + ".CLI.deepseapredict.diff.tsv"),
-    resources:
-        mem_mb=lambda wildcards, attempt: 25000 * (attempt + 1),
     conda:
         "kipoi-veff2"
     shell:
@@ -484,8 +471,7 @@ rule concat_deepRiPe_parclip:
         ),
     output:
         anno_dir / "all_variants.deepripe.parclip.csv",
-    resources:
-        mem_mb=lambda wildcards, attempt: 15000 * (attempt + 1),
+
     shell:
         " ".join(
         [
@@ -516,8 +502,7 @@ rule concat_deepRiPe_eclip_hg2:
         ),
     output:
         anno_dir / "all_variants.deepripe.hg2.csv",
-    resources:
-        mem_mb=lambda wildcards, attempt: 15000 * (attempt + 1),
+
     shell:
         " ".join(
         [
@@ -548,8 +533,7 @@ rule concat_deepRiPe_eclip_k5:
         ),
     output:
         anno_dir / "all_variants.deepripe.k5.csv",
-    resources:
-        mem_mb=lambda wildcards, attempt: 15000 * (attempt + 1),
+
     shell:
         " ".join(
         [
@@ -575,8 +559,7 @@ rule deepRiPe_parclip:
         setup=repo_dir / "annotation-workflow-setup.done",
     output:
         anno_dir / (vcf_pattern + "_variants.parclip_deepripe.csv"),
-    resources:
-        mem_mb=100000
+
     shell:
         f"mkdir -p {pybedtools_tmp_path/'parclip'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'parclip'} {saved_deepripe_models_path} 'parclip'"
          
@@ -589,8 +572,7 @@ rule deepRiPe_eclip_hg2:
         setup=repo_dir / "annotation-workflow-setup.done",
     output:
         anno_dir / (vcf_pattern + "_variants.eclip_hg2_deepripe.csv"),
-    resources:
-        mem_mb=100000
+
     shell:
         f"mkdir -p {pybedtools_tmp_path/'hg2'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'hg2'} {saved_deepripe_models_path} 'eclip_hg2'"
 
@@ -602,8 +584,7 @@ rule deepRiPe_eclip_k5:
         setup=repo_dir / "annotation-workflow-setup.done",
     output:
         anno_dir / (vcf_pattern + "_variants.eclip_k5_deepripe.csv"),
-    resources:
-        mem_mb=100000
+
     shell:
         f"mkdir -p {pybedtools_tmp_path/'k5'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'k5'} {saved_deepripe_models_path} 'eclip_k5'"
 
@@ -627,8 +608,6 @@ rule process_merged_annotations:
         anno_dir / "current_annotations.parquet",
     output:
         anno_dir / "current_annotations_processed.parquet",
-    resources:
-        mem_mb=lambda wildcards, attempt: 15000 * (attempt + 1),
     shell:
         " ".join(
             [
@@ -654,8 +633,6 @@ rule combine_annotations:
         variant_file=variant_file,
     output:
         anno_dir / "current_annotations.parquet",
-    resources:
-        mem_mb=lambda wildcards, attempt: 15000 * (attempt + 1),
     shell:
         " ".join(
         [
@@ -684,8 +661,6 @@ rule vep:
     output:
         anno_dir / (vcf_pattern + "_vep_anno.tsv"),
     threads: vep_nfork
-    resources:
-        mem_mb=lambda wildcards, attempt: 5000 * (attempt + 1),
     shell:
         " ".join(
             [
