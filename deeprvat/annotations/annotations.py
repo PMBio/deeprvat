@@ -878,8 +878,7 @@ def merge_deepripe(
     prefix_cols = [x for x in deepripe_df.columns if x not in key_cols]
     new_names = [(i, i + f"_{column_prefix}") for i in prefix_cols]
     logger.info(f"adding prefixes to columns")
-    deepripe_df.rename(columns=dict(new_names)
-    )
+    deepripe_df.rename(columns=dict(new_names), inplace = True)
     logger.info("merging")
     merged = annotations.merge(
         deepripe_df, how="left", on=["chrom", "pos", "ref", "alt"]
@@ -890,14 +889,14 @@ def merge_deepripe(
 
 @cli.command()
 @click.argument("annotation_file", type=click.Path(exists=True))
-@click.argument("deepripe_pca_file", type=click.Path(exists=True))
+@click.argument("deepsea_pca_file", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
-def merge_deepsea_pcas(annotation_file: str, deepripe_pca_file: str, out_file: str):
+def merge_deepsea_pcas(annotation_file: str, deepsea_pca_file: str, out_file: str):
     annotations = pd.read_parquet(annotation_file)
-    deepripe_pcas = pd.read_parquet(deepripe_pca_file)
+    deepsea_pcas = pd.read_parquet(deepsea_pca_file)
     orig_len = len(annotations)
     merged = annotations.merge(
-        deepripe_pcas, how="left", on=["chrom", "pos", "ref", "alt"]
+        deepsea_pcas, how="left", on=["chrom", "pos", "ref", "alt"]
     )
     assert len(merged) == orig_len
     merged.to_parquet(out_file)
