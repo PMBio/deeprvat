@@ -235,6 +235,7 @@ class DeepSetAgg(pl.LightningModule):
         deep_rvat: int,
         pool_layer: str,
         use_sigmoid: bool = False,
+        use_tanh: bool = False,
         reverse: bool = False,
     ):
         super().__init__()
@@ -242,6 +243,7 @@ class DeepSetAgg(pl.LightningModule):
         self.deep_rvat = deep_rvat
         self.pool_layer = pool_layer
         self.use_sigmoid = use_sigmoid
+        self.use_tanh = use_tanh
         self.reverse = reverse
 
     def set_reverse(self, reverse: bool = True):
@@ -252,8 +254,10 @@ class DeepSetAgg(pl.LightningModule):
         # x.shape = samples x genes x variants x annotations
         x = self.deep_rvat(x) 
         # x.shape = samples x genes x latent
-        if self.use_sigmoid: x = torch.sigmoid(x)
         if self.reverse: x = -x
+
+        if self.use_sigmoid: x = torch.sigmoid(x)
+        if self.use_tanh: x = torch.tanh(x)
         # burden_score
         return x
 
@@ -285,6 +289,7 @@ class DeepSet(BaseModel):
         self.normalization = getattr(self.hparams, "normalization", False)
         self.activation = getattr(nn, getattr(self.hparams, "activation", "LeakyReLU"))()
         self.use_sigmoid = getattr(self.hparams, "use_sigmoid", False)
+        self.use_tanh = getattr(self.hparams, "use_tanh", False)
         self.reverse = getattr(self.hparams, "reverse", False)
         self.pool_layer = getattr(self.hparams, "pool", "sum")
         self.init_power_two = getattr(self.hparams, "first_layer_nearest_power_two", False)
@@ -313,6 +318,7 @@ class DeepSet(BaseModel):
                 deep_rvat=self.deep_rvat,
                 pool_layer=self.pool_layer,
                 use_sigmoid=self.use_sigmoid,
+                use_tanh=self.use_tanh,
                 reverse=self.reverse
             )
         self.agg_model.train(False if self.hparams.stage == "val" else True)
