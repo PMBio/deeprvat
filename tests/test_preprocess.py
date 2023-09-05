@@ -104,7 +104,7 @@ def test_process_sparse_gt_file(test_data_name_dir, extra_cli_params,
         out_file_base.as_posix(),
     ]
 
-    result = cli_runner.invoke(preprocess_cli, cli_parameters)
+    result = cli_runner.invoke(preprocess_cli, cli_parameters, catch_exceptions=False)
     assert result.exit_code == 0
 
     h5_file = out_file_base.as_posix().replace("genotypes", genotype_file_name)

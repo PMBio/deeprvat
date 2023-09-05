@@ -55,7 +55,8 @@ def process_sparse_gt_file(
     )
     sparse_gt = sparse_gt[sparse_gt["sample"].isin(samples)]
 
-    sparse_gt = drop_rows(sparse_gt, calls_to_exclude)
+    if calls_to_exclude is not None:
+        sparse_gt = drop_rows(sparse_gt, calls_to_exclude)
 
     try:
         sparse_gt = pd.merge(sparse_gt, variants, validate="m:1")
@@ -240,22 +241,6 @@ def process_sparse_gt(
         if exclude_calls is not None:
             chrom_dir = os.path.join(exclude_calls, chrom)
             exclude_calls_chrom = list(Path(chrom_dir).glob("*.tsv*"))
-
-            calls_to_exclude = pd.concat(
-                [
-                    pd.read_csv(
-                        c,
-                        names=["chrom", "pos", "ref", "alt", "sample"],
-                        sep="\t",
-                        index_col=None,
-                    ) for c in tqdm(exclude_calls_chrom, desc="Filtered calls")
-                ],
-                ignore_index=True,
-            )
-
-            calls_dropped = len(calls_to_exclude)
-            total_calls_dropped += calls_dropped
-            logging.info(f"Dropped {calls_dropped} calls")
         else:
             calls_to_exclude = pd.DataFrame(
                 columns=["chrom", "pos", "ref", "alt", "sample"])
@@ -272,31 +257,58 @@ def process_sparse_gt(
             f"{len(sparse_gt_chrom)} sparse GT files: {[str(s) for s in sparse_gt_chrom]}"
         )
 
-        processed = Parallel(n_jobs=threads, verbose=50)(
-            delayed(process_sparse_gt_file)(f.as_posix(), variants_chrom,
+        variant_ids = [np.array([], dtype=np.int32) for _ in samples]
+        genotypes = [np.array([], dtype=np.int8) for _ in samples]
+        for sparse_gt_file in sparse_gt_chrom:
+            # load corresponding calls_to_exclude
+            file_stem = sparse_gt_file
+            while str(file_stem).find(".") != -1:
+                file_stem = Path(file_stem.stem)
+
+            calls_to_exclude = None
+            if exclude_calls is not None:
+                exclude_call_files = [f for f in exclude_calls_chrom if f.name.startswith(str(file_stem))]
+                if len(exclude_call_files) > 0:
+                    calls_to_exclude = pd.concat(
+                        [
+                            pd.read_csv(
+                                c,
+                                names=["chrom", "pos", "ref", "alt", "sample"],
+                                sep="\t",
+                                index_col=None,
+                            ) for c in tqdm(exclude_call_files, desc="Filtered calls")
+                        ],
+                        ignore_index=True,
+                    )
+                    calls_to_exclude.to_csv("testing/calls_to_exclude.tsv", sep="\t")
+
+                    calls_dropped = len(calls_to_exclude)
+                    total_calls_dropped += calls_dropped
+                    logging.info(f"Dropped {calls_dropped} calls")
+
+            # process_sparse_gt_file
+            this_variant_ids, this_genotypes = process_sparse_gt_file(sparse_gt_file.as_posix(), variants_chrom,
                                             samples, calls_to_exclude)
-            for f in sparse_gt_chrom)
+            assert len(this_variant_ids) == len(samples)
+            assert len(this_genotypes) == len(samples)
+
+            # concatenate to existing results
+            for i, (v, g) in enumerate(zip(this_variant_ids, this_genotypes)):
+                variant_ids[i] = np.append(variant_ids[i], v)
+                genotypes[i] = np.append(genotypes[i], g)
 
         del calls_to_exclude
         gc.collect()
 
-        logging.info("Postprocessing")
-        postprocessed_gt = postprocess_sparse_gt(processed, 1, len(samples))
-        postprocessed_variants = postprocess_sparse_gt(processed, 0,
-                                                       len(samples))
-
-        del processed
-        gc.collect()
-
         logging.info("Ordering gt and variant matrices")
-        order = [np.argsort(i) for i in postprocessed_variants]
+        order = [np.argsort(i) for i in variant_ids]
 
-        postprocessed_variants = [
-            postprocessed_variants[i][order[i]]
-            for i in range(len(postprocessed_variants))
+        variant_ids = [
+            variant_ids[i][order[i]]
+            for i in range(len(variant_ids))
         ]
-        postprocessed_gt = [
-            postprocessed_gt[i][order[i]] for i in range(len(postprocessed_gt))
+        genotypes = [
+            genotypes[i][order[i]] for i in range(len(genotypes))
         ]
 
         gc.collect()
@@ -304,11 +316,11 @@ def process_sparse_gt(
         logging.info("Preparing GT arrays for storage")
 
         logger.info("  Padding ragged matrix")
-        variant_matrix = ragged_to_matrix(postprocessed_variants)
-        gt_matrix = ragged_to_matrix(postprocessed_gt)
+        variant_matrix = ragged_to_matrix(variant_ids)
+        gt_matrix = ragged_to_matrix(genotypes)
 
-        del postprocessed_variants
-        del postprocessed_gt
+        del variant_ids
+        del genotypes
         gc.collect()
 
         count_variants = (gt_matrix >= 0).sum(axis=1)
