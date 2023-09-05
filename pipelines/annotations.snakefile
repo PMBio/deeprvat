@@ -64,8 +64,10 @@ pvcf_blocks_df = pd.read_csv(
     names=["Index", "Chromosome", "Block", "First position", "Last position"],
     dtype={"Chromosome": str},
 ).set_index("Index")
+
 # init absplice
 n_cores_absplice = int(config.get("n_cores_absplice") or 4)
+
 # Filter out which chromosomes to work with
 pvcf_blocks_df = pvcf_blocks_df[
     pvcf_blocks_df["Chromosome"].isin([str(c) for c in included_chromosomes])
@@ -745,9 +747,3 @@ rule extract_variants:
             ]
         )
 
-
-rule setup:
-    output:
-        repo_dir / "annotation-workflow-setup.done",
-    shell:
-        f""" {load_vep} bash {setup_shell_path}  {vep_cache_dir} {vep_plugin_dir} {repo_dir}"""
