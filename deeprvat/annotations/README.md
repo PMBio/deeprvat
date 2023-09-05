@@ -10,9 +10,12 @@ This pipeline is based on [snakemake](https://snakemake.readthedocs.io/en/stable
 The pipeline uses left-normalized bcf files containing variant information, a reference fasta file as well as a text file that maps data blocks to chromosomes as input. It is expected that the bcf files contain the columns "CHROM" "POS" "ID" "REF" and "ALT". Any other columns, including genotype information are stripped from the data before annotation tools are used on the data. The variants may be split into several vcf files for each chromosome and each "block" of data. The filenames should then contain the corresponding chromosome and block number. The pattern of the file names, as well as file structure may be specified in the corresponding [config file](config/deeprvat_annotation_config.yaml).
 
 ## Requirements 
-BCFtools as well as HTSlib should be installed on the machine, 
-[CADD](https://github.com/kircherlab/CADD-scripts/tree/master/src/scripts) as well as [VEP](http://www.ensembl.org/info/docs/tools/vep/script/vep_download.html) will be installed by the pipeline together with the [plugins](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html) for primateAI and spliceAI. Annotation data for CADD, spliceAI and primateAI should be downloaded. The path to the data may be specified in the corresponding [config file](config/deeprvat_annotation_config.yaml). 
-Download path:
+BCFtools as well as HTSlib should be installed on your machine. 
+The repositories [CADD](https://github.com/kircherlab/CADD-scripts/tree/master/src/scripts),  [faatpipe](https://github.com/HealthML/faatpipe) , [kipoi-veff2](https://github.com/kipoi/kipoi-veff2) as well as [VEP](http://www.ensembl.org/info/docs/tools/vep/script/vep_download.html) together with the [plugins](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html) for primateAI and spliceAI, should be cloned on your machine. This can be performed automatically using the [setup script](setup_annotation_workflow.sh).
+
+Annotation data for CADD, spliceAI and primateAI should be downloaded. The path to the data and repositories may be specified in the corresponding [config file](config/deeprvat_annotation_config.yaml). 
+
+Download paths:
 - [CADD](http://cadd.gs.washington.edu/download)
 - [SpliceAI](https://basespace.illumina.com/s/otSPW8hnhaZR)
 - [PrimateAI](https://basespace.illumina.com/s/yYGFdGih1rXL)
@@ -73,8 +76,12 @@ Data for VEP plugins and the CADD cache are stored in `annotation data`.
 
 ## Running the annotation pipeline
 ### Preconfiguration
-Inside the annotation directory create a directory annotation_dir and download/link the prescored files for CADD, SpliceAI, and PrimateAI.
-Create a directory repo_dir, in which all required repositories will be cloned.
+- Inside the annotation directory create a directory `repo_dir` and run the [annotation setup script](setup_annotation_workflow.sh) 
+  ```shell
+    setup_annotation_workflow.sh repo_dir/ensembl-vep/cache repo_dir/ensembl-vep/Plugins repo_dir
+  ```
+  or manually clone the repositories mentioned in the [requirements](#requirements) into `repo_dir`.
+- Inside the annotation directory create a directory `annotation_dir` and download/link the prescored files for CADD, SpliceAI, and PrimateAI.
 
 ### Running the pipeline
 After configuration and activating the environment run the pipeline using snakemake:
@@ -82,6 +89,8 @@ After configuration and activating the environment run the pipeline using snakem
 ```shell
   snakemake -j <nr_cores> -s annotations.snakemake --configfile config/deeprvat_annotation.config --use-conda
 ```
+
+
 ## Running the annotation pipeline without the preprocessing pipeline
 
 It is possible to run the annotation pipeline without having run the preprocessing prior to that. 

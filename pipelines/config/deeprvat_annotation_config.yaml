@@ -18,9 +18,15 @@ fasta_file_name : hg38.fa
 bcf_dir : preprocessing_workdir/norm/bcf
 variant_file_path : preprocessing_workdir/norm/variants/variants.tsv.gz
 
-repo_dir : repo_dir 
+repo_dir : repo_dir
+cadd_repo_dir : repo_dir/CADD-scripts
+absplice_repo_dir : repo_dir/absplice
+faatpipe_repo_dir : repo_dir/faatpipe
+kipoiveff_repo_dir : repo_dir/kipoi-veff2
+vep_repo_dir : repo_dir/ensembl-vep
 vep_cache_dir : repo_dir/ensembl-vep/cache
 vep_plugin_dir : repo_dir/ensembl-vep/Plugins
+
 spliceAI_snv_file : annotation_data/spliceAI/spliceai_scores.raw.snv.hg38.vcf.gz
 spliceAI_indel_file : annotation_data/spliceAI/spliceai_scores.raw.indel.hg38.vcf.gz
 primateAI_file : annotation_data/primateAI/PrimateAI_scores_v0.2_GRCh38_sorted.tsv.bgz

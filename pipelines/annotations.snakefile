@@ -22,8 +22,7 @@ setup_shell_path = (
 included_chromosomes = config["included_chromosomes"]
 variant_file = config["variant_file_path"]
 pybedtools_tmp_path = Path(config["pybedtools_tmp_path"])
-repo_dir = Path(config["repo_dir"])
-saved_deepripe_models_path = repo_dir / "faatpipe" / "data" / "deepripe_models"
+saved_deepripe_models_path =  Path(config["faatpipe_repo_dir"]) / "data" / "deepripe_models"
 
 # init modules
 load_bfc = " ".join([config["bcftools_load_cmd"], "&&"])
@@ -39,13 +38,13 @@ anno_dir = Path(config["anno_dir"])
 metadata_dir = Path(config["metadata_dir"])
 
 # init cadd
-cadd_shell_path = repo_dir / "CADD-scripts" / "CADD.sh"
+cadd_shell_path =  Path(config["cadd_repo_dir"]) / "CADD.sh"
 cadd_snv_file = config["cadd_snv_file"]
 cadd_indel_file = config["cadd_indel_file"]
 
 
 # init vep
-vep_source_dir = repo_dir / "ensembl-vep"
+vep_source_dir = Path(config["vep_repo_dir"])
 vep_cache_dir = Path(config["vep_cache_dir"])
 vep_plugin_dir = Path(config.get("vep_plugin_dir")) or ""
 vep_input_format = config.get("vep_input_format") or "vcf"
@@ -66,7 +65,11 @@ pvcf_blocks_df = pd.read_csv(
 ).set_index("Index")
 
 # init absplice
+absplice_repo_dir = Path(config["absplice_repo_dir"])
 n_cores_absplice = int(config.get("n_cores_absplice") or 4)
+
+#init kipoi-veff2
+kipoi_repo_dir =  Path(config["kipoiveff_repo_dir"])
 
 # Filter out which chromosomes to work with
 pvcf_blocks_df = pvcf_blocks_df[
@@ -206,8 +209,7 @@ rule merge_deepsea_pcas:
 rule mv_absplice_files:
     input:
         str(
-            repo_dir
-            / "absplice"
+            absplice_repo_dir
             / "example"
             / "data"
             / "results"
@@ -236,21 +238,20 @@ rule absplice:
     input:
         vcf=expand(
             [
-                repo_dir
-                / "absplice/example/data/resources/analysis_files/vcf_files"
+                absplice_repo_dir
+                / "example/data/resources/analysis_files/vcf_files"
                 / (vcf_pattern),
             ],
             zip,
             chr=chromosomes,
             block=block,
         ),
-        config=repo_dir / "absplice" / "example" / "workflow" / "mv_config.done",
+        config=absplice_repo_dir  / "example" / "workflow" / "mv_config.done",
     output:
         expand(
             [
                 str(
-                    repo_dir
-                    / "absplice"
+                    absplice_repo_dir
                     / "example"
                     / "data"
                     / "results"
@@ -266,28 +267,25 @@ rule absplice:
        threads: n_cores_absplice
     
     shell:
-        f"""python -m snakemake -s {str(repo_dir/"absplice"/"example"/"workflow"/"Snakefile")} -j 1 --use-conda --rerun-incomplete --directory {str(repo_dir/"absplice"/"example"/"workflow")} -c{n_cores_absplice} """
+        f"""python -m snakemake -s {str(absplice_repo_dir/"example"/"workflow"/"Snakefile")} -j 1 --use-conda --rerun-incomplete --directory {str(absplice_repo_dir /"example"/"workflow")} -c{n_cores_absplice} """
 
 
 rule mod_config_absplice:
     output:
-        repo_dir / "absplice" / "example" / "workflow" / "mv_config.done",
+        absplice_repo_dir / "example" / "workflow" / "mv_config.done",
     shell:
-        f""" rm {repo_dir}/absplice/example/workflow/config.yaml && mv {deeprvat_parent_path}/pipelines/resources/absplice_config.yaml {repo_dir}/absplice/example/workflow/config.yaml && touch {repo_dir}/absplice/example/workflow/mv_config.done"""
+        f""" rm {absplice_repo_dir}/example/workflow/config.yaml && mv {deeprvat_parent_path}/pipelines/resources/absplice_config.yaml {absplice_repo_dir}/example/workflow/config.yaml && touch {absplice_repo_dir}/example/workflow/mv_config.done"""
 
 
 rule link_files_absplice:
     input:
         anno_tmp_dir / (vcf_pattern + "_variants_header.vcf.gz"),
     output:
-        repo_dir
-        / "absplice/example/data/resources/analysis_files/vcf_files"
+        absplice_repo_dir
+        / "example/data/resources/analysis_files/vcf_files"
         / (vcf_pattern),
     shell:
         " ".join(["ln", "-s", "-r", "{input}", "{output}"])
-
-
-# f"""rm -r {repo_dir}/absplice/example/data/resources/analysis_files/vcf_files && mkdir {repo_dir}/absplice/example/data/resources/analysis_files/vcf_files && ln -s -r {vcf_dir}/* {repo_dir}/absplice/example/data/resources/analysis_files/vcf_files/"""
 
 
 rule all_deepSea:
@@ -381,7 +379,6 @@ rule deepSea:
     input:
         variants=anno_tmp_dir / (vcf_pattern + "_variants_header.vcf.gz"),
         fasta=fasta_dir / fasta_file_name,
-        setup=repo_dir / "annotation-workflow-setup.done",
     output:
         anno_dir / (vcf_pattern + ".CLI.deepseapredict.diff.tsv"),
     conda:
@@ -558,7 +555,7 @@ rule deepRiPe_parclip:
     input:
         variants=anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
         fasta=fasta_dir / fasta_file_name,
-        setup=repo_dir / "annotation-workflow-setup.done",
+    
     output:
         anno_dir / (vcf_pattern + "_variants.parclip_deepripe.csv"),
 
@@ -571,7 +568,7 @@ rule deepRiPe_eclip_hg2:
     input:
         variants=anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
         fasta=fasta_dir / fasta_file_name,
-        setup=repo_dir / "annotation-workflow-setup.done",
+    
     output:
         anno_dir / (vcf_pattern + "_variants.eclip_hg2_deepripe.csv"),
 
@@ -583,7 +580,7 @@ rule deepRiPe_eclip_k5:
     input:
         variants=anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
         fasta=fasta_dir / fasta_file_name,
-        setup=repo_dir / "annotation-workflow-setup.done",
+    
     output:
         anno_dir / (vcf_pattern + "_variants.eclip_k5_deepripe.csv"),
 
@@ -659,7 +656,7 @@ rule vep:
     input:
         vcf=anno_tmp_dir / (vcf_pattern + "_stripped.vcf.gz"),
         fasta=fasta_dir / fasta_file_name,
-        setup=repo_dir / "annotation-workflow-setup.done",
+    
     output:
         anno_dir / (vcf_pattern + "_vep_anno.tsv"),
     threads: vep_nfork
