@@ -28,15 +28,16 @@ def drop_rows(df: pd.DataFrame, df_to_drop: pd.DataFrame) -> pd.DataFrame:
 
 
 def ragged_to_matrix(rows: List[np.ndarray],
-                     pad_value: int = -1) -> np.ndarray:
-    max_len = max([r.shape[0] for r in rows])
+                     pad_value: int = -1, max_len: Optional[int] = None) -> np.ndarray:
+    if max_len is None:
+        max_len = max([r.shape[0] for r in rows])
     matrix = np.stack([
         np.pad(
             r,
             (0, max_len - r.shape[0]),
             "constant",
             constant_values=(pad_value, pad_value),
-        ) for r in tqdm(rows)
+        ) for r in rows # tqdm(rows, desc="Ragged to matrix", file=sys.stdout)
     ])
     return matrix
 
@@ -146,6 +147,7 @@ def add_variant_ids(variant_file: str, out_file: str, duplicates_file: str):
 
 
 @cli.command()
+@click.option("--chunksize", type=int, default=1000)
 @click.option("--exclude-variants",
               type=click.Path(exists=True),
               multiple=True)
@@ -159,6 +161,7 @@ def add_variant_ids(variant_file: str, out_file: str, duplicates_file: str):
 @click.argument("sparse-gt", type=click.Path(exists=True))
 @click.argument("out-file", type=click.Path())
 def process_sparse_gt(
+    chunksize: int,
     exclude_variants: List[str],
     exclude_samples: Optional[str],
     exclude_calls: Optional[str],
@@ -186,7 +189,7 @@ def process_sparse_gt(
         variants_to_exclude = pd.concat(
             [
                 pd.read_csv(v, sep="\t", names=["chrom", "pos", "ref", "alt"])
-                for v in tqdm(variant_exclusion_files, )
+                for v in tqdm(variant_exclusion_files, file=sys.stdout)
             ],
             ignore_index=True,
         )
@@ -235,7 +238,7 @@ def process_sparse_gt(
     total_calls_dropped = 0
     variant_groups = variants.groupby("chrom")
     logger.info(f"variant groups are {variant_groups.groups.keys()}")
-    for chrom in tqdm(variant_groups.groups.keys()):
+    for chrom in tqdm(variant_groups.groups.keys(), desc="Chromosomes", file=sys.stdout):
         logging.info(f"Processing chromosome {chrom}")
         logging.info("Reading in filtered calls")
         if exclude_calls is not None:
@@ -259,8 +262,8 @@ def process_sparse_gt(
 
         variant_ids = [np.array([], dtype=np.int32) for _ in samples]
         genotypes = [np.array([], dtype=np.int8) for _ in samples]
-        for sparse_gt_file in sparse_gt_chrom:
-            # load corresponding calls_to_exclude
+        for sparse_gt_file in tqdm(sparse_gt_chrom, desc="Files", file=sys.stdout):
+            # Load calls to exclude that correspond to current file
             file_stem = sparse_gt_file
             while str(file_stem).find(".") != -1:
                 file_stem = Path(file_stem.stem)
@@ -276,7 +279,7 @@ def process_sparse_gt(
                                 names=["chrom", "pos", "ref", "alt", "sample"],
                                 sep="\t",
                                 index_col=None,
-                            ) for c in tqdm(exclude_call_files, desc="Filtered calls")
+                            ) for c in exclude_call_files  # tqdm(exclude_call_files, desc="Filtered calls", file=sys.stdout)
                         ],
                         ignore_index=True,
                     )
@@ -285,59 +288,59 @@ def process_sparse_gt(
                     total_calls_dropped += calls_dropped
                     logging.info(f"Dropped {calls_dropped} calls")
 
-            # process_sparse_gt_file
+            # Load sparse_gt_file as data frame, add variant IDs, remove excluded calls
             this_variant_ids, this_genotypes = process_sparse_gt_file(sparse_gt_file.as_posix(), variants_chrom,
                                             samples, calls_to_exclude)
             assert len(this_variant_ids) == len(samples)
             assert len(this_genotypes) == len(samples)
 
-            # concatenate to existing results
+            # Concatenate to existing results
             for i, (v, g) in enumerate(zip(this_variant_ids, this_genotypes)):
                 variant_ids[i] = np.append(variant_ids[i], v)
                 genotypes[i] = np.append(genotypes[i], g)
 
+            gc.collect()
+
         del calls_to_exclude
         gc.collect()
-
-        logging.info("Ordering gt and variant matrices")
-        order = [np.argsort(i) for i in variant_ids]
-
-        variant_ids = [
-            variant_ids[i][order[i]]
-            for i in range(len(variant_ids))
-        ]
-        genotypes = [
-            genotypes[i][order[i]] for i in range(len(genotypes))
-        ]
-
-        gc.collect()
-
-        logging.info("Preparing GT arrays for storage")
-
-        logger.info("  Padding ragged matrix")
-        variant_matrix = ragged_to_matrix(variant_ids)
-        gt_matrix = ragged_to_matrix(genotypes)
-
-        del variant_ids
-        del genotypes
-        gc.collect()
-
-        count_variants = (gt_matrix >= 0).sum(axis=1)
 
         out_file_chrom = f"{out_file}_{chrom}.h5"
         Path(out_file_chrom).parents[0].mkdir(exist_ok=True, parents=True)
         logging.info(f"Writing to {out_file_chrom}")
+        count_variants = np.array([g.shape[0] for g in genotypes])
+        max_len = np.max(count_variants)
         with h5py.File(out_file_chrom, "w") as f:
             sample_array = np.array(samples, dtype="S")
-            write_genotype_file(f,
-                                sample_array,
-                                variant_matrix,
-                                gt_matrix,
-                                count_variants=count_variants)
+            f.create_dataset("samples", data=sample_array, dtype=h5py.string_dtype())
+            f.create_dataset("variant_matrix", (len(samples), max_len), dtype=np.int32)
+            f.create_dataset("genotype_matrix", (len(samples), max_len), dtype=np.int8)
+            f.create_dataset("count_variants", data=count_variants, dtype=np.int32)
 
-        del variant_matrix
-        del gt_matrix
-        gc.collect()
+            # Operate in chunks to reduce memory usage
+            for start_sample in trange(0, len(samples), chunksize, desc="Chunks", file=sys.stdout):
+                end_sample = min(start_sample + chunksize, len(samples))
+
+                order = [np.argsort(v) for v in variant_ids[start_sample:end_sample]]
+
+                this_variant_ids = [
+                    variant_ids[i][order[i - start_sample]]
+                    for i in range(start_sample, end_sample)
+                ]
+                this_genotypes = [
+                    genotypes[i][order[i - start_sample]] for i in range(start_sample, end_sample)
+                ]
+
+                # gc.collect()
+
+                variant_matrix = ragged_to_matrix(this_variant_ids, max_len=max_len)
+                gt_matrix = ragged_to_matrix(this_genotypes, max_len=max_len)
+
+                f["variant_matrix"][start_sample:end_sample] = variant_matrix
+                f["genotype_matrix"][start_sample:end_sample] = gt_matrix
+
+                # del variant_matrix
+                # del gt_matrix
+                # gc.collect()
 
     logging.info(f"Dropped {total_calls_dropped} calls in total")
     logging.info("Finished!")
@@ -374,18 +377,18 @@ def combine_genotypes(chunksize: Optional[int], genotype_files: List[str],
                          dtype=np.int8)
 
     running_count = np.zeros(n_samples, dtype=np.int32)
-    for start_sample in trange(0, n_samples, chunksize, desc="Chunks"):
+    for start_sample in trange(0, n_samples, chunksize, desc="Chunks", file=sys.stdout):
         end_sample = min(start_sample + chunksize, n_samples)
         chunk_var_matrix = -1 * np.ones(
             (end_sample - start_sample, max_n_variants), dtype=np.int32)
         chunk_gt_matrix = -1 * np.ones(
             (end_sample - start_sample, max_n_variants), dtype=np.int8)
 
-        for file in tqdm(genotype_files, desc="Files"):
+        for file in tqdm(genotype_files, desc="Files", file=sys.stdout):
             with h5py.File(file) as f:
                 var_matrix = f["variant_matrix"][start_sample:end_sample, :]
                 gt_matrix = f["genotype_matrix"][start_sample:end_sample, :]
-                for i in trange(start_sample, end_sample, desc="Samples"):
+                for i in trange(start_sample, end_sample, desc="Samples", file=sys.stdout):
                     i_rel = i - start_sample
                     this_var = var_matrix[i_rel, var_matrix[i_rel, :] != -1]
                     this_gt = gt_matrix[i_rel, gt_matrix[i_rel, :] != -1]
