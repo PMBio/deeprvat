@@ -81,6 +81,7 @@ Data for VEP plugins and the CADD cache are stored in `annotation data`.
     setup_annotation_workflow.sh repo_dir/ensembl-vep/cache repo_dir/ensembl-vep/Plugins repo_dir
   ```
   or manually clone the repositories mentioned in the [requirements](#requirements) into `repo_dir`.
+  If you already have some of the needed repositories on your machine you can edit the paths in the [config](../../pipelines/config/deeprvat_annotation_config.yaml).
 - Inside the annotation directory create a directory `annotation_dir` and download/link the prescored files for CADD, SpliceAI, and PrimateAI.
 
 ### Running the pipeline
