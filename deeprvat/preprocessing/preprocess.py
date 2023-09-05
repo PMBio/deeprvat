@@ -280,7 +280,6 @@ def process_sparse_gt(
                         ],
                         ignore_index=True,
                     )
-                    calls_to_exclude.to_csv("testing/calls_to_exclude.tsv", sep="\t")
 
                     calls_dropped = len(calls_to_exclude)
                     total_calls_dropped += calls_dropped
