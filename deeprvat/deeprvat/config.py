@@ -62,7 +62,7 @@ def update_config(
                     "--phenotype and --seed-genes-out must be "
                     "specified if --baseline-results is"
                 )
-            # seed_config = config["phenotypes"].get(phenotype, None)
+            seed_config = config["phenotypes"].get(phenotype, None)
             if isinstance(config["phenotypes"], dict):
                 correction_method = seed_config.get("correction_method", None)
                 min_seed_genes = seed_config.get("min_seed_genes", None)
@@ -160,7 +160,6 @@ def update_config(
             )
             seed_gene_df.to_parquet(seed_genes_out, engine="pyarrow")
             config["seed_gene_file"] = seed_genes_out
-
     with open(new_config_file, "w") as f:
         yaml.dump(config, f)
 
