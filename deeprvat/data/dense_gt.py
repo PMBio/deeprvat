@@ -152,7 +152,7 @@ class DenseGTDataset(Dataset):
 
         if grouping_level is not None:
             if grouping_level == "gene":
-                self.grouping_column = "gene_ids"
+                self.grouping_column = "gene_id"
             elif grouping_level == "exon":
                 self.grouping_column = "exon_ids"
             else:
@@ -504,9 +504,13 @@ class DenseGTDataset(Dataset):
             logger.debug(f'    {mask.sum()} variants "common" by count filter')
         elif min_common_af is not None:
             af_col, af_threshold = list(min_common_af.items())[0]
+            af_annotation = self.annotation_df[[af_col]].reset_index()
+            af_annotation = af_annotation.drop_duplicates()
+            if not len(af_annotation["id"]) == len(af_annotation["id"].unique()):
+                raise ValueError("Annotation dataframe has inconsistent allele frequency values")
             variants_with_af = safe_merge(
                 variants[["id"]].reset_index(drop=True),
-                self.annotation_df[[af_col]].reset_index(),
+                af_annotation
             )
             assert np.all(
                 variants_with_af["id"].to_numpy() == variants["id"].to_numpy()
@@ -527,6 +531,7 @@ class DenseGTDataset(Dataset):
             matrix_ids = train_variants.loc[
                 train_variants["matrix_index"] >= 0, "matrix_index"
             ]
+
             assert np.all(matrix_ids == np.sort(matrix_ids))
 
         rare_variant_mask = ~mask
@@ -549,26 +554,21 @@ class DenseGTDataset(Dataset):
         if self.gene_file is not None:
             genes = set(pd.read_parquet(self.gene_file, columns=["id"])["id"])
             logger.debug(f"    Retaining {len(genes)} genes from {self.gene_file}")
-            variants_with_gene_ids = safe_merge(
-                variants[["id"]].reset_index(drop=True),
-                self.annotation_df[["gene_ids"]].reset_index(),
-            )
-            assert np.all(
-                variants_with_gene_ids["id"].to_numpy() == variants["id"].to_numpy()
-            )
+            ids_to_keep = (self.annotation_df.reset_index()[["id", "gene_id"]]
+                           .query("gene_id in @genes")["id"].to_numpy())
             additional_mask &= (
-                variants_with_gene_ids["gene_ids"]
-                .apply(lambda x: len(set(x) & genes) != 0)
+                variants["id"].isin(ids_to_keep)
                 .to_numpy()
             )
-            del variants_with_gene_ids
         if self.gene_types_to_keep is not None:
+            raise NotImplementedError
             additional_mask &= (
                 variants["gene_types"]
                 .apply(lambda x: len(set(x) & self.gene_types_to_keep) != 0)
                 .to_numpy()
             )
         if self.ignore_by_annotation is not None:
+            raise NotImplementedError
             for col, val in self.ignore_by_annotation:
                 if self.annotation_df[col].dtype == np.dtype("object"):
                     additional_mask &= (
@@ -589,7 +589,7 @@ class DenseGTDataset(Dataset):
             and self.gene_types_to_keep is None
         ):
             rare_variant_mask &= (
-                variants["gene_ids"].apply(lambda x: len(x) > 0).to_numpy()
+                variants["gene_id"].notna().to_numpy()
             )
 
         variants["rare_variant_mask"] = rare_variant_mask
@@ -600,8 +600,9 @@ class DenseGTDataset(Dataset):
                 common_variant_mask &= ~af_mask
             common_variant_mask &= additional_mask
             if self.group_common:
+                raise NotImplementedError
                 common_variant_mask &= (
-                    variants["gene_ids"].apply(lambda x: len(x) > 0).to_numpy()
+                    variants["gene_id"].notna().to_numpy()
                 )
 
             variants["matrix_index"] = -1
@@ -652,6 +653,8 @@ class DenseGTDataset(Dataset):
             self.setup_common_groups()
 
     def setup_common_groups(self):
+        raise NotImplementedError()
+
         logger.debug("Setting up groups for common variants")
         logger.debug("    Computing grouping")
         common_variant_groups = self.variants.loc[
