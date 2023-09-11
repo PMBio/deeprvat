@@ -264,11 +264,13 @@ class DenseGTDataset(Dataset):
     ):
         logger.debug("Reading phenotype dataframe")
         self.phenotype_df = pd.read_parquet(phenotype_file, engine="pyarrow")
-        gt_file = h5py.File(self.gt_filename, "r")
+        gt_file = h5py.File(self.gt_filename, "r") #TODO change this to using with open
         samples_gt = gt_file['samples'][:]
         samples_gt = np.array([item.decode('utf-8') for item in samples_gt]).astype(int)
         samples_phenotype_df = np.array(self.phenotype_df.index.astype(int))
-        assert all(samples_phenotype_df == samples_gt) #TODO allow this to be different, in principle done by introducing self.index_map_geno and self.index_map_pheno  but needs sanity check
+        assert all(samples_phenotype_df == samples_gt) #TODO allow this to be different, 
+        #in principle done by introducing self.index_map_geno and self.index_map_pheno  but needs sanity check
+        # but phenotypes_df has first to be sorted in the same order as samples_gt
         if sim_phenotype_file is not None:
             logger.info(
                 f"Using phenotypes and covariates from simulated phenotype file {sim_phenotype_file}"
