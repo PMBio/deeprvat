@@ -7,6 +7,7 @@ import math
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+import copy
 
 import click
 import dask.dataframe as dd
@@ -225,6 +226,7 @@ def test_gene(
     var_type,
     test_type,
     maf_col,
+    min_mac
 ) -> Dict[str, Any]:
     # Find variants present in gene
     # Convert sparse genotype to CSC
@@ -280,12 +282,12 @@ def test_gene(
         f"Number of variants after thresholding using threshold {variant_weight_th}: {len(pos)}"
     )
     pval_dict["n_QV"] = len(pos)
-
+    pval_dict["markers_after_mac_collapsing"] = len(pos)
     if len(pos) > 0:
         G_f = G[:, pos]
         EAC_filtered = np.sum(np.sum(G_f, axis=1))
         pval_dict["EAC_filtered"] = EAC_filtered
-
+        MAC = G_f.sum(axis = 0)
         count = G_f[G_f == 2].shape[0]
 
         # confirm that variants we include are rare variants
@@ -311,11 +313,27 @@ def test_gene(
         pval_dict["n_cluster"] = GW.shape[1]
 
         ### COLLAPSE kernel if doing burden test
-
+        collapse_ultra_rare = True
         if test_type == "skat":
             logger.info("Running Skat test")
-            GW = GW
+            if collapse_ultra_rare:
+                logger.info(f'Max Collapsing variants with MAC <= {min_mac}')
+                MAC_mask = MAC <= min_mac
+                if MAC_mask.sum() > 0:
+                    logger.info(f'Number of collapsed positions: {MAC_mask.sum()}')
+                    # import ipdb; ipdb.set_trace()
+                    GW_collapse = copy.deepcopy(GW)
+                    GW_collapse = GW_collapse[:,MAC_mask].max(axis = 1).reshape(-1, 1)
+                    GW = GW[:,~MAC_mask]
+                    GW = np.hstack((GW_collapse, GW))
+                    logger.info(f'GW shape {GW.shape}')
+                else:
+                    logger.info(f'No ultra rare variants to collapse ({MAC_mask.sum()})')
+                    GW = GW
+            else:
+                GW = GW
 
+        pval_dict["markers_after_mac_collapsing"] = GW.shape[1]
         if test_type == "burden":
             collapse_method = test_config.get("collapse_method", "binary")
             logger.info(f"Running burden test with collapsing method {collapse_method}")
@@ -339,10 +357,11 @@ def run_association_(
     config: Dict[str, Any],
     var_type: str,
     test_type: str,
-    persist_burdens: bool,
+    persist_burdens: bool
 ) -> pd.DataFrame:
     # initialize the null models
     # ScoretestNoK automatically adds a bias column if not present
+    print(f'10 first unique y values: {np.unique(Y)}')
     if len(np.unique(Y)) == 2:
         print('Fitting binary model since only found two distinct y values')
         null_model_score = scoretest.ScoretestLogit(Y, X)
@@ -354,7 +373,7 @@ def run_association_(
     time_list_inner = {}
     weight_cols = config.get("weight_cols", [])
     logger.info(f"Testing with this config: {config['test_config']}")
-
+    min_mac = config['test_config'].get('min_mac', 0)
     # Get column with minor allele frequency
     annotations = config["data"]["dataset_config"]["annotations"]
     maf_col = [
@@ -376,7 +395,8 @@ def run_association_(
                 config["test_config"],
                 var_type,
                 test_type,
-                maf_col
+                maf_col,
+                min_mac
             )
             if persist_burdens:
                 GW_list[gene] = GW
@@ -664,7 +684,7 @@ def run_association(
         .explode("gene_ids")
         .drop_duplicates()
     )  # row can be duplicated if a variant is assigned to a gene multiple times
-
+    # import ipdb; ipdb.set_trace() #variant with id 988673 has MAF <0.001 but count is super high (> 333k)
     grouped_annotations = exploded_annotations.groupby("gene_ids")
     gene_ids = pd.read_parquet(dataset.gene_file, columns=["id"])["id"].to_list()
     gene_ids = list(
