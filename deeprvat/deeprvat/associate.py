@@ -166,6 +166,7 @@ def compute_burdens_(
     ds_full = ds.dataset if isinstance(ds, Subset) else ds
     collate_fn = getattr(ds_full, "collate_fn", None)
     n_total_samples = len(ds)
+    print(f'Data set length(number of samples): {n_total_samples}')
     ds.rare_embedding.skip_embedding = skip_burdens
 
     if chunk is not None:
@@ -580,13 +581,13 @@ def regress_(
         logger.info(f"X shape: {X.shape}, Y shape: {y.shape}")
 
         # compute null_model for score test
-        print(np.unique(y))
+        lprint(np.unique(y))
         print(len(np.unique(y)))
         if len(np.unique(y)) == 2:
-            print('Fitting binary model since only found two distinct y values')
+            logger.warning('Fitting binary model since only found two distinct y values')
             model_score = scoretest.ScoretestLogit(y, X)
         else:
-            print('Fitting linear model')
+            logger.warning('Fitting linear model')
             model_score = scoretest.ScoretestNoK(y, X)
         genes_betas_pvals = [
             regress_on_gene_scoretest(gene, burdens[mask, i], model_score)
@@ -595,7 +596,7 @@ def regress_(
             )
         ]
     else:
-        logger.info("Running regression on each gene using OLS")
+        logger.warning("Running regression on each gene using OLS")
         genes_betas_pvals = [
             regress_on_gene(gene, burdens[:, i], y, x_pheno, use_bias, use_x_pheno)
             for i, gene in tqdm(
@@ -627,6 +628,7 @@ def regress_(
 @click.option("--repeat", type=int, default=0)
 @click.option("--do-scoretest", is_flag=True)
 @click.option("--sample-file", type=click.Path(exists=True))
+@click.option("--use-sample-map", is_flag=True)
 @click.argument("config-file", type=click.Path(exists=True))
 @click.argument("burden-dir", type=click.Path(exists=True))
 @click.argument("out-dir", type=click.Path())
@@ -642,7 +644,19 @@ def regress(
     out_dir: str,
     do_scoretest: bool,
     sample_file: Optional[str],
+    use_sample_map: bool,
 ):
+    if use_sample_map:
+        logger.info('Using index_map_pheno from association dataset to select samples from burden')
+        ds_file = f'{burden_dir}/../association_dataset.pkl'
+        with open(ds_file, "rb") as f:
+            ds = pickle.load(f)
+        samples = ds.index_map_pheno        
+        #do this already here to free up memory for loading burdens
+        del ds
+
+
+
     logger.info("Loading saved burdens")
     y = zarr.open(Path(burden_dir) / "y.zarr")[:]
     burdens = zarr.open(Path(burden_dir) / "burdens.zarr")[:, :, repeat]
@@ -651,12 +665,15 @@ def regress(
 
     if sample_file is not None:
         with open(sample_file, "rb") as f:
-            samples = pickle.load(f)["association_samples"]
+            # samples = pickle.load(f)["association_samples"]
+            samples = pickle.load(f)
         if debug:
             samples = [s for s in samples if s < 1000]
         burdens = burdens[samples]
-        y = y[samples]
-        x_pheno = x_pheno[samples]
+        # y = y[samples]
+        # x_pheno = x_pheno[samples]
+    if use_sample_map:
+        burdens = burdens[samples]
 
     n_samples = burdens.shape[0]
     assert y.shape[0] == n_samples
