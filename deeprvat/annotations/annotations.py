@@ -1,19 +1,23 @@
-from pathlib import Path
-import click
-import numpy as np
-import pandas as pd
+import itertools
 import logging
-import sys
-import pickle
-from typing import List, Optional
-from sklearn.decomposition import PCA
 import os
-from tqdm import tqdm
-import pybedtools
-import time
+import pickle
 import random
-from keras.models import load_model
+import sys
+import time
+from pathlib import Path
+from typing import List, Optional
+
+import numpy as np
+import click
 import keras.backend as K
+import pandas as pd
+import pybedtools
+import tensorflow as tf
+from joblib import Parallel, delayed
+from keras.models import load_model
+from sklearn.decomposition import PCA
+from tqdm import tqdm, trange
 
 
 def precision(y_true, y_pred):
@@ -399,6 +403,51 @@ def convert2bed(variants_file, output_dir):
     )
 
 
+def deepripe_encode_variant_bedline_batch(bedlines, genomefasta, flank_size=75):
+    batch_list = {"wild": [], "mut": []}
+    for bedline in bedlines:
+        mut_a = bedline[4].split("/")[1]
+        strand = bedline[5]
+        if len(mut_a) == 1:
+            wild = pybedtools.BedTool(
+                bedline[0]
+                + "\t"
+                + str(int(bedline[1]) - flank_size)
+                + "\t"
+                + str(int(bedline[2]) + flank_size)
+                + "\t"
+                + bedline[3]
+                + "\t"
+                + str(mut_a)
+                + "\t"
+                + bedline[5],
+                from_string=True,
+            )
+            if strand == "-":
+                mut_pos = flank_size
+            else:
+                mut_pos = flank_size - 1
+
+            wild = wild.sequence(fi=genomefasta, tab=True, s=True)
+            fastalist = open(wild.seqfn).read().split("\n")
+            del fastalist[-1]
+            seqs = [fasta.split("\t")[1] for fasta in fastalist]
+            mut = seqs[0]
+            mut = list(mut)
+            mut[mut_pos] = mut_a
+            mut = "".join(mut)
+            seqs.append(mut)
+            encoded_seqs = np.array([seq_to_1hot(seq) for seq in seqs])
+            encoded_seqs = np.transpose(encoded_seqs, axes=(0, 2, 1))
+
+            return encoded_seqs
+        else:
+            pass
+        # TODO: return nans of correct shape
+
+    return {k: np.stack(v) for k, v in batch_list}
+
+
 def deepripe_encode_variant_bedline(bedline, genomefasta, flank_size=75):
     mut_a = bedline[4].split("/")[1]
     strand = bedline[5]
@@ -438,35 +487,49 @@ def deepripe_encode_variant_bedline(bedline, genomefasta, flank_size=75):
 
 
 def deepripe_score_variant_onlyseq_all(
-    model_group, variant_bed, genomefasta, seq_len=200
+        model_group, variant_bed, genomefasta, seq_len=200, batch_size=1024
 ):
-    predictions = {k: [] for k in model_group.keys()}
-    counter = 0
-    for bedline in variant_bed:
-        counter += 1
-        encoded_seqs = deepripe_encode_variant_bedline(
+    predictions = {}
+    # counter = 0
+    # encoded_seqs_list_old = []
+    # logger.info("Encoding sequences")
+    # for bedline in tqdm(variant_bed):
+    #     counter += 1
+    #     encoded_seqs = deepripe_encode_variant_bedline(
+    #         bedline, genomefasta, flank_size=(seq_len // 2) + 2
+    #     )
+
+    #     if encoded_seqs is None:
+    #         encoded_seqs = np.ones(encoded_seqs_list_old[0].shape) * float("nan")
+
+    #     encoded_seqs_list_old.append(encoded_seqs)
+
+    #     if counter % 100000 == 0:
+    #         pybedtools.cleanup(remove_all=True)
+
+    encoded_seqs_list = Parallel(n_jobs=32, verbose=10)(delayed(deepripe_encode_variant_bedline)(
             bedline, genomefasta, flank_size=(seq_len // 2) + 2
-        )
+        ) for bedline in variant_bed)
+    encoded_seqs_list = [(x if x is not None
+                          else np.ones(encoded_seqs_list[0].shape) * float("nan"))
+                         for x in encoded_seqs_list]
+    encoded_seqs = tf.concat(encoded_seqs_list, 0)
 
-        if encoded_seqs is not None:
-            ## shifting around (seq_len+4) 4 bases
-            for choice in model_group.keys():
-                avg_score = 0.0
-                for i in range(4):
-                    cropped_seqs = encoded_seqs[:, i : i + seq_len, :]
-                    model, _ = model_group[choice]
-                    pred = model.predict(cropped_seqs)
-                    score = pred[1] - pred[0]
-                    avg_score += score
-                predictions[choice].append((avg_score / 4))
-        else:
-            ## this is for indel groups that cannot be scored e.g. C/CAA
-            for choice in model_group.keys():
-                _, RBPnames = model_group[choice]
-                predictions[choice].append([np.nan for _ in range(len(RBPnames))])
-
-        if counter % 100000 == 0:
-            pybedtools.cleanup(remove_all=True)
+    logger.info("Computing predictions")
+    ## shifting around (seq_len+4) 4 bases
+    for choice in tqdm(model_group.keys(), desc="Model group"):
+        avg_score = 0.0
+        for i in range(4):
+            cropped_seqs = encoded_seqs[:, i : i + seq_len, :]
+            model, _ = model_group[choice]
+            pred = model.predict_on_batch(cropped_seqs)
+            wild_indices = tf.range(pred.shape[0], delta=2)
+            mut_indices = tf.range(1, pred.shape[0], delta=2)
+            pred_wild = pred[wild_indices]
+            pred_mut = pred[mut_indices]
+            score = pred_mut - pred_wild
+            avg_score += score
+        predictions[choice] = avg_score / 4
 
     return predictions
 
