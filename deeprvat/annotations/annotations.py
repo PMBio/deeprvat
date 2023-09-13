@@ -403,51 +403,6 @@ def convert2bed(variants_file, output_dir):
     )
 
 
-def deepripe_encode_variant_bedline_batch(bedlines, genomefasta, flank_size=75):
-    batch_list = {"wild": [], "mut": []}
-    for bedline in bedlines:
-        mut_a = bedline[4].split("/")[1]
-        strand = bedline[5]
-        if len(mut_a) == 1:
-            wild = pybedtools.BedTool(
-                bedline[0]
-                + "\t"
-                + str(int(bedline[1]) - flank_size)
-                + "\t"
-                + str(int(bedline[2]) + flank_size)
-                + "\t"
-                + bedline[3]
-                + "\t"
-                + str(mut_a)
-                + "\t"
-                + bedline[5],
-                from_string=True,
-            )
-            if strand == "-":
-                mut_pos = flank_size
-            else:
-                mut_pos = flank_size - 1
-
-            wild = wild.sequence(fi=genomefasta, tab=True, s=True)
-            fastalist = open(wild.seqfn).read().split("\n")
-            del fastalist[-1]
-            seqs = [fasta.split("\t")[1] for fasta in fastalist]
-            mut = seqs[0]
-            mut = list(mut)
-            mut[mut_pos] = mut_a
-            mut = "".join(mut)
-            seqs.append(mut)
-            encoded_seqs = np.array([seq_to_1hot(seq) for seq in seqs])
-            encoded_seqs = np.transpose(encoded_seqs, axes=(0, 2, 1))
-
-            return encoded_seqs
-        else:
-            pass
-        # TODO: return nans of correct shape
-
-    return {k: np.stack(v) for k, v in batch_list}
-
-
 def deepripe_encode_variant_bedline(bedline, genomefasta, flank_size=75):
     mut_a = bedline[4].split("/")[1]
     strand = bedline[5]
