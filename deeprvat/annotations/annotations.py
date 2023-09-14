@@ -442,7 +442,7 @@ def deepripe_encode_variant_bedline(bedline, genomefasta, flank_size=75):
 
 
 def deepripe_score_variant_onlyseq_all(
-        model_group, variant_bed, genomefasta, seq_len=200, batch_size=1024
+        model_group, variant_bed, genomefasta, seq_len=200, batch_size=1024, n_jobs=32
 ):
     predictions = {}
     # counter = 0
@@ -462,7 +462,7 @@ def deepripe_score_variant_onlyseq_all(
     #     if counter % 100000 == 0:
     #         pybedtools.cleanup(remove_all=True)
 
-    encoded_seqs_list = Parallel(n_jobs=32, verbose=10)(delayed(deepripe_encode_variant_bedline)(
+    encoded_seqs_list = Parallel(n_jobs=n_jobs, verbose=10)(delayed(deepripe_encode_variant_bedline)(
             bedline, genomefasta, flank_size=(seq_len // 2) + 2
         ) for bedline in variant_bed)
     encoded_seqs_list = [(x if x is not None
@@ -585,6 +585,7 @@ def deepripe_pca(n_components: int, deepripe_file: str, out_dir: str):
 @click.argument("genomefasta", type=click.Path(exists=True))
 @click.argument("pybedtools_tmp_dir", type=click.Path(exists=True))
 @click.argument("saved_deepripe_models_path", type=click.Path(exists=True))
+@click.argument("n_jobs", type=int)
 @click.argument("saved-model-type", type=str)
 def scorevariants_deepripe(
     variants_file: str,
@@ -592,7 +593,9 @@ def scorevariants_deepripe(
     genomefasta: str,
     pybedtools_tmp_dir: str,
     saved_deepripe_models_path: str,
+    n_jobs: int,
     saved_model_type: str = "parclip",
+    
 ):
     file_name = variants_file.split("/")[-1]
     bed_file = f"{output_dir}/{file_name[:-3]}bed"
@@ -682,6 +685,7 @@ def scorevariants_deepripe(
         variant_bed,
         genomefasta,
         seq_len=model_seq_len[saved_model_type],
+        n_jobs=n_jobs
     )
 
     for choice in current_model_type.keys():
