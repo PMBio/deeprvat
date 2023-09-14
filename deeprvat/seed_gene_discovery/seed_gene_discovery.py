@@ -42,6 +42,12 @@ class GotNone(Exception):
 def replace_in_array(arr, old_val, new_val):
     return np.where(arr == old_val, new_val, arr)
 
+def get_caf(G):
+    #get the cumulative allele frequency
+    ac = G.sum(axis = 0) #allele count of each variant
+    af = ac/(G.shape[0] * 2)  #allele frequency of each variant
+    caf = af.sum()
+    return caf
 
 #     return mask
 def save_burdens(GW_list, GW_full_list, split, chunk, out_dir):
@@ -219,7 +225,7 @@ def test_gene(
     G_full: spmatrix,
     gene: int,
     grouped_annotations: pd.DataFrame,
-    dataset: DenseGTDataset,
+    Y,
     weight_cols: List[str],
     null_model_score: scoretest.ScoretestNoK,
     test_config: Dict,
@@ -245,11 +251,17 @@ def test_gene(
     # GET expected allele count (EAC) as in Karczewski et al. 2022/Genebass
     vars_per_sample = np.sum(G, axis=1)
     samples_with_variant = vars_per_sample[vars_per_sample > 0].shape[0]
-    EAC = np.sum(vars_per_sample)
+
+    if len(np.unique(Y)) == 2:
+        n_cases = (Y > 0).sum()
+    else:
+        n_cases = Y.shape[0]   
+    EAC = get_caf(G) * n_cases
 
     pval_dict = {}
 
     pval_dict["EAC"] = EAC
+    pval_dict["n_cases"] = n_cases
     pval_dict["gene"] = gene
     pval_dict["pval"] = np.nan
     pval_dict["EAC_filtered"] = np.nan
@@ -283,9 +295,11 @@ def test_gene(
     )
     pval_dict["n_QV"] = len(pos)
     pval_dict["markers_after_mac_collapsing"] = len(pos)
-    if len(pos) > 0:
+    if ((len(pos) > 0) & (len(pos) < 5000)):
+        #there is only one gene with > 5000 missense variants (Titin, 10k missense)
+        # which always causes a super large memory demand therefore we exclude it
         G_f = G[:, pos]
-        EAC_filtered = np.sum(np.sum(G_f, axis=1))
+        EAC_filtered = EAC = get_caf(G_f) * n_cases
         pval_dict["EAC_filtered"] = EAC_filtered
         MAC = G_f.sum(axis = 0)
         count = G_f[G_f == 2].shape[0]
@@ -389,7 +403,7 @@ def run_association_(
                 G_full,
                 gene,
                 grouped_annotations,
-                dataset,
+                Y,
                 weight_cols,
                 null_model_score,
                 config["test_config"],
@@ -679,16 +693,24 @@ def run_association(
     logger.info(f"Y shape: {Y.shape}")
 
     logger.info("Grouping variants by gene")
-    exploded_annotations = (
-        dataset.annotation_df.query("id in @all_variants")
-        .explode("gene_ids")
-        .drop_duplicates()
-    )  # row can be duplicated if a variant is assigned to a gene multiple times
+    gene_grouping_col = 'gene_ids' if 'gene_ids' in dataset.annotation_df.columns else 'gene_id'
+    logger.info(f'Using {gene_grouping_col} column for gene grouping')
+    # import ipdb; ipdb.set_trace()
+    
+    if gene_grouping_col == 'gene_ids':
+        exploded_annotations = (
+            dataset.annotation_df.query("id in @all_variants")
+            .explode(gene_grouping_col).reset_index()
+            .drop_duplicates()
+            .set_index('id')
+        )  # row can be duplicated if a variant is assigned to a gene multiple times
+    else:
+        exploded_annotations = dataset.annotation_df.query("id in @all_variants")
     # import ipdb; ipdb.set_trace() #variant with id 988673 has MAF <0.001 but count is super high (> 333k)
-    grouped_annotations = exploded_annotations.groupby("gene_ids")
+    grouped_annotations = exploded_annotations.groupby(gene_grouping_col)
     gene_ids = pd.read_parquet(dataset.gene_file, columns=["id"])["id"].to_list()
     gene_ids = list(
-        set(gene_ids).intersection(set(exploded_annotations["gene_ids"].unique()))
+        set(gene_ids).intersection(set(exploded_annotations[gene_grouping_col].unique()))
     )
 
     logger.info(f"Number of genes to test: {len(gene_ids)}")
