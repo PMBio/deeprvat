@@ -799,8 +799,8 @@ def combine_results(result_files: Tuple[str], out_file: str):
     # res_df.to_parquet(out_file)
 
     if "EAC" in res_df.columns:
-        logger.info("Filtering for genes with EAC > 50")
-        res_df = res_df.query("EAC > 50")
+        logger.info("Filtering for genes with EAC >= 50")
+        res_df = res_df.query("EAC >= 50")
 
     res_df = res_df.dropna(subset=["pval"])[cols_to_keep]
     print(f"Writing filtered results to {out_file_eval}")

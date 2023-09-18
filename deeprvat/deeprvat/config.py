@@ -90,7 +90,7 @@ def update_config(
                 ]
             )
             if "EAC" in baseline_df:
-                baseline_df = baseline_df.query("EAC > 50")
+                baseline_df = baseline_df.query("EAC >= 50")
             else:
                 logger.info("Not performing EAC filtering of baseline results")
             logger.info(f"  Correcting p-values using {correction_method} method")
