@@ -41,7 +41,7 @@ def dx_run(
     dx_run_shell += f"-icommand='" + mkdir_string
     dx_run_shell += f" && {command}' "
     dx_run_shell += f"--destination {destination} "
-    dx_run_shell += f"--wait "
+    dx_run_shell += f"--watch "
     dx_run_shell += f"-y "
 
     return dx_run_shell
