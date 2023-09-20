@@ -42,9 +42,10 @@ def update_config(
     new_config_file: str,
 ):
     if seed_gene_dir is None and len(baseline_results) == 0:
-        raise ValueError(
-            "One of --seed-gene-dir and --baseline-results " "must be specified"
-        )
+        logger.warning("Neither --seed-gene-dir nor --baseline-results "
+                       "were specified. This will result in errors if "
+                       "when trying to train DeepRVAT using the resulting "
+                       "config files.")
 
     with open(old_config_file) as f:
         config = yaml.safe_load(f)
@@ -52,7 +53,8 @@ def update_config(
     if phenotype is not None:
         logger.info(f"Updating config for phenotype {phenotype}")
         config["data"]["dataset_config"]["y_phenotypes"] = [phenotype]
-        config["training_data"]["dataset_config"]["y_phenotypes"] = [phenotype]
+        if "training_data" in config:
+            config["training_data"]["dataset_config"]["y_phenotypes"] = [phenotype]
 
         # For using seed genes from results of baseline methods
         if len(baseline_results) > 0:
