@@ -43,7 +43,7 @@ model:
 
 data:
     gt_file: /mnt/project/DeepRVAT/DeepRVAT/data/preprocessed/genotypes.h5
-    variant_file: /mnt/project/DeepRVAT/DeepRVAT/data/variants.parquet
+    variant_file: /mnt/project/DeepRVAT/DeepRVAT/data/variants_90pct10dp_qc.parquet
     dataset_config:
         min_common_af:
             MAF: 0.01
@@ -110,6 +110,8 @@ data:
             - DeepRipe_plus_QKI_parclip
             - SpliceAI_delta_score
         gene_file: /mnt/project/DeepRVAT/DeepRVAT/data/protein_coding_genes.parquet
+        exclude_variant_cols:
+            - 90pct10dp_qc
         use_common_variants: False
         use_rare_variants: True
         rare_embedding:

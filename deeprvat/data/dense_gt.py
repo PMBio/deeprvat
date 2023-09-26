@@ -73,6 +73,7 @@ class DenseGTDataset(Dataset):
         genes_to_keep: Optional[Set[str]] = None,
         gene_file: Optional[str] = None,
         gene_types_to_keep: Optional[List[str]] = None,
+        exclude_variant_cols: List[str] = [],
         ignore_by_annotation: Optional[List[Tuple[str, Any]]] = None,
         max_pval: Optional[Dict[str, float]] = None,
         variants: Optional[pd.DataFrame] = None,
@@ -185,7 +186,9 @@ class DenseGTDataset(Dataset):
         )
 
         self.transform_data()
-        self.setup_variants(min_common_variant_count, min_common_af, variants)
+        self.setup_variants(
+            min_common_variant_count, min_common_af, variants, exclude_variant_cols
+        )
 
         self.get_variant_metadata(grouping_level)
 
@@ -479,6 +482,7 @@ class DenseGTDataset(Dataset):
         min_common_variant_count: Optional[int],
         min_common_af: Optional[Dict[str, float]],
         train_variants: Optional[pd.DataFrame],
+        exclude_variant_cols: List[str],
     ):
         logger.debug("Setting up variants")
         if min_common_variant_count is None and min_common_af is None:
