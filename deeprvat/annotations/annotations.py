@@ -466,7 +466,7 @@ def deepripe_score_variant_onlyseq_all(
             bedline, genomefasta, flank_size=(seq_len // 2) + 2
         ) for bedline in variant_bed)
     encoded_seqs_list = [(x if x is not None
-                          else np.ones(encoded_seqs_list[0].shape) * float("nan"))
+                          else np.ones((2, seq_len + 4, 4)) * float("nan"))
                          for x in encoded_seqs_list]
     encoded_seqs = tf.concat(encoded_seqs_list, 0)
 
@@ -895,9 +895,11 @@ def merge_deepripe(
     key_cols = ["chrom", "pos", "ref", "alt", "id"]
     prefix_cols = [x for x in deepripe_df.columns if x not in key_cols]
     new_names = [(i, i + f"_{column_prefix}") for i in prefix_cols]
-    deepripe_df.rename(columns=dict(new_names))
+
+    deepripe_df = deepripe_df.rename(columns=dict(new_names))
+    logger.info(deepripe_df.columns)
     merged = annotations.merge(
-        deepripe_df, how="left", on=["chrom", "pos", "ref", "alt"]
+        deepripe_df, how="left", on=["chrom", "pos", "ref", "alt", "id"]
     )
     assert len(merged) == orig_len
     merged.to_parquet(out_file)
@@ -958,15 +960,29 @@ def add_ids(annotation_file: str, variant_file: str, out_file: str):
 
     logger.info("Sanity check of  file IDs")
     all_variants = pd.read_csv(variant_file, sep="\t")
+    df.drop_duplicates(subset=key_cols, inplace = True)
     df_shape = df.shape
     df = pd.merge(all_variants, df, on=key_cols, how="left")
     # sanity checks
     # same length as variant file
-    assert df.shape[0] == all_variants.shape[0]
+    try: 
+        assert df.shape[0] == all_variants.shape[0]
+    except AssertionError: 
+        logger.error(f"df.shape[0] was {df.shape[0]} but all_variants.shape[0] was {all_variants.shape[0]}")
+        raise AssertionError
     # one more column as annotation file
-    assert df.shape[1] == df_shape[1] + 1
+    try:
+        assert df.shape[1] == df_shape[1] + 1
+    except AssertionError:
+        logger.error(f"df.shape[1] was {df.shape[1]} but df_shape[1] + 1 was {df_shape[1] + 1}")
+        raise AssertionError       
     # all key columns and id are present
-    assert all([x in df.columns for x in key_cols + ["id"]])
+    try:
+        assert all([x in df.columns for x in key_cols + ["id"]])
+    except AssertionError:    
+        logger.error("not all key cols in df.columns")
+        logger.info(df.columns)
+        raise AssertionError          
     df.to_csv(out_file, index=False)
 
 
@@ -1183,7 +1199,7 @@ def concatenate_annotations(
     vep_file = vep_file[vep_file.BIOTYPE == "protein_coding"]
     logger.info("splitting variant name")
     vep_file[["chrom", "pos", "ref", "alt"]] = vep_file["Uploaded_variation"].str.split(
-        "_", expand=True
+        ":", expand=True
     )
     vep_file["pos"] = vep_file["pos"].astype(int)
 
