@@ -17,6 +17,11 @@ dnanexus_applet = config["dnanexus"]["applet"]
 dnanexus_priority = config["dnanexus"].get("priority", "low")
 dnanexus_configfile = config["dnanexus"]["configfile"]
 
+model_checkpoints = [
+    pretrained_model_path / f'repeat_{repeat}/best/bag_0.ckpt'
+    for repeat in range(n_repeats)
+]
+
 
 def dx_run(
         command: str,
@@ -60,85 +65,108 @@ rule all:
 rule compute_burdens:
     priority: 10
     input:
-        reversed = pretrained_model_path / "reverse_finished.tmp",
-        checkpoints = lambda wildcards: [
-            pretrained_model_path / f'repeat_{repeat}/best/bag_{bag}.ckpt'
-            for repeat in range(n_repeats) for bag in range(n_bags)
-        ],
         dataset = '{phenotype}/deeprvat/association_dataset.pkl',
         data_config = '{phenotype}/deeprvat/hpopt_config.yaml',
         model_config = pretrained_model_path / 'config.yaml',
     output:
         '{phenotype}/deeprvat/burdens/chunk{chunk}.finished'
-    threads: 8
-    shell:
-        ' && '.join([
-            ('deeprvat_associate compute-burdens '
-             + debug +
-             ' --n-chunks '+ str(n_burden_chunks) + ' '
-             '--chunk {wildcards.chunk} '
-             '--dataset-file {input.dataset} '
-             '{input.data_config} '
-             '{input.model_config} '
-             '{input.checkpoints} '
-             '{wildcards.phenotype}/deeprvat/burdens'),
-            'touch {output}'
-        ])
-
-rule all_association_dataset:
-    input:
-        expand('{phenotype}/deeprvat/association_dataset.pkl',
-               phenotype=phenotypes)
-
-rule association_dataset:
-    input:
-        config = '{phenotype}/deeprvat/hpopt_config.yaml'
-    output:
-        '{phenotype}/deeprvat/association_dataset.pkl'
     threads: 1
     params:
         dx_run = lambda wildcards, input, output: dx_run(
             command=(
-                'deeprvat_associate make-dataset '
+                'deeprvat_associate compute-burdens '
                 + debug +
-                str("/mnt/project/DeepRVAT" / dnanexus_destination / f'{input.config} ') +
-                f'{output}'
+                f' --n-chunks {n_burden_chunks} '
+                f'--chunk {wildcards.chunk} '
+                f'--dataset-file ' + str("/mnt/project/DeepRVAT" / dnanexus_destination / input.dataset) + " " +
+                str("/mnt/project/DeepRVAT" / dnanexus_destination / f'{input.data_config} ') +
+                str("/mnt/project/DeepRVAT" / dnanexus_destination / f'{input.model_config} ') +
+                " ".join([
+                    str("/mnt/project/DeepRVAT" / dnanexus_destination / x)
+                    for x in model_checkpoints
+                ]) +
+                f' {wildcards.phenotype}/deeprvat/burdens'
             ),
-            mkdirs=f"{wildcards.phenotype}/deeprvat",
-            instance_type="mem3_ssd1_v2_x4",
-            cost_limit=1,
+            mkdirs=f"{wildcards.phenotype}/deeprvat/burdens",
+            instance_type="mem2_ssd1_gpu_x16",
+            dx_priority = "high",
+            cost_limit=20,
         ),
     shell:
         " && ".join([
             "{params.dx_run}",
             "touch {output}"
         ])
+    # shell:
+    #     ' && '.join([
+    #         ('deeprvat_associate compute-burdens '
+    #          + debug +
+    #          ' --n-chunks '+ str(n_burden_chunks) + ' '
+    #          '--chunk {wildcards.chunk} '
+    #          '--dataset-file {input.dataset} '
+    #          '{input.data_config} '
+    #          '{input.model_config} '
+    #          '{input.checkpoints} '
+    #          '{wildcards.phenotype}/deeprvat/burdens'),
+    #         'touch {output}'
+    #     ])
 
-rule all_config:
-    input:
-        config = expand('{phenotype}/deeprvat/hpopt_config.yaml',
-                        phenotype=phenotypes),
+# rule all_association_dataset:
+#     input:
+#         expand('{phenotype}/deeprvat/association_dataset.pkl',
+#                phenotype=phenotypes)
 
-rule config:
-    input:
-        config = 'config.yaml',
-    output:
-        config = '{phenotype}/deeprvat/hpopt_config.yaml',
-    params:
-        dx_run = lambda wildcards, input, output: dx_run(
-            command=(
-                'deeprvat_config update-config '
-                f'--phenotype {wildcards.phenotype} '
-                f'{input.config} '
-                f'{output.config}'
-            ),
-            mkdirs=f"{wildcards.phenotype}/deeprvat",
-            instance_type="mem1_ssd1_v2_x2",
-            cost_limit=0.10,
-        ),
-    threads: 1
-    shell:
-        " && ".join([
-            "{params.dx_run}",
-            "touch {output}"
-        ])
+# rule association_dataset:
+#     input:
+#         config = '{phenotype}/deeprvat/hpopt_config.yaml'
+#     output:
+#         '{phenotype}/deeprvat/association_dataset.pkl'
+#     threads: 1
+#     params:
+#         dx_run = lambda wildcards, input, output: dx_run(
+#             command=(
+#                 'deeprvat_associate make-dataset '
+#                 + debug +
+#                 str("/mnt/project/DeepRVAT" / dnanexus_destination / f'{input.config} ') +
+#                 f'{output}'
+#             ),
+#             mkdirs=f"{wildcards.phenotype}/deeprvat",
+#             instance_type="mem3_ssd1_v2_x4",
+#             cost_limit=1,
+#         ),
+#     shell:
+#         " && ".join([
+#             "{params.dx_run}",
+#             "touch {output}"
+#         ])
+
+# rule all_config:
+#     input:
+#         config = expand('{phenotype}/deeprvat/hpopt_config.yaml',
+#                         phenotype=phenotypes),
+
+# rule config:
+#     input:
+#         config = 'config.yaml',
+#     output:
+#         config = '{phenotype}/deeprvat/hpopt_config.yaml',
+#     params:
+#         dx_run = lambda wildcards, input, output: dx_run(
+#             command=(
+#                 'deeprvat_config update-config '
+#                 f'--phenotype {wildcards.phenotype} '
+#                 f'{input.config} '
+#                 f'{output.config}'
+#             ),
+#             mkdirs=f"{wildcards.phenotype}/deeprvat",
+#             instance_type="mem1_ssd1_v2_x2",
+#             cost_limit=0.10,
+#         ),
+#     threads: 1
+#     shell:
+#         " && ".join([
+#             "dx mkdir -p DeepRVAT/workdir/pretrained_scoring",
+#             # "dx upload config.yaml --destination DeepRVAT/workdir/pretrained_scoring/config.yaml",
+#             "{params.dx_run}",
+#             "touch {output}"
+#         ])

@@ -212,52 +212,67 @@ def evaluate_(
     baseline_results: Optional[pd.DataFrame] = None,
     debug: bool = False,
     correction_method: str = "FDR",
+            analyze_all_repeats: bool = False,
+
 ):
     if seed_genes is not None:
         seed_gene_ids = seed_genes["id"]
         associations = associations.query("gene not in @seed_gene_ids")
 
-    n_total_repeats = (
-        repeats
-        if repeats is not None
-        else associations["model"]
-        .str.split("_")
-        .apply(lambda x: x[-1])
-        .astype(int)
-        .max()
-        + 1
-    )
-    if debug:
-        n_total_repeats = min(n_total_repeats, 2)
+    if analyze_all_repeats:
+        all_repeats = range(1, repeats + 1)
+    else:
+        all_repeats = [repeats]
 
-    logger.info("Evaluation results:")
-    results = pd.DataFrame()
-    for n_repeats in range(1, n_total_repeats + 1):
-        rep_str = f"{n_repeats} repeats"
-        repeat_mask = (
-            associations["model"].str.split("_").apply(lambda x: x[-1]).astype(int)
-            < n_repeats
+    significant_list = []
+    all_pvalues_list = []
+    for this_repeats in all_repeats:
+        n_total_repeats = (
+            this_repeats
+            if this_repeats is not None
+            else associations["model"]
+            .str.split("_")
+            .apply(lambda x: x[-1])
+            .astype(int)
+            .max()
+            + 1
         )
-        this_result = associations[repeat_mask].copy()
+        if debug:
+            n_total_repeats = min(n_total_repeats, 2)
 
-        experiment_name = f"DeepRVAT ({n_repeats} repeats)"
-        this_result["experiment"] = experiment_name
+        logger.info("Evaluation results:")
+        results = pd.DataFrame()
+        for n_repeats in range(1, n_total_repeats + 1):
+            rep_str = f"{n_repeats} repeats"
+            repeat_mask = (
+                associations["model"].str.split("_").apply(lambda x: x[-1]).astype(int)
+                < n_repeats
+            )
+            this_result = associations[repeat_mask].copy()
 
-        results = pd.concat([results, this_result])
+            experiment_name = f"DeepRVAT ({n_repeats} repeats)"
+            this_result["experiment"] = experiment_name
 
-    results["-log10pval"] = -np.log10(results["pval"])
-    results["experiment_group"] = "DeepRVAT"
+            results = pd.concat([results, this_result])
 
-    results = pd.concat([results, baseline_results])
+        results["-log10pval"] = -np.log10(results["pval"])
+        results["experiment_group"] = "DeepRVAT"
 
-    significant, all_pvalues = process_results(
-        results,
-        n_repeats=n_total_repeats,
-        alpha=alpha,
-        correction_method=correction_method,
-    )
+        results = pd.concat([results, baseline_results])
 
-    return significant, all_pvalues
+        this_significant, this_all_pvalues = process_results(
+            results,
+            n_repeats=n_total_repeats,
+            alpha=alpha,
+            correction_method=correction_method,
+        )
+
+        this_significant["repeats"] = this_repeats
+        this_all_pvalues["repeats"] = this_repeats
+        significant_list.append(this_significant)
+        all_pvalues_list.append(this_all_pvalues)
+
+    return pd.concat(significant_list), pd.concat(all_pvalues_list)
 
 
 # @cli.command()
@@ -267,6 +282,7 @@ def evaluate_(
 @click.option("--use-seed-genes", is_flag=True)
 @click.option("--correction-method", type=str, default="FDR")
 @click.option("--n-repeats", type=int)
+@click.option("--analyze-all-repeats", is_flag=True)
 @click.argument("association-files", type=click.Path(exists=True), nargs=-1)
 @click.argument("config-file", type=click.Path(exists=True))
 @click.argument("out-dir", type=click.Path())
@@ -276,6 +292,7 @@ def evaluate(
     use_seed_genes: bool,
     correction_method: str,
     n_repeats: Optional[int],
+        analyze_all_repeats: bool,
     association_files: Tuple[str],
     config_file: str,
     out_dir: str,
@@ -324,6 +341,7 @@ def evaluate(
         baseline_results=baseline_results,
         correction_method=correction_method,
         debug=debug,
+        analyze_all_repeats=analyze_all_repeats,
     )
 
     logger.info("Saving results")

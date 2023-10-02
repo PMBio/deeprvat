@@ -42,12 +42,12 @@ model:
             config: {}
 
 data:
-    gt_file: /mnt/project/DeepRVAT/DeepRVAT/data/preprocessed/genotypes.h5
-    variant_file: /mnt/project/DeepRVAT/DeepRVAT/data/variants_90pct10dp_qc.parquet
+    gt_file: genotypes.h5
+    variant_file: variants_90pct10dp_qc.parquet
     dataset_config:
         min_common_af:
-            MAF: 0.01
-        phenotype_file: /mnt/project/DeepRVAT/DeepRVAT/data/phenotypes.parquet
+            combined_UKB_NFE_AF: 0.01
+        phenotype_file: phenotypes.parquet
         y_transformation: quantile_transform
         x_phenotypes:
             - age
@@ -72,14 +72,14 @@ data:
             - genetic_PC_18
             - genetic_PC_19
             - genetic_PC_20
-        annotation_file: /mnt/project/DeepRVAT/DeepRVAT/data/annotations.parquet
+        annotation_file: annotations.parquet
         annotations:
-            - MAF
-            - MAF_MB
+            - combined_UKB_NFE_AF
+            - combined_UKB_NFE_AF_MB
             - CADD_PHRED
-            - CADD_raw
-            - sift_score
-            - polyphen_score
+            - CADD_RAW
+            - SIFT_score
+            - PolyPhen_score
             - Consequence_splice_acceptor_variant
             - Consequence_splice_donor_variant
             - Consequence_stop_gained
@@ -91,25 +91,25 @@ data:
             - Consequence_missense_variant
             - Consequence_protein_altering_variant
             - Consequence_splice_region_variant
-            - condel_score
+            - Condel
             - DeepSEA_PC_1
             - DeepSEA_PC_2
             - DeepSEA_PC_3
             - DeepSEA_PC_4
             - DeepSEA_PC_5
             - DeepSEA_PC_6
-            - PrimateAI_score
+            - PrimateAI
             - AbSplice_DNA
-            - DeepRipe_plus_QKI_lip_hg2
-            - DeepRipe_plus_QKI_clip_k5
-            - DeepRipe_plus_KHDRBS1_clip_k5
-            - DeepRipe_plus_ELAVL1_parclip
-            - DeepRipe_plus_TARDBP_parclip
-            - DeepRipe_plus_HNRNPD_parclip
-            - DeepRipe_plus_MBNL1_parclip
-            - DeepRipe_plus_QKI_parclip
-            - SpliceAI_delta_score
-        gene_file: /mnt/project/DeepRVAT/DeepRVAT/data/protein_coding_genes.parquet
+            - QKI_hg2
+            - QKI_k5
+            - KHDRBS1_k5
+            - ELAVL1_parclip
+            - TARDBP_parclip
+            - HNRNPD_parclip
+            - MBNL1_parclip
+            - QKI_parclip
+            - SpliceAI_delta
+        gene_file: protein_coding_genes.parquet
         exclude_variant_cols:
             - 90pct10dp_qc
         use_common_variants: False
@@ -118,46 +118,46 @@ data:
             type: PaddedAnnotations
             config:
                 annotations:
-                    - MAF_MB
-                    - CADD_raw
-                    - sift_score
-                    - polyphen_score
-                    - Consequence_splice_acceptor_variant
-                    - Consequence_splice_donor_variant
-                    - Consequence_stop_gained
-                    - Consequence_frameshift_variant
-                    - Consequence_stop_lost
-                    - Consequence_start_lost
-                    - Consequence_inframe_insertion
-                    - Consequence_inframe_deletion
-                    - Consequence_missense_variant
-                    - Consequence_protein_altering_variant
-                    - Consequence_splice_region_variant
-                    - condel_score
-                    - DeepSEA_PC_1
-                    - DeepSEA_PC_2
-                    - DeepSEA_PC_3
-                    - DeepSEA_PC_4
-                    - DeepSEA_PC_5
-                    - DeepSEA_PC_6
-                    - PrimateAI_score
-                    - AbSplice_DNA
-                    - DeepRipe_plus_QKI_lip_hg2
-                    - DeepRipe_plus_QKI_clip_k5
-                    - DeepRipe_plus_KHDRBS1_clip_k5
-                    - DeepRipe_plus_ELAVL1_parclip
-                    - DeepRipe_plus_TARDBP_parclip
-                    - DeepRipe_plus_HNRNPD_parclip
-                    - DeepRipe_plus_MBNL1_parclip
-                    - DeepRipe_plus_QKI_parclip
-                    - SpliceAI_delta_score
+                  - combined_UKB_NFE_AF_MB
+                  - CADD_RAW
+                  - SIFT_score
+                  - PolyPhen_score
+                  - Consequence_splice_acceptor_variant
+                  - Consequence_splice_donor_variant
+                  - Consequence_stop_gained
+                  - Consequence_frameshift_variant
+                  - Consequence_stop_lost
+                  - Consequence_start_lost
+                  - Consequence_inframe_insertion
+                  - Consequence_inframe_deletion
+                  - Consequence_missense_variant
+                  - Consequence_protein_altering_variant
+                  - Consequence_splice_region_variant
+                  - Condel
+                  - DeepSEA_PC_1
+                  - DeepSEA_PC_2
+                  - DeepSEA_PC_3
+                  - DeepSEA_PC_4
+                  - DeepSEA_PC_5
+                  - DeepSEA_PC_6
+                  - PrimateAI
+                  - AbSplice_DNA
+                  - QKI_hg2
+                  - QKI_k5
+                  - KHDRBS1_k5
+                  - ELAVL1_parclip
+                  - TARDBP_parclip
+                  - HNRNPD_parclip
+                  - MBNL1_parclip
+                  - QKI_parclip
+                  - SpliceAI_delta
                 thresholds:
-                    MAF: "MAF < 1e-3"
+                    combined_UKB_NFE_AF: "combined_UKB_NFE_AF < 1e-3"
                     CADD_PHRED:  "CADD_PHRED > 5"
-                gene_file: /mnt/project/DeepRVAT/DeepRVAT/data/protein_coding_genes.parquet
+                gene_file: protein_coding_genes.parquet
                 verbose: True
                 low_memory: True
         verbose: True
     dataloader_config:
         batch_size: 16
-        num_workers: 10
+        num_workers: 16
