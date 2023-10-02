@@ -13,9 +13,9 @@ The pipeline uses left-normalized bcf files containing variant information, a re
 BCFtools as well as HTSlib should be installed on the machine, 
 [CADD](https://github.com/kircherlab/CADD-scripts/tree/master/src/scripts) as well as [VEP](http://www.ensembl.org/info/docs/tools/vep/script/vep_download.html) will be installed by the pipeline together with the [plugins](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html) for primateAI and spliceAI. Annotation data for CADD, spliceAI and primateAI should be downloaded. The path to the data may be specified in the corresponding [config file](config/deeprvat_annotation_config.yaml). 
 Download path:
-- [CADD](http://cadd.gs.washington.edu/download)
-- [SpliceAI](https://basespace.illumina.com/s/otSPW8hnhaZR)
-- [PrimateAI](https://basespace.illumina.com/s/yYGFdGih1rXL)
+- [CADD](http://cadd.gs.washington.edu/download): "All possible SNVs of GRCh38/hg38" and "gnomad.genomes.r3.0.indel.tsv.gz" incl. their  Tabix Indices
+- [SpliceAI](https://basespace.illumina.com/s/otSPW8hnhaZR): "genome_scores_v1.3"/"spliceai_scores.raw.snv.hg38.vcf.gz" and "spliceai_scores.raw.indel.hg38.vcf.gz" 
+- [PrimateAI](https://basespace.illumina.com/s/yYGFdGih1rXL) PrimateAI supplementary data/"PrimateAI_scores_v0.2_GRCh38_sorted.tsv.bgz"
 
 ## Output
 
@@ -73,8 +73,20 @@ Data for VEP plugins and the CADD cache are stored in `annotation data`.
 
 ## Running the annotation pipeline
 ### Preconfiguration
-Inside the annotation directory create a directory annotation_dir and download/link the prescored files for CADD, SpliceAI, and PrimateAI.
-Create a directory repo_dir, in which all required repositories will be cloned.
+- Inside the annotation directory create a directory `repo_dir` and run the [annotation setup script](setup_annotation_workflow.sh) 
+  ```shell
+    setup_annotation_workflow.sh repo_dir/ensembl-vep/cache repo_dir/ensembl-vep/Plugins repo_dir
+  ```
+  or manually clone the repositories mentioned in the [requirements](#requirements) into `repo_dir` and install the needed conda environments with  
+    ```shell
+    mamba env create -f repo_dir/absplice/environment.yaml
+    mamba env create -f repo_dir/kipoi-veff2/environment.minimal.linux.yml
+    ```
+  If you already have some of the needed repositories on your machine you can edit the paths in the [config](../../pipelines/config/deeprvat_annotation_config.yaml).
+  
+
+- Inside the annotation directory create a directory `annotation_dir` and download/link the prescored files for CADD, SpliceAI, and PrimateAI (see [requirements](#requirements))
+
 
 ### Running the pipeline
 After configuration and activating the environment run the pipeline using snakemake:
