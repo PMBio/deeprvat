@@ -192,7 +192,11 @@ def get_anno(
 def call_score(GV, null_model_score, pval_dict, test_type):
     # score test
     # p-value for the score-test
+    start_time = time.time()
     pv = null_model_score.pv_alt_model(GV)
+    end_time = time.time()
+    time_diff = end_time - start_time
+    pval_dict['time'] = time_diff
     logger.info(f"p-value: {pv}")
     if pv < 0.0:
         logger.warning(
@@ -335,7 +339,6 @@ def test_gene(
                 MAC_mask = MAC <= min_mac
                 if MAC_mask.sum() > 0:
                     logger.info(f'Number of collapsed positions: {MAC_mask.sum()}')
-                    # import ipdb; ipdb.set_trace()
                     GW_collapse = copy.deepcopy(GW)
                     GW_collapse = GW_collapse[:,MAC_mask].max(axis = 1).reshape(-1, 1)
                     GW = GW[:,~MAC_mask]
@@ -357,7 +360,6 @@ def test_gene(
 
     else:
         GW = GW_full = np.zeros(G.shape[0])
-
     return pval_dict, GW, GW_full  
 
 
@@ -431,7 +433,6 @@ def run_association_(
     )
 
     logger.info(stats.head())
-
     return stats, GW_list, GW_full_list, time_list_inner
 
 
@@ -695,7 +696,6 @@ def run_association(
     logger.info("Grouping variants by gene")
     gene_grouping_col = 'gene_ids' if 'gene_ids' in dataset.annotation_df.columns else 'gene_id'
     logger.info(f'Using {gene_grouping_col} column for gene grouping')
-    # import ipdb; ipdb.set_trace()
     
     if gene_grouping_col == 'gene_ids':
         exploded_annotations = (
@@ -706,7 +706,7 @@ def run_association(
         )  # row can be duplicated if a variant is assigned to a gene multiple times
     else:
         exploded_annotations = dataset.annotation_df.query("id in @all_variants")
-    # import ipdb; ipdb.set_trace() #variant with id 988673 has MAF <0.001 but count is super high (> 333k)
+    #variant with id 988673 has MAF <0.001 but count is super high (> 333k)
     grouped_annotations = exploded_annotations.groupby(gene_grouping_col)
     gene_ids = pd.read_parquet(dataset.gene_file, columns=["id"])["id"].to_list()
     gene_ids = list(
