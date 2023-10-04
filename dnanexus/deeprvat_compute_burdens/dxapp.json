@@ -6,8 +6,18 @@
   "version": "0.0.1",
   "inputSpec": [
     {
-        "name": "config",
-        "label": "config",
+        "name": "n_chunks",
+        "label": "n_chunks",
+        "class": "string",
+        "optional": false,
+        "patterns": [
+            "*"
+        ],
+        "help": ""
+    },
+    {
+        "name": "chunk",
+        "label": "chunk",
         "class": "string",
         "optional": false,
     "patterns": [
@@ -30,7 +40,7 @@
   "runSpec": {
     "timeoutPolicy": {
       "*": {
-        "hours": 1
+        "hours": 10
       }
     },
     "interpreter": "bash",

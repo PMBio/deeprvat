@@ -145,7 +145,7 @@ def compute_burdens_(
     skip_burdens: bool = False,
 ) -> Tuple[np.ndarray, zarr.core.Array, zarr.core.Array, zarr.core.Array]:
     if not skip_burdens:
-        logger.info("agg_models[*][*].reverse:")
+        print("agg_models[*][*].reverse:")
         pprint(
             {
                 repeat: [m.reverse for m in models]
@@ -171,7 +171,7 @@ def compute_burdens_(
         n_samples = len(samples)
         ds = Subset(ds, samples)
 
-        logger.info(f"Processing samples in {samples} from {n_total_samples} in total")
+        print(f"Processing samples in {samples} from {n_total_samples} in total")
     else:
         n_samples = n_total_samples
         chunk_start = 0
@@ -182,12 +182,12 @@ def compute_burdens_(
     if torch.cuda.is_available():
         pin_memory = dataloader_config.get("pin_memory", True)
 
-        logger.info(f"CUDA is available, setting pin_memory={pin_memory}")
+        print(f"CUDA is available, setting pin_memory={pin_memory}")
         dataloader_config["pin_memory"] = pin_memory
 
     dl = DataLoader(ds, collate_fn=collate_fn, **dataloader_config)
 
-    logger.info("Computing burden scores")
+    print("Computing burden scores")
     batch_size = data_config["dataloader_config"]["batch_size"]
     with torch.no_grad():
         for i, batch in tqdm(
@@ -204,25 +204,25 @@ def compute_burdens_(
                 chunk_y = np.zeros(shape=(n_samples,) + this_y.shape[1:])
                 chunk_x = np.zeros(shape=(n_samples,) + this_x.shape[1:])
 
-                logger.info(f"Batch size: {batch['rare_variant_annotations'].shape}")
+                print(f"Batch size: {batch['rare_variant_annotations'].shape}")
 
                 if not skip_burdens:
                     burdens = zarr.open(
                         Path(cache_dir) / "burdens.zarr",
                         mode="a",
-                        shape=(n_total_samples,) + this_burdens.shape[1:],
+                        shape=(n_samples,) + this_burdens.shape[1:],
                         chunks=(1000, 1000),
                         dtype=np.float32,
                         compressor=Blosc(clevel=compression_level),
                     )
-                    logger.info(f"burdens shape: {burdens.shape}")
+                    print(f"burdens shape: {burdens.shape}")
                 else:
                     burdens = None
 
                 y = zarr.open(
                     Path(cache_dir) / "y.zarr",
                     mode="a",
-                    shape=(n_total_samples,) + this_y.shape[1:],
+                    shape=(n_samples,) + this_y.shape[1:],
                     chunks=(None, None),
                     dtype=np.float32,
                     compressor=Blosc(clevel=compression_level),
@@ -230,7 +230,7 @@ def compute_burdens_(
                 x = zarr.open(
                     Path(cache_dir) / "x.zarr",
                     mode="a",
-                    shape=(n_total_samples,) + this_x.shape[1:],
+                    shape=(n_samples,) + this_x.shape[1:],
                     chunks=(None, None),
                     dtype=np.float32,
                     compressor=Blosc(clevel=compression_level),
@@ -253,14 +253,22 @@ def compute_burdens_(
             if bottleneck and i > 20:
                 break
 
-        if not skip_burdens:
-            burdens[chunk_start:chunk_end] = chunk_burden
+            if i % 100 == 99:
+                print(f"Finished {i + 1} batches")
 
-        y[chunk_start:chunk_end] = chunk_y
-        x[chunk_start:chunk_end] = chunk_x
+        write_slice = slice(0, chunk_end - chunk_start)
+        print(f"Writing to slice: {write_slice}")
+        if not skip_burdens:
+            burdens[write_slice] = chunk_burden
+
+        y[write_slice] = chunk_y
+        x[write_slice] = chunk_x
+
+    with open(f"chunk_{chunk}_samples.txt", "w") as f:
+        f.write("{chunk_start}:{chunk_end}")
 
     if torch.cuda.is_available():
-        logger.info(
+        print(
             "Max GPU memory allocated: " f"{torch.cuda.max_memory_allocated(0)} bytes"
         )
 
@@ -440,17 +448,17 @@ def compute_burdens(
         model_config = yaml.safe_load(f)
 
     if dataset_file is not None:
-        logger.info("Loading pickled dataset")
+        print("Loading pickled dataset")
         with open(dataset_file, "rb") as f:
             dataset = pickle.load(f)
     else:
         dataset = make_dataset_(config)
 
     if torch.cuda.is_available():
-        logger.info("Using GPU")
+        print("Using GPU")
         device = torch.device("cuda")
     else:
-        logger.info("Using CPU")
+        print("Using CPU")
         device = torch.device("cpu")
 
     if link_burdens is None:
@@ -471,12 +479,19 @@ def compute_burdens(
         skip_burdens=(link_burdens is not None),
     )
 
-    logger.info("Saving computed burdens, corresponding genes, and targets")
+    print("Saving computed burdens, corresponding genes, and targets")
     np.save(Path(out_dir) / "genes.npy", genes)
     if link_burdens is not None:
         source_path = Path(out_dir) / "burdens.zarr"
         source_path.unlink(missing_ok=True)
         source_path.symlink_to(link_burdens)
+
+
+@cli.command()
+@click.option("--chunk", type=(click.Path(exists=True), click.Path(exists=True)), multiple=True)
+@click.argument("out_dir", type=click.Path(exists=True))
+def combine_burden_chunks(chunk: Tuple[Tuple[str, str, str, str, str]], out_dir: str):
+    pass
 
 
 def regress_on_gene_scoretest(gene: str, burdens: np.ndarray, model_score):
