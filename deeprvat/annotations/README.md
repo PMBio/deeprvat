@@ -11,11 +11,19 @@ The pipeline uses left-normalized bcf files containing variant information, a re
 
 ## Requirements 
 BCFtools as well as HTSlib should be installed on the machine, 
-[CADD](https://github.com/kircherlab/CADD-scripts/tree/master/src/scripts) as well as [VEP](http://www.ensembl.org/info/docs/tools/vep/script/vep_download.html) will be installed by the pipeline together with the [plugins](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html) for primateAI and spliceAI. Annotation data for CADD, spliceAI and primateAI should be downloaded. The path to the data may be specified in the corresponding [config file](config/deeprvat_annotation_config.yaml). 
+- [CADD](https://github.com/kircherlab/CADD-scripts/tree/master/src/scripts) as well as 
+- [VEP](http://www.ensembl.org/info/docs/tools/vep/script/vep_download.html),  
+- [absplice](https://github.com/gagneurlab/absplice/tree/master), 
+- [kipoi-veff2](https://github.com/kipoi/kipoi-veff2)
+- [faatpipe](https://github.com/HealthML/faatpipe), and the
+- [vep-plugins repository](https://github.com/Ensembl/VEP_plugins/)
+
+will be installed by the pipeline together with the [plugins](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html) for primateAI and spliceAI. Annotation data for CADD, spliceAI and primateAI should be downloaded. The path to the data may be specified in the corresponding [config file](config/deeprvat_annotation_config.yaml). 
 Download path:
 - [CADD](http://cadd.gs.washington.edu/download): "All possible SNVs of GRCh38/hg38" and "gnomad.genomes.r3.0.indel.tsv.gz" incl. their  Tabix Indices
 - [SpliceAI](https://basespace.illumina.com/s/otSPW8hnhaZR): "genome_scores_v1.3"/"spliceai_scores.raw.snv.hg38.vcf.gz" and "spliceai_scores.raw.indel.hg38.vcf.gz" 
 - [PrimateAI](https://basespace.illumina.com/s/yYGFdGih1rXL) PrimateAI supplementary data/"PrimateAI_scores_v0.2_GRCh38_sorted.tsv.bgz"
+
 
 ## Output
 
