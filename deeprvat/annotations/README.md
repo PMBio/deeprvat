@@ -89,6 +89,7 @@ Data for VEP plugins and the CADD cache are stored in `annotation data`.
     ```shell
     mamba env create -f repo_dir/absplice/environment.yaml
     mamba env create -f repo_dir/kipoi-veff2/environment.minimal.linux.yml
+    mamba env create -f deeprvat/deeprvat_annotations.yml
     ```
   If you already have some of the needed repositories on your machine you can edit the paths in the [config](../../pipelines/config/deeprvat_annotation_config.yaml).
   
@@ -97,7 +98,7 @@ Data for VEP plugins and the CADD cache are stored in `annotation data`.
 
 
 ### Running the pipeline
-After configuration and activating the environment run the pipeline using snakemake:
+After configuration and activating the `deeprvat_annotations` environment run the pipeline using snakemake:
 
 ```shell
   snakemake -j <nr_cores> -s annotations.snakemake --configfile config/deeprvat_annotation.config 
