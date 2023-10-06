@@ -32,7 +32,7 @@ load_perl = " ".join([config["perl_load_cmd"], "&&"])
 load_vep = " ".join([config["vep_load_cmd"], "&&"])
 
 # init data path
-vcf_pattern = config["vcf_file_pattern"]
+vcf_pattern = config["bcf_file_pattern"]
 bcf_dir = Path(config["bcf_dir"])
 anno_tmp_dir = Path(config["anno_tmp_dir"])
 anno_dir = Path(config["anno_dir"])
@@ -65,7 +65,14 @@ pvcf_blocks_df = pd.read_csv(
     dtype={"Chromosome": str},
 ).set_index("Index")
 # init absplice
+absplice_repo_dir = Path(config["absplice_repo_dir"])
 n_cores_absplice = int(config.get("n_cores_absplice") or 4)
+ncores_merge_absplice = int(config.get("n_cores_merge_absplice") or 64)
+#init deepripe
+n_jobs_deepripe = int(config.get("n_jobs_deepripe") or 8)
+# init kipoi-veff2
+kipoi_repo_dir = Path(config["kipoiveff_repo_dir"])
+ncores_addis  = int(config.get("n_jobs_deepripe") or 32)
 # Filter out which chromosomes to work with
 pvcf_blocks_df = pvcf_blocks_df[
     pvcf_blocks_df["Chromosome"].isin([str(c) for c in included_chromosomes])
@@ -575,10 +582,11 @@ rule deepRiPe_parclip:
         setup=repo_dir / "annotation-workflow-setup.done",
     output:
         anno_dir / (vcf_pattern + "_variants.parclip_deepripe.csv"),
-    resources:
-        mem_mb=100000
+    
+    threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
+    
     shell:
-        f"mkdir -p {pybedtools_tmp_path/'parclip'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'parclip'} {saved_deepripe_models_path} 'parclip'"
+        f"mkdir -p {pybedtools_tmp_path/'parclip'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'parclip'} {saved_deepripe_models_path}  {{threads}} 'parclip'"
          
 
 
@@ -589,10 +597,10 @@ rule deepRiPe_eclip_hg2:
         setup=repo_dir / "annotation-workflow-setup.done",
     output:
         anno_dir / (vcf_pattern + "_variants.eclip_hg2_deepripe.csv"),
-    resources:
-        mem_mb=100000
+    threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
+    
     shell:
-        f"mkdir -p {pybedtools_tmp_path/'hg2'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'hg2'} {saved_deepripe_models_path} 'eclip_hg2'"
+        f"mkdir -p {pybedtools_tmp_path/'hg2'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'hg2'} {saved_deepripe_models_path} {{threads}} 'eclip_hg2'"
 
 
 rule deepRiPe_eclip_k5:
@@ -602,10 +610,10 @@ rule deepRiPe_eclip_k5:
         setup=repo_dir / "annotation-workflow-setup.done",
     output:
         anno_dir / (vcf_pattern + "_variants.eclip_k5_deepripe.csv"),
-    resources:
-        mem_mb=100000
+    threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
+    
     shell:
-        f"mkdir -p {pybedtools_tmp_path/'k5'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'k5'} {saved_deepripe_models_path} 'eclip_k5'"
+        f"mkdir -p {pybedtools_tmp_path/'k5'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'k5'} {saved_deepripe_models_path} {{threads}}  'eclip_k5'"
 
 
 rule all_vep:

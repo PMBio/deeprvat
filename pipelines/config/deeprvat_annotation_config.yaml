@@ -5,12 +5,12 @@ htslib_load_cmd : module load htslib/1.9
 perl_load_cmd : module load perl/5.20.2
 vep_load_cmd : module load vep/108.1
 
-vcf_file_pattern : ukb23156_c{chr}_b{block}_v1
+bcf_file_pattern : ukb23156_c{chr}_b{block}_v1
 included_chromosomes : ['21','22']
 
 metadata_dir : input_dir/vcf/metadata
 pvcf_blocks_file : pvcf_blocks.txt
-vcf_dir : input_dir/vcf
+bcf_dir : input_dir/bcf
 anno_tmp_dir : output_dir/annotations/tmp
 anno_dir : output_dir/annotations
 
@@ -23,10 +23,11 @@ spliceAI_indel_file : annotation_data/spliceAI/spliceai_scores.raw.indel.hg38.vc
 primateAI_file : annotation_data/primateAI/PrimateAI_scores_v0.2_GRCh38_sorted.tsv.bgz
 cadd_snv_file : annotation_data/cadd/whole_genome_SNVs.tsv.gz
 cadd_indel_file : annotation_data/cadd/gnomad.genomes.r3.0.indel.tsv.gz
-
+absplice_repo_dir : repo_dir/absplice
 deeprvat_repo_dir : deeprvat_repo_dir
+kipoi_repo_dir : repo_dir/kipoi-veff2
 variant_file_path : preprocessing_workdir/norm/variants/variants.tsv.gz
 pybedtools_tmp_path : output_dir/annotations/tmp/pybedtools
-
-
-
+n_jobs_deepripe : 32
+n_cores_merge_absplice : 32
+n_cores_absplice : 32
