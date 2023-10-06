@@ -129,7 +129,7 @@ rule aggregate_and_merge_absplice:
 
 rule merge_deepripe_k5:
     input:
-        anno_dir / "current_annotations_deepripe_parclip_hg2.parquet",
+        annotations=anno_dir / "current_annotations_deepripe_parclip_hg2.parquet",
         deepripe_file=anno_dir / "all_variants.wID.k5.deepripe.csv",
     output:
         anno_dir / "current_annotations_deepripe_parclip_hg2_k5.parquet",
@@ -151,7 +151,7 @@ rule merge_deepripe_k5:
 
 rule merge_deepripe_hg2:
     input:
-        anno_dir / "current_annotations_deepripe_parclip.parquet",
+        annotations=anno_dir / "current_annotations_deepripe_parclip.parquet",
         deepripe_file=anno_dir / "all_variants.wID.hg2.deepripe.csv",
     output:
         anno_dir / "current_annotations_deepripe_parclip_hg2.parquet",
