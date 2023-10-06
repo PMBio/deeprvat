@@ -497,37 +497,52 @@ def cli():
 @cli.command()
 @click.option("--n-components", type=int, default=100)
 @click.argument("deepsea-file", type=click.Path(exists=True))
+@click.argument("pca-pkl", type=click.Path())
 @click.argument("out-dir", type=click.Path(exists=True))
-def deepsea_pca(n_components: int, deepsea_file: str, out_dir: str):
+def deepsea_pca(n_components: int, deepsea_file: str, pca_pkl: str, out_dir: str):
+    logger.info("Loading deepSea data")
     df = pd.read_csv(deepsea_file)
+    logger.info("filling NAs")
     df = df.fillna(0)
     logger.info("Extracting matrix for PCA")
     key_df = df[["chrom", "pos", "ref", "alt", "id"]].reset_index(drop=True)
+    logger.info("transforming values to numpy")
     X = df[[c for c in df.columns if c.startswith("DeepSEA")]].to_numpy()
     del df
-
+    logger.info("standardizing values")
     X_std = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
     del X
 
-    logger.info("Running PCA")
-    pca = PCA(n_components=n_components)
-    pca.fit(X_std)
-    out_path = Path(out_dir)
-    with open(out_path / "pca.pkl", "wb") as f:
-        pickle.dump(pca, f)
+    
 
+    out_path = Path(out_dir)
+
+    if os.path.exists(pca_pkl):
+        with open(pca_pkl, 'rb') as pickle_file:
+            logger.info("loading pca object")
+            pca = pickle.load(pickle_file)
+    else:
+        logger.info(f"creating pca object and saving it to {pca_pkl}")
+        pca = PCA(n_components=n_components)
+        pca.fit(X_std)       
+        with open(out_path / "pca.pkl", "wb") as f:
+            pickle.dump(pca, f)  
     logger.info(f"Projecting rows to {n_components} PCs")
     X_pca = pca.transform(X_std)
     del X_std
+
+    logger.info(f"Writing values to data frame")
     pca_df = pd.DataFrame(
         X_pca, columns=[f"DeepSEA_PC_{i}" for i in range(1, n_components + 1)]
     )
     del X_pca
+    logger.info(f"adding key values to data frame")
     pca_df = pd.concat([key_df, pca_df], axis=1)
 
     logger.info("Sanity check of results")
     assert pca_df.isna().sum().sum() == 0
 
+    logger.info(f"Writing results to path { out_path / 'deepsea_pca.parquet' }")
     pca_df.to_parquet(out_path / "deepsea_pca.parquet", engine="pyarrow")
 
     logger.info("Done")
@@ -706,16 +721,62 @@ def scorevariants_deepripe(
     )
 
 
+def process_chunk(chrom_file, abs_splice_res_dir, tissues_to_exclude,tissue_agg_function, ca_shortened ):
+    logger.info(f"Reading file {chrom_file}")
+    ab_splice_res = pd.read_csv(abs_splice_res_dir / chrom_file).reset_index()
+    ab_splice_res = ab_splice_res.query("tissue not in @tissues_to_exclude")
+    logger.info(
+        f"AbSplice tissues excluded: {tissues_to_exclude}, Aggregating AbSplice scores using {tissue_agg_function}"
+    )
+    logger.info(
+        f"Number of unique variants {len(ab_splice_res['variant'].unique())}"
+    )
+
+    #### aggregate tissue specific ab splice scores
+    ab_splice_res = (
+        ab_splice_res.groupby(["variant", "gene_id"])
+        .agg({"AbSplice_DNA": tissue_agg_function})
+        .reset_index()
+    )
+
+    ab_splice_res[["chrom", "pos", "var"]] = ab_splice_res["variant"].str.split(
+        ":", expand=True
+    )
+
+    ab_splice_res[["ref", "alt"]] = ab_splice_res["var"].str.split(
+        ">", expand=True
+    )
+
+    ab_splice_res["pos"] = ab_splice_res["pos"].astype(int)
+    logger.info(f"Number of rows of ab_splice df {len(ab_splice_res)}")
+    merged = ab_splice_res.merge(
+        ca_shortened, how="left", on=["chrom", "pos", "ref", "alt", "gene_id"]
+    )
+    logger.info(
+        f"Number of unique variants(id) in merged {len(merged['id'].unique())}"
+    )
+    logger.info(
+        f"Number of unique variants(variant) in merged {len(merged['variant'].unique())}"
+    )
+
+    return merged
+
+    del merged
+    del ab_splice_res
+
+
 @cli.command()
 @click.argument("current_annotation_file", type=click.Path(exists=True))
 @click.argument("abs_splice_res_dir", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
 @click.argument("absplice_score_file", type=click.Path())
+@click.argument("njobs", type=int)
 def get_abscores(
     current_annotation_file: str,
     abs_splice_res_dir: str,
     out_file: str,
     absplice_score_file: str,
+    njobs:int
 ):
     current_annotation_file = Path(current_annotation_file)
     logger.info("reading current annotations file")
@@ -741,48 +802,10 @@ def get_abscores(
     if not Path(ab_splice_agg_score_file).exists():
         logger.info("creating abSplice score file.. ")
         all_absplice_scores = []
-        for chrom_file in os.listdir(abs_splice_res_dir):
-            logger.info(f"Reading file {chrom_file}")
-            ab_splice_res = pd.read_csv(abs_splice_res_dir / chrom_file).reset_index()
-            ab_splice_res = ab_splice_res.query("tissue not in @tissues_to_exclude")
-            logger.info(
-                f"AbSplice tissues excluded: {tissues_to_exclude}, Aggregating AbSplice scores using {tissue_agg_function}"
-            )
-            logger.info(
-                f"Number of unique variants {len(ab_splice_res['variant'].unique())}"
-            )
-
-            #### aggregate tissue specific ab splice scores
-            ab_splice_res = (
-                ab_splice_res.groupby(["variant", "gene_id"])
-                .agg({"AbSplice_DNA": tissue_agg_function})
-                .reset_index()
-            )
-
-            ab_splice_res[["chrom", "pos", "var"]] = ab_splice_res["variant"].str.split(
-                ":", expand=True
-            )
-
-            ab_splice_res[["ref", "alt"]] = ab_splice_res["var"].str.split(
-                ">", expand=True
-            )
-
-            ab_splice_res["pos"] = ab_splice_res["pos"].astype(int)
-            logger.info(f"Number of rows of ab_splice df {len(ab_splice_res)}")
-            merged = ab_splice_res.merge(
-                ca_shortened, how="left", on=["chrom", "pos", "ref", "alt", "gene_id"]
-            )
-            logger.info(
-                f"Number of unique variants(id) in merged {len(merged['id'].unique())}"
-            )
-            logger.info(
-                f"Number of unique variants(variant) in merged {len(merged['variant'].unique())}"
-            )
-
-            all_absplice_scores.append(merged)
-
-            del merged
-            del ab_splice_res
+        parallel = Parallel(n_jobs=njobs, return_as="generator")
+        output_generator = parallel(delayed(process_chunk)(i , abs_splice_res_dir, tissues_to_exclude, tissue_agg_function, ca_shortened) for i in tqdm(os.listdir(abs_splice_res_dir)))
+        all_absplice_scores = list(output_generator)
+        
 
         logger.info("concatenating files")
         all_absplice_scores = pd.concat(all_absplice_scores)
@@ -825,6 +848,7 @@ def get_abscores(
 
     logger.info(f"Writing to {annotation_out_file}")
     merged.to_parquet(annotation_out_file, engine="pyarrow")
+
 
 
 pd.options.mode.chained_assignment = None
@@ -939,14 +963,8 @@ def process_annotations(in_variants: str, out_variants: str):
     variants.to_parquet(out_variants)
 
 
-@cli.command()
-@click.argument("annotation_file", type=click.Path(exists=True))
-@click.argument("variant_file", type=click.Path(exists=True))
-@click.argument("out_file", type=click.Path())
-def add_ids(annotation_file: str, variant_file: str, out_file: str):
-    df = pd.read_csv(annotation_file)
-
-    df = df.rename(
+def process_chunk_addids(chunk, variants):
+    chunk = chunk.rename(
         columns={
             "#CHROM": "chrom",
             "POS": "pos",
@@ -957,33 +975,38 @@ def add_ids(annotation_file: str, variant_file: str, out_file: str):
         }
     )
     key_cols = ["chrom", "pos", "ref", "alt"]
-
-    logger.info("Sanity check of  file IDs")
-    all_variants = pd.read_csv(variant_file, sep="\t")
-    df.drop_duplicates(subset=key_cols, inplace = True)
-    df_shape = df.shape
-    df = pd.merge(all_variants, df, on=key_cols, how="left")
-    # sanity checks
-    # same length as variant file
+    chunk_shape= chunk.shape
+    chunk.drop_duplicates(subset=key_cols, inplace = True)
+    chunk = pd.merge(chunk, variants,  on=key_cols, how="left", validate="1:1")
+    
     try: 
-        assert df.shape[0] == all_variants.shape[0]
+        assert chunk_shape[0] == chunk.shape[0]
     except AssertionError: 
-        logger.error(f"df.shape[0] was {df.shape[0]} but all_variants.shape[0] was {all_variants.shape[0]}")
+        logger.error(f"df.shape[0] was {chunk.shape[0]} but chunk_shape[0] was {chunk_shape[0]}")
         raise AssertionError
-    # one more column as annotation file
     try:
-        assert df.shape[1] == df_shape[1] + 1
+        assert chunk.shape[1] == chunk_shape[1] + 1
     except AssertionError:
-        logger.error(f"df.shape[1] was {df.shape[1]} but df_shape[1] + 1 was {df_shape[1] + 1}")
+        logger.error(f"chunk.shape[1] was {chunk.shape[1]} but chunk_shape[1] + 1 was {chunk_shape[1] + 1}")
         raise AssertionError       
-    # all key columns and id are present
-    try:
-        assert all([x in df.columns for x in key_cols + ["id"]])
-    except AssertionError:    
-        logger.error("not all key cols in df.columns")
-        logger.info(df.columns)
-        raise AssertionError          
-    df.to_csv(out_file, index=False)
+    return chunk
+
+@cli.command()
+@click.argument("annotation_file", type=click.Path(exists=True))
+@click.argument("variant_file", type=click.Path(exists=True))
+@click.argument("njobs", type=int)
+@click.argument("out_file", type=click.Path())
+def add_ids(annotation_file: str, variant_file: str, njobs:int, out_file: str):
+    data = pd.read_csv(annotation_file, chunksize=10_000)
+    
+    
+
+    all_variants = pd.read_csv(variant_file, sep="\t")
+    parallel = Parallel(n_jobs=njobs, return_as="generator")
+
+    output_generator = parallel(delayed(process_chunk_addids)(chunk, all_variants) for chunk in data)
+    pd.concat([batch for batch in output_generator]).to_csv(out_file, index=False)
+    
 
 
 @cli.command()
@@ -1045,26 +1068,104 @@ def concatenate_deepripe(
             current_file.to_csv(out_file, mode="a", index=False, header=False)
 
 
-@cli.command()
-@click.option("--included-chromosomes", type=str)
-@click.argument("annotation_dir", type=click.Path(exists=True))
-@click.argument("file_name_pattern", type=str)
-@click.argument("variant_file", type=click.Path(exists=True))
-@click.argument("pvcf-blocks_file", type=click.Path(exists=True))
-@click.argument("out_file", type=click.Path())
-def concatenate_annotations(
-    included_chromosomes: Optional[str],
-    annotation_dir: str,
-    file_name_pattern: str,
-    variant_file: str,
-    pvcf_blocks_file: str,
-    out_file: str,
-):
-    annotation_dir = Path(annotation_dir)
 
-    logger.info("Reading variant file")
+@cli.command()
+@click.argument("vep_header_line", type=int)
+@click.argument("vep_file", type=click.Path(exists=True))
+@click.argument("deepripe_parclip_file", type=click.Path(exists=True))
+@click.argument("deepripe_hg2_file", type=click.Path(exists=True))
+@click.argument("deepripe_k5_file", type=click.Path(exists=True))
+@click.argument("variant_file", type=click.Path(exists=True))
+@click.argument("out_file", type=click.Path())
+
+def merge_annotations(vep_header_line:int,
+                    vep_file:str,
+                    deepripe_parclip_file:str,
+                    deepripe_hg2_file:str,
+                    deepripe_k5_file:str,
+                    variant_file:str,
+                    out_file:str,
+                  ):
+    #load vep file
+    vep_df = pd.read_csv(
+                vep_file,
+                header=vep_header_line,
+                sep="\t",
+                # dtype={
+                #     "STRAND": str,
+                #     "TSL": str,
+                #     "GENE_PHENO": str,
+                #     "CADD_PHRED": str,
+                #     "CADD_RAW": str,
+                # },
+            )
+    vep_df = process_vep(vep_file=vep_df)
+    logger.info(f"vep_df shape is {vep_df.shape}")
+    #load deepripe_parclip
+    deepripe_parclip_df = pd.read_csv(deepripe_parclip_file)
+    deepripe_parclip_df = process_deepripe(deepripe_parclip_df, "parclip")
+    #load deepripe_k5
+    deepripe_k5_df = pd.read_csv(deepripe_k5_file)
+    deepripe_k5_df = process_deepripe(deepripe_k5_df, "k5")
+    #load deepripe_hg2
+    deepripe_hg2_df = pd.read_csv(deepripe_hg2_file)
+    deepripe_hg2_df = process_deepripe(deepripe_hg2_df, "hg2")
+    #load variant_file
+    logger.info(f"reading in {variant_file}")
     variants = pd.read_csv(variant_file, sep="\t")
 
+    #merge vep to variants M:1
+    ca = vep_df.merge(variants, how = "left",  on=["chrom", "pos", "ref", "alt"], validate= "m:1")
+    del vep_df
+    #merge deepripe files to variants 1:1
+    logger.info(ca.columns)
+    logger.info(deepripe_parclip_df.columns)
+    ca = ca.merge(deepripe_parclip_df, how = "left", on=["chrom", "pos", "ref", "alt"], validate="m:1")
+    ca = ca.merge(deepripe_k5_df, how = "left", on=["chrom", "pos", "ref", "alt"], validate="m:1")
+    ca = ca.merge(deepripe_hg2_df, how = "left", on=["chrom", "pos", "ref", "alt"], validate="m:1")
+    
+    ca.to_parquet(out_file)
+
+
+def process_deepripe(deepripe_df:object, column_prefix:str)->object:
+    
+    logger.info("renaming deepripe columns")
+    deepripe_df= deepripe_df.rename(columns={"chr": "chrom"})
+    
+    deepripe_df = deepripe_df.drop(
+        columns=["Uploaded_variant", "Unnamed: 0"], errors="ignore"
+    )
+    key_cols = ["chrom", "pos", "ref", "alt", "id"]
+    prefix_cols = [x for x in deepripe_df.columns if x not in key_cols]
+    new_names = [(i, i + f"_{column_prefix}") for i in prefix_cols]
+    deepripe_df = deepripe_df.rename(columns=dict(new_names))
+    return deepripe_df
+
+def process_vep(vep_file:object)->object:
+    vep_file[["chrom", "pos", "ref", "alt"]] = vep_file["#Uploaded_variation"].str.split(
+        ":", expand=True
+    )
+    
+    vep_file["pos"] = vep_file["pos"].astype(int)   
+    logger.info(vep_file.columns)
+    vep_file[["STRAND","TSL", "GENE_PHENO", "CADD_PHRED","CADD_RAW"]] =vep_file[["STRAND","TSL", "GENE_PHENO", "CADD_PHRED","CADD_RAW"]].astype(str)
+    float_vals = ['DISTANCE', 'gnomADg_FIN_AF', 'AF', 'AFR_AF', 'AMR_AF','EAS_AF', 'EUR_AF', 'SAS_AF', 'MAX_AF','MOTIF_POS', 'MOTIF_SCORE_CHANGE',  'CADD_PHRED', 'CADD_RAW', 'PrimateAI', 'TSL', 'Condel']    
+    vep_file[float_vals] = vep_file[float_vals].replace('-', 'NaN').astype(float)
+    dummies = vep_file["Consequence"].str.get_dummies(",").add_prefix("Consequence_")
+    hopefully_all_consequences=  ['Consequence_splice_acceptor_variant','Consequence_5_prime_UTR_variant','Consequence_TFBS_ablation','Consequence_start_lost','Consequence_incomplete_terminal_codon_variant','Consequence_intron_variant', 'Consequence_stop_gained', 'Consequence_splice_donor_5th_base_variant', 'Consequence_downstream_gene_variant', 'Consequence_splice_donor_variant', 'Consequence_protein_altering_variant', 'Consequence_splice_polypyrimidine_tract_variant', 'Consequence_inframe_insertion', 'Consequence_mature_miRNA_variant', 'Consequence_synonymous_variant', 'Consequence_regulatory_region_variant', 'Consequence_non_coding_transcript_exon_variant', 'Consequence_stop_lost', 'Consequence_TF_binding_site_variant', 'Consequence_splice_donor_region_variant', 'Consequence_stop_retained_variant', 'Consequence_splice_region_variant', 'Consequence_coding_sequence_variant', 'Consequence_upstream_gene_variant', 'Consequence_frameshift_variant', 'Consequence_start_retained_variant', 'Consequence_3_prime_UTR_variant', 'Consequence_inframe_deletion', 'Consequence_missense_variant', 'Consequence_non_coding_transcript_variant']
+    hopefully_all_consequences = list(set(hopefully_all_consequences))
+    mask = pd.DataFrame(data = np.zeros(shape= ( len(vep_file), len(hopefully_all_consequences))), columns=hopefully_all_consequences ,  dtype=float)
+    mask[list(dummies.columns)]=dummies
+    vep_file[mask.columns]=mask
+    return vep_file
+
+@cli.command()
+@click.argument("pvcf_blocks_file", type=click.Path(exists=True))
+@click.argument("annotation_dir", type=click.Path(exists=True))
+@click.argument("filename_pattern", type=str)
+@click.argument("out_file", type=click.Path())
+@click.option("--included-chromosomes", type=str)
+def concat_annotations(pvcf_blocks_file:str, annotation_dir:str, filename_pattern:str, out_file:str, included_chromosomes:Optional[str]):
     logger.info("reading pvcf block file")
     pvcf_blocks_df = pd.read_csv(
         pvcf_blocks_file,
@@ -1079,162 +1180,31 @@ def concatenate_annotations(
             pvcf_blocks_df["Chromosome"].isin([str(c) for c in included_chromosomes])
         ]
     pvcf_blocks = zip(pvcf_blocks_df["Chromosome"], pvcf_blocks_df["Block"])
-
-    logger.info("reading vep files")
-    vep_file_paths = [
-        annotation_dir / file_name_pattern.format(chr=p[0], block=p[1])
+    annotation_dir = Path(annotation_dir)
+    file_paths = [
+        annotation_dir / filename_pattern.format(chr=p[0], block=p[1])
         for p in pvcf_blocks
     ]
-    vep_colnames = [
-        "Uploaded_variation",
-        "Location",
-        "Allele",
-        "Gene",
-        "Feature",
-        "Feature_type",
-        "Consequence",
-        "cDNA_position",
-        "CDS_position",
-        "Protein_position",
-        "Amino_acids",
-        "Codons",
-        "Existing_variation",
-        "IMPACT",
-        "DISTANCE",
-        "STRAND",
-        "FLAGS",
-        "VARIANT_CLASS",
-        "SYMBOL",
-        "SYMBOL_SOURCE",
-        "HGNC_ID",
-        "BIOTYPE",
-        "CANONICAL",
-        "MANE_SELECT",
-        "MANE_PLUS_CLINICAL",
-        "TSL",
-        "APPRIS",
-        "CCDS",
-        "ENSP",
-        "SWISSPROT",
-        "TREMBL",
-        "UNIPARC",
-        "UNIPROT_ISOFORM",
-        "RefSeq",
-        "GENE_PHENO",
-        "SIFT",
-        "PolyPhen",
-        "EXON",
-        "INTRON",
-        "DOMAINS",
-        "miRNA",
-        "HGVSc",
-        "HGVSp",
-        "HGVS_OFFSET",
-        "AF",
-        "AFR_AF",
-        "AMR_AF",
-        "EAS_AF",
-        "EUR_AF",
-        "SAS_AF",
-        "gnomADe_AF",
-        "gnomADe_AFR_AF",
-        "gnomADe_AMR_AF",
-        "gnomADe_ASJ_AF",
-        "gnomADe_EAS_AF",
-        "gnomADe_FIN_AF",
-        "gnomADe_NFE_AF",
-        "gnomADe_OTH_AF",
-        "gnomADe_SAS_AF",
-        "gnomADg_AF",
-        "gnomADg_AFR_AF",
-        "gnomADg_AMI_AF",
-        "gnomADg_AMR_AF",
-        "gnomADg_ASJ_AF",
-        "gnomADg_EAS_AF",
-        "gnomADg_FIN_AF",
-        "gnomADg_MID_AF",
-        "gnomADg_NFE_AF",
-        "gnomADg_OTH_AF",
-        "gnomADg_SAS_AF",
-        "MAX_AF",
-        "MAX_AF_POPS",
-        "CLIN_SIG",
-        "SOMATIC",
-        "PHENO",
-        "PUBMED",
-        "MOTIF_NAME",
-        "MOTIF_POS",
-        "HIGH_INF_POS",
-        "MOTIF_SCORE_CHANGE",
-        "TRANSCRIPTION_FACTORS",
-        "CADD_PHRED",
-        "CADD_RAW",
-        "SpliceAI_pred",
-        "PrimateAI",
-    ]
-
-    vep_file = pd.concat(
-        [
-            pd.read_csv(
-                v,
-                comment="#",
-                sep="\t",
-                names=vep_colnames,
-                dtype={
-                    "STRAND": str,
-                    "TSL": str,
-                    "GENE_PHENO": str,
-                    "CADD_PHRED": str,
-                    "CADD_RAW": str,
-                },
-            )
-            for v in vep_file_paths
-        ]
-    )
-
-    logger.info(
-        f"VEP file shape after concatenation of single files is {vep_file.shape}"
-    )
-    logger.info("filtering only protein coding variants")
-    vep_file = vep_file[vep_file.BIOTYPE == "protein_coding"]
-    logger.info("splitting variant name")
-    vep_file[["chrom", "pos", "ref", "alt"]] = vep_file["Uploaded_variation"].str.split(
-        ":", expand=True
-    )
-    vep_file["pos"] = vep_file["pos"].astype(int)
-
-    logger.info(
-        f"VEP file shape after splitting variant name column is  {vep_file.shape}"
-    )
-
-    logger.info("splitting Consequence column")
-    vep_file = pd.get_dummies(
-        vep_file, columns=["Consequence"], prefix_sep="_", prefix="Consequence"
-    )
-    logger.info(
-        f"VEP file shape after splitting consequence column is {vep_file.shape}"
-    )
-
-    logger.info(f"Shape of variant file is {variants.shape}")
-
-    agg_function = "max"
-    logger.info(
-        f"aggregating so that only one result per variant/gene pair remains using {agg_function}"
-    )
-    vep_file = (
-        vep_file.groupby(["chrom", "pos", "ref", "alt", "Gene"])
-        .agg(agg_function)
-        .reset_index()
-    )
-
-    logger.info("merging variants and annotations")
-    result = pd.merge(vep_file, variants, on=["chrom", "pos", "ref", "alt"])
-    logger.info(f"Shape of annotations after merge is {result.shape}")
-
-    combined_annotations = result
-    combined_annotations.to_parquet(out_file)
-    logger.info("Finished")
-
-
+    for f in tqdm(file_paths):
+        logger.info(f"processing file {f}")
+        if f == file_paths[0]:
+            logger.info("creating new file")
+            file = pd.read_parquet(f)
+            logger.info(file.shape)
+            logger.info(file.columns)
+            file.to_parquet(out_file, engine= "fastparquet")
+        else:
+            file = pd.read_parquet(f)
+            logger.info(file.shape)
+            logger.info(file.columns)
+            try:
+                file.to_parquet(out_file, engine= "fastparquet", append=True)   
+            except ValueError: 
+                
+                out_df_columns = pd.read_parquet(out_file, engine= "fastparquet").columns
+                
+                logger.error(f"columns are not equal in saved/appending file: {[i for i in out_df_columns if i not in file.columns]} and {[i for i in file.columns if i not in out_df_columns]} ")
+                
+                raise ValueError
 if __name__ == "__main__":
     cli()

@@ -14,8 +14,6 @@ bcf_dir : input_dir/bcf
 anno_tmp_dir : output_dir/annotations/tmp
 anno_dir : output_dir/annotations
 
-repo_dir : repo_dir 
-
 vep_cache_dir : repo_dir/ensembl-vep/cache/vep109
 vep_plugin_dir : repo_dir/ensembl-vep/Plugins
 spliceAI_snv_file : annotation_data/spliceAI/spliceai_scores.raw.snv.hg38.vcf.gz
@@ -26,6 +24,7 @@ cadd_indel_file : annotation_data/cadd/gnomad.genomes.r3.0.indel.tsv.gz
 absplice_repo_dir : repo_dir/absplice
 deeprvat_repo_dir : deeprvat_repo_dir
 kipoiveff_repo_dir : repo_dir/kipoi-veff2
+vep_repo_dir : repo_dir/ensembl-vep
 variant_file_path : preprocessing_workdir/norm/variants/variants.tsv.gz
 pybedtools_tmp_path : output_dir/annotations/tmp/pybedtools
 n_jobs_deepripe : 32
