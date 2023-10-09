@@ -35,6 +35,9 @@ echo "- DeepRiPe(faatpipe)"
 mkdir -p $REPO_DIR/faatpipe
 git clone https://github.com/HealthML/faatpipe.git $REPO_DIR/faatpipe
 
+echo vep plugins
+mkdir -p $REPO_DIR/VEP_plugins
+git clone https://github.com/Ensembl/VEP_plugins.git $REPO_DIR/VEP_plugins
 ##returning to main environment
 
 mamba activate deeprvat_annotations

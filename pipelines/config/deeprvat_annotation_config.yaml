@@ -24,7 +24,9 @@ cadd_indel_file : annotation_data/cadd/gnomad.genomes.r3.0.indel.tsv.gz
 absplice_repo_dir : repo_dir/absplice
 deeprvat_repo_dir : deeprvat_repo_dir
 kipoiveff_repo_dir : repo_dir/kipoi-veff2
+faatpipe_repo_dir : repo_dir/faatpipe
 vep_repo_dir : repo_dir/ensembl-vep
+vep_plugin_repo : repo_dir/VEP_plugins
 variant_file_path : preprocessing_workdir/norm/variants/variants.tsv.gz
 pybedtools_tmp_path : output_dir/annotations/tmp/pybedtools
 n_jobs_deepripe : 32
