@@ -409,7 +409,16 @@ class DenseGTDataset(Dataset):
                 self.phenotype_df[col] = rng.permutation(
                     self.phenotype_df[col].to_numpy()
                 )
-
+        if len(self.y_phenotypes) > 0:
+            unique_y_val = self.phenotype_df[self.y_phenotypes[0]].unique()
+            n_unique_y_val = np.count_nonzero(~np.isnan(unique_y_val))
+            logger.info(f'unique y values {unique_y_val}')
+            logger.info(n_unique_y_val)
+        else:
+            n_unique_y_val = 0
+        if n_unique_y_val == 2:
+            logger.info('Not applying y transformation because y only has two values and seems to be binary')
+            self.y_transformation = None
         if self.y_transformation is not None:
             if self.y_transformation == "standardize":
                 logger.debug("  Standardizing target phenotype")
@@ -425,7 +434,8 @@ class DenseGTDataset(Dataset):
                     )
             else:
                 raise ValueError(f"Unknown y_transformation: {self.y_transformation}")
-
+        else:
+            logger.info('Not tranforming phenotype')
     def setup_annotations(
         self,
         annotation_file: Optional[str],

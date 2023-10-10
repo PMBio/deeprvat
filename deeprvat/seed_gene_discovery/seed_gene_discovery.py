@@ -7,6 +7,8 @@ import math
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+import copy
+
 
 import click
 import numpy as np
@@ -18,7 +20,7 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 from deeprvat.data import DenseGTDataset
-from seak.scoretest import ScoretestNoK
+from seak import scoretest
 
 logging.basicConfig(
     format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
@@ -36,7 +38,12 @@ class GotNone(Exception):
 
 def replace_in_array(arr, old_val, new_val):
     return np.where(arr == old_val, new_val, arr)
-
+def get_caf(G):
+    #get the cumulative allele frequency
+    ac = G.sum(axis = 0) #allele count of each variant
+    af = ac/(G.shape[0] * 2)  #allele frequency of each variant
+    caf = af.sum()
+    return caf
 
 #     return mask
 def save_burdens(GW_list, GW_full_list, split, chunk, out_dir):
@@ -178,7 +185,11 @@ def get_anno(
 def call_score(GV, null_model_score, pval_dict, test_type):
     # score test
     # p-value for the score-test
+    start_time = time.time()
     pv = null_model_score.pv_alt_model(GV)
+    end_time = time.time()
+    time_diff = end_time - start_time
+    pval_dict['time'] = time_diff
     logger.info(f"p-value: {pv}")
     if pv < 0.0:
         logger.warning(
@@ -195,10 +206,15 @@ def call_score(GV, null_model_score, pval_dict, test_type):
     if pv < 1e-3 and test_type == "burden":
         logger.info("Computing regression coefficient")
         # if gene is quite significant get the regression coefficient + SE
-        beta = null_model_score.coef(GV)
-        logger.info(f"Regression coefficient: {beta}")
-        pval_dict["beta"] = beta["beta"][0, 0]
-        pval_dict["betaSd"] = np.sqrt(beta["var_beta"][0, 0])
+        # only works for quantitative traits
+        try:
+            beta = null_model_score.coef(GV)
+            logger.info(f"Regression coefficient: {beta}")
+            pval_dict["beta"] = beta["beta"][0, 0]
+            pval_dict["betaSd"] = np.sqrt(beta["var_beta"][0, 0])
+        except:
+            pval_dict["beta"] = None
+            pval_dict["betaSd"] = None
     return pval_dict
 
 
@@ -207,13 +223,14 @@ def test_gene(
     G_full: spmatrix,
     gene: int,
     grouped_annotations: pd.DataFrame,
-    dataset: DenseGTDataset,
+    Y,
     weight_cols: List[str],
-    null_model_score: ScoretestNoK,
+    null_model_score: scoretest.ScoretestNoK,
     test_config: Dict,
     var_type,
     test_type,
     maf_col,
+    min_mac
 ) -> Dict[str, Any]:
     # Find variants present in gene
     # Convert sparse genotype to CSC
@@ -232,11 +249,16 @@ def test_gene(
     # GET expected allele count (EAC) as in Karczewski et al. 2022/Genebass
     vars_per_sample = np.sum(G, axis=1)
     samples_with_variant = vars_per_sample[vars_per_sample > 0].shape[0]
-    EAC = np.sum(vars_per_sample)
+    if len(np.unique(Y)) == 2:
+        n_cases = (Y > 0).sum()
+    else:
+        n_cases = Y.shape[0]   
+    EAC = get_caf(G) * n_cases
 
     pval_dict = {}
 
     pval_dict["EAC"] = EAC
+    pval_dict["n_cases"] = n_cases
     pval_dict["gene"] = gene
     pval_dict["pval"] = np.nan
     pval_dict["EAC_filtered"] = np.nan
@@ -272,12 +294,14 @@ def test_gene(
         f"Number of variants after thresholding using threshold {variant_weight_th}: {len(pos)}"
     )
     pval_dict["n_QV"] = len(pos)
-
-    if len(pos) > 0:
+    pval_dict["markers_after_mac_collapsing"] = len(pos)
+    if ((len(pos) > 0) & (len(pos) < 5000)):
+        #there is only one gene with > 5000 missense variants (Titin, 10k missense)
+        # which always causes a super large memory demand therefore we exclude it
         G_f = G[:, pos]
-        EAC_filtered = np.sum(np.sum(G_f, axis=1))
+        EAC_filtered = EAC = get_caf(G_f) * n_cases
         pval_dict["EAC_filtered"] = EAC_filtered
-
+        MAC = G_f.sum(axis = 0)
         count = G_f[G_f == 2].shape[0]
 
         # confirm that variants we include are rare variants
@@ -303,11 +327,26 @@ def test_gene(
         pval_dict["n_cluster"] = GW.shape[1]
 
         ### COLLAPSE kernel if doing burden test
-
+        collapse_ultra_rare = True
         if test_type == "skat":
             logger.info("Running Skat test")
-            GW = GW
+            if collapse_ultra_rare:
+                logger.info(f'Max Collapsing variants with MAC <= {min_mac}')
+                MAC_mask = MAC <= min_mac
+                if MAC_mask.sum() > 0:
+                    logger.info(f'Number of collapsed positions: {MAC_mask.sum()}')
+                    GW_collapse = copy.deepcopy(GW)
+                    GW_collapse = GW_collapse[:,MAC_mask].max(axis = 1).reshape(-1, 1)
+                    GW = GW[:,~MAC_mask]
+                    GW = np.hstack((GW_collapse, GW))
+                    logger.info(f'GW shape {GW.shape}')
+                else:
+                    logger.info(f'No ultra rare variants to collapse ({MAC_mask.sum()})')
+                    GW = GW
+            else:
+                GW = GW
 
+        pval_dict["markers_after_mac_collapsing"] = GW.shape[1]
         if test_type == "burden":
             collapse_method = test_config.get("collapse_method", "binary")
             logger.info(f"Running burden test with collapsing method {collapse_method}")
@@ -318,7 +357,7 @@ def test_gene(
     else:
         GW = GW_full = np.zeros(G.shape[0])
 
-    return pval_dict, GW, GW_full
+    return pval_dict, GW, GW_full  
 
 
 def run_association_(
@@ -335,14 +374,18 @@ def run_association_(
 ) -> pd.DataFrame:
     # initialize the null models
     # ScoretestNoK automatically adds a bias column if not present
-    null_model_score = ScoretestNoK(Y, X)
+    if len(np.unique(Y)) == 2:
+        print('Fitting binary model since only found two distinct y values')
+        null_model_score = scoretest.ScoretestLogit(Y, X)
+    else:
+        null_model_score = scoretest.ScoretestNoK(Y, X)
     stats = []
     GW_list = {}
     GW_full_list = {}
     time_list_inner = {}
     weight_cols = config.get("weight_cols", [])
     logger.info(f"Testing with this config: {config['test_config']}")
-
+    min_mac = config['test_config'].get('min_mac', 0)
     # Get column with minor allele frequency
     annotations = config["data"]["dataset_config"]["annotations"]
     maf_col = [
@@ -360,13 +403,14 @@ def run_association_(
                 G_full,
                 gene,
                 grouped_annotations,
-                dataset,
+                Y,
                 weight_cols,
                 null_model_score,
                 config["test_config"],
                 var_type,
                 test_type,
                 maf_col,
+                min_mac
             )
             if persist_burdens:
                 GW_list[gene] = GW
@@ -431,6 +475,12 @@ def update_config(
         config["data"]["dataset_config"][
             "sim_phenotype_file"
         ] = simulated_phenotype_file
+    if maf_column is None:
+        annotations = config['data']["dataset_config"]['annotations']
+        af_pattern = re.compile(r'.*(_MAF|_AF|MAF)\b')
+        rare_maf_col = [s for s in annotations if af_pattern.match(s)]
+        assert len(rare_maf_col) == 1
+        maf_column = rare_maf_col[0]
 
     if phenotype is not None:
         config["data"]["dataset_config"]["y_phenotypes"] = [phenotype]
@@ -644,10 +694,10 @@ def run_association(
     logger.info("Grouping variants by gene")
     exploded_annotations = (
         dataset.annotation_df.query("id in @all_variants")
-        .explode("gene_ids")
+        .explode('gene_ids').reset_index()
         .drop_duplicates()
-    )  # row can be duplicated if a variant is assigned to a gene multiple times
-
+        .set_index('id')
+    ) 
     grouped_annotations = exploded_annotations.groupby("gene_ids")
     gene_ids = pd.read_parquet(dataset.gene_file, columns=["id"])["id"].to_list()
     gene_ids = list(
