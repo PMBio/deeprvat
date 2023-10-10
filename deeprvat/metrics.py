@@ -1,7 +1,7 @@
 import logging
 import sys
-
 import torch
+from torch import nn
 import torch.nn.functional as F
 from scipy.stats.stats import pearsonr
 from sklearn.metrics import average_precision_score
@@ -92,3 +92,34 @@ class AveragePrecisionWithLogits:
     def __call__(self, logits, y):
         y_scores = F.sigmoid(logits.detach())
         return average_precision_score(y.detach().cpu().numpy(), y_scores.cpu().numpy())
+
+
+class QuantileLoss:
+    def __init__(self):
+        pass
+    
+    def __call__(self, preds, y):
+        q = 0.01
+        e = y - preds
+        return torch.mean(torch.max(q*e, (q-1)*e))
+
+class KLDIVLoss:
+    def __init__(self):
+        pass
+
+    def __call__(self, preds, targets):
+        kl_loss = nn.KLDivLoss(reduction="batchmean")
+        preds = F.log_softmax(preds, dim=0) #requires predictions to be LOG probabilities
+        targets = F.softmax(targets, dim=0) #requires targets to be probabiliities
+        alpha = 1
+        output = alpha * kl_loss(preds, targets)
+        return output
+
+class BCELoss:
+    def __init__(self):
+        pass
+
+    def __call__(self, preds, targets):
+        bceloss = nn.BCEWithLogitsLoss()
+        loss = bceloss(preds,targets)
+        return loss

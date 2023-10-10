@@ -35,6 +35,9 @@ from deeprvat.metrics import (
     PearsonCorrTorch,
     RSquared,
     AveragePrecisionWithLogits,
+    QuantileLoss,
+    KLDIVLoss,
+    BCELoss,
 )
 from deeprvat.utils import suggest_hparams
 
@@ -56,6 +59,9 @@ METRICS = {
     "PearsonCorrTorch": PearsonCorrTorch,
     "BCEWithLogits": nn.BCEWithLogitsLoss,
     "AveragePrecisionWithLogits": AveragePrecisionWithLogits,
+    "QuantileLoss": QuantileLoss,
+    "KLDiv": KLDIVLoss, 
+    "BCELoss": BCELoss,
 }
 OPTIMIZERS = {
     "sgd": optim.SGD,
@@ -282,7 +288,7 @@ class MultiphenoDataset(Dataset):
         start_idx = index * self.batch_size
         end_idx = min(self.total_samples, start_idx + self.batch_size)
         batch_samples = self.sample_order.iloc[start_idx:end_idx]
-        samples_by_pheno = batch_samples.groupby("phenotype")
+        samples_by_pheno = batch_samples.groupby("phenotype", observed=True)
 
         result = dict()
         for pheno, df in samples_by_pheno:
@@ -364,16 +370,14 @@ class MultiphenoBaggingData(pl.LightningDataModule):
             num_variants = pheno_data["input_tensor_zarr"].shape[-1]
             if self.max_n_variants < num_variants: self.max_n_variants = num_variants
 
-            # TODO: Rewrite this for multiphenotype data
             self.upsampling_factor = upsampling_factor
             if self.upsampling_factor > 1:
-                raise NotImplementedError("Upsampling is not yet implemented")
-
                 logger.info(
-                    f"Upsampling data with original sample number: {self.y.shape[0]}"
+                    f"Upsampling data with original sample number: {pheno_data['y'].shape[0]}"
                 )
-                samples = self.upsample()
-                n_samples = self.samples.shape[0]
+                upsampled_indices = self.upsample(pheno_data['y'])
+                samples = np.append(np.arange(n_samples),upsampled_indices)
+                n_samples += upsampled_indices.shape[0]
                 logger.info(f"New sample number: {n_samples}")
             else:
                 samples = np.arange(n_samples)
@@ -404,18 +408,18 @@ class MultiphenoBaggingData(pl.LightningDataModule):
             "cache_tensors",
         )
 
-    def upsample(self) -> np.ndarray:
-        unique_values = self.y.unique()
+    def upsample(self,y_data) -> np.ndarray:
+        unique_values = y_data.unique()
         if unique_values.size() != torch.Size([2]):
             raise ValueError(
                 "Upsampling is only supported for binary y, "
                 f"but y has unique values {unique_values}")
 
-        class_indices = [(self.y == v).nonzero(as_tuple=True)[0] for v in unique_values]
+        class_indices = [(y_data == v).nonzero(as_tuple=True)[0] for v in unique_values]
         class_sizes = [idx.shape[0] for idx in class_indices]
         minority_class = 0 if class_sizes[0] < class_sizes[1] else 1
         minority_indices = class_indices[minority_class].detach().numpy()
-        rng = np.random.default_rng()
+        rng = np.random.default_rng(seed=42)
         upsampled_indices = rng.choice(
             minority_indices,
             size=(self.upsampling_factor - 1) * class_sizes[minority_class],
@@ -424,7 +428,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         logger.info(f"Minority class size: {class_sizes[minority_class]}")
         logger.info(f"Increasing minority class size by {upsampled_indices.shape[0]}")
 
-        self.samples = upsampled_indices
+        return upsampled_indices
 
     def train_dataloader(self):
         logger.info(
@@ -807,6 +811,9 @@ def best_training_run(
 
     trials = study.trials_dataframe().query('state == "COMPLETE"')
     best_trial = trials.sort_values("value", ascending=False).iloc[0]
+    if best_trial['value'] == float("inf"):
+        best_trial = trials.sort_values("value", ascending=False).iloc[1]
+
     best_trial_id = best_trial["user_attrs_user_id"]
 
     logger.info(f"Best trial:\n{best_trial}")

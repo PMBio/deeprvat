@@ -16,6 +16,9 @@ from deeprvat.metrics import (
     PearsonCorrTorch,
     RSquared,
     AveragePrecisionWithLogits,
+    QuantileLoss,
+    KLDIVLoss,
+    BCELoss,
 )
 
 logging.basicConfig(
@@ -34,6 +37,9 @@ METRICS = {
     "PearsonCorrTorch": PearsonCorrTorch,
     "BCEWithLogits": nn.BCEWithLogitsLoss,
     "AveragePrecisionWithLogits": AveragePrecisionWithLogits,
+    "QuantileLoss": QuantileLoss,
+    "KLDiv": KLDIVLoss,
+    "BCELoss": BCELoss,
 }
 
 NORMALIZATION = {
@@ -169,7 +175,7 @@ class BaseModel(pl.LightningModule):
         return [ModelSummary()]
 
 class Phenotype_classifier(pl.LightningModule):
-    def __init__(self, hparams, phenotypes, n_genes, gene_count):
+    def __init__(self, hparams, phenotypes, n_genes, gene_count, outdim=1):
         super().__init__()
         # pl.LightningModule already has attribute self.hparams,
         #  which is inherited from its parent class
@@ -189,11 +195,11 @@ class Phenotype_classifier(pl.LightningModule):
             self.pheno2id = dict(zip(phenotypes, range(len(phenotypes))))
             dim = self.hparams_.n_covariates + self.gene_count
             self.burden_pheno_embedding = self.get_embedding(len(phenotypes), dim)
-            self.geno_pheno = self.get_model("Classification", dim, 1,
+            self.geno_pheno = self.get_model("Classification", dim, outdim,
                                              getattr(self.hparams_, "classification_layers", 1), 0)
         else:
             self.geno_pheno = nn.ModuleDict({
-                pheno: self.get_model("Classification", self.hparams_.n_covariates + self.hparams_.n_genes[pheno], 1, 
+                pheno: self.get_model("Classification", self.hparams_.n_covariates + self.hparams_.n_genes[pheno], outdim, 
                                       getattr(self.hparams_, "classification_layers", 1), 0)
                 for pheno in self.hparams_.phenotypes
             })
@@ -233,17 +239,13 @@ class DeepSetAgg(pl.LightningModule):
     def __init__(
         self,
         deep_rvat: int,
-        pool_layer: str,
         use_sigmoid: bool = False,
-        use_tanh: bool = False,
         reverse: bool = False,
     ):
         super().__init__()
 
         self.deep_rvat = deep_rvat
-        self.pool_layer = pool_layer
         self.use_sigmoid = use_sigmoid
-        self.use_tanh = use_tanh
         self.reverse = reverse
 
     def set_reverse(self, reverse: bool = True):
@@ -255,9 +257,7 @@ class DeepSetAgg(pl.LightningModule):
         x = self.deep_rvat(x) 
         # x.shape = samples x genes x latent
         if self.reverse: x = -x
-
         if self.use_sigmoid: x = torch.sigmoid(x)
-        if self.use_tanh: x = torch.tanh(x)
         # burden_score
         return x
 
@@ -289,7 +289,6 @@ class DeepSet(BaseModel):
         self.normalization = getattr(self.hparams, "normalization", False)
         self.activation = getattr(nn, getattr(self.hparams, "activation", "LeakyReLU"))()
         self.use_sigmoid = getattr(self.hparams, "use_sigmoid", False)
-        self.use_tanh = getattr(self.hparams, "use_tanh", False)
         self.reverse = getattr(self.hparams, "reverse", False)
         self.pool_layer = getattr(self.hparams, "pool", "sum")
         self.init_power_two = getattr(self.hparams, "first_layer_nearest_power_two", False)
@@ -316,10 +315,8 @@ class DeepSet(BaseModel):
         else:
             self.agg_model = DeepSetAgg(
                 deep_rvat=self.deep_rvat,
-                pool_layer=self.pool_layer,
                 use_sigmoid=self.use_sigmoid,
-                use_tanh=self.use_tanh,
-                reverse=self.reverse
+                reverse=self.reverse,
             )
         self.agg_model.train(False if self.hparams.stage == "val" else True)
 
