@@ -496,7 +496,7 @@ def regress_on_gene_scoretest(gene: str, burdens: np.ndarray, model_score):
             f"gene {gene}, p-value: {pv}, using saddle instead."
         )
         pv = model_score.pv_alt_model(burdens, method="saddle")
-    #beta only for linear models   
+    # beta only for linear models
     try:
         beta = model_score.coef(burdens)["beta"][0, 0]
     except:
@@ -580,10 +580,12 @@ def regress_(
 
         # compute null_model for score test
         if len(np.unique(y)) == 2:
-            logger.warning('Fitting binary model since only found two distinct y values')
+            logger.warning(
+                "Fitting binary model since only found two distinct y values"
+            )
             model_score = scoretest.ScoretestLogit(y, X)
         else:
-            logger.warning('Fitting linear model')
+            logger.warning("Fitting linear model")
             model_score = scoretest.ScoretestNoK(y, X)
         genes_betas_pvals = [
             regress_on_gene_scoretest(gene, burdens[mask, i], model_score)
