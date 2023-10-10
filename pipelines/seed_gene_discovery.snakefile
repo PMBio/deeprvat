@@ -130,42 +130,6 @@ rule all_regression_results_missense:
             chunk=range(n_chunks_missense),
         ),
 
-
-# rule regress:
-#     input:
-#         data="{phenotype}/{vtype}/association_dataset_full.pkl",
-#         dataset="{phenotype}/{vtype}/association_dataset_pickled.pkl",
-#         config="{phenotype}/{vtype}/config.yaml",
-#     output:
-#         out_path=temp(
-#             "{phenotype}/{vtype}/{ttype}/results/burden_associations_chunk{chunk}.parquet"
-#         ),
-#     threads: 10
-#     priority: 30
-#     resources:
-#         mem_mb = lambda wildcards, attempt: 64000 + 12000 * attempt,
-#         load=8000,
-#         # gpus = 1
-#     shell:
-#         " && ".join(
-#         [
-#             conda_check,
-#             (
-#         "seed_gene_pipeline run-association "
-#                     + debug
-#                     + " --n-chunks "
-#                     + str(n_chunks)
-#                     + " "
-#                     "--chunk {wildcards.chunk} "
-#                     "--dataset-file {input.dataset} "
-#                     "--data-file {input.data} " + persist_burdens + " "
-#                     " {input.config} "
-#                     "{wildcards.vtype} "
-#                     "{wildcards.ttype} "
-#                     "{output.out_path}"
-#                 ),
-#             ]
-#         )
 rule regress_plof:
     input:
         data="{phenotype}/plof/association_dataset_full.pkl",
@@ -175,7 +139,7 @@ rule regress_plof:
         out_path=temp(
             "{phenotype}/plof/{ttype}/results/burden_associations_chunk{chunk}.parquet"
         ),
-    threads: 10
+    threads: 1
     priority: 30
     resources:
         mem_mb = lambda wildcards, attempt: 20000 + 2000 * attempt,
@@ -211,7 +175,7 @@ rule regress_missense:
         out_path=temp(
             "{phenotype}/missense/{ttype}/results/burden_associations_chunk{chunk}.parquet"
         ),
-    threads: 10
+    threads: 1
     priority: 30
     resources:
         mem_mb = lambda wildcards, attempt: 30000 + 6000 * attempt,
