@@ -235,6 +235,7 @@ class MultiphenoDataset(Dataset):
         super().__init__()
 
         self.data = data
+        self.split = split
         self.phenotypes = self.data.keys()
         logger.info(
             f"Initializing MultiphenoDataset with phenotypes:\n{pformat(list(self.phenotypes))}"
@@ -255,7 +256,7 @@ class MultiphenoDataset(Dataset):
 
         self.min_variant_count = min_variant_count
         self.samples = {
-            pheno: pheno_data["samples"][split]
+            pheno: pheno_data["samples"][self.split]
             for pheno, pheno_data in self.data.items()
         }
         self.subset_samples()
@@ -294,20 +295,23 @@ class MultiphenoDataset(Dataset):
 
         result = dict()
         for pheno, df in samples_by_pheno:
-            idx = df["index"].to_numpy()
+            if df["index"].empty:
+                continue
+            else:
+                idx = df["index"].to_numpy()
 
-            annotations = (
-                self.data[pheno]["input_tensor"][idx]
-                if self.cache_tensors
-                else self.data[pheno]["input_tensor_zarr"].oindex[idx, :, :, :]
-            )
+                annotations = (
+                    self.data[pheno]["input_tensor"][idx]
+                    if self.cache_tensors
+                    else self.data[pheno]["input_tensor_zarr"].oindex[idx, :, :, :]
+                )
 
-            result[pheno] = {
-                "indices": self.samples[pheno][idx],
-                "covariates": self.data[pheno]["covariates"][idx],
-                "rare_variant_annotations": annotations,
-                "y": self.data[pheno]["y"][idx],
-            }
+                result[pheno] = {
+                    "indices": self.samples[pheno][idx],
+                    "covariates": self.data[pheno]["covariates"][idx],
+                    "rare_variant_annotations": annotations,
+                    "y": self.data[pheno]["y"][idx],
+                }
 
         return result
 
@@ -532,7 +536,6 @@ def run_bagging(
             phenotypes=list(data.keys()),
             **config["model"].get("kwargs", {}),
         )
-
         tb_log_dir = f"{log_dir}/bag_{k}"
         logger.info(f"    Writing TensorBoard logs to {tb_log_dir}")
         tb_logger = TensorBoardLogger(log_dir, name=f"bag_{k}")
