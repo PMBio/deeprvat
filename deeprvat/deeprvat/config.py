@@ -63,7 +63,7 @@ def update_config(
                     "specified if --baseline-results is"
                 )
             seed_config = config["phenotypes"].get(phenotype, None)
-            if isinstance(config["phenotypes"], dict):
+            if (isinstance(config["phenotypes"], dict)) & (seed_config is not None):
                 correction_method = seed_config.get("correction_method", None)
                 min_seed_genes = seed_config.get("min_seed_genes", None)
                 max_seed_genes = seed_config.get("max_seed_genes", None)
