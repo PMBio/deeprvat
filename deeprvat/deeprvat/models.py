@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelSummary
+import torch.nn.functional as F
 
 from deeprvat.metrics import (
     PearsonCorr,
@@ -194,15 +195,20 @@ class DeepSetAgg(pl.LightningModule):
         output_dim: int = 1,
         dropout: Optional[float] = None,
         use_sigmoid: bool = False,
+        use_softplus: bool = False,
         reverse: bool = False,
     ):
         super().__init__()
-
         self.output_dim = output_dim
         self.activation = getattr(nn, activation)()
         if dropout is not None:
             self.dropout = nn.Dropout(p=dropout)
         self.use_sigmoid = use_sigmoid
+        self.use_softplus = use_softplus
+        if self.use_softplus:
+            print('Using softplus')
+        if self.use_sigmoid:
+            print('Using sigmoid')
         self.reverse = reverse
 
         input_dim = n_annotations
@@ -249,7 +255,11 @@ class DeepSetAgg(pl.LightningModule):
         if self.reverse:
             x = -x
         if self.use_sigmoid:
+            # print('ho')
             x = torch.sigmoid(x)
+        if self.use_softplus:
+            # print('hi2')
+            x = F.softplus(x)
         return x
 
 
@@ -263,13 +273,13 @@ class DeepSet(BaseModel):
         phenotypes: List[str],
         agg_model: Optional[nn.Module] = None,
         use_sigmoid: bool = False,
+        use_softplus: bool = False,
         reverse: bool = False,
         **kwargs,
     ):
         super().__init__(
             config, n_annotations, n_covariates, n_genes, phenotypes, **kwargs
         )
-
         logger.info("Initializing DeepSet model with parameters:")
         pprint(self.hparams)
 
@@ -290,6 +300,7 @@ class DeepSet(BaseModel):
                 pool,
                 dropout=dropout,
                 use_sigmoid=use_sigmoid,
+                use_softplus=use_softplus,
                 reverse=reverse,
             )
         self.agg_model.train(False if self.hparams.stage == "val" else True)
