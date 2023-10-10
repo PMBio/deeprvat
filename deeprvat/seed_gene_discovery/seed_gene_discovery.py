@@ -393,7 +393,7 @@ def run_association_(
     # Get column with minor allele frequency
     annotations = config["data"]["dataset_config"]["annotations"]
     maf_col = [
-        annotation for annotation in annotations if re.search(r"_AF|_MAF", annotation)
+        annotation for annotation in annotations if re.search(r"_AF|_MAF|MAF", annotation)
     ]
     assert len(maf_col) == 1
     maf_col = maf_col[0]
@@ -478,7 +478,7 @@ def update_config(
         ] = simulated_phenotype_file
     if maf_column is None:
         annotations = config['data']["dataset_config"]['annotations']
-        af_pattern = re.compile(r'.*(_MAF|_AF)\b')
+        af_pattern = re.compile(r'.*(_MAF|_AF|MAF)\b')
         rare_maf_col = [s for s in annotations if af_pattern.match(s)]
         assert len(rare_maf_col) == 1
         maf_column = rare_maf_col[0]
