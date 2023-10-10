@@ -289,6 +289,7 @@ def load_one_model(
     model = model.eval()
     model = model.to(device)
     agg_model = model.agg_model
+    logger.info(f'using sigmoid/softplus: {agg_model.use_sigmoid}, {agg_model.use_softplus}')
     return agg_model
 
 
@@ -581,7 +582,6 @@ def regress_(
         logger.info(f"X shape: {X.shape}, Y shape: {y.shape}")
 
         # compute null_model for score test
-        lprint(np.unique(y))
         print(len(np.unique(y)))
         if len(np.unique(y)) == 2:
             logger.warning('Fitting binary model since only found two distinct y values')
