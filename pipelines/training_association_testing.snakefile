@@ -19,12 +19,54 @@ wildcard_constraints:
     repeat="\d+",
     trial="\d+",
 
+phenotypes = [
+  'Apolipoprotein_A',
+  'Apolipoprotein_B',
+  'Calcium',
+  'Cholesterol',
+  'HDL_cholesterol',
+  'IGF_1',
+    'LDL_direct',
+  'SHBG',
+  'Total_bilirubin',
+  'Triglycerides',
+  'Urate',
+  'Standing_height',
+  'Lymphocyte_percentage',
+  'Mean_platelet_thrombocyte_volume',
+  'Mean_corpuscular_volume',
+  'Mean_reticulocyte_volume',
+  'Neutrophill_count',
+  'Platelet_count',
+  'Platelet_crit',
+  'Platelet_distribution_width',
+  'Red_blood_cell_erythrocyte_count']
+
+new_phenotypes = [
+    'Body_mass_index_BMI',
+    'Glucose',
+    'Vitamin_D',
+    'Albumin',
+    'Total_protein',
+    'Cystatin_C',
+    'Gamma_glutamyltransferase',
+    'Alkaline_phosphatase',
+    'Creatinine',
+    'Whole_body_fat_free_mass',
+    'Forced_expiratory_volume_in_1_second_FEV1',
+    'QTC_interval',
+    'Glycated_haemoglobin_HbA1c',
+    # 'WHR',
+    'WHR_Body_mass_index_BMI_corrected'
+]
+
+phenotypes_testing = [*new_phenotypes, *phenotypes]
 rule all:
     input:
         expand("{phenotype}/deeprvat/eval/significant.parquet",
-               phenotype=phenotypes),
+               phenotype=phenotypes_testing),
         expand("{phenotype}/deeprvat/eval/all_results.parquet",
-               phenotype=phenotypes)
+               phenotype=phenotypes_testing)
 
 rule evaluate:
     input:
@@ -48,7 +90,7 @@ rule evaluate:
 rule all_regression:
     input:
         expand('{phenotype}/deeprvat/repeat_{repeat}/results/burden_associations.parquet',
-               phenotype=phenotypes, type=['deeprvat'], repeat=range(n_repeats)),
+               phenotype=phenotypes_testing, type=['deeprvat'], repeat=range(n_repeats)),
 
 rule combine_regression_chunks:
     input:
@@ -94,7 +136,7 @@ rule all_burdens:
         [
             (f'{p}/deeprvat/burdens/chunk{c}.' +
              ("finished" if p == phenotypes[0] else "linked"))
-            for p in phenotypes
+            for p in phenotypes_testing
             for c in range(n_burden_chunks)
         ]
 
@@ -157,7 +199,7 @@ rule compute_burdens:
 rule all_association_dataset:
     input:
         expand('{phenotype}/deeprvat/association_dataset.pkl',
-               phenotype=phenotypes)
+               phenotype=phenotypes_testing)
 
 rule association_dataset:
     input:
@@ -305,18 +347,18 @@ rule training_dataset_pickle:
 rule all_config:
     input:
         seed_genes = expand('{phenotype}/deeprvat/seed_genes.parquet',
-                            phenotype=phenotypes),
+                            phenotype=phenotypes_testing),
         config = expand('{phenotype}/deeprvat/hpopt_config.yaml',
-                        phenotype=phenotypes),
+                        phenotype=phenotypes_testing),
         baseline = expand('{phenotype}/deeprvat/baseline_results.parquet',
-                          phenotype=phenotypes),
+                          phenotype=phenotypes_testing),
 
 rule config:
     input:
         config = 'config.yaml',
         baseline = lambda wildcards: [
             str(Path(r['base']) / wildcards.phenotype / r['type'] /
-                'eval/burden_associations_testing.parquet')
+                'eval/burden_associations.parquet')
             for r in config['baseline_results']
         ]
     output:
