@@ -261,6 +261,7 @@ rule config:
         "seed_gene_pipeline update-config "
                     + "--phenotype {wildcards.phenotype} "
                     + "--variant-type {wildcards.vtype} "
+                    + "--maf-column MAF "
                     + "--rare-maf "
                     + "{params.rare_maf}"
                     + " {input.config} "

@@ -469,7 +469,7 @@ def update_config(
     simulated_phenotype_file: str,
     variant_type: Optional[str],
     rare_maf: Optional[float],
-    maf_column: Optional[str],
+    maf_column: str,
     new_config_file: str,
 ):
     with open(old_config_file) as f:
@@ -479,12 +479,7 @@ def update_config(
         config["data"]["dataset_config"][
             "sim_phenotype_file"
         ] = simulated_phenotype_file
-    if maf_column is None:
-        annotations = config["data"]["dataset_config"]["annotations"]
-        af_pattern = re.compile(r".*(_MAF|_AF|MAF)\b")
-        rare_maf_col = [s for s in annotations if af_pattern.match(s)]
-        assert len(rare_maf_col) == 1
-        maf_column = rare_maf_col[0]
+    logger.info(f'Reading MAF column from column {maf_column}')
 
     if phenotype is not None:
         config["data"]["dataset_config"]["y_phenotypes"] = [phenotype]
