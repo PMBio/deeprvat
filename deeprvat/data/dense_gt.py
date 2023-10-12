@@ -437,7 +437,7 @@ class DenseGTDataset(Dataset):
             else:
                 raise ValueError(f"Unknown y_transformation: {self.y_transformation}")
         else:
-            logger.warning("Not tranforming phenotype")
+            logger.warning("Not transforming phenotype")
 
     def setup_annotations(
         self,
