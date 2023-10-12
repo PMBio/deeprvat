@@ -580,7 +580,7 @@ def regress_(
 
         # compute null_model for score test
         if len(np.unique(y)) == 2:
-            logger.warning(
+            logger.info(
                 "Fitting binary model since only found two distinct y values"
             )
             model_score = scoretest.ScoretestLogit(y, X)
