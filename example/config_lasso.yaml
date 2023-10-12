@@ -63,9 +63,11 @@ hyperparameter_optimization:
         config: {}
 
 model:
-    type: DeepSet
+    type: DeepSetLasso
     model_collection: agg_models
     checkpoint: combined_agg.pt
+    run_lasso: True
+    lambda_init: 1.64
     config:
         phi_layers: 2
         phi_hidden_dim: 20

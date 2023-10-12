@@ -338,10 +338,8 @@ def sign_binary(x):
 
 def prox(v, u, *, lambda_, lambda_bar, M):
     """
-    v has shape (m,) or (m, batches)
-    u has shape (k,) or (k, batches)
-
-    supports GPU tensors
+    v of shape (m,) or (m, batches)
+    u of shape (k,) or (k, batches)
     """
     onedim = len(v.shape) == 1
     if onedim:

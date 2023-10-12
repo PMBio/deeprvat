@@ -38,6 +38,8 @@ from deeprvat.metrics import (
     QuantileLoss,
     KLDIVLoss,
     BCELoss,
+    LassoLossTrain,
+    LassoLossVal,
 )
 from deeprvat.utils import suggest_hparams
 
@@ -62,6 +64,8 @@ METRICS = {
     "QuantileLoss": QuantileLoss,
     "KLDiv": KLDIVLoss, 
     "BCELoss": BCELoss,
+    "LassoLossTrain": LassoLossTrain,
+    "LassoLossVal": LassoLossVal,
 }
 OPTIMIZERS = {
     "sgd": optim.SGD,
@@ -500,9 +504,9 @@ def run_bagging(
         set_random_seed(config['model']["seed"])
         logger.info(f'Set seed from config file')
 
-    results = []
-    checkpoint_paths = []
-    for k in range(n_bags):
+    lasso = config["model"].get("run_lasso", False)
+
+    def run_training(k):
         logger.info(f"  Starting training for bag {k}")
 
         this_data = copy.deepcopy(data)
@@ -549,7 +553,7 @@ def run_bagging(
         logger.info(f"    Writing TensorBoard logs to {tb_log_dir}")
         tb_logger = TensorBoardLogger(log_dir, name=f"bag_{k}")
 
-        objective = "val_" + config["model"]["config"]["metrics"]["objective"]
+        objective = "val_" + config["model"]["config"]["metrics_val"]["objective"]
         checkpoint_callback = ModelCheckpoint(monitor=objective)
         callbacks = [checkpoint_callback]
         if "early_stopping" in config:
@@ -613,10 +617,204 @@ def run_bagging(
         gc.collect()
         torch.cuda.empty_cache()
 
+    def run_lassotraining(k,current_lambda):
+        nonlocal counter
+        nonlocal is_dense
+        logger.info(f"  Starting lasso training for lambda {current_lambda}")
+        logger.info(f"  Starting lasso training for bag {k}")
+
+        this_data = copy.deepcopy(data)
+        for _, pheno_data in this_data.items():
+            if pheno_data["training_genes"] is not None:
+                pheno_data["genes"] = pheno_data["training_genes"][f"bag_{k}"]
+                logger.info(
+                    f'Using {len(pheno_data["genes"])} training genes '
+                    f'(out of {pheno_data["input_tensor_zarr"].shape[1]} total) at indices:'
+                )
+                print(" ".join(map(str, pheno_data["genes"])))
+
+        dm_kwargs = {
+            k: v
+            for k, v in config["training"].items()
+            if k
+            in (
+                "min_variant_count",
+                "upsampling_factor",
+                "sample_with_replacement",
+                "cache_tensors",
+            )
+        }
+        dm = MultiphenoBaggingData(
+            this_data,
+            train_proportion,
+            **dm_kwargs,
+            **config["training"]["dataloader_config"],
+        )
+
+        model_class = getattr(deeprvat_models, config["model"]["type"])
+
+        if counter == 0:
+            model = model_class(
+                config=config["model"]["config"],
+                n_annotations=dm.n_annotations,
+                n_covariates=dm.n_covariates,
+                n_genes=dm.n_genes,
+                gene_count=gene_count,
+                lambda_= current_lambda, #config['model']["config"]['lambda'],
+                gamma=0.0,
+                gamma_skip=0.0,
+                M=10.0,
+                max_n_variants=dm.max_n_variants,
+                phenotypes=list(data.keys()),
+                **config["model"].get("kwargs", {}),
+            )
+        else:
+            logger.info(f"Using previous checkpoint {checkpoint_paths[counter-1]} state to resume training with new Lambda {current_lambda}")
+            checkpoint = checkpoint_paths[counter-1]
+            model = model_class.load_from_checkpoint(
+                checkpoint,
+                config=config["model"]["config"],
+                lambda_= current_lambda,
+            )
+
+        tb_log_dir = f"{log_dir}/bag_{k}/lambda_{current_lambda}"
+        logger.info(f"    Writing TensorBoard logs to {tb_log_dir}")
+        tb_logger = TensorBoardLogger(log_dir, name=f"bag_{k}/lambda_{current_lambda}")
+
+        objective = "val_" + config["model"]["config"]["metrics_val"]["objective"]
+        checkpoint_callback = ModelCheckpoint(monitor=objective,
+                                                save_on_train_epoch_end=True) 
+        callbacks = [checkpoint_callback]
+        if "early_stopping" in config:
+            callbacks.append(
+                EarlyStopping(monitor=objective, **config["early_stopping"])
+            )
+
+        if debug:
+            config["pl_trainer"]["min_epochs"] = 10
+            config["pl_trainer"]["max_epochs"] = 20
+
+
+        trainer = pl.Trainer(
+            logger=tb_logger, callbacks=callbacks, **config.get("pl_trainer", {})
+        )
+
+        while True:
+            try:
+                trainer.fit(model, dm)
+                counter += 1
+            except RuntimeError as e:
+                logging.error(f"Caught RuntimeError: {e}")
+                if str(e).find("CUDA out of memory") != -1:
+                    if dm.hparams.batch_size > 4:
+                        logging.error(
+                            f"Retrying training with half the original batch size"
+                        )
+                        gc.collect()
+                        torch.cuda.empty_cache()
+                        dm.hparams.batch_size = dm.hparams.batch_size // 2
+                    else:
+                        logging.error("Batch size is already <= 4, giving up")
+                        raise RuntimeError("Could not find small enough batch size")
+                else:
+                    logging.error(f"Caught unknown error: {e}")
+                    raise e
+            else:
+                break
+
+        logger.info(
+            "Training finished, max memory used: "
+            f"{torch.cuda.max_memory_allocated(0)}"
+        )
+
+        trial.set_user_attr(
+            f"bag_{k}_checkpoint_path", checkpoint_callback.best_model_path
+        )
+        checkpoint_paths.append(checkpoint_callback.best_model_path)
+
+        if checkpoint_file is not None:
+            logger.info(
+                f"Symlinking {checkpoint_callback.best_model_path}"
+                f" to {checkpoint_file}"
+            )
+            Path(checkpoint_file).symlink_to(
+                Path(checkpoint_callback.best_model_path).resolve()
+            )
+
+        results.append(model.best_objective)
+        logger.info(f" Result this bag: {model.best_objective}")
+
+        current_features = model.selected_count()
+
+        if is_dense and current_features < dm.n_annotations: 
+            is_dense = False
+            if current_lambda / lambda_start < 2:
+                assert (
+                    f"lambda_start={lambda_start:.3f} "
+                    "selected lambda might be too large.\n"
+                    f"Features start to disappear at {current_lambda=:.3f}."
+                )
+        print(f"Lambda = {current_lambda:.2e}, "
+            f"selected {current_features} features ")
+        
+        del dm
+        gc.collect()
+        torch.cuda.empty_cache()
+        
+        return current_features
+
+    def build_lambda_scheduler(lambda_init, lambda_seq=None, path_multiplier=1.2, lambda_max=float("inf")):
+        #Build Lambda Sequence 
+        if lambda_seq is not None:
+            lambda_seq = lambda_seq
+        else:
+            def _lambda_seq(start):
+                while start <= lambda_max:
+                    yield start
+                    start *= path_multiplier
+
+            if lambda_init == "auto":
+                raise NotImplementedError("auto lambda initialization not yet implemented")
+                logger.info("   Building an auto-generated Lambda sequence.")
+                #TODO add M parameter to config and specify in DeepSetLasso init
+                lambda_start_ = (
+                    deeprvat_models.DeepSetLasso.lambda_start(M=10) #self.hparams['M'])
+                    / config["model"]["config"]["optimizer"]["config"]["lr"]
+                    / 10 # divide by 10 for initial training
+                )
+                lambda_seq = _lambda_seq(lambda_start_)
+            else:
+                lambda_seq = _lambda_seq(lambda_init)
+        
+        # extract first value of lambda_seq
+        lambda_seq = iter(lambda_seq)
+        lambda_start = next(lambda_seq)
+        return lambda_start, lambda_seq
+
+    results = []
+    checkpoint_paths = []
+
+    if lasso:
+        lambda_init = config["model"].get("lambda_init", 1.64)
+        lambda_start, lambda_seq = build_lambda_scheduler(lambda_init)
+
+        is_dense = True
+        counter = 0
+        for current_lambda in itertools.chain([lambda_start], lambda_seq):
+            for k in range(n_bags):
+                current_features = run_lassotraining(k,current_lambda)
+
+            if current_features == 0:
+                print('LASSO completed. Reached Sparsity; 0 selected features.')
+                break
+    else:
+        for k in range(n_bags):
+            run_training(k)
+
     # Mark checkpoints with worst results to be dropped
     drop_n_bags = config["training"].get("drop_n_bags", None) if not debug else 1
     if drop_n_bags is not None:
-        if config["model"]["config"]["metrics"].get("objective_mode", "max") == "max":
+        if config["model"]["config"]["metrics_train"].get("objective_mode", "max") == "max":
             min_result = sorted(results)[drop_n_bags]
             drop_bags = [(r < min_result) for r in results]
         else:
@@ -635,7 +833,6 @@ def run_bagging(
         f"{final_result} (mean) {np.std(results)} (std)"
     )
     return final_result
-
 
 @cli.command()
 @click.option("--debug", is_flag=True)
@@ -790,7 +987,7 @@ def train(
         trial = study.best_trial
         logger.info(f'Best trial: {trial.user_attrs["user_id"]}')
         logger.info(
-            f'  Mean {config["model"]["config"]["metrics"]["objective"]}: '
+            f'  Mean {config["model"]["config"]["metrics_val"]["objective"]}: '
             f"{trial.value}"
         )
         logger.info(f"  Params:\n{pformat(trial.params)}")

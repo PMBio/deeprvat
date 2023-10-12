@@ -123,3 +123,24 @@ class BCELoss:
         bceloss = nn.BCEWithLogitsLoss()
         loss = bceloss(preds,targets)
         return loss
+    
+class LassoLossVal:
+    def __init__(self):
+        pass
+    
+    def __call__(self, preds, y, lambda_, gamma, gamma_skip, l1_weights, l2_weights):
+        x = (F.mse_loss(preds, y) 
+                + lambda_ * l1_weights 
+                + gamma * l2_weights
+                + gamma_skip * l2_weights)
+        return x
+
+class LassoLossTrain:
+    def __init__(self):
+        pass
+
+    def __call__(self, preds, y, gamma, gamma_skip, l2_weights):
+        x = (F.mse_loss(preds, y) 
+                + gamma * l2_weights 
+                + gamma_skip * l2_weights)
+        return x
