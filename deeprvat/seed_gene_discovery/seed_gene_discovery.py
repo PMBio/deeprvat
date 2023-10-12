@@ -273,10 +273,9 @@ def test_gene(
 
     var_weight_function = test_config.get("var_weight_function", "sift_polyphen")
     max_n_markers = test_config.get("max_n_markers", 5000)
-    #skips genes with more than max_n_markers qualifying variants
+    # skips genes with more than max_n_markers qualifying variants
 
     logger.info(f"Using function {var_weight_function} for variant weighting")
-
 
     (
         weights,
@@ -479,7 +478,7 @@ def update_config(
         config["data"]["dataset_config"][
             "sim_phenotype_file"
         ] = simulated_phenotype_file
-    logger.info(f'Reading MAF column from column {maf_column}')
+    logger.info(f"Reading MAF column from column {maf_column}")
 
     if phenotype is not None:
         config["data"]["dataset_config"]["y_phenotypes"] = [phenotype]
