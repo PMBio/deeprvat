@@ -417,7 +417,7 @@ class DenseGTDataset(Dataset):
         else:
             n_unique_y_val = 0
         if n_unique_y_val == 2:
-            logger.info(
+            logger.warning(
                 "Not applying y transformation because y only has two values and seems to be binary"
             )
             self.y_transformation = None
@@ -437,7 +437,7 @@ class DenseGTDataset(Dataset):
             else:
                 raise ValueError(f"Unknown y_transformation: {self.y_transformation}")
         else:
-            logger.info("Not tranforming phenotype")
+            logger.warning("Not tranforming phenotype")
 
     def setup_annotations(
         self,
