@@ -272,10 +272,11 @@ def test_gene(
     pval_dict["time"] = np.nan
 
     var_weight_function = test_config.get("var_weight_function", "sift_polyphen")
+    max_n_markers = test_config.get("max_n_markers", 5000)
+    #skips genes with more than max_n_markers qualifying variants
 
     logger.info(f"Using function {var_weight_function} for variant weighting")
 
-    # keep backwards compatibility
 
     (
         weights,
@@ -298,9 +299,7 @@ def test_gene(
     )
     pval_dict["n_QV"] = len(pos)
     pval_dict["markers_after_mac_collapsing"] = len(pos)
-    if (len(pos) > 0) & (len(pos) < 5000):
-        # there is only one gene with > 5000 missense variants (Titin, 10k missense)
-        # which always causes a super large memory demand therefore we exclude it
+    if (len(pos) > 0) & (len(pos) < max_n_markers):
         G_f = G[:, pos]
         EAC_filtered = EAC = get_caf(G_f) * n_cases
         pval_dict["EAC_filtered"] = EAC_filtered
