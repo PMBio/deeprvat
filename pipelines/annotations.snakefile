@@ -76,7 +76,7 @@ ncores_merge_absplice = int(config.get("n_cores_merge_absplice") or 64)
 n_jobs_deepripe = int(config.get("n_jobs_deepripe") or 8)
 # init kipoi-veff2
 kipoi_repo_dir = Path(config["kipoiveff_repo_dir"])
-ncores_addis  = int(config.get("n_jobs_deepripe") or 32)
+ncores_addis  = int(config.get("n_jobs_addids") or 32)
 # Filter out which chromosomes to work with
 pvcf_blocks_df = pvcf_blocks_df[
     pvcf_blocks_df["Chromosome"].isin([str(c) for c in included_chromosomes])
@@ -97,7 +97,7 @@ block = pvcf_blocks_df["Block"]
 
 rule all:
     input:
-        anno_dir / "current_annotations.parquet",
+        anno_dir / "current_annotations_absplice.parquet",
 
 
 rule aggregate_and_merge_absplice:
@@ -108,11 +108,9 @@ rule aggregate_and_merge_absplice:
             chr=chromosomes,
             block=block,
         ),
-        current_annotation_file=anno_dir
-        / "current_annotations_deepsea_deepripe_parclip_hg2_k5.parquet",
+        current_annotation_file=anno_dir / "vep_deepripe_deepsea.parquet"
     output:
-        annotations=anno_dir
-        / "current_annotations_absplice_deepsea_deepripe_parclip_hg2_k5.parquet",
+        annotations=anno_dir / "vcomplete_annotations.parquet.parquet"
         scores=anno_tmp_dir / "abSplice_score_file.parquet",
 
     shell:
@@ -128,6 +126,23 @@ rule aggregate_and_merge_absplice:
                 f"{ncores_merge_absplice}"
             ])
 
+rule merge_deepsea_pcas:
+    input:
+        annotations=anno_dir / "vep_deepripe.parquet"
+        deepsea_pcas=anno_dir / "deepSea_pca" / "deepsea_pca.parquet",
+    output:
+        anno_dir / "vep_deepripe_deepsea.parquet"
+    shell:
+        " ".join(
+            [
+                "python",
+                f"{annotation_python_file}",
+                "merge-deepsea-pcas",
+                "{input.annotations}",
+                "{input.deepsea_pcas}",
+                "{output}",
+            ]
+        ) 
 
 rule concat_annotations:
     input:
@@ -138,14 +153,18 @@ rule concat_annotations:
             zip,
             chr=chromosomes,
             block=block)
-    output: anno_dir / "current_annotations.parquet"
-    shell: f"python " + 
-        str(annotation_python_file) + " concat-annotations "+
-        " {input.pvcf} "+
-        " {input.anno_dir} "+
-        f"{str(vcf_pattern+'_merged.parquet').format(chr='{{chr}}', block='{{block}}')} "+
-        "{output}"+
-        f" --included-chromosomes {','.join(included_chromosomes)}"
+    output: anno_dir / "vep_deepripe.parquet"
+    shell: 
+        " ".join([
+            "python", 
+            str(annotation_python_file),
+            "concat-annotations",
+            "{input.pvcf}",
+            "{input.anno_dir}",
+            f"{str(vcf_pattern+'_merged.parquet').format(chr='{{chr}}', block='{{block}}')}",
+            "{output}",
+            f" --included-chromosomes {','.join(included_chromosomes)}"
+            ])
 
 rule merge_annotations:
     input:

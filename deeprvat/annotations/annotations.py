@@ -525,7 +525,7 @@ def deepsea_pca(n_components: int, deepsea_file: str, pca_pkl: str, out_dir: str
         logger.info(f"creating pca object and saving it to {pca_pkl}")
         pca = PCA(n_components=n_components)
         pca.fit(X_std)       
-        with open(out_path / "pca.pkl", "wb") as f:
+        with open(pca_pkl, "wb") as f:
             pickle.dump(pca, f)  
     logger.info(f"Projecting rows to {n_components} PCs")
     X_pca = pca.transform(X_std)
@@ -547,51 +547,6 @@ def deepsea_pca(n_components: int, deepsea_file: str, pca_pkl: str, out_dir: str
 
     logger.info("Done")
 
-
-@cli.command()
-@click.option("--n-components", type=int, default=59)
-@click.argument("deepripe-file", type=click.Path(exists=True))
-@click.argument("out-dir", type=click.Path(exists=True))
-def deepripe_pca(n_components: int, deepripe_file: str, out_dir: str):
-    logger.info("Reading deepripe file")
-    df = pd.read_csv(deepripe_file)
-    df = df.rename(
-        columns={
-            "#CHROM": "chrom",
-            "POS": "pos",
-            "ID": "id",
-            "REF": "ref",
-            "ALT": "alt",
-        }
-    )
-    df = df.drop(columns=["QUAL", "FILTER", "INFO"])
-    key_df = df[["chrom", "pos", "ref", "alt", "id"]].reset_index(drop=True)
-
-    logger.info("Extracting matrix for PCA")
-    X = df[[c for c in df.columns if c not in key_df.columns]].to_numpy()
-    del df
-
-    X_std = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
-    del X
-
-    logger.info("Running PCA")
-    pca = PCA(n_components=n_components)
-    pca.fit(X_std)
-    out_path = Path(out_dir)
-    with open(out_path / "pca.pkl", "wb") as f:
-        pickle.dump(pca, f)
-
-    logger.info(f"Projecting rows to {n_components} PCs")
-    X_pca = pca.transform(X_std)
-    del X_std
-    pca_df = pd.DataFrame(
-        X_pca, columns=[f"DeepRipe_PC_{i}" for i in range(1, n_components + 1)]
-    )
-    del X_pca
-    pca_df = pd.concat([key_df, pca_df], axis=1)
-    pca_df.to_parquet(out_path / "deepripe_pca.parquet", engine="pyarrow")
-
-    logger.info("Done")
 
 
 @cli.command()
@@ -714,10 +669,10 @@ def scorevariants_deepripe(
         for ix, RBP_name in enumerate(RBPnames):
             df_variants[RBP_name] = score_list[:, ix]
     print(
-        f"saving file to: {output_dir}/{file_name[:-3]}{saved_model_type}_deepripe.csv"
+        f"saving file to: {output_dir}/{file_name[:-3]}{saved_model_type}_deepripe.csv.gz"
     )
     df_variants.to_csv(
-        f"{output_dir}/{file_name[:-3]}{saved_model_type}_deepripe.csv", index=False
+        f"{output_dir}/{file_name[:-3]}{saved_model_type}_deepripe.csv.gz", index=False
     )
 
 
@@ -1091,13 +1046,6 @@ def merge_annotations(vep_header_line:int,
                 vep_file,
                 header=vep_header_line,
                 sep="\t",
-                # dtype={
-                #     "STRAND": str,
-                #     "TSL": str,
-                #     "GENE_PHENO": str,
-                #     "CADD_PHRED": str,
-                #     "CADD_RAW": str,
-                # },
             )
     vep_df = process_vep(vep_file=vep_df)
     logger.info(f"vep_df shape is {vep_df.shape}")
@@ -1139,6 +1087,7 @@ def process_deepripe(deepripe_df:object, column_prefix:str)->object:
     prefix_cols = [x for x in deepripe_df.columns if x not in key_cols]
     new_names = [(i, i + f"_{column_prefix}") for i in prefix_cols]
     deepripe_df = deepripe_df.rename(columns=dict(new_names))
+    deepripe_df.drop_duplicates(subset=["chrom", "pos", "ref", "alt"], inplace=True)
     return deepripe_df
 
 def process_vep(vep_file:object)->object:
@@ -1152,7 +1101,7 @@ def process_vep(vep_file:object)->object:
     float_vals = ['DISTANCE', 'gnomADg_FIN_AF', 'AF', 'AFR_AF', 'AMR_AF','EAS_AF', 'EUR_AF', 'SAS_AF', 'MAX_AF','MOTIF_POS', 'MOTIF_SCORE_CHANGE',  'CADD_PHRED', 'CADD_RAW', 'PrimateAI', 'TSL', 'Condel']    
     vep_file[float_vals] = vep_file[float_vals].replace('-', 'NaN').astype(float)
     dummies = vep_file["Consequence"].str.get_dummies(",").add_prefix("Consequence_")
-    hopefully_all_consequences=  ['Consequence_splice_acceptor_variant','Consequence_5_prime_UTR_variant','Consequence_TFBS_ablation','Consequence_start_lost','Consequence_incomplete_terminal_codon_variant','Consequence_intron_variant', 'Consequence_stop_gained', 'Consequence_splice_donor_5th_base_variant', 'Consequence_downstream_gene_variant', 'Consequence_splice_donor_variant', 'Consequence_protein_altering_variant', 'Consequence_splice_polypyrimidine_tract_variant', 'Consequence_inframe_insertion', 'Consequence_mature_miRNA_variant', 'Consequence_synonymous_variant', 'Consequence_regulatory_region_variant', 'Consequence_non_coding_transcript_exon_variant', 'Consequence_stop_lost', 'Consequence_TF_binding_site_variant', 'Consequence_splice_donor_region_variant', 'Consequence_stop_retained_variant', 'Consequence_splice_region_variant', 'Consequence_coding_sequence_variant', 'Consequence_upstream_gene_variant', 'Consequence_frameshift_variant', 'Consequence_start_retained_variant', 'Consequence_3_prime_UTR_variant', 'Consequence_inframe_deletion', 'Consequence_missense_variant', 'Consequence_non_coding_transcript_variant']
+    hopefully_all_consequences=  ['Consequence_splice_acceptor_variant','Consequence_5_prime_UTR_variant','Consequence_TFBS_ablation','Consequence_start_lost','Consequence_incomplete_terminal_codon_variant','Consequence_intron_variant', 'Consequence_stop_gained', 'Consequence_splice_donor_5th_base_variant', 'Consequence_downstream_gene_variant', 'Consequence_intergenic_variant', 'Consequence_splice_donor_variant','Consequence_NMD_transcript_variant', 'Consequence_protein_altering_variant', 'Consequence_splice_polypyrimidine_tract_variant', 'Consequence_inframe_insertion', 'Consequence_mature_miRNA_variant', 'Consequence_synonymous_variant', 'Consequence_regulatory_region_variant', 'Consequence_non_coding_transcript_exon_variant', 'Consequence_stop_lost', 'Consequence_TF_binding_site_variant', 'Consequence_splice_donor_region_variant', 'Consequence_stop_retained_variant', 'Consequence_splice_region_variant', 'Consequence_coding_sequence_variant', 'Consequence_upstream_gene_variant', 'Consequence_frameshift_variant', 'Consequence_start_retained_variant', 'Consequence_3_prime_UTR_variant', 'Consequence_inframe_deletion', 'Consequence_missense_variant', 'Consequence_non_coding_transcript_variant']
     hopefully_all_consequences = list(set(hopefully_all_consequences))
     mask = pd.DataFrame(data = np.zeros(shape= ( len(vep_file), len(hopefully_all_consequences))), columns=hopefully_all_consequences ,  dtype=float)
     mask[list(dummies.columns)]=dummies
