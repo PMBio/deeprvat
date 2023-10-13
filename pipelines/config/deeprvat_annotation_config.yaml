@@ -32,3 +32,4 @@ pybedtools_tmp_path : output_dir/annotations/tmp/pybedtools
 n_jobs_deepripe : 32
 n_cores_merge_absplice : 32
 n_cores_absplice : 32
+deepsea_pca_pickle_filepath : annotations/deepSea_pca/pca.pkl
