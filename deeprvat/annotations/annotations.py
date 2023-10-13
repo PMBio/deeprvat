@@ -1142,7 +1142,7 @@ def process_deepripe(deepripe_df:object, column_prefix:str)->object:
     return deepripe_df
 
 def process_vep(vep_file:object)->object:
-    vep_file[["chrom", "pos", "ref", "alt"]] = vep_file["#Uploaded_variation"].str.split(
+    vep_file[["chrom", "pos", "ref", "alt"]] = vep_file["#Uploaded_variation"].str.replace('_',':').replace('/',':').split(
         ":", expand=True
     )
     
