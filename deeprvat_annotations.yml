@@ -19,3 +19,4 @@ dependencies:
   #comment out lines below if you want to use preinstalled bcftools or samtools
   - bcftools=1.17
   - samtools=1.17
+  - ensembl-vep=110.1
