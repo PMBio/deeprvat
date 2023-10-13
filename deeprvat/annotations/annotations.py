@@ -480,8 +480,8 @@ def deepripe_score_variant_onlyseq_all(
             pred = model.predict_on_batch(cropped_seqs)
             wild_indices = tf.range(pred.shape[0], delta=2)
             mut_indices = tf.range(1, pred.shape[0], delta=2)
-            pred_wild = pred[wild_indices]
-            pred_mut = pred[mut_indices]
+            pred_wild = pred[wild_indices, :]
+            pred_mut = pred[mut_indices, :]
             score = pred_mut - pred_wild
             avg_score += score
         predictions[choice] = avg_score / 4

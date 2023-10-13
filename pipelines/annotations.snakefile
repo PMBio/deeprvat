@@ -26,11 +26,12 @@ saved_deepripe_models_path = (
 )
 merge_nthreads = int(config.get("merge_nthreads") or 64)
 
-# init modules
-load_bfc = " ".join([config["bcftools_load_cmd"], "&&"])
-load_hts = " ".join([config["htslib_load_cmd"], "&&"])
-load_perl = " ".join([config["perl_load_cmd"], "&&"])
-load_vep = " ".join([config["vep_load_cmd"], "&&"])
+# If modules are used we load them here
+load_bfc = " ".join([config["bcftools_load_cmd"], "&&" if config["bcftools_load_cmd"] else ""])
+load_hts = " ".join([config["htslib_load_cmd"], "&&" if config["htslib_load_cmd"] else ""])
+load_perl = " ".join([config["perl_load_cmd"], "&&" if config["perl_load_cmd"] else ""])
+load_vep = " ".join([config["vep_load_cmd"], "&&" if config["vep_load_cmd"] else ""])
+
 
 # init data path
 vcf_pattern = config["vcf_file_pattern"]
