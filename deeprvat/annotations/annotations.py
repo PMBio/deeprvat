@@ -1090,9 +1090,12 @@ def process_deepripe(deepripe_df:object, column_prefix:str)->object:
     deepripe_df.drop_duplicates(subset=["chrom", "pos", "ref", "alt"], inplace=True)
     return deepripe_df
 
-def process_vep(vep_file:object)->object:
-    vep_file[["chrom", "pos", "ref", "alt"]] = vep_file["#Uploaded_variation"].str.replace('_',':').replace('/',':').split(
-        ":", expand=True
+def process_vep(vep_file: object) -> object:
+    vep_file[["chrom", "pos", "ref", "alt"]] = (
+        vep_file["#Uploaded_variation"]
+        .str.replace("_", ":")
+        .str.replace("/", ":")
+        .str.split(":", expand=True)
     )
     
     vep_file["pos"] = vep_file["pos"].astype(int)   
