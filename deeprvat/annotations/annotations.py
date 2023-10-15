@@ -1139,16 +1139,14 @@ def concat_annotations(pvcf_blocks_file:str, annotation_dir:str, filename_patter
     ]
     for f in tqdm(file_paths):
         logger.info(f"processing file {f}")
+        file = pd.read_parquet(f)
+        logger.info(file.shape)
+        logger.info(file.columns)
+
         if f == file_paths[0]:
             logger.info("creating new file")
-            file = pd.read_parquet(f)
-            logger.info(file.shape)
-            logger.info(file.columns)
             file.to_parquet(out_file, engine= "fastparquet")
         else:
-            file = pd.read_parquet(f)
-            logger.info(file.shape)
-            logger.info(file.columns)
             try:
                 file.to_parquet(out_file, engine= "fastparquet", append=True)   
             except ValueError: 
