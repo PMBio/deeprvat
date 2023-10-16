@@ -1,5 +1,4 @@
 import pandas as pd
-import os
 from pathlib import Path
 
 
@@ -132,7 +131,7 @@ rule aggregate_and_merge_absplice:
 
 rule merge_deepsea_pcas:
     input:
-        annotations=anno_dir / "vep_deepripe.parquet"
+        annotations=anno_dir / "vep_deepripe.parquet",  
         deepsea_pcas=anno_dir / "deepSea_pca" / "deepsea_pca.parquet",
     output:
         anno_dir / "vep_deepripe_deepsea.parquet"
