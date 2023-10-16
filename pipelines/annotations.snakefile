@@ -111,7 +111,7 @@ rule aggregate_and_merge_absplice:
         ),
         current_annotation_file=anno_dir / "vep_deepripe_deepsea.parquet"
     output:
-        annotations=anno_dir / "vcomplete_annotations.parquet.parquet"
+        annotations=anno_dir / "current_annotations_absplice.parquet"
         scores=anno_tmp_dir / "abSplice_score_file.parquet",
 
     shell:
@@ -126,6 +126,9 @@ rule aggregate_and_merge_absplice:
                 "{output.scores}",
                 f"{ncores_merge_absplice}"
             ])
+
+
+
 
 rule merge_deepsea_pcas:
     input:
