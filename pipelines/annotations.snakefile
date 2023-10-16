@@ -131,7 +131,7 @@ rule aggregate_and_merge_absplice:
 
 rule merge_deepsea_pcas:
     input:
-        annotations=anno_dir / "vep_deepripe.parquet",  
+        annotations=anno_dir / "vep_deepripe.parquet",
         deepsea_pcas=anno_dir / "deepSea_pca" / "deepsea_pca.parquet",
     output:
         anno_dir / "vep_deepripe_deepsea.parquet"
@@ -145,21 +145,21 @@ rule merge_deepsea_pcas:
                 "{input.deepsea_pcas}",
                 "{output}",
             ]
-        ) 
+        )
 
 rule concat_annotations:
     input:
         pvcf = metadata_dir / config['pvcf_blocks_file'],
         anno_dir = anno_dir,
-        vcf_files= 
+        vcf_files=
             expand([anno_dir / f"{vcf_pattern}_merged.parquet"],
             zip,
             chr=chromosomes,
             block=block)
     output: anno_dir / "vep_deepripe.parquet"
-    shell: 
+    shell:
         " ".join([
-            "python", 
+            "python",
             str(annotation_python_file),
             "concat-annotations",
             "{input.pvcf}",
@@ -172,10 +172,10 @@ rule concat_annotations:
 rule merge_annotations:
     input:
         vep =  anno_dir / (vcf_pattern + "_vep_anno.tsv"),
-        deepripe_parclip =  anno_dir / (vcf_pattern + "_variants.parclip_deepripe.csv"),
-        deepripe_k5 = anno_dir / (vcf_pattern + "_variants.eclip_k5_deepripe.csv"),
-        deepripe_hg2 = anno_dir / (vcf_pattern + "_variants.eclip_hg2_deepripe.csv"),
-        variant_file = variant_file     
+        deepripe_parclip =  anno_dir / (vcf_pattern + "_variants.parclip_deepripe.csv.gz"),
+        deepripe_k5 = anno_dir / (vcf_pattern + "_variants.eclip_k5_deepripe.csv.gz"),
+        deepripe_hg2 = anno_dir / (vcf_pattern + "_variants.eclip_hg2_deepripe.csv.gz"),
+        variant_file = variant_file
 
 
     output:
@@ -362,7 +362,7 @@ rule deepRiPe_parclip:
         variants=anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
         fasta=fasta_dir / fasta_file_name,
     output:
-        anno_dir / (vcf_pattern + "_variants.parclip_deepripe.csv"),
+        anno_dir / (vcf_pattern + "_variants.parclip_deepripe.csv.gz"),
 
     shell:
         f"mkdir -p {pybedtools_tmp_path/'parclip'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'parclip'} {saved_deepripe_models_path} {{threads}} 'parclip'"
@@ -373,7 +373,7 @@ rule deepRiPe_eclip_hg2:
         variants=anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
         fasta=fasta_dir / fasta_file_name,
     output:
-        anno_dir / (vcf_pattern + "_variants.eclip_hg2_deepripe.csv"),
+        anno_dir / (vcf_pattern + "_variants.eclip_hg2_deepripe.csv.gz"),
     threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
     shell:
         f"mkdir -p {pybedtools_tmp_path/'hg2'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'hg2'} {saved_deepripe_models_path} {{threads}} 'eclip_hg2'"
@@ -384,7 +384,7 @@ rule deepRiPe_eclip_k5:
         variants=anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
         fasta=fasta_dir / fasta_file_name,
     output:
-        anno_dir / (vcf_pattern + "_variants.eclip_k5_deepripe.csv"),
+        anno_dir / (vcf_pattern + "_variants.eclip_k5_deepripe.csv.gz"),
 
     threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
     shell:
