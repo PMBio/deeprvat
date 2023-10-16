@@ -110,8 +110,8 @@ rule aggregate_and_merge_absplice:
         ),
         current_annotation_file=anno_dir / "vep_deepripe_deepsea.parquet"
     output:
-        annotations=anno_dir / "current_annotations_absplice.parquet"
-        scores=anno_tmp_dir / "abSplice_score_file.parquet",
+        annotations=anno_dir / "current_annotations_absplice.parquet",
+        scores=anno_tmp_dir / "abSplice_score_file.parquet"
 
     shell:
         " ".join(
