@@ -1090,9 +1090,12 @@ def process_deepripe(deepripe_df:object, column_prefix:str)->object:
     deepripe_df.drop_duplicates(subset=["chrom", "pos", "ref", "alt"], inplace=True)
     return deepripe_df
 
-def process_vep(vep_file:object)->object:
-    vep_file[["chrom", "pos", "ref", "alt"]] = vep_file["#Uploaded_variation"].str.split(
-        ":", expand=True
+def process_vep(vep_file: object) -> object:
+    vep_file[["chrom", "pos", "ref", "alt"]] = (
+        vep_file["#Uploaded_variation"]
+        .str.replace("_", ":")
+        .str.replace("/", ":")
+        .str.split(":", expand=True)
     )
     
     vep_file["pos"] = vep_file["pos"].astype(int)   
@@ -1136,16 +1139,14 @@ def concat_annotations(pvcf_blocks_file:str, annotation_dir:str, filename_patter
     ]
     for f in tqdm(file_paths):
         logger.info(f"processing file {f}")
+        file = pd.read_parquet(f)
+        logger.info(file.shape)
+        logger.info(file.columns)
+
         if f == file_paths[0]:
             logger.info("creating new file")
-            file = pd.read_parquet(f)
-            logger.info(file.shape)
-            logger.info(file.columns)
             file.to_parquet(out_file, engine= "fastparquet")
         else:
-            file = pd.read_parquet(f)
-            logger.info(file.shape)
-            logger.info(file.columns)
             try:
                 file.to_parquet(out_file, engine= "fastparquet", append=True)   
             except ValueError: 
