@@ -3,8 +3,8 @@
 # specify genome version hg19 or hg38 
 genome: hg38
 
-# store all the vcf file that you want to analyze to directory ../data/resources/vcf_files/
-vcf: ../data/resources/analysis_files/vcf_files/{vcf_id}
+# store all the vcf file that you want to analyze to directory ../data/resources/input_files/
+vcf: ../data/resources/analysis_files/input_files/{vcf_id}
 
 # parameters for variant filtering
 variant_filtering:
