@@ -497,9 +497,9 @@ def cli():
 @cli.command()
 @click.option("--n-components", type=int, default=100)
 @click.argument("deepsea-file", type=click.Path(exists=True))
-@click.argument("pca-pkl", type=click.Path())
+@click.argument("pca-object", type=click.Path())
 @click.argument("out-dir", type=click.Path(exists=True))
-def deepsea_pca(n_components: int, deepsea_file: str, pca_pkl: str, out_dir: str):
+def deepsea_pca(n_components: int, deepsea_file: str, pca_onject: str, out_dir: str):
     logger.info("Loading deepSea data")
     df = pd.read_csv(deepsea_file)
     logger.info("filling NAs")
@@ -517,18 +517,29 @@ def deepsea_pca(n_components: int, deepsea_file: str, pca_pkl: str, out_dir: str
 
     out_path = Path(out_dir)
 
-    if os.path.exists(pca_pkl):
-        with open(pca_pkl, 'rb') as pickle_file:
-            logger.info("loading pca object")
-            pca = pickle.load(pickle_file)
+    if os.path.exists(pca_object):
+        if '.pkl' in pca_object:
+            with open(pca_object, 'rb') as pickle_file:
+                logger.info("loading pca objectas pickle file")
+                pca = pickle.load(pickle_file)
+                X_pca = pca.transform(X_std)
+        else: 
+            if '.npy' not in pca_object:
+                logger.error('did not recognize file format, assuming npy')
+            logger.info('loading pca components as npy object')
+            components = np.load(pca_object)
+            logger.info(f"Projecting data to {pca.components_.shape[0]} PCs")
+            X_pca = np.matmul(X_std, pca.components_.transpose())
     else:
-        logger.info(f"creating pca object and saving it to {pca_pkl}")
+        logger.info(f"creating pca object and saving it to {pca_object}")
+        logger.info(f"Projecting rows to {n_components} PCs")
         pca = PCA(n_components=n_components)
         pca.fit(X_std)       
-        with open(pca_pkl, "wb") as f:
-            pickle.dump(pca, f)  
-    logger.info(f"Projecting rows to {n_components} PCs")
-    X_pca = pca.transform(X_std)
+        np.save(pca_object, pca.components_)  
+        
+        X_pca = np.matmul(X_std, pca.components_.transpose())
+    
+    
     del X_std
 
     logger.info(f"Writing values to data frame")
