@@ -1057,6 +1057,7 @@ def merge_annotations(vep_header_line:int,
                 vep_file,
                 header=vep_header_line,
                 sep="\t",
+                na_values = "-"
             )
     vep_df = process_vep(vep_file=vep_df)
     logger.info(f"vep_df shape is {vep_df.shape}")
