@@ -783,12 +783,14 @@ def get_abscores(
         all_absplice_scores = pd.read_parquet(ab_splice_agg_score_file)
 
     all_absplice_scores = all_absplice_scores[
-        ["chrom", "pos", "ref", "alt", "gene_id", "AbSplice_DNA"]
+        ["chrom", "pos", "ref", "alt", "gene_id", "AbSplice_DNA", "id"]
     ]
 
     annotations = pd.read_parquet(current_annotation_file, engine="pyarrow").drop(
         columns=["AbSplice_DNA"], errors="ignore"
     )
+    annotations.drop_duplicates(inplace=True,subset=["chrom", "pos", "ref", "alt", "gene_id", "id"])
+
     original_len = len(annotations)
 
     logger.info("Merging")
@@ -797,12 +799,12 @@ def get_abscores(
         all_absplice_scores,
         validate="1:1",
         how="left",
-        on=["chrom", "pos", "ref", "alt", "gene_id"],
+        on=["chrom", "pos", "ref", "alt", "gene_id", "id"],
     )
 
     logger.info("Sanity checking merge")
     assert len(merged) == original_len
-    assert merged["censequence_id"].unique().shape[0] == len(merged)
+    assert len(merged[["gene_id", "id"]].drop_duplicates()) == len(merged)
 
     logger.info(
         f'Filling {merged["AbSplice_DNA"].isna().sum()} '
@@ -904,8 +906,11 @@ def merge_deepsea_pcas(annotation_file: str, deepripe_pca_file: str, out_file: s
     deepripe_pcas = pd.read_parquet(deepripe_pca_file)
     orig_len = len(annotations)
     merged = annotations.merge(
-        deepripe_pcas, how="left", on=["chrom", "pos", "ref", "alt"]
+        deepripe_pcas, how="left", on=["chrom", "pos", "ref", "alt", "id"]
     )
+
+    merged.rename(columns={"Gene": "gene_id"}, inplace=True)
+
     assert len(merged) == orig_len
     merged.to_parquet(out_file)
 
@@ -1073,6 +1078,10 @@ def merge_annotations(vep_header_line:int,
     #load variant_file
     logger.info(f"reading in {variant_file}")
     variants = pd.read_csv(variant_file, sep="\t")
+
+    # If variants start with chr
+    # TODO Check if this is always true
+    variants["chrom"] = variants["chrom"].str.replace("chr","")
 
     #merge vep to variants M:1
     ca = vep_df.merge(variants, how = "left",  on=["chrom", "pos", "ref", "alt"], validate= "m:1")
