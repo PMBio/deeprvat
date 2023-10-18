@@ -499,7 +499,7 @@ def cli():
 @click.argument("deepsea-file", type=click.Path(exists=True))
 @click.argument("pca-object", type=click.Path())
 @click.argument("out-dir", type=click.Path(exists=True))
-def deepsea_pca(n_components: int, deepsea_file: str, pca_onject: str, out_dir: str):
+def deepsea_pca(n_components: int, deepsea_file: str, pca_object: str, out_dir: str):
     logger.info("Loading deepSea data")
     df = pd.read_csv(deepsea_file)
     logger.info("filling NAs")
