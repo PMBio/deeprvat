@@ -1057,7 +1057,7 @@ def merge_annotations(vep_header_line:int,
                 vep_file,
                 header=vep_header_line,
                 sep="\t",
-                na_values = "-"
+                na_values = "-",
             )
     vep_df = process_vep(vep_file=vep_df)
     logger.info(f"vep_df shape is {vep_df.shape}")
@@ -1112,15 +1112,91 @@ def process_vep(vep_file: object) -> object:
     
     vep_file["pos"] = vep_file["pos"].astype(int)   
     logger.info(vep_file.columns)
-    vep_file[["STRAND","TSL", "GENE_PHENO", "CADD_PHRED","CADD_RAW"]] =vep_file[["STRAND","TSL", "GENE_PHENO", "CADD_PHRED","CADD_RAW"]].astype(str)
-    float_vals = ['DISTANCE', 'gnomADg_FIN_AF', 'AF', 'AFR_AF', 'AMR_AF','EAS_AF', 'EUR_AF', 'SAS_AF', 'MAX_AF','MOTIF_POS', 'MOTIF_SCORE_CHANGE',  'CADD_PHRED', 'CADD_RAW', 'PrimateAI', 'TSL', 'Condel']    
-    vep_file[float_vals] = vep_file[float_vals].replace('-', 'NaN').astype(float)
+
+
+    vep_str_cols = [    "CDS_position",
+                        "Protein_position",
+                        "Amino_acids",
+                        "Codons",
+                        "SYMBOL",
+                        "SYMBOL_SOURCE",
+                        "HGNC_ID",
+                        "MANE_SELECT",
+                        "APPRIS",
+                        "CCDS",
+                        "ENSP",
+                        "SWISSPROT",
+                        "TREMBL",
+                        "UNIPARC",
+                        "UNIPROT_ISOFORM",
+                        "RefSeq",
+                        "SIFT",
+                        "PolyPhen",
+                        "INTRON",
+                        "DOMAINS",
+                        "HGVSp",
+                        "SpliceAI_pred",
+                        "STRAND","TSL", "GENE_PHENO"]
+
+    vep_float_cols = ['DISTANCE',
+                    'gnomADg_FIN_AF',
+                    'AF',
+                    'AFR_AF',
+                    'AMR_AF','EAS_AF',
+                    'EUR_AF',
+                    'SAS_AF',
+                    'MAX_AF','MOTIF_POS',
+                    'MOTIF_SCORE_CHANGE',  'CADD_PHRED',
+                    'CADD_RAW',
+                    'PrimateAI',
+                    'TSL',
+                    'Condel']    
+    all_consequences=  ['Consequence_3_prime_UTR_variant'
+                        'Consequence_5_prime_UTR_variant',
+                        'Consequence_NMD_transcript_variant',
+                        'Consequence_TFBS_ablation',
+                        'Consequence_TF_binding_site_variant',
+                        'Consequence_coding_sequence_variant',
+                        'Consequence_downstream_gene_variant',
+                        'Consequence_frameshift_variant',
+                        'Consequence_incomplete_terminal_codon_variant',
+                        'Consequence_inframe_deletion',
+                        'Consequence_inframe_insertion',
+                        'Consequence_intergenic_variant',
+                        'Consequence_intron_variant',
+                        'Consequence_mature_miRNA_variant',
+                        'Consequence_missense_variant',
+                        'Consequence_non_coding_transcript_exon_variant',
+                        'Consequence_non_coding_transcript_variant',
+                        'Consequence_protein_altering_variant',
+                        'Consequence_regulatory_region_variant',
+                        'Consequence_splice_acceptor_variant',
+                        'Consequence_splice_donor_5th_base_variant',
+                        'Consequence_splice_donor_region_variant',
+                        'Consequence_splice_donor_variant',
+                        'Consequence_splice_polypyrimidine_tract_variant',
+                        'Consequence_splice_region_variant',
+                        'Consequence_start_lost',
+                        'Consequence_start_retained_variant',
+                        'Consequence_stop_gained',
+                        'Consequence_stop_lost',
+                        'Consequence_stop_retained_variant',
+                        'Consequence_synonymous_variant',
+                        'Consequence_upstream_gene_variant',
+                        ]
+
     dummies = vep_file["Consequence"].str.get_dummies(",").add_prefix("Consequence_")
-    hopefully_all_consequences=  ['Consequence_splice_acceptor_variant','Consequence_5_prime_UTR_variant','Consequence_TFBS_ablation','Consequence_start_lost','Consequence_incomplete_terminal_codon_variant','Consequence_intron_variant', 'Consequence_stop_gained', 'Consequence_splice_donor_5th_base_variant', 'Consequence_downstream_gene_variant', 'Consequence_intergenic_variant', 'Consequence_splice_donor_variant','Consequence_NMD_transcript_variant', 'Consequence_protein_altering_variant', 'Consequence_splice_polypyrimidine_tract_variant', 'Consequence_inframe_insertion', 'Consequence_mature_miRNA_variant', 'Consequence_synonymous_variant', 'Consequence_regulatory_region_variant', 'Consequence_non_coding_transcript_exon_variant', 'Consequence_stop_lost', 'Consequence_TF_binding_site_variant', 'Consequence_splice_donor_region_variant', 'Consequence_stop_retained_variant', 'Consequence_splice_region_variant', 'Consequence_coding_sequence_variant', 'Consequence_upstream_gene_variant', 'Consequence_frameshift_variant', 'Consequence_start_retained_variant', 'Consequence_3_prime_UTR_variant', 'Consequence_inframe_deletion', 'Consequence_missense_variant', 'Consequence_non_coding_transcript_variant']
-    hopefully_all_consequences = list(set(hopefully_all_consequences))
-    mask = pd.DataFrame(data = np.zeros(shape= ( len(vep_file), len(hopefully_all_consequences))), columns=hopefully_all_consequences ,  dtype=float)
+    mask = pd.DataFrame(data = np.zeros(shape= ( len(vep_file), len(all_consequences))), columns=all_consequences ,  dtype="Int8")
+
     mask[list(dummies.columns)]=dummies
     vep_file[mask.columns]=mask
+
+    vep_file[vep_str_cols] =vep_file[vep_str_cols].astype(str)
+    vep_file[vep_float_cols] = vep_file[vep_float_cols].astype(float)
+    vep_file[all_consequences] = vep_file[all_consequences].astype("Int8")
+    
+
+
     return vep_file
 
 @cli.command()
