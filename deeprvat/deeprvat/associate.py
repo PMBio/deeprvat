@@ -96,12 +96,9 @@ def make_dataset_(
         with open(ds_pickled, "rb") as f:
             ds = pickle.load(f)
     else:
-        variant_file = data_config.get(
-            "variant_file", f'{data_config["gt_file"][:-3]}_variants.parquet'
-        )
         ds = DenseGTDataset(
             data_config["gt_file"],
-            variant_file=variant_file,
+            variant_file=data_config["variant_file"],
             split="",
             skip_y_na=False,
             **copy.deepcopy(data_config["dataset_config"]),
@@ -499,8 +496,11 @@ def regress_on_gene_scoretest(gene: str, burdens: np.ndarray, model_score):
             f"gene {gene}, p-value: {pv}, using saddle instead."
         )
         pv = model_score.pv_alt_model(burdens, method="saddle")
-
-    beta = model_score.coef(burdens)["beta"][0, 0]
+    # beta only for linear models
+    try:
+        beta = model_score.coef(burdens)["beta"][0, 0]
+    except:
+        beta = None
 
     genes_params_pvalues = ([], [], [])
     genes_params_pvalues[0].append(gene)
@@ -579,7 +579,12 @@ def regress_(
         logger.info(f"X shape: {X.shape}, Y shape: {y.shape}")
 
         # compute null_model for score test
-        model_score = scoretest.ScoretestNoK(y, X)
+        if len(np.unique(y)) == 2:
+            logger.info("Fitting binary model since only found two distinct y values")
+            model_score = scoretest.ScoretestLogit(y, X)
+        else:
+            logger.info("Fitting linear model")
+            model_score = scoretest.ScoretestNoK(y, X)
         genes_betas_pvals = [
             regress_on_gene_scoretest(gene, burdens[mask, i], model_score)
             for i, gene in tqdm(

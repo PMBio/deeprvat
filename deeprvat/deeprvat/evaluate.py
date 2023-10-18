@@ -77,7 +77,7 @@ def get_baseline_results(
         (
             r["type"].split("/")[0],
             r["type"].split("/")[1],
-        ): f"{r['base']}/{pheno}/{r['type']}/eval/burden_associations_testing.parquet"
+        ): f"{r['base']}/{pheno}/{r['type']}/eval/burden_associations.parquet"
         for r in config["baseline_results"]
     }
 
