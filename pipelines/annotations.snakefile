@@ -34,7 +34,7 @@ load_vep = " ".join([config["vep_load_cmd"], "&&" if config["vep_load_cmd"] else
 
 # init data path
 source_variant_file_pattern = config["source_variant_file_pattern"]
-bcf_dir = Path(config["bcf_dir"])
+source_variant_dir = Path(config["source_variant_dir"])
 anno_tmp_dir = Path(config["anno_tmp_dir"])
 anno_dir = Path(config["anno_dir"])
 metadata_dir = Path(config["metadata_dir"])
@@ -448,7 +448,7 @@ rule vep:
 
 rule extract_with_header:
     input:
-        bcf_dir / (source_variant_file_pattern + ".bcf"),
+        source_variant_dir / (source_variant_file_pattern + f".{config['source_variant_file_type']}"),
     output:
         anno_tmp_dir / (source_variant_file_pattern + "_variants_header.vcf"),
     shell:
@@ -473,7 +473,7 @@ rule strip_chr_name:
 
 rule extract_variants:
     input:
-        bcf_dir / (source_variant_file_pattern + ".bcf"),
+        source_variant_dir / (source_variant_file_pattern + ".bcf"),
     output:
         anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
     shell:
