@@ -473,7 +473,7 @@ rule strip_chr_name:
 
 rule extract_variants:
     input:
-        source_variant_dir / (source_variant_file_pattern + ".bcf"),
+        source_variant_dir / (source_variant_file_pattern + f".{config['source_variant_file_type']}"),
     output:
         anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
     shell:
