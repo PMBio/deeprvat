@@ -33,7 +33,7 @@ load_vep = " ".join([config["vep_load_cmd"], "&&" if config["vep_load_cmd"] else
 
 
 # init data path
-vcf_pattern = config["vcf_file_pattern"]
+source_variant_file_pattern = config["source_variant_file_pattern"]
 bcf_dir = Path(config["bcf_dir"])
 anno_tmp_dir = Path(config["anno_tmp_dir"])
 anno_dir = Path(config["anno_dir"])
@@ -103,7 +103,7 @@ rule all:
 rule aggregate_and_merge_absplice:
     input:
         abscore_files=expand(
-            [anno_tmp_dir / "absplice" / (vcf_pattern + "_AbSplice_DNA.csv")],
+            [anno_tmp_dir / "absplice" / (source_variant_file_pattern + "_AbSplice_DNA.csv")],
             zip,
             chr=chromosomes,
             block=block,
@@ -152,7 +152,7 @@ rule concat_annotations:
         pvcf = metadata_dir / config['pvcf_blocks_file'],
         anno_dir = anno_dir,
         vcf_files=
-            expand([anno_dir / f"{vcf_pattern}_merged.parquet"],
+            expand([anno_dir / f"{source_variant_file_pattern}_merged.parquet"],
             zip,
             chr=chromosomes,
             block=block)
@@ -164,22 +164,22 @@ rule concat_annotations:
             "concat-annotations",
             "{input.pvcf}",
             "{input.anno_dir}",
-            f"{str(vcf_pattern+'_merged.parquet').format(chr='{{chr}}', block='{{block}}')}",
+            f"{str(source_variant_file_pattern + '_merged.parquet').format(chr='{{chr}}', block='{{block}}')}",
             "{output}",
             f" --included-chromosomes {','.join(included_chromosomes)}"
             ])
 
 rule merge_annotations:
     input:
-        vep =  anno_dir / (vcf_pattern + "_vep_anno.tsv"),
-        deepripe_parclip =  anno_dir / (vcf_pattern + "_variants.parclip_deepripe.csv.gz"),
-        deepripe_k5 = anno_dir / (vcf_pattern + "_variants.eclip_k5_deepripe.csv.gz"),
-        deepripe_hg2 = anno_dir / (vcf_pattern + "_variants.eclip_hg2_deepripe.csv.gz"),
+        vep =  anno_dir / (source_variant_file_pattern + "_vep_anno.tsv"),
+        deepripe_parclip =  anno_dir / (source_variant_file_pattern + "_variants.parclip_deepripe.csv.gz"),
+        deepripe_k5 = anno_dir / (source_variant_file_pattern + "_variants.eclip_k5_deepripe.csv.gz"),
+        deepripe_hg2 = anno_dir / (source_variant_file_pattern + "_variants.eclip_hg2_deepripe.csv.gz"),
         variant_file = variant_file
 
 
     output:
-        anno_dir / f"{vcf_pattern}_merged.parquet",
+        anno_dir / f"{source_variant_file_pattern}_merged.parquet",
     shell: "HEADER=$(grep  -n  '#Uploaded_variation' "+"{input.vep}" +"| head | cut -f 1 -d ':') && python "+f"{annotation_python_file} "+"merge-annotations $(($HEADER-1)) {input.vep} {input.deepripe_parclip} {input.deepripe_hg2} {input.deepripe_k5} {input.variant_file} {output}"
 
 rule mv_absplice_files:
@@ -190,10 +190,10 @@ rule mv_absplice_files:
             / "data"
             / "results"
             / "hg38"
-            / (vcf_pattern + "_AbSplice_DNA.csv")
+            / (source_variant_file_pattern + "_AbSplice_DNA.csv")
         ),
     output:
-        anno_tmp_dir / "absplice" / (vcf_pattern + "_AbSplice_DNA.csv"),
+        anno_tmp_dir / "absplice" / (source_variant_file_pattern + "_AbSplice_DNA.csv"),
     shell:
         " ".join(
             [
@@ -216,7 +216,7 @@ rule absplice:
             [
                 absplice_repo_dir
                 / "example/data/resources/analysis_files/input_files"
-                / (vcf_pattern + "_variants_header.vcf"),
+                / (source_variant_file_pattern + "_variants_header.vcf"),
             ],
             zip,
             chr=chromosomes,
@@ -233,7 +233,7 @@ rule absplice:
                     / "data"
                     / "results"
                     / "hg38"
-                    / (vcf_pattern + "_AbSplice_DNA.csv")
+                    / (source_variant_file_pattern + "_AbSplice_DNA.csv")
                 ),
             ],
             zip,
@@ -253,11 +253,11 @@ rule mod_config_absplice:
 
 rule link_files_absplice:
     input:
-        anno_tmp_dir / (vcf_pattern + "_variants_header.vcf"),
+        anno_tmp_dir / (source_variant_file_pattern + "_variants_header.vcf"),
     output:
         absplice_repo_dir
         / "example/data/resources/analysis_files/input_files"
-        / (vcf_pattern + "_variants_header.vcf"),
+        / (source_variant_file_pattern + "_variants_header.vcf"),
     shell:
         f"mkdir -p {absplice_repo_dir/'example/data/resources/analysis_files/input_files'} && ln -s -r {{input}} {{output}}"
 
@@ -312,7 +312,7 @@ rule concat_deepSea:
     input:
         expand(
             [
-                anno_dir / (vcf_pattern + ".CLI.deepseapredict.diff.tsv"),
+                anno_dir / (source_variant_file_pattern + ".CLI.deepseapredict.diff.tsv"),
             ],
             zip,
             chr=chromosomes,
@@ -331,7 +331,7 @@ rule concat_deepSea:
             ",".join(included_chromosomes),
             "--sep '\t'",
             f"{anno_dir}",
-            str(vcf_pattern + ".CLI.deepseapredict.diff.tsv").format(
+            str(source_variant_file_pattern + ".CLI.deepseapredict.diff.tsv").format(
         chr="{{chr}}", block="{{block}}"
                 ),
                 str(metadata_dir / config["pvcf_blocks_file"]),
@@ -344,10 +344,10 @@ rule concat_deepSea:
 
 rule deepSea:
     input:
-        variants=anno_tmp_dir / (vcf_pattern + "_variants_header.vcf"),
+        variants=anno_tmp_dir / (source_variant_file_pattern + "_variants_header.vcf"),
         fasta=fasta_dir / fasta_file_name,
     output:
-        anno_dir / (vcf_pattern + ".CLI.deepseapredict.diff.tsv"),
+        anno_dir / (source_variant_file_pattern + ".CLI.deepseapredict.diff.tsv"),
     conda:
         "kipoi-veff2"
     shell:
@@ -358,10 +358,10 @@ rule deepSea:
 
 rule deepRiPe_parclip:
     input:
-        variants=anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
+        variants=anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
         fasta=fasta_dir / fasta_file_name,
     output:
-        anno_dir / (vcf_pattern + "_variants.parclip_deepripe.csv.gz"),
+        anno_dir / (source_variant_file_pattern + "_variants.parclip_deepripe.csv.gz"),
 
     shell:
         f"mkdir -p {pybedtools_tmp_path/'parclip'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'parclip'} {saved_deepripe_models_path} {{threads}} 'parclip'"
@@ -369,10 +369,10 @@ rule deepRiPe_parclip:
 
 rule deepRiPe_eclip_hg2:
     input:
-        variants=anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
+        variants=anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
         fasta=fasta_dir / fasta_file_name,
     output:
-        anno_dir / (vcf_pattern + "_variants.eclip_hg2_deepripe.csv.gz"),
+        anno_dir / (source_variant_file_pattern + "_variants.eclip_hg2_deepripe.csv.gz"),
     threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
     shell:
         f"mkdir -p {pybedtools_tmp_path/'hg2'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'hg2'} {saved_deepripe_models_path} {{threads}} 'eclip_hg2'"
@@ -380,10 +380,10 @@ rule deepRiPe_eclip_hg2:
 
 rule deepRiPe_eclip_k5:
     input:
-        variants=anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
+        variants=anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
         fasta=fasta_dir / fasta_file_name,
     output:
-        anno_dir / (vcf_pattern + "_variants.eclip_k5_deepripe.csv.gz"),
+        anno_dir / (source_variant_file_pattern + "_variants.eclip_k5_deepripe.csv.gz"),
 
     threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
     shell:
@@ -393,10 +393,10 @@ rule deepRiPe_eclip_k5:
 
 rule vep:
     input:
-        vcf=anno_tmp_dir / (vcf_pattern + "_stripped.vcf.gz"),
+        vcf=anno_tmp_dir / (source_variant_file_pattern + "_stripped.vcf.gz"),
         fasta=fasta_dir / fasta_file_name,
     output:
-        anno_dir / (vcf_pattern + "_vep_anno.tsv"),
+        anno_dir / (source_variant_file_pattern + "_vep_anno.tsv"),
     threads: vep_nfork
 
     shell:
@@ -448,9 +448,9 @@ rule vep:
 
 rule extract_with_header:
     input:
-        bcf_dir / (vcf_pattern + ".bcf"),
+        bcf_dir / (source_variant_file_pattern + ".bcf"),
     output:
-        anno_tmp_dir / (vcf_pattern + "_variants_header.vcf"),
+        anno_tmp_dir / (source_variant_file_pattern + "_variants_header.vcf"),
     shell:
         (
             load_bfc
@@ -464,18 +464,18 @@ rule extract_with_header:
 
 rule strip_chr_name:
     input:
-        anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
+        anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
     output:
-        anno_tmp_dir / (vcf_pattern + "_stripped.vcf.gz"),
+        anno_tmp_dir / (source_variant_file_pattern + "_stripped.vcf.gz"),
     shell:
         f"{load_hts} cut -c 4- {{input}} |bgzip > {{output}}"
 
 
 rule extract_variants:
     input:
-        bcf_dir / (vcf_pattern + ".bcf"),
+        bcf_dir / (source_variant_file_pattern + ".bcf"),
     output:
-        anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
+        anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
     shell:
         " ".join(
             [

@@ -5,7 +5,7 @@ htslib_load_cmd : module load htslib/1.9
 perl_load_cmd : module load perl/5.20.2
 vep_load_cmd : module load vep/108.1
 
-bcf_file_pattern : ukb23156_c{chr}_b{block}_v1
+source_variant_file_pattern : ukb23156_c{chr}_b{block}_v1
 included_chromosomes : ['21','22']
 
 metadata_dir : input_dir/vcf/metadata
