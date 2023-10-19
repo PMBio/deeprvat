@@ -3,7 +3,6 @@ run-name: DeepRVAT 🧬🧪💻🧑‍🔬
 on: [ push ]
 
 jobs:
-
   DeepRVAT-Pipeline-Smoke-Tests:
     runs-on: ubuntu-latest
     steps:
