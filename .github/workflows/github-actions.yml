@@ -15,4 +15,3 @@ jobs:
           directory: 'example/annotations'
           snakefile: 'pipelines/annotations.snakefile'
           args: '-j 2 -n --configfile pipelines/config/deeprvat_annotation_config.yaml'
-          stagein: 'mkdir -pv preprocessing_workdir/norm/variants/; mkdir -pv output_dir/annotations; touch preprocessing_workdir/norm/variants/variants.tsv.gz'
