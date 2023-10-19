@@ -1,8 +1,5 @@
-# This CITATION.cff file was generated with cffinit.
-# Visit https://bit.ly/cffinit to generate yours today!
-
 cff-version: 1.2.0
-title: DeepRVAT Integration of variant annotations using deep set networks boosts rare variant association genetics
+title: DeepRVAT Integration of variant annotations using deep set networks boosts rare variant association genetics.
 message: >-
   If you use this software, please cite it using the
   metadata from this file.
@@ -11,30 +8,30 @@ authors:
   - given-names: Brian
     family-names: Clarke
     orcid: 'https://orcid.org/0000-0002-6695-286X'
-  - given-names: 'Eva  '
+  - given-names: Eva
     family-names: Holtkamp
     orcid: 'https://orcid.org/0000-0002-2129-9908'
-  - given-names: 'Hakime  '
+  - given-names: Hakime
     family-names: Öztürk
-  - given-names: 'Marcel  '
+  - given-names: Marcel
     family-names: Mück
     orcid: 'https://orcid.org/0009-0000-3129-2630'
-  - given-names: ' Magnus  '
+  - given-names: Magnus
     family-names: Wahlberg
     orcid: 'https://orcid.org/0009-0001-9140-2392'
-  - given-names: ' Kayla  '
+  - given-names: Kayla
     family-names: Meyer
     orcid: 'https://orcid.org/0009-0003-5063-5266'
-  - given-names: ' Felix  '
+  - given-names: Felix
     family-names: Brechtmann
     orcid: 'https://orcid.org/0000-0002-0110-152X'
-  - given-names: ' Florian Rupert  '
+  - given-names: Florian Rupert
     family-names: Hölzlwimmer
     orcid: 'https://orcid.org/0000-0002-5522-2562'
-  - given-names: ' Julien  '
+  - given-names: Julien
     family-names: Gagneur
     orcid: 'https://orcid.org/0000-0002-8924-8365'
-  - given-names: ' Oliver  '
+  - given-names: Oliver
     family-names: Stegle
     orcid: 'https://orcid.org/0000-0002-8818-7193'
 identifiers:
