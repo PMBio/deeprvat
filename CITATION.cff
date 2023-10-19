@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-title: DeepRVAT Integration of variant annotations using deep set networks boosts rare variant association genetics.
+title: DeepRVAT
 message: >-
   If you use this software, please cite it using the
   metadata from this file.
@@ -39,6 +39,8 @@ identifiers:
     value: 10.1101/2023.07.12.548506
 repository-code: 'https://github.com/PMBio/deeprvat'
 abstract: >-
+  Integration of variant annotations using deep set networks
+  boosts rare variant association genetics.
   Rare genetic variants can strongly predispose to disease,
   yet accounting for rare variants in genetic analyses is
   statistically challenging. While rich variant annotations
