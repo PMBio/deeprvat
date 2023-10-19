@@ -216,7 +216,7 @@ rule absplice:
             [
                 absplice_repo_dir
                 / "example/data/resources/analysis_files/input_files"
-                / (source_variant_file_pattern + "_variants_header.vcf"),
+                / (source_variant_file_pattern + "_variants_header.vcf.gz"),
             ],
             zip,
             chr=chromosomes,
@@ -253,11 +253,11 @@ rule mod_config_absplice:
 
 rule link_files_absplice:
     input:
-        anno_tmp_dir / (source_variant_file_pattern + "_variants_header.vcf"),
+        anno_tmp_dir / (source_variant_file_pattern + "_variants_header.vcf.gz"),
     output:
         absplice_repo_dir
         / "example/data/resources/analysis_files/input_files"
-        / (source_variant_file_pattern + "_variants_header.vcf"),
+        / (source_variant_file_pattern + "_variants_header.vcf.gz"),
     shell:
         f"mkdir -p {absplice_repo_dir/'example/data/resources/analysis_files/input_files'} && ln -s -r {{input}} {{output}}"
 
@@ -344,7 +344,7 @@ rule concat_deepSea:
 
 rule deepSea:
     input:
-        variants=anno_tmp_dir / (source_variant_file_pattern + "_variants_header.vcf"),
+        variants=anno_tmp_dir / (source_variant_file_pattern + "_variants_header.vcf.gz"),
         fasta=fasta_dir / fasta_file_name,
     output:
         anno_dir / (source_variant_file_pattern + ".CLI.deepseapredict.diff.tsv"),
@@ -450,7 +450,7 @@ rule extract_with_header:
     input:
         source_variant_dir / (source_variant_file_pattern + f".{config['source_variant_file_type']}"),
     output:
-        anno_tmp_dir / (source_variant_file_pattern + "_variants_header.vcf"),
+        anno_tmp_dir / (source_variant_file_pattern + "_variants_header.vcf.gz"),
     shell:
         (
             load_bfc
