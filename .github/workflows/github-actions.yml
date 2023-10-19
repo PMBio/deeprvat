@@ -84,6 +84,18 @@ jobs:
           args: '-j 2 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
           stagein: 'touch example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa'
 
+  DeepRVAT-Annotation-Pipeline-Smoke-Tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Annotations Smoke Test
+        uses: snakemake/snakemake-github-action@v1.25.1
+        with:
+          directory: 'example/annotations'
+          snakefile: 'pipelines/annotations.snakefile'
+          args: '-j 2 -n --configfile pipelines/config/deeprvat_annotation_config.yaml'
+
   DeepRVAT-Preprocessing-Pipeline-Tests:
     runs-on: ubuntu-latest
     needs: DeepRVAT-Preprocessing-Pipeline-Smoke-Tests
