@@ -278,7 +278,7 @@ rule deepSea_PCA:
                 "python",
                 f"{annotation_python_file}",
                 "deepsea-pca",
-                "--n-components 100",
+                f"--n-components {config['deepsea_pca_n_components']}",
                 "{input}",
                 str(anno_dir / "deepSea_pca"/ "pca_matrix"),
                 str(anno_dir / "deepSea_pca"),

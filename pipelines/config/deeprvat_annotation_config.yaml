@@ -33,3 +33,4 @@ n_jobs_deepripe : 32
 n_cores_merge_absplice : 32
 n_cores_absplice : 32
 deepsea_pca_pickle_filepath : annotations/deepSea_pca/pca.pkl
+deepsea_pca_n_components: 100
