@@ -1,13 +1,16 @@
 fasta_dir : reference
 fasta_file_name : hg38.fa
-bcftools_load_cmd : module load bcftools/1.9
-htslib_load_cmd : module load htslib/1.9
-perl_load_cmd : module load perl/5.20.2
-vep_load_cmd : module load vep/108.1
+# Uncomment to use module load for required tools
+#bcftools_load_cmd : module load bcftools/1.9
+#htslib_load_cmd : module load htslib/1.9
+#perl_load_cmd : module load perl/5.20.2
+#vep_load_cmd : module load vep/108.1
 
 source_variant_file_pattern : test_vcf_data_c{chr}_b{block}
 source_variant_file_type: 'vcf.gz'
-included_chromosomes : ['21','22']
+
+# Uncomment to select subset of chromosomes
+#included_chromosomes : ['21','22']
 
 metadata_dir : input_dir/vcf/metadata
 pvcf_blocks_file : pvcf_blocks.txt

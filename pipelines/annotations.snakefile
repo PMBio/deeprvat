@@ -28,13 +28,17 @@ merge_nthreads = int(config.get("merge_nthreads") or 64)
 
 # If modules are used we load them here
 load_bfc = " ".join(
-    [config["bcftools_load_cmd"], "&&" if config["bcftools_load_cmd"] else ""]
+    [config["bcftools_load_cmd"], "&&" if config.get("bcftools_load_cmd") else ""]
 )
 load_hts = " ".join(
-    [config["htslib_load_cmd"], "&&" if config["htslib_load_cmd"] else ""]
+    [config["htslib_load_cmd"], "&&" if config.get("htslib_load_cmd") else ""]
 )
-load_perl = " ".join([config["perl_load_cmd"], "&&" if config["perl_load_cmd"] else ""])
-load_vep = " ".join([config["vep_load_cmd"], "&&" if config["vep_load_cmd"] else ""])
+load_perl = " ".join(
+    [config["perl_load_cmd"], "&&" if config.get("perl_load_cmd") else ""]
+)
+load_vep = " ".join(
+    [config["vep_load_cmd"], "&&" if config.get("vep_load_cmd") else ""]
+)
 
 
 # init data path
