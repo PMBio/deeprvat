@@ -15,7 +15,8 @@ variant_filtering:
     apply_filter: False
     filter_cutoff: 2
 
-# False by default, you can change this if you want to run on large datasets (see Readme)
+# False by default, you can change this if you want to run on large datasets
+# (see absplice Readme https://github.com/gagneurlab/absplice#absplice-dna)
 use_rocksdb: True
 
 splicemap_tissues:
