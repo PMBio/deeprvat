@@ -428,7 +428,6 @@ rule vep:
                 load_bfc,
                 load_vep,
                 "vep",
-                # str(vep_source_dir / "vep"),
                 "--input_file",
                 "{input.vcf}",
                 "--output_file",
