@@ -1,4 +1,3 @@
-import itertools
 import logging
 import os
 import pickle
@@ -6,7 +5,7 @@ import random
 import sys
 import time
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import numpy as np
 import click
@@ -17,7 +16,7 @@ import tensorflow as tf
 from joblib import Parallel, delayed
 from keras.models import load_model
 from sklearn.decomposition import PCA
-from tqdm import tqdm, trange
+from tqdm import tqdm
 
 
 def precision(y_true, y_pred):
@@ -107,7 +106,7 @@ def deepripe_get_model_info(saved_models_dict, saved_deepripe_models_path):
             "G45",
             "XPO5",
         ]
-    )  # 27
+    )
 
     pc_RBPnames_med = np.array(
         [
@@ -382,13 +381,13 @@ def seq_to_1hot(seq, randomsel=True):
 
 def convert2bed(variants_file, output_dir):
     file_name = variants_file.split("/")[-1]
-    print(f"Generating BED file: {output_dir}/{file_name[:-3]}bed")
+    logger.info(f"Generating BED file: {output_dir}/{file_name[:-3]}bed")
 
     df_variants = pd.read_csv(
         variants_file, sep="\t", names=["#CHROM", "POS", "ID", "REF", "ALT"]
     )  # hg38
 
-    print(df_variants.head())
+    logger.debug(df_variants.head())
 
     df_bed = pd.DataFrame()
     df_bed["CHR"] = df_variants["#CHROM"].astype(str)
@@ -442,26 +441,9 @@ def deepripe_encode_variant_bedline(bedline, genomefasta, flank_size=75):
 
 
 def deepripe_score_variant_onlyseq_all(
-    model_group, variant_bed, genomefasta, seq_len=200, batch_size=1024, n_jobs=32
+    model_group, variant_bed, genomefasta, seq_len=200, n_jobs=32
 ):
     predictions = {}
-    # counter = 0
-    # encoded_seqs_list_old = []
-    # logger.info("Encoding sequences")
-    # for bedline in tqdm(variant_bed):
-    #     counter += 1
-    #     encoded_seqs = deepripe_encode_variant_bedline(
-    #         bedline, genomefasta, flank_size=(seq_len // 2) + 2
-    #     )
-
-    #     if encoded_seqs is None:
-    #         encoded_seqs = np.ones(encoded_seqs_list_old[0].shape) * float("nan")
-
-    #     encoded_seqs_list_old.append(encoded_seqs)
-
-    #     if counter % 100000 == 0:
-    #         pybedtools.cleanup(remove_all=True)
-
     encoded_seqs_list = Parallel(n_jobs=n_jobs, verbose=10)(
         delayed(deepripe_encode_variant_bedline)(
             bedline, genomefasta, flank_size=(seq_len // 2) + 2
@@ -522,7 +504,7 @@ def deepsea_pca(n_components: int, deepsea_file: str, pca_object: str, out_dir: 
     if os.path.exists(pca_object):
         if ".pkl" in pca_object:
             with open(pca_object, "rb") as pickle_file:
-                logger.info("loading pca objectas pickle file")
+                logger.info("loading pca objects pickle file")
                 pca = pickle.load(pickle_file)
                 X_pca = pca.transform(X_std)
         else:
@@ -530,8 +512,8 @@ def deepsea_pca(n_components: int, deepsea_file: str, pca_object: str, out_dir: 
                 logger.error("did not recognize file format, assuming npy")
             logger.info("loading pca components as npy object")
             components = np.load(pca_object)
-            logger.info(f"Projecting data to {pca.components_.shape[0]} PCs")
-            X_pca = np.matmul(X_std, pca.components_.transpose())
+            logger.info(f"Projecting data to {components.shape[0]} PCs")
+            X_pca = np.matmul(X_std, components.transpose())
     else:
         logger.info(f"creating pca object and saving it to {pca_object}")
         logger.info(f"Projecting rows to {n_components} PCs")
@@ -600,7 +582,7 @@ def scorevariants_deepripe(
         convert2bed(variants_file, output_dir)
 
     variant_bed = pybedtools.BedTool(bed_file)
-    print(f"Scoring variants for: {bed_file}")
+    logger.info(f"Scoring variants for: {bed_file}")
 
     ### paths for experiments
     saved_models_dict = {
@@ -669,16 +651,16 @@ def scorevariants_deepripe(
     )
 
     for choice in current_model_type.keys():
-        print(choice)
+        logger.debug(choice)
         _, RBPnames = current_model_type[choice]
         score_list = predictions[choice]
         score_list = np.asarray(score_list)
-        print(f"Output size: {score_list.shape}")
+        logger.info(f"Output size: {score_list.shape}")
 
         ### write predictions to df
         for ix, RBP_name in enumerate(RBPnames):
             df_variants[RBP_name] = score_list[:, ix]
-    print(
+    logger.info(
         f"saving file to: {output_dir}/{file_name[:-3]}{saved_model_type}_deepripe.csv.gz"
     )
     df_variants.to_csv(
@@ -724,10 +706,10 @@ def process_chunk(
         f"Number of unique variants(variant) in merged {len(merged['variant'].unique())}"
     )
 
+    del ab_splice_res
+
     return merged
 
-    del merged
-    del ab_splice_res
 
 
 @cli.command()
@@ -760,13 +742,12 @@ def get_abscores(
     abs_splice_res_dir = Path(abs_splice_res_dir)
 
     tissue_agg_function = "max"
-    tissues_to_exclude = ["Testis"]
     tissues_to_exclude = []
     ab_splice_agg_score_file = absplice_score_file
 
     if not Path(ab_splice_agg_score_file).exists():
         logger.info("creating abSplice score file.. ")
-        all_absplice_scores = []
+
         parallel = Parallel(n_jobs=njobs, return_as="generator")
         output_generator = parallel(
             delayed(process_chunk)(
@@ -846,7 +827,7 @@ def deepripe_pca(n_components: int, deepripe_file: str, out_dir: str):
     logger.info("Reading deepripe file")
     df = pd.read_csv(deepripe_file)
     df = df.drop(["Uploaded_variant"], axis=1)
-    print(df.columns)
+    logger.debug(df.columns)
     df = df.dropna()
     key_df = df[["chrom", "pos", "ref", "alt", "id"]].reset_index(drop=True)
 
@@ -1142,7 +1123,7 @@ def process_vep(vep_file: object) -> object:
     )
 
     vep_file["pos"] = vep_file["pos"].astype(int)
-    logger.info(vep_file.columns)
+    logger.debug(vep_file.columns)
 
     vep_str_cols = [
         "CDS_position",
