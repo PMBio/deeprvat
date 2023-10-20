@@ -81,7 +81,6 @@ rule combine_genotypes:
             chr=chromosomes,
             block=block,
         ),
-    resources: mem_mb=15000
     output:
         preprocessed_dir / "genotypes.h5",
     shell:
@@ -133,7 +132,6 @@ rule preprocess:
         qc_filtered_samples=qc_filtered_samples_dir,
     output:
         expand(preprocessed_dir / "genotypes_chr{chr}.h5",chr=set(chromosomes)),
-    resources: mem_mb=15000
     shell:
         " ".join(
             [
@@ -176,8 +174,6 @@ rule qc_varmiss:
         bcf_dir / "{vcf_filename_pattern}.bcf",
     output:
         qc_varmiss_dir / "{vcf_filename_pattern}.tsv.gz",
-    resources:
-        mem_mb=lambda wildcards, attempt: 256 * attempt,
     shell:
         f'{load_bcftools} bcftools query --format "%CHROM\t%POS\t%REF\t%ALT\n" --include "F_MISSING >= 0.1" {{input}} | gzip > {{output}}'
 
@@ -187,8 +183,6 @@ rule qc_hwe:
         bcf_dir / "{vcf_filename_pattern}.bcf",
     output:
         qc_hwe_dir / "{vcf_filename_pattern}.tsv.gz",
-    resources:
-        mem_mb=lambda wildcards, attempt: 256 * (attempt + 1),
     shell:
         f'{load_bcftools} bcftools +fill-tags --output-type u {{input}} -- --tags HWE | bcftools query --format "%CHROM\t%POS\t%REF\t%ALT\n" --include "INFO/HWE <= 1e-15" | gzip > {{output}}'
 
@@ -198,8 +192,6 @@ rule qc_read_depth:
         bcf_dir / f"{vcf_filename_pattern}.bcf",
     output:
         qc_read_depth_dir / "chr{chr}" / f"{vcf_filename_pattern}.tsv.gz",
-    resources:
-        mem_mb=lambda wildcards, attempt: 256 * attempt,
     shell:
         f"""{load_bcftools} bcftools query --format '[%CHROM\\t%POS\\t%REF\\t%ALT\\t%SAMPLE\\n]' --include '(GT!="RR" & GT!="mis" & TYPE="snp" & FORMAT/DP < 7) | (GT!="RR" & GT!="mis" & TYPE="indel" & FORMAT/DP < 10)' {{input}} | gzip > {{output}}"""
 
@@ -209,8 +201,6 @@ rule qc_allelic_imbalance:
         bcf_dir / "{vcf_filename_pattern}.bcf",
     output:
         qc_allelic_imbalance_dir / "{vcf_filename_pattern}.tsv.gz",
-    resources:
-        mem_mb=lambda wildcards, attempt: 256 * attempt,
     shell:
         f"""{load_bcftools} bcftools query --format '%CHROM\t%POS\t%REF\t%ALT\n' --exclude 'COUNT(GT="het")=0 || (GT="het" & ((TYPE="snp" & (FORMAT/AD[*:1] / FORMAT/AD[*:0]) > 0.15) | (TYPE="indel" & (FORMAT/AD[*:1] / FORMAT/AD[*:0]) > 0.20)))' {{input}} | gzip > {{output}}"""
 
@@ -240,8 +230,6 @@ rule normalize:
         fastaindex=fasta_index_file,
     output:
         bcf_dir / f"{vcf_filename_pattern}.bcf",
-    resources:
-        mem_mb=lambda wildcards, attempt: 16384 * (attempt + 1),
     shell:
         f"""{load_bcftools} bcftools view --samples-file {{input.samplefile}} --output-type u {{input.vcf}} | bcftools view --include 'COUNT(GT="alt") > 0' --output-type u | bcftools norm -m-both -f {{input.fasta}} --output-type b --output {{output}}"""
 
@@ -251,8 +239,6 @@ rule sparsify:
         bcf=bcf_dir / f"{vcf_filename_pattern}.bcf",
     output:
         tsv=sparse_dir / "chr{chr}" / f"{vcf_filename_pattern}.tsv.gz",
-    resources:
-        mem_mb=512,
     shell:
         f"""{load_bcftools} bcftools query --format '[%CHROM\t%POS\t%REF\t%ALT\t%SAMPLE\t%GT\n]' --include 'GT!="RR" & GT!="mis"' {{input.bcf}} \
         | sed 's/0[/,|]1/1/; s/1[/,|]0/1/; s/1[/,|]1/2/; s/0[/,|]0/0/' | gzip > {{output.tsv}}"""
@@ -263,8 +249,6 @@ rule variants:
         bcf=bcf_dir / f"{vcf_filename_pattern}.bcf",
     output:
         norm_variants_dir / f"{vcf_filename_pattern}.tsv.gz",
-    resources:
-        mem_mb=512,
     shell:
         f"{load_bcftools} bcftools query --format '%CHROM\t%POS\t%REF\t%ALT\n' {{input}} | gzip > {{output}}"
 
@@ -279,8 +263,6 @@ rule concatenate_variants:
         ),
     output:
         norm_variants_dir / "variants_no_id.tsv.gz",
-    resources:
-        mem_mb=256,
     shell:
         "{zcat_cmd} {input} | gzip > {output}"
 
@@ -291,8 +273,6 @@ rule add_variant_ids:
     output:
         variants=norm_variants_dir / "variants.tsv.gz",
         duplicates=qc_duplicate_vars_dir / "duplicates.tsv",
-    resources:
-        mem_mb=2048,
     shell:
         f"{preprocessing_cmd} add-variant-ids {{input}} {{output.variants}} {{output.duplicates}}"
 
@@ -303,8 +283,6 @@ rule create_parquet_variant_ids:
     output:
         variants=norm_variants_dir / "variants.parquet",
         duplicates=qc_duplicate_vars_dir / "duplicates.parquet",
-    resources:
-        mem_mb=2048,
     shell:
         f"{preprocessing_cmd} add-variant-ids {{input}} {{output.variants}} {{output.duplicates}}"
 
