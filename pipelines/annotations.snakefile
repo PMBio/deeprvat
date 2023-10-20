@@ -481,9 +481,6 @@ rule extract_with_header:
         )
 
 
-# load_bfc + """  bcftools query -f '%CHROM\\t%POS\\t%ID\\t%REF\\t%ALT\\t%QUAL\\t%FILTER\\n'    --print-header {input} > {output}"""
-
-
 rule strip_chr_name:
     input:
         anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
