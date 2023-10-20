@@ -101,7 +101,7 @@ Data for VEP plugins and the CADD cache are stored in `annotation data`.
 After configuration and activating the `deeprvat_annotations` environment run the pipeline using snakemake:
 
 ```shell
-  snakemake -j <nr_cores> -s annotations.snakemake --configfile config/deeprvat_annotation.config 
+  snakemake -j <nr_cores> -s annotations.snakemake --configfile config/deeprvat_annotation.config --use-conda
 ```
 ## Running the annotation pipeline without the preprocessing pipeline
 
