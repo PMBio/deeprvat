@@ -711,7 +711,6 @@ def process_chunk(
     return merged
 
 
-
 @cli.command()
 @click.argument("current_annotation_file", type=click.Path(exists=True))
 @click.argument("abs_splice_res_dir", type=click.Path(exists=True))
