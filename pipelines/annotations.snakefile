@@ -18,7 +18,9 @@ annotation_python_file = (
 setup_shell_path = (
     deeprvat_parent_path / "deeprvat" / "annotations" / "setup_annotation_workflow.sh"
 )
-included_chromosomes = config["included_chromosomes"]
+included_chromosomes = config.get(
+    "included_chromosomes", [f"{c}" for c in range(1, 23)] + ["X", "Y"]
+)
 variant_file = config["variant_file_path"]
 pybedtools_tmp_path = Path(config["pybedtools_tmp_path"])
 saved_deepripe_models_path = (
