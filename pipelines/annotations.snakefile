@@ -29,19 +29,11 @@ saved_deepripe_models_path = (
 merge_nthreads = int(config.get("merge_nthreads") or 64)
 
 # If modules are used we load them here
-load_bfc = (
-    f'{config["bcftools_load_cmd"]} &&' if config.get("bcftools_load_cmd") else ""
-)
+load_bfc = f'{config["bcftools_load_cmd"]} &&' if config.get("bcftools_load_cmd") else ""
+load_hts = f'{config["htslib_load_cmd"]} &&' if config.get("htslib_load_cmd") else ""
+load_perl = f'{config["perl_load_cmd"]} &&' if config.get("perl_load_cmd") else ""
+load_vep = f'{config["vep_load_cmd"]} &&' if config.get("vep_load_cmd") else ""
 
-load_hts = " ".join(
-    [config["htslib_load_cmd"], "&&" if config.get("htslib_load_cmd") else ""]
-)
-load_perl = " ".join(
-    [config["perl_load_cmd"], "&&" if config.get("perl_load_cmd") else ""]
-)
-load_vep = " ".join(
-    [config["vep_load_cmd"], "&&" if config.get("vep_load_cmd") else ""]
-)
 
 # init data path
 source_variant_file_pattern = config["source_variant_file_pattern"]
