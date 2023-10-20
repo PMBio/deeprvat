@@ -42,7 +42,6 @@ load_vep = " ".join(
     [config["vep_load_cmd"], "&&" if config.get("vep_load_cmd") else ""]
 )
 
-
 # init data path
 source_variant_file_pattern = config["source_variant_file_pattern"]
 source_variant_dir = Path(config["source_variant_dir"])
@@ -52,11 +51,9 @@ metadata_dir = Path(config["metadata_dir"])
 vep_plugin_repo = Path(config["vep_plugin_repo"])
 condel_config_path = vep_plugin_repo / "config" / "Condel" / "config"
 
-
 # init cadd PLugin
 cadd_snv_file = config["cadd_snv_file"]
 cadd_indel_file = config["cadd_indel_file"]
-
 
 # init vep
 vep_source_dir = Path(config["vep_repo_dir"])
@@ -181,7 +178,7 @@ rule concat_annotations:
                 "concat-annotations",
                 "{input.pvcf}",
                 "{input.anno_dir}",
-                f"{str(source_variant_file_pattern + '_merged.parquet').format(chr='{{chr}}', block='{{block}}')}",
+                f"{str(source_variant_file_pattern + '_merged.parquet').format(chr='{{chr}}',block='{{block}}')}",
                 "{output}",
                 f" --included-chromosomes {','.join(included_chromosomes)}",
             ]
@@ -270,7 +267,7 @@ rule absplice:
     threads: n_cores_absplice
     shell:
         (
-            f"""python -m snakemake -s {str(absplice_repo_dir/"example"/"workflow"/"Snakefile")} -j 1 --use-conda --rerun-incomplete --directory {str(absplice_repo_dir /"example"/"workflow")} -c"""
+            f"""python -m snakemake -s {str(absplice_repo_dir / "example" / "workflow" / "Snakefile")} -j 1 --use-conda --rerun-incomplete --directory {str(absplice_repo_dir / "example" / "workflow")} -c"""
             + "{threads}"
         )
 
@@ -290,7 +287,7 @@ rule link_files_absplice:
         / "example/data/resources/analysis_files/input_files"
         / (source_variant_file_pattern + "_variants_header.vcf.gz"),
     shell:
-        f"mkdir -p {absplice_repo_dir/'example/data/resources/analysis_files/input_files'} && ln -s -r {{input}} {{output}}"
+        f"mkdir -p {absplice_repo_dir / 'example/data/resources/analysis_files/input_files'} && ln -s -r {{input}} {{output}}"
 
 
 rule deepSea_PCA:
@@ -390,7 +387,7 @@ rule deepRiPe_parclip:
     output:
         anno_dir / (source_variant_file_pattern + "_variants.parclip_deepripe.csv.gz"),
     shell:
-        f"mkdir -p {pybedtools_tmp_path/'parclip'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'parclip'} {saved_deepripe_models_path} {{threads}} 'parclip'"
+        f"mkdir -p {pybedtools_tmp_path / 'parclip'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'parclip'} {saved_deepripe_models_path} {{threads}} 'parclip'"
 
 
 rule deepRiPe_eclip_hg2:
@@ -401,7 +398,7 @@ rule deepRiPe_eclip_hg2:
         anno_dir / (source_variant_file_pattern + "_variants.eclip_hg2_deepripe.csv.gz"),
     threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
     shell:
-        f"mkdir -p {pybedtools_tmp_path/'hg2'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'hg2'} {saved_deepripe_models_path} {{threads}} 'eclip_hg2'"
+        f"mkdir -p {pybedtools_tmp_path / 'hg2'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'hg2'} {saved_deepripe_models_path} {{threads}} 'eclip_hg2'"
 
 
 rule deepRiPe_eclip_k5:
@@ -412,7 +409,7 @@ rule deepRiPe_eclip_k5:
         anno_dir / (source_variant_file_pattern + "_variants.eclip_k5_deepripe.csv.gz"),
     threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
     shell:
-        f"mkdir -p {pybedtools_tmp_path/'k5'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'k5'} {saved_deepripe_models_path} {{threads}} 'eclip_k5'"
+        f"mkdir -p {pybedtools_tmp_path / 'k5'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'k5'} {saved_deepripe_models_path} {{threads}} 'eclip_k5'"
 
 
 rule vep:
