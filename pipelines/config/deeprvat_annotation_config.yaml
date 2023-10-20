@@ -9,7 +9,7 @@ fasta_file_name : hg38.fa
 source_variant_file_pattern : test_vcf_data_c{chr}_b{block}
 source_variant_file_type: 'vcf.gz'
 
-# comment out to run on all chromosomes
+# comment out / remove to run on all chromosomes
 included_chromosomes : ['21','22']
 
 metadata_dir : input_dir/vcf/metadata
