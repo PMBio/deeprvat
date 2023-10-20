@@ -29,9 +29,10 @@ saved_deepripe_models_path = (
 merge_nthreads = int(config.get("merge_nthreads") or 64)
 
 # If modules are used we load them here
-load_bfc = " ".join(
-    [config["bcftools_load_cmd"], "&&" if config.get("bcftools_load_cmd") else ""]
+load_bfc = (
+    f'{config["bcftools_load_cmd"]} &&' if config.get("bcftools_load_cmd") else ""
 )
+
 load_hts = " ".join(
     [config["htslib_load_cmd"], "&&" if config.get("htslib_load_cmd") else ""]
 )
