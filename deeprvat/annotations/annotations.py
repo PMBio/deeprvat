@@ -7,7 +7,7 @@ import sys
 import time
 from pathlib import Path
 from typing import List, Optional
-
+import dask.dataframe as dd
 import numpy as np
 import click
 import keras.backend as K
@@ -499,9 +499,9 @@ def cli():
 @click.argument("deepsea-file", type=click.Path(exists=True))
 @click.argument("pca-object", type=click.Path())
 @click.argument("out-dir", type=click.Path(exists=True))
-def deepsea_pca(n_components: int, deepsea_file: str, pca_onject: str, out_dir: str):
+def deepsea_pca(n_components: int, deepsea_file: str, pca_object: str, out_dir: str):
     logger.info("Loading deepSea data")
-    df = pd.read_csv(deepsea_file)
+    df = pd.read_parquet(deepsea_file)
     logger.info("filling NAs")
     df = df.fillna(0)
     logger.info("Extracting matrix for PCA")
@@ -768,7 +768,7 @@ def get_abscores(
     if not Path(ab_splice_agg_score_file).exists():
         logger.info("creating abSplice score file.. ")
         all_absplice_scores = []
-        parallel = Parallel(n_jobs=njobs, return_as="generator")
+        parallel = Parallel(n_jobs=njobs, return_as="generator", verbose=50)
         output_generator = parallel(delayed(process_chunk)(i , abs_splice_res_dir, tissues_to_exclude, tissue_agg_function, ca_shortened) for i in tqdm(os.listdir(abs_splice_res_dir)))
         all_absplice_scores = list(output_generator)
         
@@ -929,7 +929,7 @@ def process_annotations(in_variants: str, out_variants: str):
     variants.to_parquet(out_variants)
 
 
-def process_chunk_addids(chunk, variants):
+def process_chunk_addids(chunk:pd.DataFrame, variants:pd.DataFrame) ->pd.DataFrame:
     chunk = chunk.rename(
         columns={
             "#CHROM": "chrom",
@@ -941,8 +941,10 @@ def process_chunk_addids(chunk, variants):
         }
     )
     key_cols = ["chrom", "pos", "ref", "alt"]
-    chunk_shape= chunk.shape
+    
     chunk.drop_duplicates(subset=key_cols, inplace = True)
+    chunk_shape= chunk.shape
+   
     chunk = pd.merge(chunk, variants,  on=key_cols, how="left", validate="1:1")
     
     try: 
@@ -957,40 +959,82 @@ def process_chunk_addids(chunk, variants):
         raise AssertionError       
     return chunk
 
+
+#TODO: write chunkwise
 @cli.command()
 @click.argument("annotation_file", type=click.Path(exists=True))
 @click.argument("variant_file", type=click.Path(exists=True))
 @click.argument("njobs", type=int)
 @click.argument("out_file", type=click.Path())
 def add_ids(annotation_file: str, variant_file: str, njobs:int, out_file: str):
-    data = pd.read_csv(annotation_file, chunksize=10_000)
+    data = pd.read_csv(annotation_file, chunksize=100_000)
     
     
 
     all_variants = pd.read_csv(variant_file, sep="\t")
-    parallel = Parallel(n_jobs=njobs, return_as="generator")
+    parallel = Parallel(n_jobs=njobs, return_as="generator", verbose=50)
 
     output_generator = parallel(delayed(process_chunk_addids)(chunk, all_variants) for chunk in data)
-    pd.concat([batch for batch in output_generator]).to_csv(out_file, index=False)
+    first=True
+    for batch in tqdm(output_generator):
+        if first:
+            batch.to_parquet(out_file, engine= "fastparquet")
+        else:
+            batch.to_parquet(out_file, engine= "fastparquet", append=True)
+        first=False
+
+    
+
+@cli.command()
+@click.argument("annotation_file", type=click.Path(exists=True))
+@click.argument("variant_file", type=click.Path(exists=True))
+@click.argument("njobs", type=int)
+@click.argument("out_file", type=click.Path())
+def add_ids_dask(annotation_file: str, variant_file: str, njobs:int, out_file: str):
+    data = dd.read_parquet(annotation_file, blocksize=25e9)
+    all_variants = dd.read_parquet(variant_file, sep="\t", blocksize=25e9)
+    data = data.rename(columns={
+            "#CHROM": "chrom",
+            "POS": "pos",
+            "ID": "variant_name",
+            "REF": "ref",
+            "ALT": "alt",
+            "chr": "chrom",
+        })
+    key_cols = ["chrom", "pos", "ref", "alt"]
+    data.drop_duplicates(subset=key_cols, inplace = True)
+    data_shape= data.shape
+    data = dd.merge(data, all_variants,  on=key_cols, how="left")
+    data.to_parquet(out_file, engine= "fastparquet")
     
 
 
+
+
+
+def chunks(lst, n):
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
+def read_deepripe_file(f:str ):
+        f = pd.read_table(f, engine='c')
+        return f 
+        
+
 @cli.command()
 @click.option("--included-chromosomes", type=str)
-@click.option("--comment-lines", is_flag=True)
-@click.option("--sep", type=str, default=",")
 @click.argument("annotation_dir", type=click.Path(exists=True))
 @click.argument("deepripe_name_pattern", type=str)
 @click.argument("pvcf-blocks_file", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
+@click.argument("njobs", type=int)
 def concatenate_deepripe(
     included_chromosomes: Optional[str],
-    sep: str,
-    comment_lines: bool,
     annotation_dir: str,
     deepripe_name_pattern: str,
     pvcf_blocks_file: str,
     out_file: str,
+    njobs:int,
 ):
     annotation_dir = Path(annotation_dir)
 
@@ -1022,16 +1066,27 @@ def concatenate_deepripe(
         logger.info("out_file does not yet exist")
 
     logger.info("reading in f")
-    for f in tqdm(file_paths):
-        if comment_lines:
-            current_file = pd.read_csv(f, comment="#", sep=sep, low_memory=False)
-        else:
-            current_file = pd.read_csv(f, sep=sep, low_memory=False)
-        if f == file_paths[0]:
+
+    parallel = Parallel(n_jobs=njobs,backend='loky', return_as="generator")
+    chunked_files = list(chunks(file_paths, njobs))
+    logger.info(f"processing {len(chunked_files)} files")
+    for chunk in tqdm(chunked_files):
+        logger.info(f"Chunk consist of {len(chunk)} files")
+        this_generator = parallel((delayed(read_deepripe_file)(f) for f in chunk))
+        current_file= pd.concat(list(this_generator))
+        if chunk == chunked_files[0]:
             logger.info("creating new file")
-            current_file.to_csv(out_file, mode="a", index=False)
+            current_file.to_parquet(out_file, engine= "fastparquet")
         else:
-            current_file.to_csv(out_file, mode="a", index=False, header=False)
+            try:
+                current_file.to_parquet(out_file, engine= "fastparquet", append=True)   
+            except ValueError: 
+                
+                out_df_columns = pd.read_parquet(out_file, engine= "fastparquet").columns
+                
+                logger.error(f"columns are not equal in saved/appending file: {[i for i in out_df_columns if i not in current_file.columns]} and {[i for i in current_file.columns if i not in out_df_columns]} ")
+                
+                raise ValueError
 
 
 
@@ -1168,5 +1223,78 @@ def concat_annotations(pvcf_blocks_file:str, annotation_dir:str, filename_patter
                 logger.error(f"columns are not equal in saved/appending file: {[i for i in out_df_columns if i not in file.columns]} and {[i for i in file.columns if i not in out_df_columns]} ")
                 
                 raise ValueError
+
+
+@cli.command()
+@click.option('--n-jobs', type=int, default=24)
+@click.option('--max-dist', type=int, default=300)
+@click.option('--source', type=str, multiple=True, default=['HAVANA'])
+@click.argument('gtf-file', type=click.Path(exists=True))
+@click.argument('annotation-file', type=click.Path(exists=True))
+@click.argument('out-file', type=click.Path())
+def compute_exon_ids(n_jobs: int, max_dist: int, source: List[str],
+                     gtf_file: str, annotation_file: str, out_file: str):
+    
+    import pyranges as pr
+    logger.info('Reading annotations')
+    annotations = dd.read_parquet(annotation_file).compute()
+    annotations = annotations.drop(columns=[
+        c for c in [
+            'exon_id', 'gene_id', 'gene_type', 'exon_ids', 'gene_ids',
+            'gene_types'
+        ] if c in annotations.columns
+    ])
+    annotations_by_chrom = annotations.groupby('chrom')
+
+    logger.info('Reading GTF')
+    gtf = pr.read_gtf(gtf_file)
+    exons_by_chrom = {k: gtf[k].as_df() for k, _ in gtf.keys()}
+    exons_by_chrom = {
+        k:
+        df[df['Source'].isin(source)
+           & (df['Feature'] == 'exon')].sort_values(['Start', 'End'
+                                                     ]).reset_index(drop=True)
+        for k, df in exons_by_chrom.items()
+    }
+
+    logger.info('Computing nearest exons...')
+    try:
+        chromosomes = annotations_by_chrom.groups.keys()
+        annotations_with_exons_by_chrom = Parallel(n_jobs=n_jobs, verbose=50)(
+            delayed(add_exons)(annotations_by_chrom.get_group(chrom),
+                               exons_by_chrom[chrom]) for chrom in chromosomes)
+        annotations = pd.concat(annotations_with_exons_by_chrom)
+
+    except:
+        logger.info('')
+        raise ValueError
+    logger.info('...done')
+
+    logger.info(f'Writing to {out_file}')
+    annotations = dd.from_pandas(annotations,
+                                 chunksize=len(annotations) // 240)
+    annotations.to_parquet(out_file, engine='pyarrow')
+
+def add_exons(annotations: pd.DataFrame, exons: pd.DataFrame):
+    return annotations.apply(lambda var: get_exons(var, exons), axis=1)
+
+def get_exons(variant: pd.Series,
+              exons: pd.DataFrame,
+              max_dist: int = 300) -> int:
+    start_differences = (variant['pos'] - exons['Start'])
+    end_differences = (variant['pos'] - exons['End'])
+    exon_matches = exons[((start_differences >= 0) & (end_differences <= 0) |
+                          (start_differences.abs() <= max_dist) |
+                          (end_differences.abs() <= max_dist))]
+
+    # if len(exon_matches) == 1:
+    #     variant['exon_ids'] = [exon_matches['exon_id']]
+    #     variant['gene_ids'] = [exon_matches['gene_id']]
+    #     variant['gene_types'] = [exon_matches['gene_type']]
+    # else:
+    variant['exon_ids'] = ','.join(exon_matches['exon_id'])
+    variant['gene_ids'] = ','.join(exon_matches['gene_id'])
+    variant['gene_types'] = ','.join(exon_matches['gene_type'])
+
 if __name__ == "__main__":
     cli()
