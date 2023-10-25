@@ -528,8 +528,8 @@ def deepsea_pca(n_components: int, deepsea_file: str, pca_object: str, out_dir: 
                 logger.error('did not recognize file format, assuming npy')
             logger.info('loading pca components as npy object')
             components = np.load(pca_object)
-            logger.info(f"Projecting data to {pca.components_.shape[0]} PCs")
-            X_pca = np.matmul(X_std, pca.components_.transpose())
+            logger.info(f"Projecting data to {components.shape[0]} PCs")
+            X_pca = np.matmul(X_std, components.transpose())
     else:
         logger.info(f"creating pca object and saving it to {pca_object}")
         logger.info(f"Projecting rows to {n_components} PCs")

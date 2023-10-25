@@ -24,7 +24,7 @@ saved_deepripe_models_path = (
     Path(config["faatpipe_repo_dir"]) / "data" / "deepripe_models"
 )
 merge_nthreads = int(config.get("merge_nthreads") or 64)
-
+pca_nthreads= int(config.get("pca_nthreads") or 16)
 # If modules are used we load them here
 load_bfc = " ".join([config["bcftools_load_cmd"], "&&" if config["bcftools_load_cmd"] else ""])
 load_hts = " ".join([config["htslib_load_cmd"], "&&" if config["htslib_load_cmd"] else ""])
@@ -269,7 +269,7 @@ rule deepSea_PCA:
         anno_dir / "all_variants.wID.deepSea.csv",
     output:
         anno_dir / "deepSea_pca" / "deepsea_pca.parquet",
-
+    threads: pca_nthreads
     shell:
         " ".join(
             [
