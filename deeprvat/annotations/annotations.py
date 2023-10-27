@@ -934,8 +934,8 @@ def process_chunk_addids(chunk, variants):
         }
     )
     key_cols = ["chrom", "pos", "ref", "alt"]
-    chunk_shape = chunk.shape
     chunk.drop_duplicates(subset=key_cols, inplace=True)
+    chunk_shape = chunk.shape
     chunk = pd.merge(chunk, variants, on=key_cols, how="left", validate="1:1")
 
     try:
