@@ -64,6 +64,7 @@ def get_burden(
                 )
                 burden.append(this_burden.cpu().numpy())
             burden = np.concatenate(burden, axis=2)
+            # TODO: add DeepSet model here and get forward pass on batch["common_variants"]
         else:
             burden = None
 

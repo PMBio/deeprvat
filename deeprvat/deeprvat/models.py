@@ -86,7 +86,9 @@ class BaseModel(pl.LightningModule):
             lr_scheduler_class = getattr(
                 torch.optim.lr_scheduler, lrsched_config["type"]
             )
-            lr_scheduler = lr_scheduler_class(optimizer, **lrsched_config["config"])
+            lr_scheduler = lr_scheduler_class(
+                optimizer, **lrsched_config["config"]
+            )
 
             if lrsched_config["type"] == "ReduceLROnPlateau":
                 return {
@@ -119,7 +121,9 @@ class BaseModel(pl.LightningModule):
         return loss
 
     def validation_step(self, batch: dict, batch_idx: int):
-        y_by_pheno = {pheno: pheno_batch["y"] for pheno, pheno_batch in batch.items()}
+        y_by_pheno = {
+            pheno: pheno_batch["y"] for pheno, pheno_batch in batch.items()
+        }
         return {"y_pred_by_pheno": self(batch), "y_by_pheno": y_by_pheno}
 
     def validation_epoch_end(
@@ -142,7 +146,12 @@ class BaseModel(pl.LightningModule):
             target = result["y_by_pheno"]
             for pheno, ys in target.items():
                 y_by_pheno[pheno] = torch.cat(
-                    [y_by_pheno.get(pheno, torch.tensor([], device=self.device)), ys]
+                    [
+                        y_by_pheno.get(
+                            pheno, torch.tensor([], device=self.device)
+                        ),
+                        ys,
+                    ]
                 )
 
         results = dict()
@@ -158,7 +167,8 @@ class BaseModel(pl.LightningModule):
             self.log(f"val_{name}", results[name])
 
         self.best_objective = self.objective_operation(
-            self.best_objective, results[self.hparams.metrics["objective"]].item()
+            self.best_objective,
+            results[self.hparams.metrics["objective"]].item(),
         )
 
     def test_step(self, batch: dict, batch_idx: int):
@@ -174,7 +184,8 @@ class BaseModel(pl.LightningModule):
             self.log(f"val_{name}", results[name])
 
         self.best_objective = self.objective_operation(
-            self.best_objective, results[self.hparams.metrics["objective"]].item()
+            self.best_objective,
+            results[self.hparams.metrics["objective"]].item(),
         )
 
     def configure_callbacks(self):
@@ -207,7 +218,7 @@ class DeepSetAgg(pl.LightningModule):
 
         input_dim = n_annotations
         phi = []
-        for l in range(phi_layers):
+        for l in range(phi_layers):  # noqa
             output_dim = phi_hidden_dim
             phi.append((f"phi_linear_{l}", nn.Linear(input_dim, output_dim)))
             if dropout is not None:
@@ -221,7 +232,7 @@ class DeepSetAgg(pl.LightningModule):
         self.pool = pool
 
         rho = []
-        for l in range(rho_layers - 1):
+        for l in range(rho_layers - 1):  # noqa
             output_dim = rho_hidden_dim
             rho.append((f"rho_linear_{l}", nn.Linear(input_dim, output_dim)))
             if dropout is not None:
@@ -229,7 +240,10 @@ class DeepSetAgg(pl.LightningModule):
             rho.append((f"rho_activation_{l}", self.activation))
             input_dim = output_dim
         rho.append(
-            (f"rho_linear_{rho_layers - 1}", nn.Linear(input_dim, self.output_dim))
+            (
+                f"rho_linear_{rho_layers - 1}",
+                nn.Linear(input_dim, self.output_dim),
+            )
         )
         self.rho = nn.Sequential(OrderedDict(rho))
 
@@ -317,6 +331,51 @@ class DeepSet(BaseModel):
         return result
 
 
+class DeepSetLinearCommon(BaseModel):
+    def __init__(
+        self,
+        config: dict,
+        n_annotations: Dict[str, int],
+        n_covariates: Dict[str, int],
+        n_genes: Dict[str, int],
+        phenotypes: List[str],
+        agg_model: Optional[nn.Module] = None,
+        use_sigmoid: bool = False,
+        reverse: bool = False,
+        **kwargs,
+    ):
+        super().__init__(
+            config,
+            n_annotations,
+            n_covariates + 1,  # adding common vars as one additional covariate
+            n_genes,
+            phenotypes,
+            agg_model,
+            use_sigmoid,
+            reverse,
+            **kwargs,
+        )
+
+        self.common_cov = nn.Linear(
+            # TODO: figure out corect shape
+            this_batch["common_variants"].shape[1], 1
+        )
+
+    def forward(self, batch):
+        result = dict()
+        for pheno, this_batch in batch.items():
+            x = this_batch["rare_variant_annotations"]
+            # x.shape = samples x genes x annotations x variants
+            x = self.agg_model(x).squeeze(dim=2)
+            # x.shape = samples x genes
+            c = self.common_cov(this_batch["common_varaints"])
+            x = torch.cat((this_batch["covariates"], c, x), dim=1)
+            # x.shape = samples x (genes + covariates)
+            result[pheno] = self.gene_pheno[pheno](x).squeeze(dim=1)
+            # result[pheno].shape = samples
+        return result
+
+
 class LinearAgg(pl.LightningModule):
     def __init__(self, n_annotations: int, pool: str, output_dim: int = 1):
         super().__init__()
@@ -324,7 +383,7 @@ class LinearAgg(pl.LightningModule):
         self.output_dim = output_dim
         self.pool = pool
 
-        input_dim = n_annotations
+        input_dim = n_annotations  # noqa
         self.linear = nn.Linear(n_annotations, self.output_dim)
 
     def forward(self, x):
@@ -349,7 +408,9 @@ class TwoLayer(BaseModel):
         agg_model: Optional[nn.Module] = None,
         **kwargs,
     ):
-        super().__init__(config, n_annotations, n_covariates, n_genes, **kwargs)
+        super().__init__(
+            config, n_annotations, n_covariates, n_genes, **kwargs
+        )
 
         logger.info("Initializing TwoLayer model with parameters:")
         pprint(self.hparams)
@@ -371,7 +432,9 @@ class TwoLayer(BaseModel):
             for param in self.agg_model.parameters():
                 param.requires_grad = True
 
-        self.gene_pheno = nn.Linear(self.hparams.n_covariates + self.hparams.n_genes, 1)
+        self.gene_pheno = nn.Linear(
+            self.hparams.n_covariates + self.hparams.n_genes, 1
+        )
 
     def forward(self, batch):
         # samples x genes x annotations x variants

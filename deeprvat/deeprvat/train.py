@@ -158,6 +158,7 @@ def make_dataset_(
     ]
     rare_batches = [b["rare_variant_annotations"] for b in batches]
     max_n_variants = max(r.shape[-1] for r in rare_batches)
+    logging.info("MAXVAR:%s", max_n_variants)
     logger.info("Building input_tensor, covariates, and y")
     input_tensor = torch.cat(
         [
