@@ -14,7 +14,7 @@ release = "0.1.0"
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ["autodoc2", "myst_parser", 'sphinx_copybutton']
+extensions = ["autodoc2", "myst_parser", "sphinx_copybutton"]
 autodoc2_packages = [
     "../deeprvat",
 ]
