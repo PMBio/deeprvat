@@ -6,10 +6,13 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+from datetime import datetime
+
 project = "DeepRVAT"
-copyright = "2023, Clarke, B., Holtkamp, E., Öztürk, H., Mück, M., Wahlberg, M., Meyer, K., Brechtmann, F., Hölzlwimmer, F. R., Gagneur, J., & Stegle, O"
+copyright = f"{datetime.now().year}, Clarke, B., Holtkamp, E., Öztürk, H., Mück, M., Wahlberg, M., Meyer, K., Brechtmann, F., Hölzlwimmer, F. R., Gagneur, J., & Stegle, O"
 author = "Clarke, B., Holtkamp, E., Öztürk, H., Mück, M., Wahlberg, M., Meyer, K., Brechtmann, F., Hölzlwimmer, F. R., Gagneur, J., & Stegle, O"
-release = "0.1.0"
+version = "0.1.0"
+release = version
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
