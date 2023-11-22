@@ -75,7 +75,7 @@ The config above would use the following directory structure:
 
 ```
 
-Bcf files created by the [preprocessing pipeline](https://github.com/PMBio/deeprvat/blob/Annotations/deeprvat/preprocessing/README.md) are used as input data. 
+Bcf files created by the [preprocessing pipeline](preprocessing.md) are used as input data. 
 The pipeline also uses the variant.tsv file as well as the reference file from the preprocesing pipeline. 
 The pipeline beginns by installing the repositories needed for the annotations, it will automatically install all repositories in the `repo_dir` folder that can be specified in the config file relative to the annotation working directory.
 The text file mapping blocks to chromosomes is stored in `metadata` folder. The output is stored in the `output_dir/annotations` folder and any temporary files in the `tmp` subfolder. All repositories used including VEP with its corresponding cache as well as plugins are stored in `repo_dir/ensempl-vep`.
