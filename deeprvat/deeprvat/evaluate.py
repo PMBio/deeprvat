@@ -247,6 +247,7 @@ def evaluate_(
 
     results["-log10pval"] = -np.log10(results["pval"])
     results["experiment_group"] = "DeepRVAT"
+    results["correction_method"] = None
 
     results = pd.concat([results, baseline_results])
 
