@@ -28,17 +28,17 @@ mamba env create -n deeprvat -f deeprvat_env_no_gpu.yaml
 
 Before running any of the snakefiles, you may want to adjust the number of threads used by different steps in the pipeline. To do this, modify the `threads:` property of a given rule.
 
-If you are running on an computing cluster, you will need a [profile](https://github.com/snakemake-profiles) and may need to add `resources:` directives to the snakefiles.
+If you are running on a computing cluster, you will need a [profile](https://github.com/snakemake-profiles) and may need to add `resources:` directives to the snakefiles.
 
 
 ### Run the preprocessing pipeline on VCF files
 
-Instructions [here](https://github.com/PMBio/deeprvat/blob/main/deeprvat/preprocessing/README.md)
+Instructions [here](preprocessing.md)
 
 
 ### Annotate variants
 
-Instructions [here](https://github.com/PMBio/deeprvat/blob/main/deeprvat/annotations/README.md)
+Instructions [here](annotations.md)
 
 
 
