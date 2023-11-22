@@ -1,8 +1,4 @@
-# DeepRVAT
-
-Rare variant association testing using deep learning and data-driven burden scores
-
-[![Documentation Status](https://readthedocs.org/projects/deeprvat/badge/?version=latest)](https://deeprvat.readthedocs.io/en/latest/?badge=latest)
+# Using DeepRVAT
 
 ## Installation
 
@@ -73,13 +69,3 @@ snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/association_testing_pret
 Replace `[path_to_deeprvat]` with the path to your clone of the repository.
 
 Again, note that the example data is randomly generated, and so is only suited for testing whether the `deeprvat` package has been correctly installed.
-
-
-## Credits
-
-Portions of code for the seed gene discovery methods have been adapted from [SEAK](https://seak.readthedocs.io/)
-
-This package was created with Cookiecutter and the `audreyr/cookiecutter-pypackage` project template.
-
-Cookiecutter: https://github.com/audreyr/cookiecutter
-`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
