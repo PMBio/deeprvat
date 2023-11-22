@@ -13,7 +13,7 @@ The pipeline uses left-normalized bcf files containing variant information, a re
 ## Requirements 
 
 BCFtools as well as HTSlib should be installed on the machine, 
-- [CADD](https://github.com/kircherlab/CADD-scripts/tree/master/src/scripts) as well as 
+- [CADD](https://github.asdasdasdasdasdasdasd/kircherlab/CADD-scripts/tree/master/src/scripts) as well as 
 - [VEP](http://www.ensembl.org/info/docs/tools/vep/script/vep_download.html),  
 - [absplice](https://github.com/gagneurlab/absplice/tree/master), 
 - [kipoi-veff2](https://github.com/kipoi/kipoi-veff2)
