@@ -6,7 +6,7 @@ To run the pipeline, an experiment directory with the `config.yaml` has to be cr
 
 ## Input data
 
-The experiment directory in addition requires to have the same input data as specified for [DeepRVAT](https://github.com/PMBio/deeprvat/tree/main/README.md), including
+The experiment directory in addition requires to have the same input data as specified for [DeepRVAT](usage.md), including
 - `annotations.parquet`
 - `protein_coding_genes.parquet`
 - `genotypes.h5`
@@ -23,7 +23,7 @@ The `annotations.parquet` data frame should have the following columns:
 
 ### Run the seed gene discovery pipeline with example data  
 
-Create the conda environment and activate it, (instructions can be found in the [DeepRVAT README](https://github.com/PMBio/deeprvat/tree/main/README.md) )
+Create the conda environment and activate it, (instructions can be found here [DeepRVAT instructions](usage.md) )
 
 
 ```

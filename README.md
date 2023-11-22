@@ -37,12 +37,12 @@ If you are running on an computing cluster, you will need a [profile](https://gi
 
 ### Run the preprocessing pipeline on VCF files
 
-Instructions [here](https://github.com/PMBio/deeprvat/blob/main/docs/preprocessing.md)
+Instructions [here](https://deeprvat.readthedocs.io/en/latest/preprocessing.html)
 
 
 ### Annotate variants
 
-Instructions [here](https://github.com/PMBio/deeprvat/blob/main/docs/annotations.md)
+Instructions [here](https://deeprvat.readthedocs.io/en/latest/annotations.html)
 
 
 
