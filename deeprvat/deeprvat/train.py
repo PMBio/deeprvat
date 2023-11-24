@@ -8,6 +8,7 @@ import shutil
 import sys
 from pathlib import Path
 from pprint import pformat, pprint
+from tempfile import TemporaryDirectory
 from typing import Dict, Optional, Tuple
 
 import click
@@ -224,13 +225,14 @@ class MultiphenoDataset(Dataset):
         batch_size: int,
         split: str = "train",
         cache_tensors: bool = False,
+            temp_dir: Optional[str] = None,
         # samples: Optional[Union[slice, np.ndarray]] = None,
         # genes: Optional[Union[slice, np.ndarray]] = None
     ):
         "Initialization"
         super().__init__()
 
-        self.data = data
+        self.data = copy.deepcopy(data)
         self.phenotypes = self.data.keys()
         logger.info(
             f"Initializing MultiphenoDataset with phenotypes:\n{pformat(list(self.phenotypes))}"
@@ -256,6 +258,11 @@ class MultiphenoDataset(Dataset):
             pheno: pheno_data["samples"][split]
             for pheno, pheno_data in self.data.items()
         }
+        if temp_dir is not None:
+            self.input_tensor_dir = temp_dir
+        else:
+            self.input_tensor_dir = TemporaryDirectory(prefix="training_data", dir=".")
+
         self.subset_samples()
 
         self.total_samples = sum([s.shape[0] for s in self.samples.values()])
@@ -293,18 +300,20 @@ class MultiphenoDataset(Dataset):
         result = dict()
         for pheno, df in samples_by_pheno:
             idx = df["index"].to_numpy()
+            assert np.array_equal(idx, np.arange(idx[0], idx[-1] + 1))
+            slice_ = slice(idx[0], idx[-1] + 2)
 
             annotations = (
-                self.data[pheno]["input_tensor"][idx]
+                self.data[pheno]["input_tensor"][slice_]
                 if self.cache_tensors
-                else self.data[pheno]["input_tensor_zarr"][idx[0]:idx[-1] + 1, :, :, :]
+                else self.data[pheno]["input_tensor_zarr"][slice_, :, :, :]
             )
 
             result[pheno] = {
-                "indices": self.samples[pheno][idx],
-                "covariates": self.data[pheno]["covariates"][idx],
+                "indices": self.samples[pheno][slice_],
+                "covariates": self.data[pheno]["covariates"][slice_],
                 "rare_variant_annotations": annotations,
-                "y": self.data[pheno]["y"][idx],
+                "y": self.data[pheno]["y"][slice_],
             }
 
         return result
@@ -316,20 +325,48 @@ class MultiphenoDataset(Dataset):
             # genes for each sample.
             n_samples_orig = self.samples[pheno].shape[0]
 
+            # TODO: Compute n_variant_mask one block of 10,000 samples at a time to reduce memory usage
             input_tensor = pheno_data["input_tensor_zarr"].oindex[self.samples[pheno]]
             n_variants_per_sample = np.sum(
                 np.sum(input_tensor, axis=2) != 0, axis=(1, 2)
             )
             n_variant_mask = n_variants_per_sample >= self.min_variant_count
 
+            # Also make sure we don't have NaN values for y
             nan_mask = ~pheno_data["y"][self.samples[pheno]].isnan()
             mask = n_variant_mask & nan_mask.numpy()
+
+            # Set the tensor indices to use and subset all the tensors
             self.samples[pheno] = self.samples[pheno][mask]
+            pheno_data["y"] = pheno_data["y"][self.samples[pheno]]
+            pheno_data["covariates"] = pheno_data["covariates"][self.samples[pheno]]
+            if self.cache_tensors:
+                pheno_data["input_tensor"] = pheno_data["input_tensor_zarr"][:][self.samples[pheno]]
+            else:
+                # TODO: Again do this in blocks of 10,000 samples
+                # Create a temporary directory to store the zarr array
+                tensor_path = Path(self.input_tensor_dir.name) / pheno / "input_tensor.zarr"
+                zarr.save_array(tensor_path , pheno_data["input_tensor_zarr"][:][self.samples[pheno]],
+                                chunks=(1000, None, None, None),
+                                compressor=Blosc(clevel=1))
+                pheno_data["input_tensor_zarr"] = zarr.open(tensor_path)
 
             logger.info(
                 f"{pheno}: {self.samples[pheno].shape[0]} / "
                 f"{n_samples_orig} samples kept"
             )
+
+    def index_input_tensor_zarr(pheno: str, indices: np.ndarray):
+        # IMPORTANT!!! Never call this function after self.subset_samples()
+
+        x = self.data[pheno]["input_tensor_zarr"]
+        first_idx = indices[0]
+        last_idx = indices[-1]
+        slice_ = slice(first_idx, last_idx + 1)
+        arange = np.arange(first_idx, last_idx + 1)
+        z = x[slice_]
+        slice_indices = np.nonzero(np.isin(arange, indices))
+        return z[slice_indices]
 
 
 class MultiphenoBaggingData(pl.LightningDataModule):
@@ -437,6 +474,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
             "Instantiating training dataloader "
             f"with batch size {self.hparams.batch_size}"
         )
+
         dataset = MultiphenoDataset(
             self.data,
             self.hparams.min_variant_count,
