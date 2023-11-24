@@ -247,8 +247,13 @@ rule train:
              f"{p}/deeprvat/covariates.zarr "
              f"{p}/deeprvat/y.zarr"
              for p in phenotypes])
+    resources:
+        mem_mb = 2000000,        # Using this value will tell our modified lsf.profile not to set a memory resource
+        load = 8000,
+        gpus = 1
     shell:
-        f"parallel --jobs {n_parallel_training_jobs} --results train_repeat{{{{1}}}}_trial{{{{2}}}}/ "
+        f"parallel --jobs {n_parallel_training_jobs} --halt now,fail=1 --results train_repeat{{{{1}}}}_trial{{{{2}}}}/ "
+        "echo sleeping for '$((60 * ({{#}} - 1)))' s \; sleep '$((60 * ({{#}} - 1)))'\;"         # otherwise a huge amount of memory will be used
         'deeprvat_train train '
         + debug +
         '--trial-id {{2}} '
