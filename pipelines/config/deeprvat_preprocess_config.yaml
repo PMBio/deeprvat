@@ -14,9 +14,6 @@ data_dir: data
 input_vcf_dir_name : vcf
 metadata_dir_name: metadata
 
-# expected to be found in the data_dir / metadata_dir
-pvcf_blocks_file: pvcf_blocks.txt
-
 # These paths are all relative to the working dir
 # Here will the finished preprocessed files end up
 preprocessed_dir_name : preprocesed
@@ -31,9 +28,7 @@ sparse_dir_name : sparse
 reference_fasta_file : GRCh38.primary_assembly.genome.fa
 
 # The format of the name of the "raw" vcf files
-vcf_filename_pattern: test_vcf_data_c{chr}_b{block}
-# for ukbb data use this pattern:
-#vcf_filename_pattern: ukb23156_c{chr}_b{block}_v1
+vcf_files_list: vcf_files_list.txt
 
 # Number of threads to use in the preprocessing script, separate from snakemake threads
 preprocess_threads: 16
