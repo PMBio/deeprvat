@@ -41,6 +41,26 @@ def update_config(
     seed_genes_out: Optional[str],
     new_config_file: str,
 ):
+    """
+    Select seed genes based on baseline results and update configuration file.
+
+    Parameters:
+    - old_config_file (str): Path to the old configuration file.
+    - phenotype (Optional[str]): Phenotype to update in the configuration.
+    - seed_gene_dir (Optional[str]): Directory containing seed genes.
+    - baseline_results (Tuple[str]): Paths to baseline result files.
+    - baseline_results_out (Optional[str]): Path to save the updated baseline results.
+    - seed_genes_out (Optional[str]): Path to save the seed genes.
+    - new_config_file (str): Path to the new configuration file.
+
+    Raises:
+    - ValueError: If neither --seed-gene-dir nor --baseline-results is specified.
+
+    Returns:
+    Updated configuration file saved to new_config.yaml.
+    Selected seed genes saved to seed_genes_out.parquet.
+    Optionally, save baseline results to parquet file if baseline_results_out is specified.
+    """
     if seed_gene_dir is None and len(baseline_results) == 0:
         raise ValueError(
             "One of --seed-gene-dir and --baseline-results " "must be specified"

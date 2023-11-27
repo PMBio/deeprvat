@@ -15,10 +15,23 @@ logger = logging.getLogger(__name__)
 
 
 class RSquared:
+    """
+    Calculates the R-squared (coefficient of determination) between predictions and targets.
+    """
     def __init__(self):
         pass
 
     def __call__(self, preds: torch.tensor, targets: torch.tensor):
+        """
+        Calculate R-squared value between two tensors.
+
+        Parameters:
+        - preds (torch.tensor): Tensor containing predicted values.
+        - targets (torch.tensor): Tensor containing target values.
+
+        Returns:
+        torch.tensor: R-squared value.
+        """
         y_mean = torch.mean(targets)
         ss_tot = torch.sum(torch.square(targets - y_mean))
         ss_res = torch.sum(torch.square(targets - preds))
@@ -26,10 +39,23 @@ class RSquared:
 
 
 class PearsonCorr:
+    """
+    Calculates the Pearson correlation coefficient between burdens and targets.
+    """
     def __init__(self):
         pass
 
     def __call__(self, burden, y):
+        """
+        Calculate Pearson correlation coefficient.
+
+        Parameters:
+        - burden (torch.tensor): Tensor containing burden values.
+        - y (torch.tensor): Tensor containing target values.
+
+        Returns:
+        float: Pearson correlation coefficient.
+        """
         if len(burden.shape) > 1:  # was the burden computed for >1 genes
             corrs = []
             for i in range(burden.shape[1]):  # number of genes
@@ -48,10 +74,23 @@ class PearsonCorr:
 
 
 class PearsonCorrTorch:
+    """
+    Calculates the Pearson correlation coefficient between burdens and targets using PyTorch tensor operations.
+    """
     def __init__(self):
         pass
 
     def __call__(self, burden, y):
+        """
+        Calculate Pearson correlation coefficient using PyTorch tensor operations.
+
+        Parameters:
+        - burden (torch.tensor): Tensor containing burden values.
+        - y (torch.tensor): Tensor containing target values.
+
+        Returns:
+        torch.tensor: Pearson correlation coefficient.
+        """
         if len(burden.shape) > 1:  # was the burden computed for >1 genes
             corrs = []
             for i in range(burden.shape[1]):  # number of genes
@@ -83,9 +122,22 @@ class PearsonCorrTorch:
 
 
 class AveragePrecisionWithLogits:
+    """
+    Calculates the average precision score between logits and targets.
+    """
     def __init__(self):
         pass
 
     def __call__(self, logits, y):
+        """
+        Calculate average precision score.
+
+        Parameters:
+        - logits (torch.tensor): Tensor containing logits.
+        - y (torch.tensor): Tensor containing target values.
+
+        Returns:
+        float: Average precision score.
+        """
         y_scores = F.sigmoid(logits.detach())
         return average_precision_score(y.detach().cpu().numpy(), y_scores.cpu().numpy())
