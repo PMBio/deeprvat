@@ -56,7 +56,7 @@ def get_burden(
 
     Parameters:
     - batch (Dict): A dictionary containing batched data from the DataLoader.
-    - agg_models (Dict[str, List[nn.Module]]): Loaded PyTorch model(s) for each repeat used for burden computation. 
+    - agg_models (Dict[str, List[nn.Module]]): Loaded PyTorch model(s) for each repeat used for burden computation.
         Each key in the dictionary corresponds to a respective repeat.
     - device (torch.device): Device to perform computations on (default is CPU).
     - skip_burdens (bool): Flag to skip burden computation (default is False).
@@ -194,14 +194,14 @@ def compute_burdens_(
     skip_burdens: bool = False,
 ) -> Tuple[np.ndarray, zarr.core.Array, zarr.core.Array, zarr.core.Array]:
     """
-    Compute burdens using the PyTorch model for each repeat. 
+    Compute burdens using the PyTorch model for each repeat.
 
     Parameters:
     - debug (bool): Flag for debugging.
     - config (Dict): Configuration dictionary.
     - ds (torch.utils.data.Dataset): Torch dataset.
     - cache_dir (str): Directory to cache zarr files of computed burdens, x phenotypes, and y phenotypes.
-    - agg_models (Dict[str, List[nn.Module]]): Loaded PyTorch model(s) for each repeat used for burden computation. 
+    - agg_models (Dict[str, List[nn.Module]]): Loaded PyTorch model(s) for each repeat used for burden computation.
         Each key in the dictionary corresponds to a respective repeat.
     - n_chunks (Optional[int]): Number of chunks to split data for processing (default is None).
     - chunk (Optional[int]): Index of the chunk of data (default is None).
@@ -446,7 +446,7 @@ def load_models(
     device: torch.device = torch.device("cpu"),
 ) -> Dict[str, List[nn.Module]]:
     """
-    Load models from multiple checkpoints for multiple repeats. 
+    Load models from multiple checkpoints for multiple repeats.
 
     Parameters:
     - config (Dict): Configuration dictionary.
@@ -558,7 +558,7 @@ def compute_burdens(
 
     Returns:
     Computed burdens, corresponding genes, and targets are saved in the out_dir.
-    np.ndarray: Corresponding genes, saved as genes.npy 
+    np.ndarray: Corresponding genes, saved as genes.npy
     zarr.core.Array: Computed burdens, saved as burdens.zarr
     zarr.core.Array: Target y phenotype, saved as y.zarr
     zarr.core.Array: X phenotype, saved as x.zarr
@@ -612,7 +612,10 @@ def compute_burdens(
         source_path.symlink_to(link_burdens)
 
 
-def regress_on_gene_scoretest(gene: str, burdens: np.ndarray, model_score,
+def regress_on_gene_scoretest(
+    gene: str,
+    burdens: np.ndarray,
+    model_score,
 ) -> Tuple[List[str], List[float], List[float]]:
     """
     Perform regression on a gene using the score test.

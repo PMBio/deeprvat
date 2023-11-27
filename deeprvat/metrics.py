@@ -18,6 +18,7 @@ class RSquared:
     """
     Calculates the R-squared (coefficient of determination) between predictions and targets.
     """
+
     def __init__(self):
         pass
 
@@ -42,6 +43,7 @@ class PearsonCorr:
     """
     Calculates the Pearson correlation coefficient between burdens and targets.
     """
+
     def __init__(self):
         pass
 
@@ -77,6 +79,7 @@ class PearsonCorrTorch:
     """
     Calculates the Pearson correlation coefficient between burdens and targets using PyTorch tensor operations.
     """
+
     def __init__(self):
         pass
 
@@ -125,6 +128,7 @@ class AveragePrecisionWithLogits:
     """
     Calculates the average precision score between logits and targets.
     """
+
     def __init__(self):
         pass
 
