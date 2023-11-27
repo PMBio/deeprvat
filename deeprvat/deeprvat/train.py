@@ -225,7 +225,7 @@ class MultiphenoDataset(Dataset):
         batch_size: int,
         split: str = "train",
         cache_tensors: bool = False,
-            temp_dir: Optional[str] = None,
+        temp_dir: Optional[str] = None,
         # samples: Optional[Union[slice, np.ndarray]] = None,
         # genes: Optional[Union[slice, np.ndarray]] = None
     ):
@@ -341,14 +341,21 @@ class MultiphenoDataset(Dataset):
             pheno_data["y"] = pheno_data["y"][self.samples[pheno]]
             pheno_data["covariates"] = pheno_data["covariates"][self.samples[pheno]]
             if self.cache_tensors:
-                pheno_data["input_tensor"] = pheno_data["input_tensor_zarr"][:][self.samples[pheno]]
+                pheno_data["input_tensor"] = pheno_data["input_tensor_zarr"][:][
+                    self.samples[pheno]
+                ]  # TODO: Check this line
             else:
                 # TODO: Again do this in blocks of 10,000 samples
                 # Create a temporary directory to store the zarr array
-                tensor_path = Path(self.input_tensor_dir.name) / pheno / "input_tensor.zarr"
-                zarr.save_array(tensor_path , pheno_data["input_tensor_zarr"][:][self.samples[pheno]],
-                                chunks=(1000, None, None, None),
-                                compressor=Blosc(clevel=1))
+                tensor_path = (
+                    Path(self.input_tensor_dir.name) / pheno / "input_tensor.zarr"
+                )
+                zarr.save_array(
+                    tensor_path,
+                    pheno_data["input_tensor_zarr"][:][self.samples[pheno]],
+                    chunks=(1000, None, None, None),
+                    compressor=Blosc(clevel=1),
+                )
                 pheno_data["input_tensor_zarr"] = zarr.open(tensor_path)
 
             logger.info(
@@ -379,7 +386,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         upsampling_factor: int = 1,
         batch_size: Optional[int] = None,
         num_workers: Optional[int] = 0,
-            pin_memory: bool = False,
+        pin_memory: bool = False,
         cache_tensors: bool = False,
     ):
         logger.info("Intializing datamodule")
@@ -483,7 +490,10 @@ class MultiphenoBaggingData(pl.LightningDataModule):
             cache_tensors=self.hparams.cache_tensors,
         )
         return DataLoader(
-            dataset, batch_size=None, num_workers=self.hparams.num_workers, pin_memory=self.hparams.pin_memory
+            dataset,
+            batch_size=None,
+            num_workers=self.hparams.num_workers,
+            pin_memory=self.hparams.pin_memory,
         )
 
     def val_dataloader(self):
@@ -499,7 +509,10 @@ class MultiphenoBaggingData(pl.LightningDataModule):
             cache_tensors=self.hparams.cache_tensors,
         )
         return DataLoader(
-            dataset, batch_size=None, num_workers=self.hparams.num_workers, pin_memory=self.hparams.pin_memory
+            dataset,
+            batch_size=None,
+            num_workers=self.hparams.num_workers,
+            pin_memory=self.hparams.pin_memory,
         )
 
 
@@ -722,11 +735,17 @@ def train(
     data = dict()
     for pheno, input_tensor_file, covariates_file, y_file in phenotype:
         data[pheno] = dict()
-        data[pheno]["input_tensor_zarr"] = zarr.open(input_tensor_file, mode="r")
+        data[pheno]["input_tensor_zarr"] = zarr.open(
+            input_tensor_file, mode="r"
+        )  # TODO: subset here?
         data[pheno]["covariates"] = torch.tensor(
             zarr.open(covariates_file, mode="r")[:]
-        )[samples]
-        data[pheno]["y"] = torch.tensor(zarr.open(y_file, mode="r")[:])[samples]
+        )[
+            samples
+        ]  # TODO: or maybe shouldn't subset here?
+        data[pheno]["y"] = torch.tensor(zarr.open(y_file, mode="r")[:])[
+            samples
+        ]  # TODO: or maybe shouldn't subset here?
 
         if training_gene_file is not None:
             with open(training_gene_file, "rb") as f:
