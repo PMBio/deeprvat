@@ -265,86 +265,86 @@ rule train:
         "::: " + " ".join(map(str, range(n_repeats))) + " "
         "::: " + " ".join(map(str, range(n_trials)))
 
-# rule all_training_dataset:
-#     input:
-#         input_tensor = expand('{phenotype}/deeprvat/input_tensor.zarr',
-#                               phenotype=phenotypes, repeat=range(n_repeats)),
-#         covariates = expand('{phenotype}/deeprvat/covariates.zarr',
-#                             phenotype=phenotypes, repeat=range(n_repeats)),
-#         y = expand('{phenotype}/deeprvat/y.zarr',
-#                    phenotype=phenotypes, repeat=range(n_repeats))
+rule all_training_dataset:
+    input:
+        input_tensor = expand('{phenotype}/deeprvat/input_tensor.zarr',
+                              phenotype=phenotypes, repeat=range(n_repeats)),
+        covariates = expand('{phenotype}/deeprvat/covariates.zarr',
+                            phenotype=phenotypes, repeat=range(n_repeats)),
+        y = expand('{phenotype}/deeprvat/y.zarr',
+                   phenotype=phenotypes, repeat=range(n_repeats))
 
-# rule training_dataset:
-#     input:
-#         config = '{phenotype}/deeprvat/hpopt_config.yaml',
-#         training_dataset = '{phenotype}/deeprvat/training_dataset.pkl'
-#     output:
-#         input_tensor = directory('{phenotype}/deeprvat/input_tensor.zarr'),
-#         covariates = directory('{phenotype}/deeprvat/covariates.zarr'),
-#         y = directory('{phenotype}/deeprvat/y.zarr')
-#     threads: 8
-#     priority: 50
-#     shell:
-#         (
-#             'deeprvat_train make-dataset '
-#             + debug +
-#             '--compression-level ' + str(tensor_compression_level) + ' '
-#             '--training-dataset-file {input.training_dataset} '
-#             '{input.config} '
-#             '{output.input_tensor} '
-#             '{output.covariates} '
-#             '{output.y}'
-#         )
+rule training_dataset:
+    input:
+        config = '{phenotype}/deeprvat/hpopt_config.yaml',
+        training_dataset = '{phenotype}/deeprvat/training_dataset.pkl'
+    output:
+        input_tensor = directory('{phenotype}/deeprvat/input_tensor.zarr'),
+        covariates = directory('{phenotype}/deeprvat/covariates.zarr'),
+        y = directory('{phenotype}/deeprvat/y.zarr')
+    threads: 8
+    priority: 50
+    shell:
+        (
+            'deeprvat_train make-dataset '
+            + debug +
+            '--compression-level ' + str(tensor_compression_level) + ' '
+            '--training-dataset-file {input.training_dataset} '
+            '{input.config} '
+            '{output.input_tensor} '
+            '{output.covariates} '
+            '{output.y}'
+        )
 
-# rule training_dataset_pickle:
-#     input:
-#         '{phenotype}/deeprvat/hpopt_config.yaml'
-#     output:
-#         '{phenotype}/deeprvat/training_dataset.pkl'
-#     threads: 1
-#     shell:
-#         (
-#             'deeprvat_train make-dataset '
-#             '--pickle-only '
-#             '--training-dataset-file {output} '
-#             '{input} '
-#             'dummy dummy dummy'
-#         )
+rule training_dataset_pickle:
+    input:
+        '{phenotype}/deeprvat/hpopt_config.yaml'
+    output:
+        '{phenotype}/deeprvat/training_dataset.pkl'
+    threads: 1
+    shell:
+        (
+            'deeprvat_train make-dataset '
+            '--pickle-only '
+            '--training-dataset-file {output} '
+            '{input} '
+            'dummy dummy dummy'
+        )
 
-# rule all_config:
-#     input:
-#         seed_genes = expand('{phenotype}/deeprvat/seed_genes.parquet',
-#                             phenotype=phenotypes),
-#         config = expand('{phenotype}/deeprvat/hpopt_config.yaml',
-#                         phenotype=phenotypes),
-#         baseline = expand('{phenotype}/deeprvat/baseline_results.parquet',
-#                           phenotype=phenotypes),
+rule all_config:
+    input:
+        seed_genes = expand('{phenotype}/deeprvat/seed_genes.parquet',
+                            phenotype=phenotypes),
+        config = expand('{phenotype}/deeprvat/hpopt_config.yaml',
+                        phenotype=phenotypes),
+        baseline = expand('{phenotype}/deeprvat/baseline_results.parquet',
+                          phenotype=phenotypes),
 
-# rule config:
-#     input:
-#         config = 'config.yaml',
-#         baseline = lambda wildcards: [
-#             str(Path(r['base']) / wildcards.phenotype / r['type'] /
-#                 'eval/burden_associations.parquet')
-#             for r in config['baseline_results']
-#         ]
-#     output:
-#         seed_genes = '{phenotype}/deeprvat/seed_genes.parquet',
-#         config = '{phenotype}/deeprvat/hpopt_config.yaml',
-#         baseline = '{phenotype}/deeprvat/baseline_results.parquet',
-#     threads: 1
-#     params:
-#         baseline_results = lambda wildcards, input: ''.join([
-#             f'--baseline-results {b} '
-#             for b in input.baseline
-#         ])
-#     shell:
-#         (
-#             'deeprvat_config update-config '
-#             '--phenotype {wildcards.phenotype} '
-#             '{params.baseline_results}'
-#             '--baseline-results-out {output.baseline} '
-#             '--seed-genes-out {output.seed_genes} '
-#             '{input.config} '
-#             '{output.config}'
-#         )
+rule config:
+    input:
+        config = 'config.yaml',
+        baseline = lambda wildcards: [
+            str(Path(r['base']) / wildcards.phenotype / r['type'] /
+                'eval/burden_associations.parquet')
+            for r in config['baseline_results']
+        ]
+    output:
+        seed_genes = '{phenotype}/deeprvat/seed_genes.parquet',
+        config = '{phenotype}/deeprvat/hpopt_config.yaml',
+        baseline = '{phenotype}/deeprvat/baseline_results.parquet',
+    threads: 1
+    params:
+        baseline_results = lambda wildcards, input: ''.join([
+            f'--baseline-results {b} '
+            for b in input.baseline
+        ])
+    shell:
+        (
+            'deeprvat_config update-config '
+            '--phenotype {wildcards.phenotype} '
+            '{params.baseline_results}'
+            '--baseline-results-out {output.baseline} '
+            '--seed-genes-out {output.seed_genes} '
+            '{input.config} '
+            '{output.config}'
+        )
