@@ -195,7 +195,8 @@ def compute_burdens_(
             enumerate(dl),
             file=sys.stdout,
             total=(n_samples // batch_size + (n_samples % batch_size != 0)),
-        ):
+        ):  
+            # run forward pass on all repeats to get gene burden
             this_burdens, this_y, this_x = get_burden(
                 batch, agg_models, device=device, skip_burdens=skip_burdens
             )
