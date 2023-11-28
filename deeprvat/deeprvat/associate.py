@@ -635,7 +635,10 @@ def compute_burdens(
         source_path.symlink_to(link_burdens)
 
 
-def regress_on_gene_scoretest(gene: str, burdens: np.ndarray, model_score,
+def regress_on_gene_scoretest(
+    gene: str,
+    burdens: np.ndarray,
+    model_score,
 ) -> Tuple[List[str], List[float], List[float]]:
     """
     Perform regression on a gene using the score test.
