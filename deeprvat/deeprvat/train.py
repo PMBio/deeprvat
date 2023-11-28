@@ -364,7 +364,7 @@ class MultiphenoDataset(Dataset):
             # get phenotype specific sub-index
             idx = df["index"].to_numpy()
             assert np.array_equal(idx, np.arange(idx[0], idx[-1] + 1))
-            slice_ = slice(idx[0], idx[-1] + 2)
+            slice_ = slice(idx[0], idx[-1] + 1)
 
             annotations = (
                 self.data[pheno]["input_tensor"][slice_]
@@ -375,7 +375,7 @@ class MultiphenoDataset(Dataset):
             result[pheno] = {
                 "indices": self.samples[pheno][slice_],
                 "covariates": self.data[pheno]["covariates"][slice_],
-                "rare_variant_annotations": annotations,
+                "rare_variant_annotations": torch.tensor(annotations),
                 "y": self.data[pheno]["y"][slice_],
             }
 
@@ -408,9 +408,9 @@ class MultiphenoDataset(Dataset):
             pheno_data["y"] = pheno_data["y"][self.samples[pheno]]
             pheno_data["covariates"] = pheno_data["covariates"][self.samples[pheno]]
             if self.cache_tensors:
-                pheno_data["input_tensor"] = pheno_data["input_tensor_zarr"][:][
+                pheno_data["input_tensor"] = pheno_data["input_tensor"][
                     self.samples[pheno]
-                ]  # TODO: Check this line
+                ]
             else:
                 # TODO: Again do this in blocks of 10,000 samples
                 # Create a temporary directory to store the zarr array
