@@ -268,7 +268,7 @@ def process_sparse_gt(
                 )
 
                 if file_chrom == chrom:
-                    exclude_calls_chrom_files.append(file_chrom)
+                    exclude_calls_chrom_files.append(exclude_call_file)
 
             if exclude_calls_chrom_files:
                 calls_to_exclude = pd.concat(
