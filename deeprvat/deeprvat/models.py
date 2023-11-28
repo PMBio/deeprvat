@@ -356,8 +356,9 @@ class DeepSetLinearCommon(BaseModel):
             **kwargs,
         )
 
+        # TODO: is common_variants actually part of this_batch?
         self.common_cov = nn.Linear(
-            # TODO: figure out corect shape
+            # TODO: figure out correct shape
             this_batch["common_variants"].shape[1], 1
         )
 
