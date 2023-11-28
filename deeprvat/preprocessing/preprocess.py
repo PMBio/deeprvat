@@ -253,12 +253,13 @@ def process_sparse_gt(
         logging.info(f"Processing chromosome {chrom}")
         logging.info("Reading in filtered calls")
 
+        exclude_calls_file_cols = ["chrom", "pos", "ref", "alt", "sample"]
+
         calls_to_exclude = pd.DataFrame(
-            columns=["chrom", "pos", "ref", "alt", "sample"]
+            columns=exclude_calls_file_cols
         )
 
         if exclude_calls is not None:
-            exclude_calls_file_cols = ["chrom", "pos", "ref", "alt", "sample"]
 
             exclude_calls_chrom = Path(exclude_calls).rglob("*.tsv*")
             exclude_calls_chrom_files = []
