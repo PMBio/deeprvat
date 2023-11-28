@@ -56,7 +56,7 @@ def get_burden(
 
     :param batch: A dictionary containing batched data from the DataLoader.
     :type batch: Dict
-    :param agg_models: Loaded PyTorch model(s) for each repeat used for burden computation. 
+    :param agg_models: Loaded PyTorch model(s) for each repeat used for burden computation.
                        Each key in the dictionary corresponds to a respective repeat.
     :type agg_models: Dict[str, List[nn.Module]]
     :param device: Device to perform computations on, defaults to "cpu".
@@ -208,7 +208,7 @@ def compute_burdens_(
     :type ds: torch.utils.data.Dataset
     :param cache_dir: Directory to cache zarr files of computed burdens, x phenotypes, and y phenotypes.
     :type cache_dir: str
-    :param agg_models: Loaded PyTorch model(s) for each repeat used for burden computation. 
+    :param agg_models: Loaded PyTorch model(s) for each repeat used for burden computation.
         Each key in the dictionary corresponds to a respective repeat.
     :type agg_models: Dict[str, List[nn.Module]]
     :param n_chunks: Number of chunks to split data for processing, defaults to None.

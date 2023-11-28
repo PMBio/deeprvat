@@ -88,7 +88,9 @@ def pval_correction(group: pd.DataFrame, alpha: float, correction_type: str = "F
     return corrected
 
 
-def suggest_hparams(config: Dict, trial: optuna.trial.Trial, basename: str = "") -> Dict:
+def suggest_hparams(
+    config: Dict, trial: optuna.trial.Trial, basename: str = ""
+) -> Dict:
     """
     Suggest hyperparameters using Optuna's suggest methods.
 
