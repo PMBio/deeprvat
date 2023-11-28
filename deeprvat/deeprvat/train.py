@@ -113,14 +113,9 @@ def make_dataset_(
         or training_dataset_file is None
         or not Path(training_dataset_file).is_file()
     ):
-
-        variant_file = config["training_data"].get(
-            "variant_file",
-            f'{config["training_data"]["gt_file"][:-3]}_variants.parquet',
-        )
         ds = DenseGTDataset(
             gt_file=config["training_data"]["gt_file"],
-            variant_file=variant_file,
+            variant_file=config["training_data"]["variant_file"],
             split="",
             skip_y_na=True,
             **config["training_data"]["dataset_config"],
@@ -303,7 +298,7 @@ class MultiphenoDataset(Dataset):
         start_idx = index * self.batch_size
         end_idx = min(self.total_samples, start_idx + self.batch_size)
         batch_samples = self.sample_order.iloc[start_idx:end_idx]
-        samples_by_pheno = batch_samples.groupby("phenotype")
+        samples_by_pheno = batch_samples.groupby("phenotype", observed=True)
 
         result = dict()
         for pheno, df in samples_by_pheno:

@@ -202,7 +202,7 @@ rule config:
         config = 'config.yaml',
         baseline = lambda wildcards: [
             str(Path(r['base']) / wildcards.phenotype / r['type'] /
-                'eval/burden_associations_testing.parquet')
+                'eval/burden_associations.parquet')
             for r in config['baseline_results']
         ]
     output:
