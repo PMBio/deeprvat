@@ -1,6 +1,5 @@
 import gc
 import logging
-import os
 import sys
 import time
 from pathlib import Path
@@ -148,12 +147,7 @@ def add_variant_ids(variant_file: str, out_file: str, duplicates_file: str):
 
 def get_file_chromosome(file, col_names):
     chrom_df = pd.read_csv(
-        file,
-        names=col_names,
-        sep="\t",
-        index_col=None,
-        nrows=1,
-        usecols=[0]
+        file, names=col_names, sep="\t", index_col=None, nrows=1, usecols=[0]
     )
 
     chrom = None
@@ -189,7 +183,6 @@ def process_sparse_gt(
     logging.info("Reading variants...")
     start_time = time.time()
 
-    # TODO read parquet instead?
     variants = pd.read_csv(variant_file, sep="\t")
 
     # Filter all variants based on chromosome
@@ -203,7 +196,7 @@ def process_sparse_gt(
             v for directory in exclude_variants for v in Path(directory).rglob("*.tsv*")
         ]
 
-        exclusion_file_cols =["chrom", "pos", "ref", "alt"]
+        exclusion_file_cols = ["chrom", "pos", "ref", "alt"]
         variants_to_exclude = pd.concat(
             [
                 pd.read_csv(v, sep="\t", names=exclusion_file_cols)
@@ -270,7 +263,9 @@ def process_sparse_gt(
             exclude_calls_chrom = Path(exclude_calls).rglob("*.tsv*")
             exclude_calls_chrom_files = []
             for exclude_call_file in exclude_calls_chrom:
-                file_chrom = get_file_chromosome(exclude_call_file, col_names=exclude_calls_file_cols)
+                file_chrom = get_file_chromosome(
+                    exclude_call_file, col_names=exclude_calls_file_cols
+                )
 
                 if file_chrom == chrom:
                     exclude_calls_chrom_files.append(file_chrom)
@@ -296,10 +291,13 @@ def process_sparse_gt(
 
         variants_chrom = variant_groups.get_group(chrom)
 
-        sparse_file_cols = ["chrom","pos","ref","alt","sample","gt"]
+        sparse_file_cols = ["chrom", "pos", "ref", "alt", "sample", "gt"]
 
-        sparse_gt_chrom = [f for f in Path(sparse_gt).rglob("*.tsv*") if get_file_chromosome(f, col_names=sparse_file_cols) == chrom]
-
+        sparse_gt_chrom = [
+            f
+            for f in Path(sparse_gt).rglob("*.tsv*")
+            if get_file_chromosome(f, col_names=sparse_file_cols) == chrom
+        ]
 
         logging.info(f"sparse gt chrom(es) are: {sparse_gt_chrom}")
 
