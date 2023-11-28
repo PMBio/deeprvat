@@ -218,6 +218,10 @@ def make_dataset(
 
 
 class MultiphenoDataset(Dataset):
+    """
+    class used to structure the data and present a __getitem__ function to
+    the dataloader, that will be used to load batches into the model
+    """
     def __init__(
         self,
         # input_tensor: zarr.core.Array,
@@ -231,7 +235,13 @@ class MultiphenoDataset(Dataset):
         # samples: Optional[Union[slice, np.ndarray]] = None,
         # genes: Optional[Union[slice, np.ndarray]] = None
     ):
-        "Initialization"
+        """
+        data:               dict, underlying dataframe from which data is structured into batches
+        min_variant_count:  int, minimum number of variants available each gene. 
+        batch_size:         int, number of samples / individuals available in one batch 
+        split:              str, containing a prefix, pointing to the dataset the model is operating on
+        cache_tensors:      bool, indicates if samples have been pre-loaded or need to be extracted from zarr
+        """
         super().__init__()
 
         self.data = data
@@ -263,6 +273,8 @@ class MultiphenoDataset(Dataset):
         self.total_samples = sum([s.shape[0] for s in self.samples.values()])
 
         self.batch_size = batch_size
+        # index all samples and categorize them by phenotype, such that we 
+        # get a dataframe repreenting a chain of phenotypes
         self.sample_order = pd.DataFrame(
             {
                 "phenotype": itertools.chain(
@@ -274,6 +286,7 @@ class MultiphenoDataset(Dataset):
             {"phenotype": pd.api.types.CategoricalDtype()}
         )
         self.sample_order = self.sample_order.sample(n=self.total_samples)  # shuffle
+        # phenotype specific index; e.g. 7. element total, 2. element for phenotype "Urate"
         self.sample_order["index"] = self.sample_order.groupby("phenotype").cumcount()
 
     def __len__(self):
@@ -294,6 +307,7 @@ class MultiphenoDataset(Dataset):
 
         result = dict()
         for pheno, df in samples_by_pheno:
+            # get phenotype specific sub-index
             idx = df["index"].to_numpy()
 
             annotations = (
@@ -310,8 +324,13 @@ class MultiphenoDataset(Dataset):
             }
 
         return result
+    
 
     def subset_samples(self):
+        """
+        Function used to sort out samples which contain real phenotypes with NaN values and
+        samples with less variants each gene then what we specify as a minimum. 
+        """
         for pheno, pheno_data in self.data.items():
             # First sum over annotations (dim 2) for each variant in each gene.
             # Then get the number of non-zero values across all variants in all
@@ -335,6 +354,9 @@ class MultiphenoDataset(Dataset):
 
 
 class MultiphenoBaggingData(pl.LightningDataModule):
+    """
+    Preprocess the underlying dataframe, to then load it into a dataset object
+    """
     def __init__(
         self,
         data: Dict[str, Dict],
@@ -346,6 +368,17 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         num_workers: Optional[int] = 0,
         cache_tensors: bool = False,
     ):
+        """
+        data: dict, underlying dataframe from which data is structured into batches
+        train_proportion: float, percentage by which data is devided into training / validation split 
+        sample_with_replacement: bool, if true a sample of a can be selected multiple times in one epoch.
+        min_variant_count: int minimum number of variants available each gene. 
+        upsampling_factor: int, percentual factor by which we want to upsample data; >= 1; 
+                    however, not yet implemented for multi-phenotype training!
+        batch_size: int, number of samples / individuals available in one batch 
+        num_workers: int, number of workers which simultaneously putting data into RAM
+        cache_tensors: bool, indicates if samples have been pre-loaded or need to be extracted from zarr
+        """
         logger.info("Intializing datamodule")
 
         super().__init__()
@@ -391,11 +424,14 @@ class MultiphenoBaggingData(pl.LightningDataModule):
             else:
                 n_train_samples = round(n_samples * train_proportion)
                 rng = np.random.default_rng()
+                # select training samples from the underlying dataframe
                 train_samples = np.sort(
                     rng.choice(
                         samples, size=n_train_samples, replace=sample_with_replacement
                     )
                 )
+                # samples which are not part of train_samples, but in samples
+                # are validation samples. 
                 pheno_data["samples"] = {
                     "train": train_samples,
                     "val": np.setdiff1d(samples, train_samples),
@@ -408,8 +444,12 @@ class MultiphenoBaggingData(pl.LightningDataModule):
             "num_workers",
             "cache_tensors",
         )
-
+    
     def upsample(self) -> np.ndarray:
+        """
+        does not work at the moment for multi-phenotype training. Needs some minor changes 
+        to make it work again
+        """
         unique_values = self.y.unique()
         if unique_values.size() != torch.Size([2]):
             raise ValueError(
@@ -432,7 +472,13 @@ class MultiphenoBaggingData(pl.LightningDataModule):
 
         self.samples = upsampled_indices
 
+
     def train_dataloader(self):
+        """
+        trainning samples have been selected, but to structure them and make them load 
+        as a batch they are packed in a dataset class, which is then wrapped by a 
+        dataloading object.
+        """
         logger.info(
             "Instantiating training dataloader "
             f"with batch size {self.hparams.batch_size}"
@@ -447,8 +493,14 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         return DataLoader(
             dataset, batch_size=None, num_workers=self.hparams.num_workers
         )
+        
 
     def val_dataloader(self):
+        """
+        validation samples have been selected, but to structure them and make them load 
+        as a batch they are packed in a dataset class, which is then wrapped by a 
+        dataloading object.
+        """
         logger.info(
             "Instantiating validation dataloader "
             f"with batch size {self.hparams.batch_size}"
@@ -474,10 +526,39 @@ def run_bagging(
     trial_id: Optional[int] = None,
     debug: bool = False,
 ) -> Optional[float]:
+    """
+    Main function called during training. Also used for trial pruning and sampling new parameters in optuna
+
+    config: dict, build from yaml, which serves for configuration
+    data: dict of phenotypes, each containing a dict, storing the underlying data
+    log_dir: str, path to were logs are written
+    checkpoint_file: str, path to where the weights of the trained model should be saved
+    trial: optuna object, generated from the study
+    trial_id: int, current trial in range n_trials
+    debug: bool, use a strongly reduced dataframe during training
+    """
+    
+    # if hyperparameter optimization is performed (train(); hpopt_file != None)
     if trial is not None:
         if trial_id is not None:
+            # differentiate various repeats in their individual optimization
             trial.set_user_attr("user_id", trial_id)
 
+        # Parameters set in config can be used to indicate hyperparameter optimization.
+        # Such cases can be spotted by the following exemplary pattern:
+        #
+        # phi_hidden_dim: 20
+        #       hparam:
+        #           type: int
+        #               args:
+        #                    - 16
+        #                    - 64
+        #               kwargs:
+        #                   step: 16
+        # 
+        # this line should be translated into:
+        # phi_layers = optuna.suggest_int(name="phi_hidden_dim", low=16, high=64, step=16)
+        # and afterwards replace the respective area in config to set the suggestion.
         config["model"]["config"] = suggest_hparams(config["model"]["config"], trial)
         logger.info("Model hyperparameters this trial:")
         pprint(config["model"]["config"])
@@ -487,6 +568,8 @@ def run_bagging(
         with open(config_out, "w") as f:
             yaml.dump(config, f)
 
+    # in practice we only train a single bag, as there are 
+    # theoretical reasons to omit bagging w.r.t. association testing
     n_bags = config["training"]["n_bags"] if not debug else 3
     train_proportion = config["training"].get("train_proportion", None)
     logger.info(f"Training {n_bags} bagged models")
@@ -516,13 +599,15 @@ def run_bagging(
                 "cache_tensors",
             )
         }
+        # load data into the required formate
         dm = MultiphenoBaggingData(
             this_data,
             train_proportion,
             **dm_kwargs,
             **config["training"]["dataloader_config"],
         )
-
+        
+        # setup the model architecture as specified in config
         model_class = getattr(deeprvat_models, config["model"]["type"])
         model = model_class(
             config=config["model"]["config"],
@@ -540,6 +625,8 @@ def run_bagging(
         objective = "val_" + config["model"]["config"]["metrics"]["objective"]
         checkpoint_callback = ModelCheckpoint(monitor=objective)
         callbacks = [checkpoint_callback]
+        
+        # to prune underperforming trials we enable a pruning strategy that can be set in config
         if "early_stopping" in config:
             callbacks.append(
                 EarlyStopping(monitor=objective, **config["early_stopping"])
@@ -549,14 +636,17 @@ def run_bagging(
             config["pl_trainer"]["min_epochs"] = 10
             config["pl_trainer"]["max_epochs"] = 20
 
+        # initialize trainer, which will call background functionality
         trainer = pl.Trainer(
             logger=tb_logger, callbacks=callbacks, **config.get("pl_trainer", {})
         )
 
         while True:
             try:
+                # actual training of the model 
                 trainer.fit(model, dm)
             except RuntimeError as e:
+                # if batch_size is choosen to big, it will be reduced until it fits the GPU
                 logging.error(f"Caught RuntimeError: {e}")
                 if str(e).find("CUDA out of memory") != -1:
                     if dm.hparams.batch_size > 4:
@@ -655,6 +745,25 @@ def train(
     log_dir: str,
     hpopt_file: str,
 ):
+    """
+    Main function called during training. Also used for trial pruning and sampling new parameters in optuna
+    
+    debug: bool, use a strongly reduced dataframe during training
+    training_gene_file: str, path to a pickle file specifying on which genes training should be executed
+    n_trials: int, number of trials to be performed by the given setting
+    trial_id: int, current trial in range n_trials
+    sample_file: str, path to a pickle file, which specifies which samples should be considered during training
+    phenotype: array of phenotypes, containing an array of paths, where the underlying data is stored:
+               1. str containing the phenotype name
+               2. annotated gene variants as zarr file
+               3. covariates each sample as zarr file
+               4. ground truth phenotypes as zarr file 
+    config_file: str, path to a yaml file, which serves for configuration
+    log_dir:  str, path to were logs are written
+    hpopt_file: str, path to where a .db file should be created in which the results of hyperparameter 
+                optimization are stored 
+    """
+    
     if len(phenotype) == 0:
         raise ValueError("At least one --phenotype option must be specified")
 
@@ -682,6 +791,7 @@ def train(
         samples = slice(None)
 
     data = dict()
+    # pack underlying data into a single dict that can be passed to downstream functions
     for pheno, input_tensor_file, covariates_file, y_file in phenotype:
         data[pheno] = dict()
         data[pheno]["input_tensor_zarr"] = zarr.open(input_tensor_file, mode="r")
