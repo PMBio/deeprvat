@@ -25,12 +25,12 @@ class RSquared:
         """
         Calculate R-squared value between two tensors.
 
-        Parameters:
-        - preds (torch.tensor): Tensor containing predicted values.
-        - targets (torch.tensor): Tensor containing target values.
-
-        Returns:
-        torch.tensor: R-squared value.
+        :param preds: Tensor containing predicted values.
+        :type preds: torch.tensor
+        :param targets: Tensor containing target values.
+        :type targets: torch.tensor
+        :return: R-squared value.
+        :rtype: torch.tensor
         """
         y_mean = torch.mean(targets)
         ss_tot = torch.sum(torch.square(targets - y_mean))
@@ -49,12 +49,12 @@ class PearsonCorr:
         """
         Calculate Pearson correlation coefficient.
 
-        Parameters:
-        - burden (torch.tensor): Tensor containing burden values.
-        - y (torch.tensor): Tensor containing target values.
-
-        Returns:
-        float: Pearson correlation coefficient.
+        :param burden: Tensor containing burden values.
+        :type burden: torch.tensor
+        :param y: Tensor containing target values.
+        :type y: torch.tensor
+        :return: Pearson correlation coefficient.
+        :rtype: float
         """
         if len(burden.shape) > 1:  # was the burden computed for >1 genes
             corrs = []
@@ -84,12 +84,12 @@ class PearsonCorrTorch:
         """
         Calculate Pearson correlation coefficient using PyTorch tensor operations.
 
-        Parameters:
-        - burden (torch.tensor): Tensor containing burden values.
-        - y (torch.tensor): Tensor containing target values.
-
-        Returns:
-        torch.tensor: Pearson correlation coefficient.
+        :param burden: Tensor containing burden values.
+        :type burden: torch.tensor
+        :param y: Tensor containing target values.
+        :type y: torch.tensor
+        :return: Pearson correlation coefficient.
+        :rtype: torch.tensor
         """
         if len(burden.shape) > 1:  # was the burden computed for >1 genes
             corrs = []
@@ -132,12 +132,12 @@ class AveragePrecisionWithLogits:
         """
         Calculate average precision score.
 
-        Parameters:
-        - logits (torch.tensor): Tensor containing logits.
-        - y (torch.tensor): Tensor containing target values.
-
-        Returns:
-        float: Average precision score.
+        :param logits: Tensor containing logits.
+        :type logits: torch.tensor
+        :param y: Tensor containing target values.
+        :type y: torch.tensor
+        :return: Average precision score.
+        :rtype: float
         """
         y_scores = F.sigmoid(logits.detach())
         return average_precision_score(y.detach().cpu().numpy(), y_scores.cpu().numpy())

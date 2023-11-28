@@ -42,24 +42,26 @@ def update_config(
     new_config_file: str,
 ):
     """
-    Select seed genes based on baseline results and update configuration file.
+    Select seed genes based on baseline results and update the configuration file.
 
-    Parameters:
-    - old_config_file (str): Path to the old configuration file.
-    - phenotype (Optional[str]): Phenotype to update in the configuration.
-    - seed_gene_dir (Optional[str]): Directory containing seed genes.
-    - baseline_results (Tuple[str]): Paths to baseline result files.
-    - baseline_results_out (Optional[str]): Path to save the updated baseline results.
-    - seed_genes_out (Optional[str]): Path to save the seed genes.
-    - new_config_file (str): Path to the new configuration file.
-
-    Raises:
-    - ValueError: If neither --seed-gene-dir nor --baseline-results is specified.
-
-    Returns:
-    Updated configuration file saved to new_config.yaml.
-    Selected seed genes saved to seed_genes_out.parquet.
-    Optionally, save baseline results to parquet file if baseline_results_out is specified.
+    :param old_config_file: Path to the old configuration file.
+    :type old_config_file: str
+    :param phenotype: Phenotype to update in the configuration.
+    :type phenotype: Optional[str]
+    :param seed_gene_dir: Directory containing seed genes.
+    :type seed_gene_dir: Optional[str]
+    :param baseline_results: Paths to baseline result files.
+    :type baseline_results: Tuple[str]
+    :param baseline_results_out: Path to save the updated baseline results.
+    :type baseline_results_out: Optional[str]
+    :param seed_genes_out: Path to save the seed genes.
+    :type seed_genes_out: Optional[str]
+    :param new_config_file: Path to the new configuration file.
+    :type new_config_file: str
+    :raises ValueError: If neither --seed-gene-dir nor --baseline-results is specified.
+    :return: Updated configuration file saved to new_config.yaml.
+             Selected seed genes saved to seed_genes_out.parquet.
+             Optionally, save baseline results to a parquet file if baseline_results_out is specified.
     """
     if seed_gene_dir is None and len(baseline_results) == 0:
         raise ValueError(

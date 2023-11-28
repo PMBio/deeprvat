@@ -25,14 +25,14 @@ logger = logging.getLogger(__name__)
 
 def fdrcorrect_df(group: pd.DataFrame, alpha: float) -> pd.DataFrame:
     """
-    Apply FDR correction to p-values in a DataFrame.
+    Apply False Discovery Rate (FDR) correction to p-values in a DataFrame.
 
-    Parameters:
-    - group (pd.DataFrame): DataFrame containing a "pval" column.
-    - alpha (float): Significance level.
-
-    Returns:
-    pd.DataFrame: Original DataFrame with additional columns "significant" and "pval_corrected".
+    :param group: DataFrame containing a "pval" column.
+    :type group: pd.DataFrame
+    :param alpha: Significance level.
+    :type alpha: float
+    :return: Original DataFrame with additional columns "significant" and "pval_corrected".
+    :rtype: pd.DataFrame
     """
     group = group.copy()
 
@@ -46,12 +46,12 @@ def bfcorrect_df(group: pd.DataFrame, alpha: float) -> pd.DataFrame:
     """
     Apply Bonferroni correction to p-values in a DataFrame.
 
-    Parameters:
-    - group (pd.DataFrame): DataFrame containing a "pval" column.
-    - alpha (float): Significance level.
-
-    Returns:
-    pd.DataFrame: Original DataFrame with additional columns "significant" and "pval_corrected".
+    :param group: DataFrame containing a "pval" column.
+    :type group: pd.DataFrame
+    :param alpha: Significance level.
+    :type alpha: float
+    :return: Original DataFrame with additional columns "significant" and "pval_corrected".
+    :rtype: pd.DataFrame
     """
     group = group.copy()
 
@@ -65,13 +65,14 @@ def pval_correction(group: pd.DataFrame, alpha: float, correction_type: str = "F
     """
     Apply p-value correction to a DataFrame.
 
-    Parameters:
-    - group (pd.DataFrame): DataFrame containing a column named "pval" with p-values to correct.
-    - alpha (float): Significance level.
-    - correction_type (str): Type of p-value correction. Options are 'FDR' (default) and 'Bonferroni'.
-
-    Returns:
-    pd.DataFrame: Original DataFrame with additional columns "significant" and "pval_corrected".
+    :param group: DataFrame containing a column named "pval" with p-values to correct.
+    :type group: pd.DataFrame
+    :param alpha: Significance level.
+    :type alpha: float
+    :param correction_type: Type of p-value correction. Options are 'FDR' (default) and 'Bonferroni'.
+    :type correction_type: str
+    :return: Original DataFrame with additional columns "significant" and "pval_corrected".
+    :rtype: pd.DataFrame
     """
     if correction_type == "FDR":
         corrected = fdrcorrect_df(group, alpha)
@@ -87,17 +88,18 @@ def pval_correction(group: pd.DataFrame, alpha: float, correction_type: str = "F
     return corrected
 
 
-def suggest_hparams(config: Dict, trial: optuna.trial.Trial, basename: str = ""):
+def suggest_hparams(config: Dict, trial: optuna.trial.Trial, basename: str = "") -> Dict:
     """
     Suggest hyperparameters using Optuna's suggest methods.
 
-    Parameters:
-    - config (Dict): Configuration dictionary with hyperparameter specifications.
-    - trial (optuna.trial.Trial): Optuna trial instance.
-    - basename (str): Base name for hyperparameter suggestions.
-
-    Returns:
-    Dict: Updated configuration with suggested hyperparameters.
+    :param config: Configuration dictionary with hyperparameter specifications.
+    :type config: Dict
+    :param trial: Optuna trial instance.
+    :type trial: optuna.trial.Trial
+    :param basename: Base name for hyperparameter suggestions.
+    :type basename: str
+    :return: Updated configuration with suggested hyperparameters.
+    :rtype: Dict
     """
     config = copy.deepcopy(config)
     for k, cfg in config.items():
@@ -120,11 +122,10 @@ def compute_se(errors: np.ndarray) -> float:
     """
     Compute standard error.
 
-    Parameters:
-    - errors (np.ndarray): Array of errors.
-
-    Returns:
-    float: Standard error.
+    :param errors: Array of errors.
+    :type errors: np.ndarray
+    :return: Standard error.
+    :rtype: float
     """
     mean_error = np.mean(errors)
     n = errors.shape[0]
@@ -136,11 +137,10 @@ def standardize_series(x: pd.Series) -> pd.Series:
     """
     Standardize a pandas Series.
 
-    Parameters:
-    - x (pd.Series): Input Series.
-
-    Returns:
-    pd.Series: Standardized Series.
+    :param x: Input Series.
+    :type x: pd.Series
+    :return: Standardized Series.
+    :rtype: pd.Series
     """
     x = x.astype(np.float32)
     mean = x.mean()
@@ -153,15 +153,15 @@ def my_quantile_transform(x, seed=1):
     """
     Gaussian quantile transform for values in a pandas Series.
 
-    Parameters:
-    - x: Input pandas Series.
-    - seed (int): Random seed.
+    :param x: Input pandas Series.
+    :type x: pd.Series
+    :param seed: Random seed.
+    :type seed: int
+    :return: Transformed Series.
+    :rtype: pd.Series
 
-    Notes:
-    - "nan" values are kept
-
-    Returns:
-    pd.Series: Transformed Series.
+    .. note::
+        "nan" values are kept
     """
     np.random.seed(seed)
     x_transform = x.copy().to_numpy()
@@ -183,13 +183,12 @@ def standardize_series_with_params(x: pd.Series, std, mean) -> pd.Series:
     """
     Standardize a pandas Series using provided standard deviation and mean.
 
-    Parameters:
-    - x (pd.Series): Input Series.
-    - std: Standard deviation to use for standardization.
-    - mean: Mean to use for standardization.
-
-    Returns:
-    pd.Series: Standardized Series.
+    :param x: Input Series.
+    :type x: pd.Series
+    :param std: Standard deviation to use for standardization.
+    :param mean: Mean to use for standardization.
+    :return: Standardized Series.
+    :rtype: pd.Series
     """
     x = x.apply(lambda x: (x - mean) / std if x != 0 else 0)
     return x
@@ -199,12 +198,12 @@ def calculate_mean_std(x: pd.Series, ignore_zero=True) -> pd.Series:
     """
     Calculate mean and standard deviation of a pandas Series.
 
-    Parameters:
-    - x (pd.Series): Input Series.
-    - ignore_zero (bool): Whether to ignore zero values in calculations (default is True).
-
-    Returns:
-    Tuple[float, float]: Tuple of standard deviation and mean.
+    :param x: Input Series.
+    :type x: pd.Series
+    :param ignore_zero: Whether to ignore zero values in calculations, defaults to True.
+    :type ignore_zero: bool
+    :return: Tuple of standard deviation and mean.
+    :rtype: Tuple[float, float]
     """
     x = x.astype(np.float32)
     if ignore_zero:
@@ -224,18 +223,18 @@ def safe_merge(
     """
     Safely merge two pandas DataFrames.
 
-    Parameters:
-    - left (pd.DataFrame): Left DataFrame.
-    - right (pd.DataFrame): Right DataFrame.
-    - validate (str): Validation method for the merge.
-    - equal_row_nums (bool): Whether to check if the row numbers are equal (default is False).
-
-    Raises:
-    - ValueError: If left and right dataframe rows are unequal when 'equal_row_nums' is True.
-    - RuntimeError: If merged DataFrame has unequal row numbers compared to the left DataFrame.
-
-    Returns:
-    pd.DataFrame: Merged DataFrame.
+    :param left: Left DataFrame.
+    :type left: pd.DataFrame
+    :param right: Right DataFrame.
+    :type right: pd.DataFrame
+    :param validate: Validation method for the merge.
+    :type validate: str
+    :param equal_row_nums: Whether to check if the row numbers are equal, defaults to False.
+    :type equal_row_nums: bool
+    :raises ValueError: If left and right dataframe rows are unequal when 'equal_row_nums' is True.
+    :raises RuntimeError: If merged DataFrame has unequal row numbers compared to the left DataFrame.
+    :return: Merged DataFrame.
+    :rtype: pd.DataFrame
     """
     if equal_row_nums:
         try:
@@ -263,11 +262,10 @@ def resolve_path_with_env(path: str) -> str:
     """
     Resolve a path with environment variables.
 
-    Parameters:
-    - path (str): Input path.
-
-    Returns:
-    str: Resolved path.
+    :param path: Input path.
+    :type path: str
+    :return: Resolved path.
+    :rtype: str
     """
     path_split = []
     head = path
@@ -287,12 +285,12 @@ def copy_with_env(path: str, destination: str) -> str:
     """
     Copy a file or directory to a destination with environment variables.
 
-    Parameters:
-    - path (str): Input path (file or directory).
-    - destination (str): Destination path.
-
-    Returns:
-    str: Resulting destination path.
+    :param path: Input path (file or directory).
+    :type path: str
+    :param destination: Destination path.
+    :type destination: str
+    :return: Resulting destination path.
+    :rtype: str
     """
     destination = resolve_path_with_env(destination)
 
@@ -320,12 +318,12 @@ def load_or_init(pickle_file: str, init_fn: Callable) -> Any:
     """
     Load a pickled file or initialize an object.
 
-    Parameters:
-    - pickle_file (str): Pickle file path.
-    - init_fn (Callable): Initialization function.
-
-    Returns:
-    Any: Loaded or initialized object.
+    :param pickle_file: Pickle file path.
+    :type pickle_file: str
+    :param init_fn: Initialization function.
+    :type init_fn: Callable
+    :return: Loaded or initialized object.
+    :rtype: Any
     """
     if pickle_file is not None and os.path.isfile(pickle_file):
         logger.info(f"Using pickled file {pickle_file}")
@@ -343,12 +341,12 @@ def remove_prefix(string, prefix):
     """
     Remove a prefix from a string.
 
-    Parameters:
-    - string (str): Input string.
-    - prefix (str): Prefix to remove.
-
-    Returns:
-    str: String without the specified prefix.
+    :param string: Input string.
+    :type string: str
+    :param prefix: Prefix to remove.
+    :type prefix: str
+    :return: String without the specified prefix.
+    :rtype: str
     """
     if string.startswith(prefix):
         return string[len(prefix) :]
@@ -367,13 +365,14 @@ def suggest_batch_size(
     """
     Suggest a batch size for a tensor based on available GPU memory.
 
-    Parameters:
-    - tensor_shape (Iterable[int]): Shape of the tensor.
-    - example (Dict[str, Any]): Example dictionary with batch size, tensor shape, and max memory bytes.
-    - buffer_bytes (int): Buffer bytes to consider.
-
-    Returns:
-    int: Suggested batch size for the given tensor shape and GPU memory.
+    :param tensor_shape: Shape of the tensor.
+    :type tensor_shape: Iterable[int]
+    :param example: Example dictionary with batch size, tensor shape, and max memory bytes.
+    :type example: Dict[str, Any]
+    :param buffer_bytes: Buffer bytes to consider.
+    :type buffer_bytes: int
+    :return: Suggested batch size for the given tensor shape and GPU memory.
+    :rtype: int
     """
     gpu_mem_bytes = torch.cuda.get_device_properties(0).total_memory
     batch_size = math.floor(

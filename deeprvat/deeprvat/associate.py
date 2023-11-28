@@ -54,18 +54,20 @@ def get_burden(
     """
     Compute burden scores for rare variants.
 
-    Parameters:
-    - batch (Dict): A dictionary containing batched data from the DataLoader.
-    - agg_models (Dict[str, List[nn.Module]]): Loaded PyTorch model(s) for each repeat used for burden computation. 
-        Each key in the dictionary corresponds to a respective repeat.
-    - device (torch.device): Device to perform computations on (default is CPU).
-    - skip_burdens (bool): Flag to skip burden computation (default is False).
+    :param batch: A dictionary containing batched data from the DataLoader.
+    :type batch: Dict
+    :param agg_models: Loaded PyTorch model(s) for each repeat used for burden computation. 
+                       Each key in the dictionary corresponds to a respective repeat.
+    :type agg_models: Dict[str, List[nn.Module]]
+    :param device: Device to perform computations on, defaults to "cpu".
+    :type device: torch.device
+    :param skip_burdens: Flag to skip burden computation, defaults to False.
+    :type skip_burdens: bool
+    :return: Tuple containing burden scores, target y phenotype values, and x phenotypes.
+    :rtype: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
 
-    Notes:
-    - Checkpoint models all corresponding to the same repeat are averaged for that repeat.
-
-    Returns:
-    Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: Tuple containing burden scores, target y phenotype values, and x phenotypes.
+    .. note::
+        Checkpoint models all corresponding to the same repeat are averaged for that repeat.
     """
     with torch.no_grad():
         X = batch["rare_variant_annotations"].to(device)
@@ -93,11 +95,10 @@ def separate_parallel_results(results: List) -> Tuple[List, ...]:
     """
     Separate results from running regression on each gene.
 
-    Parameters:
-    - results (List): List of results obtained from regression analysis.
-
-    Returns:
-    Tuple[List, ...]: Tuple of lists containing separated results of regressed_genes, betas, and pvals.
+    :param results: List of results obtained from regression analysis.
+    :type results: List
+    :return: Tuple of lists containing separated results of regressed_genes, betas, and pvals.
+    :rtype: Tuple[List, ...]
     """
     return tuple(map(list, zip(*results)))
 
@@ -116,14 +117,16 @@ def make_dataset_(
     """
     Create a dataset based on the configuration.
 
-    Parameters:
-    - config (Dict): Configuration dictionary.
-    - debug (bool): Flag for debugging (default is False).
-    - data_key (str): Key for dataset configuration in the config dictionary (default is "data").
-    - samples (List[int]): List of sample indices to include in the dataset (default is None).
-
-    Returns:
-    Dataset: Loaded instance of the created dataset.
+    :param config: Configuration dictionary.
+    :type config: Dict
+    :param debug: Flag for debugging, defaults to False.
+    :type debug: bool
+    :param data_key: Key for dataset configuration in the config dictionary, defaults to "data".
+    :type data_key: str
+    :param samples: List of sample indices to include in the dataset, defaults to None.
+    :type samples: List[int]
+    :return: Loaded instance of the created dataset.
+    :rtype: Dataset
     """
     data_config = config[data_key]
 
@@ -162,14 +165,15 @@ def make_dataset(debug: bool, data_key: str, config_file: str, out_file: str):
     """
     Create a dataset based on the provided configuration and save to a pickle file.
 
-    Parameters:
-    - debug (bool): Flag for debugging.
-    - data_key (str): Key for dataset configuration in the config dictionary (default is "data").
-    - config_file (str): Path to the configuration file.
-    - out_file (str): Path to the output file.
-
-    Returns:
-    Created dataset saved to output.pkl
+    :param debug: Flag for debugging.
+    :type debug: bool
+    :param data_key: Key for dataset configuration in the config dictionary, defaults to "data".
+    :type data_key: str
+    :param config_file: Path to the configuration file.
+    :type config_file: str
+    :param out_file: Path to the output file.
+    :type out_file: str
+    :return: Created dataset saved to out_file.pkl
     """
     with open(config_file) as f:
         config = yaml.safe_load(f)
@@ -194,27 +198,36 @@ def compute_burdens_(
     skip_burdens: bool = False,
 ) -> Tuple[np.ndarray, zarr.core.Array, zarr.core.Array, zarr.core.Array]:
     """
-    Compute burdens using the PyTorch model for each repeat. 
+    Compute burdens using the PyTorch model for each repeat.
 
-    Parameters:
-    - debug (bool): Flag for debugging.
-    - config (Dict): Configuration dictionary.
-    - ds (torch.utils.data.Dataset): Torch dataset.
-    - cache_dir (str): Directory to cache zarr files of computed burdens, x phenotypes, and y phenotypes.
-    - agg_models (Dict[str, List[nn.Module]]): Loaded PyTorch model(s) for each repeat used for burden computation. 
+    :param debug: Flag for debugging.
+    :type debug: bool
+    :param config: Configuration dictionary.
+    :type config: Dict
+    :param ds: Torch dataset.
+    :type ds: torch.utils.data.Dataset
+    :param cache_dir: Directory to cache zarr files of computed burdens, x phenotypes, and y phenotypes.
+    :type cache_dir: str
+    :param agg_models: Loaded PyTorch model(s) for each repeat used for burden computation. 
         Each key in the dictionary corresponds to a respective repeat.
-    - n_chunks (Optional[int]): Number of chunks to split data for processing (default is None).
-    - chunk (Optional[int]): Index of the chunk of data (default is None).
-    - device (torch.device): Device to perform computations on (default is CPU).
-    - bottleneck (bool): Flag to enable bottlenecking number of batches (default is False).
-    - compression_level (int): Blosc compressor compression level for zarr files (default is 1).
-    - skip_burdens (bool): Flag to skip burden computation (default is False).
+    :type agg_models: Dict[str, List[nn.Module]]
+    :param n_chunks: Number of chunks to split data for processing, defaults to None.
+    :type n_chunks: Optional[int]
+    :param chunk: Index of the chunk of data, defaults to None.
+    :type chunk: Optional[int]
+    :param device: Device to perform computations on, defaults to "cpu".
+    :type device: torch.device
+    :param bottleneck: Flag to enable bottlenecking number of batches, defaults to False.
+    :type bottleneck: bool
+    :param compression_level: Blosc compressor compression level for zarr files, defaults to 1.
+    :type compression_level: int
+    :param skip_burdens: Flag to skip burden computation, defaults to False.
+    :type skip_burdens: bool
+    :return: Tuple containing genes, burdens, target y phenotypes, and x phenotypes.
+    :rtype: Tuple[np.ndarray, zarr.core.Array, zarr.core.Array, zarr.core.Array]
 
-    Notes:
-    - Checkpoint models all corresponding to the same repeat are averaged for that repeat.
-
-    Returns:
-    Tuple[np.ndarray, zarr.core.Array, zarr.core.Array, zarr.core.Array]: Tuple containing genes, burdens, target y phenotypes, and x phenotypes.
+    .. note::
+        Checkpoint models all corresponding to the same repeat are averaged for that repeat.
     """
     if not skip_burdens:
         logger.info("agg_models[*][*].reverse:")
@@ -347,13 +360,14 @@ def load_one_model(
     """
     Load a single burden score computation model from a checkpoint file.
 
-    Parameters:
-    - config (Dict): Configuration dictionary.
-    - checkpoint (str): Path to the model checkpoint file.
-    - device (torch.device): Device to load the model onto (default is CPU).
-
-    Returns:
-    nn.Module: Loaded PyTorch model for burden score computation.
+    :param config: Configuration dictionary.
+    :type config: Dict
+    :param checkpoint: Path to the model checkpoint file.
+    :type checkpoint: str
+    :param device: Device to load the model onto, defaults to "cpu".
+    :type device: torch.device
+    :return: Loaded PyTorch model for burden score computation.
+    :rtype: nn.Module
     """
     model_class = getattr(deeprvat_models, config["model"]["type"])
     model = model_class.load_from_checkpoint(
@@ -376,13 +390,13 @@ def reverse_models(
     """
     Determine if the burden score computation PyTorch model should reverse the output based on PLOF annotations.
 
-    Parameters:
-    - model_config_file (str): Path to the model configuration file.
-    - data_config_file (str): Path to the data configuration file.
-    - checkpoint_files (Tuple[str]): Paths to checkpoint files.
-
-    Returns:
-    checkpoint.reverse file is created if the model should reverse the burden score output.
+    :param model_config_file: Path to the model configuration file.
+    :type model_config_file: str
+    :param data_config_file: Path to the data configuration file.
+    :type data_config_file: str
+    :param checkpoint_files: Paths to checkpoint files.
+    :type checkpoint_files: Tuple[str]
+    :return: checkpoint.reverse file is created if the model should reverse the burden score output.
     """
     with open(model_config_file) as f:
         model_config = yaml.safe_load(f)
@@ -446,17 +460,19 @@ def load_models(
     device: torch.device = torch.device("cpu"),
 ) -> Dict[str, List[nn.Module]]:
     """
-    Load models from multiple checkpoints for multiple repeats. 
+    Load models from multiple checkpoints for multiple repeats.
 
-    Parameters:
-    - config (Dict): Configuration dictionary.
-    - checkpoint_files (Tuple[str]): Paths to checkpoint files.
-    - device (torch.device): Device to load the models onto (default is CPU).
+    :param config: Configuration dictionary.
+    :type config: Dict
+    :param checkpoint_files: Paths to checkpoint files.
+    :type checkpoint_files: Tuple[str]
+    :param device: Device to load the models onto, defaults to "cpu".
+    :type device: torch.device
+    :return: Dictionary of loaded PyTorch models for burden score computation for each repeat.
+    :rtype: Dict[str, List[nn.Module]]
 
-    Returns:
-    Dict[str, List[nn.Module]]: Dictionary of loaded PyTorch models for burden score computation for each repeat.
+    :Examples:
 
-    Examples:
     >>> config = {"model": {"type": "MyModel", "config": {"param": "value"}}}
     >>> checkpoint_files = ("checkpoint1.pth", "checkpoint2.pth")
     >>> load_models(config, checkpoint_files)
@@ -542,26 +558,33 @@ def compute_burdens(
     out_dir: str,
 ):
     """
-    Compute burdens based on model and dataset provided.
+    Compute burdens based on the provided model and dataset.
 
-    Parameters:
-    - debug (bool): Flag for debugging.
-    - bottleneck (bool): Flag to enable bottlenecking number of batches.
-    - n_chunks (Optional[int]): Number of chunks to split data for processing (default is None).
-    - chunk (Optional[int]): Index of the chunk of data (default is None).
-    - dataset_file (Optional[str]): Path to the dataset file, i.e. association_dataset.pkl.
-    - link_burdens (Optional[str]): Path to burden.zarr file to link.
-    - data_config_file (str): Path to the data configuration file.
-    - model_config_file (str): Path to the model configuration file.
-    - checkpoint_files (Tuple[str]): Paths to model checkpoint files.
-    - out_dir (str): Path to the output directory.
+    :param debug: Flag for debugging.
+    :type debug: bool
+    :param bottleneck: Flag to enable bottlenecking number of batches.
+    :type bottleneck: bool
+    :param n_chunks: Number of chunks to split data for processing, defaults to None.
+    :type n_chunks: Optional[int]
+    :param chunk: Index of the chunk of data, defaults to None.
+    :type chunk: Optional[int]
+    :param dataset_file: Path to the dataset file, i.e., association_dataset.pkl.
+    :type dataset_file: Optional[str]
+    :param link_burdens: Path to burden.zarr file to link.
+    :type link_burdens: Optional[str]
+    :param data_config_file: Path to the data configuration file.
+    :type data_config_file: str
+    :param model_config_file: Path to the model configuration file.
+    :type model_config_file: str
+    :param checkpoint_files: Paths to model checkpoint files.
+    :type checkpoint_files: Tuple[str]
+    :param out_dir: Path to the output directory.
+    :type out_dir: str
+    :return: Corresonding genes, computed burdens, y phenotypes, and x phenotypes are saved in the out_dir.
+    :rtype: [np.ndarray], [zarr.core.Array], [zarr.core.Array], [zarr.core.Array]
 
-    Returns:
-    Computed burdens, corresponding genes, and targets are saved in the out_dir.
-    np.ndarray: Corresponding genes, saved as genes.npy 
-    zarr.core.Array: Computed burdens, saved as burdens.zarr
-    zarr.core.Array: Target y phenotype, saved as y.zarr
-    zarr.core.Array: X phenotype, saved as x.zarr
+    .. note::
+        Checkpoint models all corresponding to the same repeat are averaged for that repeat.
     """
     if len(checkpoint_files) == 0:
         raise ValueError("At least one checkpoint file must be supplied")
@@ -617,13 +640,14 @@ def regress_on_gene_scoretest(gene: str, burdens: np.ndarray, model_score,
     """
     Perform regression on a gene using the score test.
 
-    Parameters:
-    - gene (str): Gene name.
-    - burdens (np.ndarray): Burden scores associated with the gene.
-    - model_score: Model for score test.
-
-    Returns:
-    Tuple[List[str], List[float], List[float]]: Tuple containing gene name, beta, and p-value.
+    :param gene: Gene name.
+    :type gene: str
+    :param burdens: Burden scores associated with the gene.
+    :type burdens: np.ndarray
+    :param model_score: Model for score test.
+    :type model_score: Any
+    :return: Tuple containing gene name, beta, and p-value.
+    :rtype: Tuple[List[str], List[float], List[float]]
     """
     burdens = burdens.reshape(burdens.shape[0], -1)
     logger.info(f"Burdens shape: {burdens.shape}")
@@ -664,18 +688,22 @@ def regress_on_gene(
     use_x_pheno: bool,
 ) -> Tuple[List[str], List[float], List[float]]:
     """
-    Perform regression on a gene using OLS.
+    Perform regression on a gene using Ordinary Least Squares (OLS).
 
-    Parameters:
-    - gene (str): Gene name.
-    - X (np.ndarray): Burden score data.
-    - y (np.ndarray): Y phenotype data.
-    - x_pheno (np.ndarray): X phenotype data.
-    - use_bias (bool): Flag to include bias term.
-    - use_x_pheno (bool): Flag to include x phenotype data in regression.
-
-    Returns:
-    Tuple[List[str], List[float], List[float]]: Tuple containing gene name, beta, and p-value.
+    :param gene: Gene name.
+    :type gene: str
+    :param X: Burden score data.
+    :type X: np.ndarray
+    :param y: Y phenotype data.
+    :type y: np.ndarray
+    :param x_pheno: X phenotype data.
+    :type x_pheno: np.ndarray
+    :param use_bias: Flag to include bias term.
+    :type use_bias: bool
+    :param use_x_pheno: Flag to include x phenotype data in regression.
+    :type use_x_pheno: bool
+    :return: Tuple containing gene name, beta, and p-value.
+    :rtype: Tuple[List[str], List[float], List[float]]
     """
     X = X.reshape(X.shape[0], -1)
     if np.all(np.abs(X) < 1e-6):
@@ -723,19 +751,26 @@ def regress_(
     """
     Perform regression on multiple genes.
 
-    Parameters:
-    - config (Dict): Configuration dictionary.
-    - use_bias (bool): Flag to include bias term when performing OLS regression.
-    - burdens (np.ndarray): Burden score data.
-    - y (np.ndarray): Y phenotype data.
-    - gene_indices (np.ndarray): Indices of genes.
-    - genes (pd.Series): Gene names.
-    - x_pheno (np.ndarray): X phenotype data.
-    - use_x_pheno (bool): Flag to include x phenotype data when performing OLS regression (default is True).
-    - do_scoretest (bool): Flag to use the scoretest from SEAK (default is True).
-
-    Returns:
-    pd.DataFrame: DataFrame containing regression results on all genes.
+    :param config: Configuration dictionary.
+    :type config: Dict
+    :param use_bias: Flag to include bias term when performing OLS regression.
+    :type use_bias: bool
+    :param burdens: Burden score data.
+    :type burdens: np.ndarray
+    :param y: Y phenotype data.
+    :type y: np.ndarray
+    :param gene_indices: Indices of genes.
+    :type gene_indices: np.ndarray
+    :param genes: Gene names.
+    :type genes: pd.Series
+    :param x_pheno: X phenotype data.
+    :type x_pheno: np.ndarray
+    :param use_x_pheno: Flag to include x phenotype data when performing OLS regression, defaults to True.
+    :type use_x_pheno: bool
+    :param do_scoretest: Flag to use the scoretest from SEAK, defaults to True.
+    :type do_scoretest: bool
+    :return: DataFrame containing regression results on all genes.
+    :rtype: pd.DataFrame
     """
     assert len(gene_indices) == len(genes)
 
@@ -819,21 +854,29 @@ def regress(
     """
     Perform regression analysis.
 
-    Parameters:
-    - debug (bool): Flag for debugging.
-    - chunk (int): Index of the chunk of data (default is 0).
-    - n_chunks (int): Number of chunks to split data for processing (default is 1).
-    - use_bias (bool): Flag to include bias term when performing OLS regression.
-    - gene_file (str): Path to the gene file.
-    - repeat (int): Index of the repeat (default is 0).
-    - config_file (str): Path to the configuration file.
-    - burden_dir (str): Path to the directory containing burdens.zarr file.
-    - out_dir (str): Path to the output directory.
-    - do_scoretest (bool): Flag to use the scoretest from SEAK.
-    - sample_file (Optional[str]): Path to the sample file.
-
-    Returns:
-    Regression results saved to out_dir as "burden_associations_{chunk}.parquet"
+    :param debug: Flag for debugging.
+    :type debug: bool
+    :param chunk: Index of the chunk of data, defaults to 0.
+    :type chunk: int
+    :param n_chunks: Number of chunks to split data for processing, defaults to 1.
+    :type n_chunks: int
+    :param use_bias: Flag to include bias term when performing OLS regression.
+    :type use_bias: bool
+    :param gene_file: Path to the gene file.
+    :type gene_file: str
+    :param repeat: Index of the repeat, defaults to 0.
+    :type repeat: int
+    :param config_file: Path to the configuration file.
+    :type config_file: str
+    :param burden_dir: Path to the directory containing burdens.zarr file.
+    :type burden_dir: str
+    :param out_dir: Path to the output directory.
+    :type out_dir: str
+    :param do_scoretest: Flag to use the scoretest from SEAK.
+    :type do_scoretest: bool
+    :param sample_file: Path to the sample file.
+    :type sample_file: Optional[str]
+    :return: Regression results saved to out_dir as "burden_associations_{chunk}.parquet"
     """
     logger.info("Loading saved burdens")
     y = zarr.open(Path(burden_dir) / "y.zarr")[:]
@@ -906,13 +949,13 @@ def combine_regression_results(
     """
     Combine multiple regression result files.
 
-    Parameters:
-    - model_name (str): Name of the regression model.
-    - result_files (List[str]): List of paths to regression result files.
-    - out_dir (str): Path to the output directory.
-
-    Returns:
-    Concatenated regression results saved to a parquet file.
+    :param result_files: List of paths to regression result files.
+    :type result_files: Tuple[str]
+    :param out_file: Path to the output file.
+    :type out_file: str
+    :param model_name: Name of the regression model.
+    :type model_name: Optional[str]
+    :return: Concatenated regression results saved to a parquet file.
     """
     logger.info(f"Concatenating results")
     results = pd.concat([pd.read_parquet(f, engine="pyarrow") for f in result_files])
