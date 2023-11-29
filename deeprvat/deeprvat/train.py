@@ -82,6 +82,19 @@ def make_dataset_(
     training_dataset_file: str = None,
     pickle_only: bool = False,
 ):
+    """
+    Subfunction of make_dataset()
+    Convert a dataset file to the sparse format used for training and testing associations
+
+    Args:
+    - config (Dict): Dictionary containing configuration parameters, build from YAML file
+    - debug (bool, optional): Use a strongly reduced dataframe 
+    - training_dataset_file (str, optional): Path to the file in which training data is stored.
+    - pickle_only (bool, optional): If True, only store dataset as pickle file and return None.
+
+    Returns:
+    - Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: Tuple containing input_tensor, covariates, and target values.
+    """
     n_phenotypes = config.get("n_phenotypes", None)
     if n_phenotypes is not None:
         if "seed_genes" in config:
@@ -113,6 +126,7 @@ def make_dataset_(
         or training_dataset_file is None
         or not Path(training_dataset_file).is_file()
     ):
+        # load data into sparse data format
         ds = DenseGTDataset(
             gt_file=config["training_data"]["gt_file"],
             variant_file=config["training_data"]["variant_file"],
@@ -190,6 +204,24 @@ def make_dataset(
     covariates_out_file: str,
     y_out_file: str,
 ):
+    """
+    Uses function make_dataset_() to convert dataset to sparse format and stores the respective data
+
+    Args:
+    - debug (bool): Use a strongly reduced dataframe
+    - pickle_only (bool): Flag to indicate whether only to save data using pickle
+    - compression_level (int): Level of compression in ZARR to be applied to training data.
+    - training_dataset_file (Optional[str]):  Path to the file in which training data is stored.
+    - config_file (str): Path to a YAML file, which serves for configuration. 
+    - input_tensor_out_file (str): Path to save the training data to.
+    - covariates_out_file (str): Path to save the covariates to.
+    - y_out_file (str): Path to save the ground truth data to.
+
+    Returns:
+    - None
+    """
+    
+    
     with open(config_file) as f:
         config = yaml.safe_load(f)
 
@@ -231,12 +263,16 @@ class MultiphenoDataset(Dataset):
         # genes: Optional[Union[slice, np.ndarray]] = None
     ):
         """
-        data:               dict, underlying dataframe from which data is structured into batches
-        min_variant_count:  int, minimum number of variants available each gene. 
-        batch_size:         int, number of samples / individuals available in one batch 
-        split:              str, containing a prefix, pointing to the dataset the model is operating on
-        cache_tensors:      bool, indicates if samples have been pre-loaded or need to be extracted from zarr
+        Initialize the MultiphenoDataset.
+
+        Args:
+        - data (Dict[str, Dict]): Underlying dataframe from which data is structured into batches.
+        - min_variant_count (int): Minimum number of variants available for each gene.
+        - batch_size (int): Number of samples/individuals available in one batch.
+        - split (str, optional): Contains a prefix indicating the dataset the model operates on. Defaults to "train".
+        - cache_tensors (bool, optional): Indicates if samples have been pre-loaded or need to be extracted from zarr.
         """
+
         super().__init__()
 
         self.data = data
@@ -364,15 +400,17 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         cache_tensors: bool = False,
     ):
         """
-        data: dict, underlying dataframe from which data is structured into batches
-        train_proportion: float, percentage by which data is devided into training / validation split 
-        sample_with_replacement: bool, if true a sample of a can be selected multiple times in one epoch.
-        min_variant_count: int minimum number of variants available each gene. 
-        upsampling_factor: int, percentual factor by which we want to upsample data; >= 1; 
-                    however, not yet implemented for multi-phenotype training!
-        batch_size: int, number of samples / individuals available in one batch 
-        num_workers: int, number of workers which simultaneously putting data into RAM
-        cache_tensors: bool, indicates if samples have been pre-loaded or need to be extracted from zarr
+        Initialize the MultiphenoBaggingData.
+
+        Args:
+        - data (Dict[str, Dict]): Underlying dataframe from which data structured into batches.
+        - train_proportion (float): Percentage by which data is divided into training/validation split.
+        - sample_with_replacement (bool, optional): If True, a sample can be selected multiple times in one epoch. Defaults to True.
+        - min_variant_count (int, optional): Minimum number of variants available for each gene. Defaults to 1.
+        - upsampling_factor (int, optional): Percentual factor by which to upsample data; >= 1. Defaults to 1.
+        - batch_size (Optional[int], optional): Number of samples/individuals available in one batch. Defaults to None.
+        - num_workers (Optional[int], optional): Number of workers simultaneously putting data into RAM. Defaults to 0.
+        - cache_tensors (bool, optional): Indicates if samples have been pre-loaded or need to be extracted from zarr. Defaults to False.
         """
         logger.info("Intializing datamodule")
 
@@ -522,15 +560,19 @@ def run_bagging(
     debug: bool = False,
 ) -> Optional[float]:
     """
-    Main function called during training. Also used for trial pruning and sampling new parameters in optuna
+    Main function called during training. Also used for trial pruning and sampling new parameters in optuna.
 
-    config: dict, build from yaml, which serves for configuration
-    data: dict of phenotypes, each containing a dict, storing the underlying data
-    log_dir: str, path to were logs are written
-    checkpoint_file: str, path to where the weights of the trained model should be saved
-    trial: optuna object, generated from the study
-    trial_id: int, current trial in range n_trials
-    debug: bool, use a strongly reduced dataframe during training
+    Args:
+    - config (Dict):  Dictionary containing configuration parameters, build from YAML file
+    - data (Dict[str, Dict]): Dict of phenotypes, each containing a dict storing the underlying data.
+    - log_dir (str): Path to where logs are written.
+    - checkpoint_file (Optional[str]): Path to where the weights of the trained model should be saved.
+    - trial (Optional[optuna.trial.Trial]): Optuna object generated from the study.
+    - trial_id (Optional[int]): Current trial in range n_trials.
+    - debug (bool): Use a strongly reduced dataframe
+    
+    Returns:
+    - Optional[float]: computes the lowest scores of all loss metrics and returns their average
     """
     
     # if hyperparameter optimization is performed (train(); hpopt_file != None)
@@ -743,21 +785,25 @@ def train(
     """
     Main function called during training. Also used for trial pruning and sampling new parameters in optuna
     
-    debug: bool, use a strongly reduced dataframe during training
-    training_gene_file: str, path to a pickle file specifying on which genes training should be executed
-    n_trials: int, number of trials to be performed by the given setting
-    trial_id: int, current trial in range n_trials
-    sample_file: str, path to a pickle file, which specifies which samples should be considered during training
-    phenotype: array of phenotypes, containing an array of paths, where the underlying data is stored:
-               1. str containing the phenotype name
-               2. annotated gene variants as zarr file
-               3. covariates each sample as zarr file
-               4. ground truth phenotypes as zarr file 
-    config_file: str, path to a yaml file, which serves for configuration
-    log_dir:  str, path to were logs are written
-    hpopt_file: str, path to where a .db file should be created in which the results of hyperparameter 
-                optimization are stored 
+    Args:
+    - debug (bool): Use a strongly reduced dataframe
+    - training_gene_file (Optional[str]): Path to a pickle file specifying on which genes training should be executed.
+    - n_trials (int): Number of trials to be performed by the given setting.
+    - trial_id (Optional[int]): Current trial in range n_trials.
+    - sample_file (Optional[str]): Path to a pickle file specifying which samples should be considered during training.
+    - phenotype (Tuple[Tuple[str, str, str, str]]): Array of phenotypes, containing an array of paths where the underlying data is stored:
+        - str: Phenotype name
+        - str: Annotated gene variants as zarr file
+        - str: Covariates each sample as zarr file
+        - str: Ground truth phenotypes as zarr file
+    - config_file (str): Path to a YAML file, which serves for configuration.
+    - log_dir (str): Path to where logs are stored.
+    - hpopt_file (str): Path to where a .db file should be created in which the results of hyperparameter optimization are stored.
+    
+    Raises:
+    - ValueError: If no phenotype option is specified.
     """
+    
     
     if len(phenotype) == 0:
         raise ValueError("At least one --phenotype option must be specified")
@@ -879,6 +925,19 @@ def train(
 def best_training_run(
     debug: bool, log_dir: str, checkpoint_dir: str, hpopt_db: str, config_file_out: str
 ):
+    """
+    Function to extract the best trial from an Optuna study and handle associated model checkpoints and configurations.
+
+    Args:
+    - debug (bool): Use a strongly reduced dataframe 
+    - log_dir (str): Path to where logs are stored.
+    - checkpoint_dir (str): Directory where checkpoints have been stored.
+    - hpopt_db (str): Path to the database file containing the Optuna study results.
+    - config_file_out (str): store a reduced 
+
+    Returns:
+    - None
+    """
     study = optuna.load_study(
         study_name=Path(hpopt_db).stem, storage=f"sqlite:///{hpopt_db}"
     )
@@ -902,6 +961,7 @@ def best_training_run(
         link_path.symlink_to(checkpoint.resolve(strict=True))
 
         # Keep track of models marked to be dropped
+        # respective models are not used for downstream processing
         checkpoint_dropped = Path(str(checkpoint) + ".dropped")
         if checkpoint_dropped.is_file():
             dropped_link_path = Path(checkpoint_dir) / f"bag_{k}.ckpt.dropped"
