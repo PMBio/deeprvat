@@ -41,12 +41,12 @@ def get_hparam(module: pl.LightningModule, param: str, default: Any):
     else:
         return default
 
+
 class BaseModel(pl.LightningModule):
     """
     Base class containing functions that will be called by PyTorch Lightning in the
-    background by default. 
+    background by default.
     """
-
 
     def __init__(
         self,
@@ -61,14 +61,19 @@ class BaseModel(pl.LightningModule):
         """
         Initializes BaseModel.
 
-        Args:
-        - config (dict): Represents the content of config.yaml.
-        - n_annotations (Dict[str, int]): Contains the number of annotations used for each phenotype.
-        - n_covariates (Dict[str, int]): Contains the number of covariates used for each phenotype.
-        - n_genes (Dict[str, int]): Contains the number of genes used for each phenotype.
-        - phenotypes (List[str]): Contains the phenotypes used during training.
-        - stage (str, optional): Contains a prefix indicating the dataset the model is operating on. Defaults to "train".
-        - **kwargs: Additional keyword arguments.
+        :param config: Represents the content of config.yaml.
+        :type config: dict
+        :param n_annotations: Contains the number of annotations used for each phenotype.
+        :type n_annotations: Dict[str, int]
+        :param n_covariates: Contains the number of covariates used for each phenotype.
+        :type n_covariates: Dict[str, int]
+        :param n_genes: Contains the number of genes used for each phenotype.
+        :type n_genes: Dict[str, int]
+        :param phenotypes: Contains the phenotypes used during training.
+        :type phenotypes: List[str]
+        :param stage: Contains a prefix indicating the dataset the model is operating on. Defaults to "train". (optional)
+        :type stage: str
+        :param kwargs: Additional keyword arguments.
         """
         super().__init__()
         self.save_hyperparameters(config)
@@ -90,7 +95,6 @@ class BaseModel(pl.LightningModule):
             self.objective_operation = min
         else:
             raise ValueError("Unknown objective_mode configuration parameter")
-
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         """
@@ -121,22 +125,19 @@ class BaseModel(pl.LightningModule):
         else:
             return optimizer
 
-
     def training_step(self, batch: dict, batch_idx: int) -> torch.Tensor:
         """
-        Function called by trainer during training and returns the loss used 
+        Function called by trainer during training and returns the loss used
         to update weights and biases.
 
-        Args:
-        - batch (dict): A dictionary containing the batch data.
-        - batch_idx (int): The index of the current batch.
+        :param batch: A dictionary containing the batch data.
+        :type batch: dict
+        :param batch_idx: The index of the current batch.
+        :type batch_idx: int
 
-        Returns:
-        - torch.Tensor: The loss value computed to update weights and biases
-        based on the predictions.
-
-        Raises:
-        - RuntimeError: If NaNs are found in the training loss.
+        :returns: torch.Tensor: The loss value computed to update weights and biases
+            based on the predictions.
+        :raises RuntimeError: If NaNs are found in the training loss.
         """
         # calls DeepSet.forward()
         y_pred_by_pheno = self(batch)
@@ -161,30 +162,36 @@ class BaseModel(pl.LightningModule):
 
     def validation_step(self, batch: dict, batch_idx: int):
         """
-        During validation we do not compute backward passes, such that we can accumulate
-        phenotype predictions and evaluate them afterwards as a whole. 
+        During validation, we do not compute backward passes, such that we can accumulate
+        phenotype predictions and evaluate them afterward as a whole.
 
-        Args:
-        - batch (dict): A dictionary containing the validation batch data.
-        - batch_idx (int): The index of the current validation batch.
+        :param batch: A dictionary containing the validation batch data.
+        :type batch: dict
+        :param batch_idx: The index of the current validation batch.
+        :type batch_idx: int
 
-        Returns:
-        - dict: A dictionary containing phenotype predictions ("y_pred_by_pheno")
-                and corresponding ground truth values ("y_by_pheno").
+        :returns: dict: A dictionary containing phenotype predictions ("y_pred_by_pheno")
+            and corresponding ground truth values ("y_by_pheno").
         """
         y_by_pheno = {pheno: pheno_batch["y"] for pheno, pheno_batch in batch.items()}
         return {"y_pred_by_pheno": self(batch), "y_by_pheno": y_by_pheno}
 
-
     def validation_epoch_end(
         self, prediction_y: List[Dict[str, Dict[str, torch.Tensor]]]
-    ):      
+    ):
         """
         Evaluate accumulated phenotype predictions at the end of the validation epoch.
 
-        Args:
-        - prediction_y (List[Dict[str, Dict[str, torch.Tensor]]]): A list of dictionaries containing accumulated phenotype predictions
-        and corresponding ground truth values obtained during the validation process.
+        This function takes a list of dictionaries containing accumulated phenotype predictions
+        and corresponding ground truth values obtained during the validation process. It computes
+        various metrics based on these predictions and logs the results.
+
+        :param prediction_y: A list of dictionaries containing accumulated phenotype predictions
+            and corresponding ground truth values obtained during the validation process.
+        :type prediction_y: List[Dict[str, Dict[str, torch.Tensor]]]
+
+        :return: None
+        :rtype: None
         """
         y_pred_by_pheno = dict()
         y_by_pheno = dict()
@@ -226,30 +233,29 @@ class BaseModel(pl.LightningModule):
             self.best_objective, results[self.hparams.metrics["objective"]].item()
         )
 
-
     def test_step(self, batch: dict, batch_idx: int):
         """
-        During testing we do not compute backward passes, such that we can accumulate
-        phenotype predictions and evaluate them afterwards as a whole. 
+        During testing, we do not compute backward passes, such that we can accumulate
+        phenotype predictions and evaluate them afterward as a whole.
 
-        Args:
-        - batch (dict): A dictionary containing the validation batch data.
-        - batch_idx (int): The index of the current validation batch.
+        :param batch: A dictionary containing the testing batch data.
+        :type batch: dict
+        :param batch_idx: The index of the current testing batch.
+        :type batch_idx: int
 
-        Returns:
-        - dict: A dictionary containing phenotype predictions ("y_pred")
-                and corresponding ground truth values ("y").
+        :returns: dict: A dictionary containing phenotype predictions ("y_pred")
+            and corresponding ground truth values ("y").
+        :rtype: dict
         """
         return {"y_pred": self(batch), "y": batch["y"]}
-
 
     def test_epoch_end(self, prediction_y: List[Dict[str, torch.Tensor]]):
         """
         Evaluate accumulated phenotype predictions at the end of the testing epoch.
 
-        Args:
-        - prediction_y (List[Dict[str, Dict[str, torch.Tensor]]]): A list of dictionaries containing accumulated phenotype predictions
-        and corresponding ground truth values obtained during the testing process.
+        :param prediction_y: A list of dictionaries containing accumulated phenotype predictions
+            and corresponding ground truth values obtained during the testing process.
+        :type prediction_y: List[Dict[str, Dict[str, torch.Tensor]]]
         """
         y_pred = torch.cat([p["y_pred"] for p in prediction_y])
         y = torch.cat([p["y"] for p in prediction_y])
@@ -266,14 +272,17 @@ class BaseModel(pl.LightningModule):
     def configure_callbacks(self):
         return [ModelSummary()]
 
+
 class DeepSetAgg(pl.LightningModule):
     """
-    class contains the gene impairment module used for burden computation. 
-    Variants are fed through an embedding network Phi, to compute a variant embedding
-    The variant embedding is processed by a permutation-invariant aggregation to yield a gene embedding. 
-    Afterwards second network Rho, estimates the final gene impairment score. 
+    class contains the gene impairment module used for burden computation.
+
+    Variants are fed through an embedding network Phi to compute a variant embedding.
+    The variant embedding is processed by a permutation-invariant aggregation to yield a gene embedding.
+    Afterward, the second network Rho estimates the final gene impairment score.
     All parameters of the gene impairment module are shared across genes and traits.
     """
+
     def __init__(
         self,
         n_annotations: int,
@@ -291,18 +300,28 @@ class DeepSetAgg(pl.LightningModule):
         """
         Initializes the DeepSetAgg module.
 
-        Args:
-        - n_annotations (int): Number of annotations.
-        - phi_layers (int): Number of layers in Phi.
-        - phi_hidden_dim (int): Internal dimensionality of linear layers in Phi.
-        - rho_layers (int): Number of layers in Rho.
-        - rho_hidden_dim (int): Internal dimensionality of linear layers in Rho.
-        - activation (str): Activation function used; should match its name in torch.nn.
-        - pool (str): Invariant aggregation function used to aggregate gene variants. Possible values: 'max', 'sum'.
-        - output_dim (int, optional): Number of burden scores. Defaults to 1.
-        - dropout (Optional[float], optional): Probability by which some parameters are set to 0. 
-        - use_sigmoid (bool, optional): Whether to project burden scores to [0, 1]. Also used as a linear activation function during training. Defaults to False.
-        - reverse (bool, optional): Whether to reverse the burden score (used during association testing). Defaults to False.
+        :param n_annotations: Number of annotations.
+        :type n_annotations: int
+        :param phi_layers: Number of layers in Phi.
+        :type phi_layers: int
+        :param phi_hidden_dim: Internal dimensionality of linear layers in Phi.
+        :type phi_hidden_dim: int
+        :param rho_layers: Number of layers in Rho.
+        :type rho_layers: int
+        :param rho_hidden_dim: Internal dimensionality of linear layers in Rho.
+        :type rho_hidden_dim: int
+        :param activation: Activation function used; should match its name in torch.nn.
+        :type activation: str
+        :param pool: Invariant aggregation function used to aggregate gene variants. Possible values: 'max', 'sum'.
+        :type pool: str
+        :param output_dim: Number of burden scores. Defaults to 1. (optional)
+        :type output_dim: int
+        :param dropout: Probability by which some parameters are set to 0. (optional)
+        :type dropout: Optional[float]
+        :param use_sigmoid: Whether to project burden scores to [0, 1]. Also used as a linear activation function during training. Defaults to False. (optional)
+        :type use_sigmoid: bool
+        :param reverse: Whether to reverse the burden score (used during association testing). Defaults to False. (optional)
+        :type reverse: bool
         """
         super().__init__()
 
@@ -342,32 +361,32 @@ class DeepSetAgg(pl.LightningModule):
         rho.append(
             (f"rho_linear_{rho_layers - 1}", nn.Linear(input_dim, self.output_dim))
         )
-        # No final non-linear activation function to keep the relationship between 
+        # No final non-linear activation function to keep the relationship between
         # gene impairment scores and phenotypes linear
         self.rho = nn.Sequential(OrderedDict(rho))
 
-
     def set_reverse(self, reverse: bool = True):
         """
-        reverse burden score during association testing if model predicts in negative space. 
+        Reverse burden score during association testing if the model predicts in negative space.
 
-        Args:
-        - reverse (bool, optional): Indicates whether the 'reverse' attribute should be set to True or False. 
-                                    Defaults to True.
+        :param reverse: Indicates whether the 'reverse' attribute should be set to True or False.
+            Defaults to True.
+        :type reverse: bool
+
         Note:
-        - Compare associate.py, reverse_models() for further detail.
+        Compare associate.py, reverse_models() for further detail
         """
         self.reverse = reverse
 
     def forward(self, x):
         """
-        Perform forward pass through the model.
+        Perform a forward pass through the model.
 
-        Args:
-        - x (tensor): Batched input data
+        :param x: Batched input data
+        :type x: tensor
 
-        Returns:
-        - tensor: Burden scores 
+        :returns: Burden scores
+        :rtype: tensor
         """
         x = self.phi(x.permute((0, 1, 3, 2)))
         # x.shape = samples x genes x variants x phi_latent
@@ -384,13 +403,15 @@ class DeepSetAgg(pl.LightningModule):
             x = torch.sigmoid(x)
         return x
 
+
 class DeepSet(BaseModel):
     """
-    Wrapper class for burden computation, that also does phenotype prediction. 
-    It inherits parameters from BaseModel, which is where Pytorch Lightning specific functions 
+    Wrapper class for burden computation, that also does phenotype prediction.
+    It inherits parameters from BaseModel, which is where Pytorch Lightning specific functions
     like "training_step" or "validation_epoch_end" can be found.
     Those functions are called in background by default.
     """
+
     def __init__(
         self,
         config: dict,
@@ -403,22 +424,27 @@ class DeepSet(BaseModel):
         reverse: bool = False,
         **kwargs,
     ):
-
         """
         Initialize the DeepSet model.
 
-        Args:
-        - config (dict): Containing the content of config.yaml.
-        - n_annotations (Dict[str, int]): Contains the number of annotations used for each phenotype.
-        - n_covariates (Dict[str, int]): Contains the number of covariates used for each phenotype.
-        - n_genes (Dict[str, int]): Contains the number of genes used for each phenotype.
-        - phenotypes (List[str]): Contains the phenotypes used during training.
-        - agg_model (Optional[pl.LightningModule / nn.Module]): Model used for burden computation. If not provided, 
-          it will be initialized.
-        - use_sigmoid (bool): Determines if burden scores should be projected to [0, 1]. Acts as a linear activation 
-          function to mimic association testing during training.
-        - reverse (bool): Determines if the burden score should be reversed (used during association testing).
-        - **kwargs: Additional keyword arguments.
+        :param config: Containing the content of config.yaml.
+        :type config: dict
+        :param n_annotations: Contains the number of annotations used for each phenotype.
+        :type n_annotations: Dict[str, int]
+        :param n_covariates: Contains the number of covariates used for each phenotype.
+        :type n_covariates: Dict[str, int]
+        :param n_genes: Contains the number of genes used for each phenotype.
+        :type n_genes: Dict[str, int]
+        :param phenotypes: Contains the phenotypes used during training.
+        :type phenotypes: List[str]
+        :param agg_model: Model used for burden computation. If not provided, it will be initialized. (optional)
+        :type agg_model: Optional[pl.LightningModule / nn.Module]
+        :param use_sigmoid: Determines if burden scores should be projected to [0, 1]. Acts as a linear activation
+            function to mimic association testing during training.
+        :type use_sigmoid: bool
+        :param reverse: Determines if the burden score should be reversed (used during association testing).
+        :type reverse: bool
+        :param kwargs: Additional keyword arguments.
         """
         super().__init__(
             config, n_annotations, n_covariates, n_genes, phenotypes, **kwargs
@@ -431,7 +457,7 @@ class DeepSet(BaseModel):
         pool = get_hparam(self, "pool", "sum")
         dropout = get_hparam(self, "dropout", None)
 
-        # self.agg_model compresses a batch 
+        # self.agg_model compresses a batch
         # from: samples x genes x annotations x variants
         # to: samples x genes
         if agg_model is not None:
@@ -450,10 +476,9 @@ class DeepSet(BaseModel):
                 reverse=reverse,
             )
         self.agg_model.train(False if self.hparams.stage == "val" else True)
-        # afterwards genes are concatenated with covariates 
+        # afterwards genes are concatenated with covariates
         # to: samples x (genes + covariates)
-        
-        
+
         # dict of various linear layers used for phenotype prediction.
         # Returns can be tested against ground truth data.
         self.gene_pheno = nn.ModuleDict(
@@ -464,21 +489,20 @@ class DeepSet(BaseModel):
                 for pheno in self.hparams.phenotypes
             }
         )
-    
+
     def forward(self, batch):
         """
         Forward pass through the model.
 
-        Args:
-        - batch (dict): Dictionary of phenotypes, each containing the following keys:
+        :param batch: Dictionary of phenotypes, each containing the following keys:
             - indices (tensor): Indices for the underlying dataframe.
             - covariates (tensor): Covariates of samples, e.g., age. Content: samples x covariates.
-            - rare_variant_annotations (tensor): annotated genomic variants.
-                Content: samples x genes x annotations x variants.
+            - rare_variant_annotations (tensor): Annotated genomic variants. Content: samples x genes x annotations x variants.
             - y (tensor): Actual phenotypes (ground truth data).
+        :type batch: dict
 
-        Returns:
-        - dict: Dictionary containing predicted phenotypes
+        :returns: Dictionary containing predicted phenotypes
+        :rtype: dict
         """
         result = dict()
         for pheno, this_batch in batch.items():
@@ -496,18 +520,20 @@ class DeepSet(BaseModel):
 class LinearAgg(pl.LightningModule):
     """
     To capture only linear effect, this model can be used as it only uses a single
-    linear layer without a non-linear activation function. 
-    It still contains the gene impairment module used for burden computation. 
+    linear layer without a non-linear activation function.
+    It still contains the gene impairment module used for burden computation.
     """
 
     def __init__(self, n_annotations: int, pool: str, output_dim: int = 1):
         """
         Initialize the LinearAgg model.
 
-        Args:
-        - n_annotations (int): Number of annotations.
-        - pool (str): Pooling method ("sum" or "max") to be used.
-        - output_dim (int, optional): Dimensionality of the output. Defaults to 1.
+        :param n_annotations: Number of annotations.
+        :type n_annotations: int
+        :param pool: Pooling method ("sum" or "max") to be used.
+        :type pool: str
+        :param output_dim: Dimensionality of the output. Defaults to 1. (optional)
+        :type output_dim: int
         """
         super().__init__()
 
@@ -519,13 +545,13 @@ class LinearAgg(pl.LightningModule):
 
     def forward(self, x):
         """
-        Perform forward pass through the model.
+        Perform a forward pass through the model.
 
-        Args:
-        - x (tensor): Batched input data
+        :param x: Batched input data
+        :type x: tensor
 
-        Returns:
-        - tensor: Burden scores 
+        :returns: Burden scores
+        :rtype: tensor
         """
         x = self.linear(
             x.permute((0, 1, 3, 2))
@@ -540,10 +566,11 @@ class LinearAgg(pl.LightningModule):
 
 class TwoLayer(BaseModel):
     """
-    Wrapper class to capture linear effects. Inherits parameters from BaseModel, 
-    which is where Pytorch Lightning specific functions like "training_step" or 
+    Wrapper class to capture linear effects. Inherits parameters from BaseModel,
+    which is where Pytorch Lightning specific functions like "training_step" or
     "validation_epoch_end" can be found. Those functions are called in background by default.
     """
+
     def __init__(
         self,
         config: dict,
@@ -556,14 +583,17 @@ class TwoLayer(BaseModel):
         """
         Initializes the TwoLayer model.
 
-        Args:
-        - config (dict): Represents the content of config.yaml.
-        - n_annotations (int): Number of annotations.
-        - n_covariates (int): Number of covariates.
-        - n_genes (int): Number of genes.
-        - agg_model (Optional[nn.Module]): Model used for burden computation. If not provided, 
-          it will be initialized.
-        - **kwargs: Additional keyword arguments.
+        :param config: Represents the content of config.yaml.
+        :type config: dict
+        :param n_annotations: Number of annotations.
+        :type n_annotations: int
+        :param n_covariates: Number of covariates.
+        :type n_covariates: int
+        :param n_genes: Number of genes.
+        :type n_genes: int
+        :param agg_model: Model used for burden computation. If not provided, it will be initialized. (optional)
+        :type agg_model: Optional[nn.Module]
+        :param kwargs: Additional keyword arguments.
         """
         super().__init__(config, n_annotations, n_covariates, n_genes, **kwargs)
 
@@ -593,16 +623,15 @@ class TwoLayer(BaseModel):
         """
         Forward pass through the model.
 
-        Args:
-        - batch (dict): Dictionary of phenotypes, each containing the following keys:
+        :param batch: Dictionary of phenotypes, each containing the following keys:
             - indices (tensor): Indices for the underlying dataframe.
             - covariates (tensor): Covariates of samples, e.g., age. Content: samples x covariates.
-            - rare_variant_annotations (tensor): annotated genomic variants.
-                Content: samples x genes x annotations x variants.
+            - rare_variant_annotations (tensor): Annotated genomic variants. Content: samples x genes x annotations x variants.
             - y (tensor): Actual phenotypes (ground truth data).
+        :type batch: dict
 
-        Returns:
-        - dict: Dictionary containing predicted phenotypes
+        :returns: Dictionary containing predicted phenotypes
+        :rtype: dict
         """
         # samples x genes x annotations x variants
         x = batch["rare_variant_annotations"]
@@ -610,4 +639,3 @@ class TwoLayer(BaseModel):
         x = torch.cat((batch["covariates"], x), dim=1)
         x = self.gene_pheno(x).squeeze(dim=1)  # samples
         return x
-
