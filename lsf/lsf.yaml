@@ -32,7 +32,7 @@ train:
     # - "-L /bin/bash"
 
 compute_burdens:
-    - "-q gpu-short"
+    - "-q gpu"
     - "-gpu num=1:j_exclusive=yes:mode=exclusive_process:gmem=15.7G"
     - "-R \"select[(hname != 'e230-dgx2-1' && hname != 'e230-dgx2-2' && hname != 'e230-dgxa100-1'  && hname != 'e230-dgxa100-2' && hname != 'e230-dgxa100-3' && hname != 'e230-dgxa100-4' && hname != 'e071-gpu06')]\""
     - "-W 180"
