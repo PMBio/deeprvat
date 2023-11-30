@@ -37,6 +37,9 @@ rule evaluate:
         "{phenotype}/deeprvat/eval/significant.parquet",
         "{phenotype}/deeprvat/eval/all_results.parquet"
     threads: 1
+    resources:
+        mem_mb = 16000,
+        load = 16000
     shell:
         'deeprvat_evaluate '
         + debug +
@@ -58,6 +61,9 @@ rule combine_regression_chunks:
     output:
         '{phenotype}/deeprvat/repeat_{repeat}/results/burden_associations.parquet',
     threads: 1
+    resources:
+        mem_mb = 2048,
+        load = 2000
     shell:
         'deeprvat_associate combine-regression-results '
         '--model-name repeat_{wildcards.repeat} '
@@ -79,6 +85,10 @@ rule regress:
     output:
         temp('{phenotype}/deeprvat/repeat_{repeat}/results/burden_associations_{chunk}.parquet'),
     threads: 2
+    resources:
+        mem_mb = lambda wildcards, attempt: 28676 + (attempt - 1) * 4098,
+        # mem_mb = 16000,
+        load = lambda wildcards, attempt: 28000 + (attempt - 1) * 4000
     shell:
         'deeprvat_associate regress '
         + debug +
@@ -113,6 +123,10 @@ rule link_burdens:
     output:
         '{phenotype}/deeprvat/burdens/chunk{chunk}.linked'
     threads: 8
+    resources:
+        mem_mb = lambda wildcards, attempt: 20480 + (attempt - 1) * 4098,
+        # mem_mb = 16000,
+        load = lambda wildcards, attempt: 16000 + (attempt - 1) * 4000
     shell:
         ' && '.join([
             ('deeprvat_associate compute-burdens '
@@ -142,6 +156,10 @@ rule compute_burdens:
     output:
         '{phenotype}/deeprvat/burdens/chunk{chunk}.finished'
     threads: 8
+    resources:
+        mem_mb = 2000000,        # Using this value will tell our modified lsf.profile not to set a memory resource
+        load = 8000,
+        gpus = 1
     shell:
         ' && '.join([
             ('deeprvat_associate compute-burdens '
@@ -167,6 +185,9 @@ rule association_dataset:
     output:
         '{phenotype}/deeprvat/association_dataset.pkl'
     threads: 4
+    resources:
+        mem_mb = lambda wildcards, attempt: 32000 * (attempt + 1),
+        load = 64000
     shell:
         'deeprvat_associate make-dataset '
         + debug +
@@ -182,6 +203,9 @@ rule reverse_models:
     output:
         "models/reverse_finished.tmp"
     threads: 4
+    resources:
+        mem_mb = 20480,
+        load = 20480
     shell:
         " && ".join([
             ("deeprvat_associate reverse-models "
@@ -215,6 +239,9 @@ rule best_training_run:
                              bag=range(n_bags)),
         config = 'models/repeat_{repeat}/config.yaml'
     threads: 1
+    resources:
+        mem_mb = 2048,
+        load = 2000
     shell:
         (
             'deeprvat_train best-training-run '
@@ -247,6 +274,10 @@ rule train:
              f"{p}/deeprvat/covariates.zarr "
              f"{p}/deeprvat/y.zarr"
              for p in training_phenotypes])
+    resources:
+        mem_mb = 2000000,        # Using this value will tell our modified lsf.profile not to set a memory resource
+        load = 8000,
+        gpus = 1
     shell:
         f"parallel --jobs {n_parallel_training_jobs} --halt now,fail=1 --results train_repeat{{{{1}}}}_trial{{{{2}}}}/ "
         'deeprvat_train train '
@@ -278,6 +309,9 @@ rule training_dataset:
         covariates = directory('{phenotype}/deeprvat/covariates.zarr'),
         y = directory('{phenotype}/deeprvat/y.zarr')
     threads: 8
+    resources:
+        mem_mb = lambda wildcards, attempt: 64000 * (attempt + 1),
+        load = 16000
     priority: 50
     shell:
         (
@@ -297,6 +331,9 @@ rule training_dataset_pickle:
     output:
         '{phenotype}/deeprvat/training_dataset.pkl'
     threads: 1
+    resources:
+        mem_mb = 40000, # lambda wildcards, attempt: 38000 + 12000 * attempt
+        load = 16000
     shell:
         (
             'deeprvat_train make-dataset '
@@ -328,6 +365,9 @@ rule config:
         config = '{phenotype}/deeprvat/hpopt_config.yaml',
         baseline = '{phenotype}/deeprvat/baseline_results.parquet',
     threads: 1
+    resources:
+        mem_mb = 1024,
+        load = 1000
     params:
         baseline_results = lambda wildcards, input: ''.join([
             f'--baseline-results {b} '
