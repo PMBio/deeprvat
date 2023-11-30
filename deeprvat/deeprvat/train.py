@@ -160,7 +160,7 @@ def make_dataset_(
             with open(training_dataset_file, "wb") as f:
                 pickle.dump(ds, f)
         if pickle_only:
-            return None, None, None
+            return None, None, None, None
     else:
         logger.info("  Loading saved dataset")
         with open(training_dataset_file, "rb") as f:
@@ -202,13 +202,14 @@ def make_dataset_(
     )
     covariates = torch.cat([b["x_phenotypes"] for b in batches])
     y = torch.cat([b["y"] for b in batches])
+    common_variants = torch.cat([b["common_variants"] for b in batches])
 
     logger.info("Subsetting samples by min_variant_count and missing y values")
     input_tensor, covariates, y = subset_samples(
         input_tensor, covariates, y, config["training"]["min_variant_count"]
     )
 
-    return input_tensor, covariates, y
+    return input_tensor, covariates, y, common_variants
 
 
 @cli.command()
@@ -220,6 +221,7 @@ def make_dataset_(
 @click.argument("input-tensor-out-file", type=click.Path())
 @click.argument("covariates-out-file", type=click.Path())
 @click.argument("y-out-file", type=click.Path())
+@click.argument("common_vars_out_file", type=click.Path())
 def make_dataset(
     debug: bool,
     pickle_only: bool,
@@ -229,11 +231,12 @@ def make_dataset(
     input_tensor_out_file: str,
     covariates_out_file: str,
     y_out_file: str,
+    common_vars_out_file: str,
 ):
     with open(config_file) as f:
         config = yaml.safe_load(f)
 
-    input_tensor, covariates, y = make_dataset_(
+    input_tensor, covariates, y, common_variants = make_dataset_(
         config,
         debug=debug,
         training_dataset_file=training_dataset_file,
@@ -244,12 +247,13 @@ def make_dataset(
         zarr.save_array(
             input_tensor_out_file,
             input_tensor.numpy(),
-            chunks=(1000, None, None, None),
+            chunks=(1000, None, None, None, None),
             compressor=Blosc(clevel=compression_level),
         )
         del input_tensor
         zarr.save_array(covariates_out_file, covariates.numpy())
         zarr.save_array(y_out_file, y.numpy())
+        zarr.save_array(common_vars_out_file, common_variants.numpy())
 
 
 class MultiphenoDataset(Dataset):
@@ -305,7 +309,7 @@ class MultiphenoDataset(Dataset):
                     pheno_data["input_tensor_zarr"],
                     self.zarr_root,
                     name=pheno,
-                    chunks=(self.chunksize, None, None, None),
+                    chunks=(self.chunksize, None, None, None, None),
                     compressor=Blosc(clevel=1),
                 )
                 pheno_data["input_tensor_zarr"] = self.zarr_root[pheno]
@@ -317,7 +321,7 @@ class MultiphenoDataset(Dataset):
                 zarr.copy(
                     pheno_data["input_tensor_zarr"],
                     zarr.DirectoryStore(tensor_path),
-                    chunks=(self.chunksize, None, None, None),
+                    chunks=(self.chunksize, None, None, None, None),
                     compressor=Blosc(clevel=1),
                 )
                 pheno_data["input_tensor_zarr"] = zarr.open(tensor_path)
@@ -380,6 +384,7 @@ class MultiphenoDataset(Dataset):
                 "covariates": self.data[pheno]["covariates"][slice_],
                 "rare_variant_annotations": torch.tensor(annotations),
                 "y": self.data[pheno]["y"][slice_],
+                "common_variants": self.data[pheno]["common_variants"][slice_],
             }
 
         return result
@@ -480,6 +485,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
             n_samples = pheno_data["input_tensor_zarr"].shape[0]
             assert pheno_data["covariates"].shape[0] == n_samples
             assert pheno_data["y"].shape[0] == n_samples
+            assert pheno_data["common_variants"].shape[0] == n_samples
 
             # TODO: Rewrite this for multiphenotype data
             self.upsampling_factor = upsampling_factor
@@ -767,7 +773,8 @@ def run_bagging(
         click.Path(exists=True),
         click.Path(exists=True),
         click.Path(exists=True),
-    ),
+        click.Path(exists=True)
+    ), # phenotype_name, input_tensor_file, covariates_file, y_files, common_vars_file
 )
 @click.argument("config-file", type=click.Path(exists=True))
 @click.argument("log-dir", type=click.Path())
@@ -778,7 +785,7 @@ def train(
     n_trials: int,
     trial_id: Optional[int],
     sample_file: Optional[str],
-    phenotype: Tuple[Tuple[str, str, str, str]],
+    phenotype: Tuple[Tuple[str, str, str, str, str]],
     config_file: str,
     log_dir: str,
     hpopt_file: str,
@@ -810,7 +817,7 @@ def train(
         samples = slice(None)
 
     data = dict()
-    for pheno, input_tensor_file, covariates_file, y_file in phenotype:
+    for pheno, input_tensor_file, covariates_file, y_file, common_vars_file in phenotype:
         data[pheno] = dict()
         data[pheno]["input_tensor_zarr"] = zarr.open(
             input_tensor_file, mode="r"
@@ -823,6 +830,11 @@ def train(
         data[pheno]["y"] = torch.tensor(zarr.open(y_file, mode="r")[:])[
             samples
         ]  # TODO: or maybe shouldn't subset here?
+        data[pheno]["common_variants"] = torch.tensor(
+            zarr.open(common_vars_file, mode="r")[:]
+        )[
+            samples
+        ]
 
         if training_gene_file is not None:
             with open(training_gene_file, "rb") as f:
