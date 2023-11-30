@@ -229,8 +229,7 @@ def make_dataset(
 
     :returns: None
     """
-    
-    
+
     with open(config_file) as f:
         config = yaml.safe_load(f)
 
@@ -258,6 +257,7 @@ class MultiphenoDataset(Dataset):
     class used to structure the data and present a __getitem__ function to
     the dataloader, that will be used to load batches into the model
     """
+
     def __init__(
         self,
         # input_tensor: zarr.core.Array,
@@ -317,7 +317,7 @@ class MultiphenoDataset(Dataset):
         self.total_samples = sum([s.shape[0] for s in self.samples.values()])
 
         self.batch_size = batch_size
-        # index all samples and categorize them by phenotype, such that we 
+        # index all samples and categorize them by phenotype, such that we
         # get a dataframe repreenting a chain of phenotypes
         self.sample_order = pd.DataFrame(
             {
@@ -368,7 +368,6 @@ class MultiphenoDataset(Dataset):
             }
 
         return result
-    
 
     def subset_samples(self):
         """
@@ -401,6 +400,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
     """
     Preprocess the underlying dataframe, to then load it into a dataset object
     """
+
     def __init__(
         self,
         data: Dict[str, Dict],
@@ -484,7 +484,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
                     )
                 )
                 # samples which are not part of train_samples, but in samples
-                # are validation samples. 
+                # are validation samples.
                 pheno_data["samples"] = {
                     "train": train_samples,
                     "val": np.setdiff1d(samples, train_samples),
@@ -497,10 +497,10 @@ class MultiphenoBaggingData(pl.LightningDataModule):
             "num_workers",
             "cache_tensors",
         )
-    
+
     def upsample(self) -> np.ndarray:
         """
-        does not work at the moment for multi-phenotype training. Needs some minor changes 
+        does not work at the moment for multi-phenotype training. Needs some minor changes
         to make it work again
         """
         unique_values = self.y.unique()
@@ -525,11 +525,10 @@ class MultiphenoBaggingData(pl.LightningDataModule):
 
         self.samples = upsampled_indices
 
-
     def train_dataloader(self):
         """
-        trainning samples have been selected, but to structure them and make them load 
-        as a batch they are packed in a dataset class, which is then wrapped by a 
+        trainning samples have been selected, but to structure them and make them load
+        as a batch they are packed in a dataset class, which is then wrapped by a
         dataloading object.
         """
         logger.info(
@@ -546,12 +545,11 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         return DataLoader(
             dataset, batch_size=None, num_workers=self.hparams.num_workers
         )
-        
 
     def val_dataloader(self):
         """
-        validation samples have been selected, but to structure them and make them load 
-        as a batch they are packed in a dataset class, which is then wrapped by a 
+        validation samples have been selected, but to structure them and make them load
+        as a batch they are packed in a dataset class, which is then wrapped by a
         dataloading object.
         """
         logger.info(
@@ -600,7 +598,7 @@ def run_bagging(
     :returns: Optional[float]: computes the lowest scores of all loss metrics and returns their average
     :rtype: Optional[float]
     """
-    
+
     # if hyperparameter optimization is performed (train(); hpopt_file != None)
     if trial is not None:
         if trial_id is not None:
@@ -618,7 +616,7 @@ def run_bagging(
         #                    - 64
         #               kwargs:
         #                   step: 16
-        # 
+        #
         # this line should be translated into:
         # phi_layers = optuna.suggest_int(name="phi_hidden_dim", low=16, high=64, step=16)
         # and afterward replace the respective area in config to set the suggestion.
@@ -631,7 +629,7 @@ def run_bagging(
         with open(config_out, "w") as f:
             yaml.dump(config, f)
 
-    # in practice we only train a single bag, as there are 
+    # in practice we only train a single bag, as there are
     # theoretical reasons to omit bagging w.r.t. association testing
     n_bags = config["training"]["n_bags"] if not debug else 3
     train_proportion = config["training"].get("train_proportion", None)
@@ -669,7 +667,7 @@ def run_bagging(
             **dm_kwargs,
             **config["training"]["dataloader_config"],
         )
-        
+
         # setup the model architecture as specified in config
         model_class = getattr(deeprvat_models, config["model"]["type"])
         model = model_class(
@@ -688,7 +686,7 @@ def run_bagging(
         objective = "val_" + config["model"]["config"]["metrics"]["objective"]
         checkpoint_callback = ModelCheckpoint(monitor=objective)
         callbacks = [checkpoint_callback]
-        
+
         # to prune underperforming trials we enable a pruning strategy that can be set in config
         if "early_stopping" in config:
             callbacks.append(
@@ -706,7 +704,7 @@ def run_bagging(
 
         while True:
             try:
-                # actual training of the model 
+                # actual training of the model
                 trainer.fit(model, dm)
             except RuntimeError as e:
                 # if batch_size is choosen to big, it will be reduced until it fits the GPU
@@ -836,8 +834,7 @@ def train(
 
     :raises ValueError: If no phenotype option is specified.
     """
-    
-    
+
     if len(phenotype) == 0:
         raise ValueError("At least one --phenotype option must be specified")
 
