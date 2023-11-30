@@ -14,6 +14,7 @@ n_repeats = config['n_repeats']
 debug = '--debug ' if debug_flag else ''
 do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
 tensor_compression_level = config['training'].get('tensor_compression_level', 1)
+n_parallel_training_jobs = config["training"].get("n_parallel_jobs", 1)
 
 wildcard_constraints:
     repeat="\d+",
@@ -235,8 +236,10 @@ rule train:
         y = expand('{phenotype}/deeprvat/y.zarr',
                    phenotype=phenotypes),
     output:
-        config = 'models/repeat_{repeat}/trial{trial_number}/config.yaml',
-        finished = 'models/repeat_{repeat}/trial{trial_number}/finished.tmp'
+        expand('models/repeat_{repeat}/trial{trial_number}/config.yaml',
+               repeat=range(n_repeats), trial_number=range(n_trials)),
+        expand('models/repeat_{repeat}/trial{trial_number}/finished.tmp',
+               repeat=range(n_repeats), trial_number=range(n_trials))
     params:
         phenotypes = " ".join(
             [f"--phenotype {p} "
@@ -244,17 +247,23 @@ rule train:
              f"{p}/deeprvat/covariates.zarr "
              f"{p}/deeprvat/y.zarr"
              for p in phenotypes])
+    resources:
+        mem_mb = 2000000,        # Using this value will tell our modified lsf.profile not to set a memory resource
+        load = 8000,
+        gpus = 1
     shell:
-        ' && '.join([
-            'deeprvat_train train '
-            + debug +
-            '--trial-id {wildcards.trial_number} '
-            "{params.phenotypes} "
-            'config.yaml '
-            'models/repeat_{wildcards.repeat}/trial{wildcards.trial_number} '
-            'models/repeat_{wildcards.repeat}/hyperparameter_optimization.db',
-            'touch {output.finished}'
-        ])
+        f"parallel --jobs {n_parallel_training_jobs} --halt now,fail=1 --results train_repeat{{{{1}}}}_trial{{{{2}}}}/ "
+        "echo sleeping for '$((60 * ({{#}} - 1)))' s \; sleep '$((60 * ({{#}} - 1)))'\;"         # otherwise a huge amount of memory will be used
+        'deeprvat_train train '
+        + debug +
+        '--trial-id {{2}} '
+        "{params.phenotypes} "
+        'config.yaml '
+        'models/repeat_{{1}}/trial{{2}} '
+        "models/repeat_{{1}}/hyperparameter_optimization.db '&&' "
+        "touch models/repeat_{{1}}/trial{{2}}/finished.tmp "
+        "::: " + " ".join(map(str, range(n_repeats))) + " "
+        "::: " + " ".join(map(str, range(n_trials)))
 
 rule all_training_dataset:
     input:
