@@ -507,6 +507,8 @@ class DenseGTDataset(Dataset):
 
         logger.debug("    Reading variant dataframe")
         variants = dd.read_parquet(self.variant_filename, engine="pyarrow").compute()
+        # set the variant index as id, but don't remove it as a column.
+        # this should correspond to the values in the variant_matrix of the genotype
         variants = variants.set_index("id", drop=False)
         variants = variants.drop(columns="matrix_index", errors="ignore")
 
@@ -524,7 +526,7 @@ class DenseGTDataset(Dataset):
         elif min_common_af is not None:
             # frequency based variant filtering
             af_col, af_threshold = list(min_common_af.items())[0]
-            # add allele frequency column to variants
+            # add allele frequency column to variants merging on variant id
             variants_with_af = safe_merge(
                 variants[["id"]].reset_index(drop=True),
                 self.annotation_df[[af_col]].reset_index(),
@@ -565,7 +567,6 @@ class DenseGTDataset(Dataset):
                 .to_numpy()
             )
         if self.genes_to_keep is not None:
-            # we're merging with the annotation_df in the next if section. just do that here as well?
             raise NotImplementedError("The variant dataframes have outdated gene_ids")
             additional_mask &= (
                 variants["gene_ids"]
@@ -584,6 +585,7 @@ class DenseGTDataset(Dataset):
             )
             additional_mask &= (
                 variants_with_gene_ids["gene_ids"]
+                # only select vars mapping to gene(s) from self.gene_file
                 .apply(lambda x: len(set(x) & genes) != 0)
                 .to_numpy()
             )
@@ -623,6 +625,7 @@ class DenseGTDataset(Dataset):
         if train_variants is None:
             common_variant_mask = mask
             if self.max_rare_af is not None:
+                # where does af_mask come from? it only occurs here
                 common_variant_mask &= ~af_mask
             common_variant_mask &= additional_mask
             if self.group_common:
@@ -632,11 +635,14 @@ class DenseGTDataset(Dataset):
 
             variants["matrix_index"] = -1
             matrix_index_mask = common_variant_mask
+            # add a matrix_index column and assign an increasing integer index
+            # for the common variants
             variants.loc[matrix_index_mask, "matrix_index"] = np.arange(
                 sum(matrix_index_mask)
             )
             variants["common_variant_mask"] = common_variant_mask
         else:
+            # in case specific train variants were provided
             variants = pd.concat(
                 [
                     variants,
@@ -662,14 +668,16 @@ class DenseGTDataset(Dataset):
         self.n_variants = self.variants["common_variant_mask"].sum()
 
         logger.debug("  Computing variant id to matrix index map")
+        # map only for common variants?
         self.variant_id_map = self.variants.loc[
             self.variants["common_variant_mask"], ["matrix_index", "id"]
         ]
         self.variant_id_map = self.variant_id_map.sort_values("matrix_index")
+        # check that the sum we used to arange the index in setup_variants still is the same
         assert (self.variant_id_map["matrix_index"] == np.arange(self.n_variants)).all()
         self.variant_id_map = self.variant_id_map.set_index("matrix_index", drop=False)
 
-        # no clue what this is for
+        # why the + 2 ?
         self.matrix_index = -np.ones(self.variants["id"].max() + 2, dtype=np.int32)
         self.matrix_index[self.variants["id"].to_numpy()] = self.variants[
             "matrix_index"
@@ -684,9 +692,16 @@ class DenseGTDataset(Dataset):
         logger.debug("Setting up groups for common variants")
         logger.debug("    Computing grouping")
 
-        # self.variants: pd.DataFrame
-        # common_variant_mask added to variants df in line 626
-        common_variant_groups = self.variants.loc[
+        # TODO: add grouping column (gene_id, exon_id) here from self.annotations
+        # use same merge logic as in line 579
+        # can use gene_file to map annotaiton index back to string
+
+        variants_with_grouping_ids = safe_merge(
+            variants[["id"]].reset_index(drop=True),
+            self.annotation_df[["gene_ids", "exon_ids"]].reset_index(),
+        )
+
+        common_variant_groups = self.variants_with_grouping_ids.loc[
             self.variants["common_variant_mask"],
             ["id", "matrix_index", self.grouping_column],
         ].set_index("matrix_index", drop=False)
@@ -741,6 +756,7 @@ class DenseGTDataset(Dataset):
                 self.group_matrix_maps.append(group["matrix_index"].to_numpy())
 
     def get_variant_groups(self):
+        # never used inside of dense_gt.py ir train.py
         logger.debug("Setting up groups for common variants")
         logger.debug("    Computing grouping")
         common_variant_groups = self.variants.loc[
