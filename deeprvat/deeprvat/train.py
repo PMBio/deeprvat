@@ -248,7 +248,7 @@ def make_dataset(
         zarr.save_array(
             input_tensor_out_file,
             input_tensor.numpy(),
-            chunks=(1000, None, None, None, None),
+            chunks=(1000, None, None, None),
             compressor=Blosc(clevel=compression_level),
         )
         del input_tensor

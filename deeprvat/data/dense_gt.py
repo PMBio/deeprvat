@@ -185,8 +185,12 @@ class DenseGTDataset(Dataset):
         )
 
         self.transform_data()
+        # this will subset away the gene_id and exon_id
+        # TODO: can we add a check in here so that only the gene_id and exon_id are kept until things are grouped
         self.setup_variants(min_common_variant_count, min_common_af, variants)
 
+        # this needs the gene_id or the exon_id for grouping
+        # this also needs the common_variant_mask => can't be run before setup_variants
         self.get_variant_metadata(grouping_level)
 
         if rare_embedding is not None:
@@ -231,6 +235,7 @@ class DenseGTDataset(Dataset):
             phenotypes[self.y_phenotypes].to_numpy(dtype=np.float32), dtype=torch.float
         )
 
+        # batch returned through data loader
         return {
             "sample": self.samples[idx],
             "x_phenotypes": x_phenotype_tensor,
@@ -510,13 +515,16 @@ class DenseGTDataset(Dataset):
             variants = variants.loc[self.variants_to_keep]
         logger.debug("    Filtering variants")
         if min_common_variant_count is not None:
+            # count based variant filtering
             mask = (variants["count"] >= min_common_variant_count) & (
                 variants["count"] <= self.n_samples - min_common_variant_count
             )
             mask = mask.to_numpy()
             logger.debug(f'    {mask.sum()} variants "common" by count filter')
         elif min_common_af is not None:
+            # frequency based variant filtering
             af_col, af_threshold = list(min_common_af.items())[0]
+            # add allele frequency column to variants
             variants_with_af = safe_merge(
                 variants[["id"]].reset_index(drop=True),
                 self.annotation_df[[af_col]].reset_index(),
@@ -524,10 +532,12 @@ class DenseGTDataset(Dataset):
             assert np.all(
                 variants_with_af["id"].to_numpy() == variants["id"].to_numpy()
             )
+            # filtering steps based on af and minor af
             mask = (variants_with_af[af_col] >= af_threshold) & (
                 variants_with_af[af_col] <= 1 - af_threshold
             )
             mask = mask.to_numpy()
+            # deleting dataframe to free up memory
             del variants_with_af
             logger.debug(f'    {mask.sum()} variants "common" by AF filter')
         else:
@@ -542,7 +552,9 @@ class DenseGTDataset(Dataset):
             ]
             assert np.all(matrix_ids == np.sort(matrix_ids))
 
+        # invert af mask to be true for rare variants
         rare_variant_mask = ~mask
+        # add chromosome specific selection to mask
         chromosome_mask = variants["chrom"].isin(self.chromosomes).to_numpy()
         additional_mask = chromosome_mask
         if self.exons_to_keep is not None:
@@ -553,6 +565,7 @@ class DenseGTDataset(Dataset):
                 .to_numpy()
             )
         if self.genes_to_keep is not None:
+            # we're merging with the annotation_df in the next if section. just do that here as well?
             raise NotImplementedError("The variant dataframes have outdated gene_ids")
             additional_mask &= (
                 variants["gene_ids"]
@@ -656,6 +669,7 @@ class DenseGTDataset(Dataset):
         assert (self.variant_id_map["matrix_index"] == np.arange(self.n_variants)).all()
         self.variant_id_map = self.variant_id_map.set_index("matrix_index", drop=False)
 
+        # no clue what this is for
         self.matrix_index = -np.ones(self.variants["id"].max() + 2, dtype=np.int32)
         self.matrix_index[self.variants["id"].to_numpy()] = self.variants[
             "matrix_index"
@@ -665,8 +679,13 @@ class DenseGTDataset(Dataset):
             self.setup_common_groups()
 
     def setup_common_groups(self):
+        """Function to pre-select common genotype vector to gene level
+        """
         logger.debug("Setting up groups for common variants")
         logger.debug("    Computing grouping")
+
+        # self.variants: pd.DataFrame
+        # common_variant_mask added to variants df in line 626
         common_variant_groups = self.variants.loc[
             self.variants["common_variant_mask"],
             ["id", "matrix_index", self.grouping_column],
