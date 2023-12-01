@@ -50,24 +50,23 @@ chromosomes = config["included_chromosomes"]
 
 
 
+
 rule all:
     input:
-        expand(bcf_dir / "{vcf_stem}.bcf",vcf_stem=vcf_stems),
-        expand(sparse_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
-        expand(norm_variants_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
-        norm_variants_dir / "variants_no_id.tsv.gz",
+        preprocessed_dir / "genotypes.h5",
         norm_variants_dir / "variants.tsv.gz",
-        qc_duplicate_vars_dir / "duplicates.tsv",
-        norm_variants_dir / "variants.parquet",
-        qc_duplicate_vars_dir / "duplicates.parquet",
+        variants=norm_variants_dir / "variants.parquet",
 
-        expand(qc_varmiss_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
-        expand(qc_hwe_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
-        expand(qc_read_depth_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
-        expand(qc_allelic_imbalance_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
 
-        expand(preprocessed_dir / "genotypes_chr{chr}.h5",chr=chromosomes)
-
+rule combine_genotypes:
+    input:
+        expand(
+            preprocessed_dir / "genotypes_chr{chr}.h5",
+            chr=chromosomes,)
+    output:
+        preprocessed_dir / "genotypes.h5",
+    shell:
+        f"{preprocessing_cmd} combine-genotypes {{input}} {{output}}"
 
 
 rule preprocess:
@@ -83,7 +82,7 @@ rule preprocess:
         vcf_stem=vcf_stems),
         qc_filtered_samples=qc_filtered_samples_dir,
     output:
-        expand(preprocessed_dir / "genotypes_chr{chr}.h5",chr=set(chromosomes)),
+        expand(preprocessed_dir / "genotypes_chr{chr}.h5",chr=chromosomes),
     shell:
         " ".join(
             [
