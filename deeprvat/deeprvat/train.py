@@ -309,7 +309,7 @@ class MultiphenoDataset(Dataset):
                     pheno_data["input_tensor_zarr"],
                     self.zarr_root,
                     name=pheno,
-                    chunks=(self.chunksize, None, None, None, None),
+                    chunks=(self.chunksize, None, None, None),
                     compressor=Blosc(clevel=1),
                 )
                 pheno_data["input_tensor_zarr"] = self.zarr_root[pheno]
@@ -321,7 +321,7 @@ class MultiphenoDataset(Dataset):
                 zarr.copy(
                     pheno_data["input_tensor_zarr"],
                     zarr.DirectoryStore(tensor_path),
-                    chunks=(self.chunksize, None, None, None, None),
+                    chunks=(self.chunksize, None, None, None),
                     compressor=Blosc(clevel=1),
                 )
                 pheno_data["input_tensor_zarr"] = zarr.open(tensor_path)
