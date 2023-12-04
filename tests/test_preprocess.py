@@ -352,6 +352,12 @@ def test_process_and_combine_sparse_gt(
             "chrom",
         ),
         (
+            "get_file_chr/chr1_sample.tsv",
+            "chr1",
+            ["id", "chromosome", "ref", "alt", "variant", "stuff"],
+            "chromosome",
+        ),
+        (
             "get_file_chr/chr2_sample.tsv",
             "chr2",
             ["id", "chrom", "ref", "alt", "variant", "stuff"],

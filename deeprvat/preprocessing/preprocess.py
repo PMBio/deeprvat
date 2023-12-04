@@ -145,14 +145,14 @@ def add_variant_ids(variant_file: str, out_file: str, duplicates_file: str):
     )
 
 
-def get_file_chromosome(file, col_names):
+def get_file_chromosome(file, col_names, chrom_field="chrom"):
     chrom_df = pd.read_csv(
-        file, names=col_names, sep="\t", index_col=None, nrows=1, usecols=[0]
+        file, names=col_names, sep="\t", index_col=None, nrows=1, usecols=[chrom_field]
     )
 
     chrom = None
     if not chrom_df.empty:
-        chrom = chrom_df["chrom"][0]
+        chrom = chrom_df[chrom_field][0]
 
     return chrom
 
@@ -255,12 +255,9 @@ def process_sparse_gt(
 
         exclude_calls_file_cols = ["chrom", "pos", "ref", "alt", "sample"]
 
-        calls_to_exclude = pd.DataFrame(
-            columns=exclude_calls_file_cols
-        )
+        calls_to_exclude = pd.DataFrame(columns=exclude_calls_file_cols)
 
         if exclude_calls is not None:
-
             exclude_calls_chrom = Path(exclude_calls).rglob("*.tsv*")
             exclude_calls_chrom_files = []
             for exclude_call_file in exclude_calls_chrom:
