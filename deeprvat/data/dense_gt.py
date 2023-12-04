@@ -696,12 +696,12 @@ class DenseGTDataset(Dataset):
         # use same merge logic as in line 579
         # can use gene_file to map annotaiton index back to string
 
-        variants_with_grouping_ids = safe_merge(
+        variants_with_ids = safe_merge(
             variants[["id"]].reset_index(drop=True),
             self.annotation_df[["gene_ids", "exon_ids"]].reset_index(),
         )
 
-        common_variant_groups = self.variants_with_grouping_ids.loc[
+        common_variant_groups = self.variants_with_gene_ids.loc[
             self.variants["common_variant_mask"],
             ["id", "matrix_index", self.grouping_column],
         ].set_index("matrix_index", drop=False)
