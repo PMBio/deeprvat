@@ -40,7 +40,7 @@ qc_filtered_samples_dir = qc_dir / "filtered_samples"
 with open(config["vcf_files_list"]) as file:
 
     vcf_files = [Path(line.rstrip()) for line in file]
-    vcf_stems = [vf.stem for vf in vcf_files]
+    vcf_stems = [vf.stem.replace(".vcf","") for vf in vcf_files]
 
     assert len(vcf_stems) == len(vcf_files)
 
