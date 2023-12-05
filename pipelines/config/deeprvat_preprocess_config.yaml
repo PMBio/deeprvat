@@ -11,7 +11,6 @@ working_dir: workdir
 data_dir: data
 
 # These paths are all relative to the data dir
-input_vcf_dir_name : vcf
 metadata_dir_name: metadata
 
 # These paths are all relative to the working dir
@@ -34,4 +33,4 @@ vcf_files_list: vcf_files_list.txt
 preprocess_threads: 16
 
 # You can specify a different zcat cmd for example gzcat here, default zcat
-zcat_cmd:
+zcat_cmd: gzcat
