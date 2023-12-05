@@ -20,7 +20,6 @@ rule preprocess_no_qc:
                 f"{preprocessing_cmd}",
                 "process-sparse-gt",
                 f"--exclude-variants {qc_duplicate_vars_dir}",
-                f"--exclude-samples {qc_filtered_samples_dir}",
                 "--chromosomes ",
                 ",".join(str(chr) for chr in set(chromosomes)),
                 f"--threads {preprocess_threads}",
