@@ -1,9 +1,9 @@
 # DeepRVAT Preprocessing pipeline
 
 The DeepRVAT preprocessing pipeline is based on [snakemake](https://snakemake.readthedocs.io/en/stable/) it uses
-[bcftools+samstools](https://www.htslib.org/) and a [python script](preprocess.py) preprocessing.py.
+[bcftools+samstools](https://www.htslib.org/) and a [python script](https://github.com/PMBio/deeprvat/blob/main/deeprvat/preprocessing/preprocess.py) preprocessing.py.
 
-![DeepRVAT preprocessing pipeline](./preprocess_rulegraph.svg)
+![DeepRVAT preprocessing pipeline](_static/preprocess_rulegraph.svg)
 
 ## Output
 
@@ -44,7 +44,7 @@ pip install -e .
 ## Configure preprocessing
 
 The snakemake preprocessing is configured using a yaml file with the format below.
-An example file is included in this repo: [example config](config/deeprvat_preprocess_config.yaml).
+An example file is included in this repo: [example config](https://github.com/PMBio/deeprvat/blob/main/pipelines/config/deeprvat_preprocess_config.yaml).
 
 ```yaml
 # What chromosomes should be processed
