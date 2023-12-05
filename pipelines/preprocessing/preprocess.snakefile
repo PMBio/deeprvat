@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 configfile: "config/deeprvat_preprocess_config.yaml"
 
 load_samtools = config.get("samtools_load_cmd") or ""
@@ -46,24 +45,15 @@ with open(config["vcf_files_list"]) as file:
 
     vcf_look_up = {stem: file for stem, file in zip(vcf_stems, vcf_files)}
 
-
 chromosomes = config["included_chromosomes"]
-
-
-
-
-rule all:
-    input:
-        preprocessed_dir / "genotypes.h5",
-        norm_variants_dir / "variants.tsv.gz",
-        variants=norm_variants_dir / "variants.parquet",
 
 
 rule combine_genotypes:
     input:
         expand(
             preprocessed_dir / "genotypes_chr{chr}.h5",
-            chr=chromosomes,)
+            chr=chromosomes,
+        ),
     output:
         preprocessed_dir / "genotypes.h5",
     shell:
@@ -75,15 +65,18 @@ rule preprocess:
         variants=norm_variants_dir / "variants.tsv.gz",
         variants_parquet=norm_variants_dir / "variants.parquet",
         samples=norm_dir / "samples_chr.csv",
-        sparse_tg=expand(sparse_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
-        qc_varmiss=expand(qc_varmiss_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
+        sparse_tg=expand(sparse_dir / "{vcf_stem}.tsv.gz", vcf_stem=vcf_stems),
+        qc_varmiss=expand(qc_varmiss_dir / "{vcf_stem}.tsv.gz", vcf_stem=vcf_stems),
         qc_hwe=expand(qc_hwe_dir / "{vcf_stem}.tsv.gz", vcf_stem=vcf_stems),
-        qc_read_depth=expand(qc_read_depth_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
-        qc_allelic_imbalance=expand(qc_allelic_imbalance_dir / "{vcf_stem}.tsv.gz",
-        vcf_stem=vcf_stems),
+        qc_read_depth=expand(
+            qc_read_depth_dir / "{vcf_stem}.tsv.gz", vcf_stem=vcf_stems
+        ),
+        qc_allelic_imbalance=expand(
+            qc_allelic_imbalance_dir / "{vcf_stem}.tsv.gz", vcf_stem=vcf_stems
+        ),
         qc_filtered_samples=qc_filtered_samples_dir,
     output:
-        expand(preprocessed_dir / "genotypes_chr{chr}.h5",chr=chromosomes),
+        expand(preprocessed_dir / "genotypes_chr{chr}.h5", chr=chromosomes),
     shell:
         " ".join(
             [
@@ -106,28 +99,17 @@ rule preprocess:
         )
 
 
-
-rule create_excluded_samples_dir:
-    output:
-        directory(qc_filtered_samples_dir),
-    shell:
-        "mkdir -p {output}"
-
-
-
 rule normalize:
     input:
         samplefile=norm_dir / "samples_chr.csv",
         fasta=fasta_file,
         fastaindex=fasta_index_file,
     params:
-        vcf_file= lambda wildcards: vcf_look_up[wildcards.vcf_stem],
+        vcf_file=lambda wildcards: vcf_look_up[wildcards.vcf_stem],
     output:
         bcf_file=bcf_dir / "{vcf_stem}.bcf",
     shell:
         f"""{load_bcftools} bcftools view --samples-file {{input.samplefile}} --output-type u {{params.vcf_file}} | bcftools view --include 'COUNT(GT="alt") > 0' --output-type u | bcftools norm -m-both -f {{input.fasta}} --output-type b --output {{output.bcf_file}}"""
-
-
 
 
 rule index_fasta:
@@ -149,8 +131,6 @@ rule sparsify:
         | sed 's/0[/,|]1/1/; s/1[/,|]0/1/; s/1[/,|]1/2/; s/0[/,|]0/0/' | gzip > {{output.tsv}}"""
 
 
-
-
 rule variants:
     input:
         bcf=bcf_dir / "{vcf_stem}.bcf",
@@ -160,15 +140,13 @@ rule variants:
         f"{load_bcftools} bcftools query --format '%CHROM\t%POS\t%REF\t%ALT\n' {{input}} | gzip > {{output}}"
 
 
-
 rule concatenate_variants:
     input:
-        expand( norm_variants_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
+        expand(norm_variants_dir / "{vcf_stem}.tsv.gz", vcf_stem=vcf_stems),
     output:
         norm_variants_dir / "variants_no_id.tsv.gz",
     shell:
         "{zcat_cmd} {input} | gzip > {output}"
-
 
 
 rule add_variant_ids:
@@ -190,6 +168,7 @@ rule create_parquet_variant_ids:
     shell:
         f"{preprocessing_cmd} add-variant-ids {{input}} {{output.variants}} {{output.duplicates}}"
 
+
 rule extract_samples:
     input:
         vcf_files,
@@ -197,45 +176,3 @@ rule extract_samples:
         norm_dir / "samples_chr.csv",
     shell:
         f"{load_bcftools} bcftools query --list-samples {{input}} > {{output}}"
-
-
-
-
-
-rule qc_allelic_imbalance:
-    input:
-        bcf_dir / "{vcf_stem}.bcf",
-    output:
-        qc_allelic_imbalance_dir / "{vcf_stem}.tsv.gz",
-    shell:
-        f"""{load_bcftools} bcftools query --format '%CHROM\t%POS\t%REF\t%ALT\n' --exclude 'COUNT(GT="het")=0 || (GT="het" & ((TYPE="snp" & (FORMAT/AD[*:1] / FORMAT/AD[*:0]) > 0.15) | (TYPE="indel" & (FORMAT/AD[*:1] / FORMAT/AD[*:0]) > 0.20)))' {{input}} | gzip > {{output}}"""
-
-
-
-
-rule qc_varmiss:
-    input:
-        bcf_dir / "{vcf_stem}.bcf",
-    output:
-        qc_varmiss_dir / "{vcf_stem}.tsv.gz",
-    shell:
-        f'{load_bcftools} bcftools query --format "%CHROM\t%POS\t%REF\t%ALT\n" --include "F_MISSING >= 0.1" {{input}} | gzip > {{output}}'
-
-
-rule qc_hwe:
-    input:
-        bcf_dir / "{vcf_stem}.bcf",
-    output:
-        qc_hwe_dir / "{vcf_stem}.tsv.gz",
-    shell:
-        f'{load_bcftools} bcftools +fill-tags --output-type u {{input}} -- --tags HWE | bcftools query --format "%CHROM\t%POS\t%REF\t%ALT\n" --include "INFO/HWE <= 1e-15" | gzip > {{output}}'
-
-
-rule qc_read_depth:
-    input:
-        bcf_dir / "{vcf_stem}.bcf",
-    output:
-        qc_read_depth_dir / "{vcf_stem}.tsv.gz",
-    shell:
-        f"""{load_bcftools} bcftools query --format '[%CHROM\\t%POS\\t%REF\\t%ALT\\t%SAMPLE\\n]' --include '(GT!="RR" & GT!="mis" & TYPE="snp" & FORMAT/DP < 7) | (GT!="RR" & GT!="mis" & TYPE="indel" & FORMAT/DP < 10)' {{input}} | gzip > {{output}}"""
-

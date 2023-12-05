@@ -33,4 +33,4 @@ vcf_files_list: vcf_files_list.txt
 preprocess_threads: 16
 
 # You can specify a different zcat cmd for example gzcat here, default zcat
-zcat_cmd: 
+zcat_cmd: gzcat
