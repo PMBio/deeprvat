@@ -48,42 +48,41 @@ An example file is included in this repo: [example config](https://github.com/PM
 
 ```yaml
 # What chromosomes should be processed
-included_chromosomes: [ 20,21,22 ]
+included_chromosomes : [21,22]
 
-# If you need to run a cmd to load bcf and samtools specify it here
-bcftools_load_cmd: module load bcftools/1.10.2 &&
-samtools_load_cmd: module load samtools/1.9 &&
+# If you need to run a cmd to load bcf and samtools specify it here, see example
+bcftools_load_cmd : # module load bcftools/1.10.2 &&
+samtools_load_cmd : # module load samtools/1.9 &&
 
 # Path to where you want to write results and intermediate data
-working_dir: /workdir
+working_dir: workdir
 # Path to ukbb data
-data_dir: /data
+data_dir: data
 
 # These paths are all relative to the data dir
-input_vcf_dir_name: vcf
 metadata_dir_name: metadata
-
-# expected to be found in the data_dir / metadata_dir
-pvcf_blocks_file: pvcf_blocks.txt
 
 # These paths are all relative to the working dir
 # Here will the finished preprocessed files end up
-preprocessed_dir_name: preprocesed
+preprocessed_dir_name : preprocesed
 # Path to directory with fasta reference file
-reference_dir_name: reference
+reference_dir_name : reference
 # Here we will store normalized bcf files
-norm_dir_name: norm
+norm_dir_name : norm
 # Here we store "sparsified" bcf files
-sparse_dir_name: sparse
+sparse_dir_name : sparse
 
 # Expected to be found in working_dir/reference_dir
-reference_fasta_file: GRCh38_full_analysis_set_plus_decoy_hla.fa
+reference_fasta_file : GRCh38.primary_assembly.genome.fa
 
 # The format of the name of the "raw" vcf files
-vcf_filename_pattern: ukb23156_c{chr}_b{block}_v1.vcf.gz
+vcf_files_list: vcf_files_list.txt
 
 # Number of threads to use in the preprocessing script, separate from snakemake threads
 preprocess_threads: 16
+
+# You can specify a different zcat cmd for example gzcat here, default zcat
+zcat_cmd: gzcat
    ```
 
 The config above would use the following directory structure:
@@ -114,6 +113,23 @@ parent_directory
 
 ```
 
+### vcf_files_list
+The `vcf_files_list` variable specifies the path to a text file that contains paths to the raw vcf files you want to 
+process. 
+
+ex:
+
+
+```text
+data/vcf/test_vcf_data_c21_b1.vcf.gz
+data/vcf/test_vcf_data_c22_b1.vcf.gz
+```
+
+The easiest way to create `vcf_files_list` (if you have your files in `data/vcf` under the `parent_directory`)
+```shell
+cd <parent_directory>
+find data/vcf -type f -name "*.vcf*" > vcf_files_list.txt
+```
 ## Running the preprocess pipeline
 
 There are two versions of the pipeline, one with qc (quality control) and one without, the version with qc is the one
