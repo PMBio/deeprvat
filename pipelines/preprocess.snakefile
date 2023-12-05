@@ -42,7 +42,7 @@ with open(config["vcf_files_list"]) as file:
     vcf_files = [Path(line.rstrip()) for line in file]
     vcf_stems = [vf.stem.split('.')[0] for vf in vcf_files]
 
-    assert len(vcf_stems) == len(vcf_stems)
+    assert len(vcf_stems) == len(vcf_files)
 
     vcf_look_up = {stem: file for stem, file in zip(vcf_stems, vcf_files)}
 
