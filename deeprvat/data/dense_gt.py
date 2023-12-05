@@ -690,17 +690,16 @@ class DenseGTDataset(Dataset):
         logger.debug("Setting up groups for common variants")
         logger.debug("    Computing grouping")
 
-        # TODO: add grouping column (gene_id, exon_id) here from self.annotations
-        # use same merge logic as in line 579
-        # can use gene_file to map annotaiton index back to string
+        # add grouping column (gene_id) here from self.annotations
+        # same merge logic as in line 579
 
-        variants_with_ids = safe_merge(
-            self.variants[["id"]].reset_index(drop=True),
-            self.annotation_df[["gene_ids", "exon_ids"]].reset_index(),
+        variants_with_gene_ids = safe_merge(
+            self.variants[["id", "matrix_index"]].reset_index(drop=True),
+            self.annotation_df[["gene_ids"]].reset_index(),
         )
 
-        common_variant_groups = variants_with_ids.loc[
-            self.variants["common_variant_mask"],
+        common_variant_groups = variants_with_gene_ids.loc[
+            self.variants["common_variant_mask"].reset_index(drop=True),
             ["id", "matrix_index", self.grouping_column],
         ].set_index("matrix_index", drop=False)
 
@@ -745,7 +744,7 @@ class DenseGTDataset(Dataset):
             )
         else:
             logger.debug("    Computing within-group matrix indices")
-            common_variant_groups = common_variant_groups.groupby(self.grouping_column)
+            common_variant_groups = common_variant_groups.groupby(self.grouping_column, observed=True)
 
             self.group_names = []
             self.group_matrix_maps = []
@@ -831,7 +830,7 @@ class DenseGTDataset(Dataset):
                 common_variants = torch.tensor(common_variants, dtype=torch.float)
 
                 if self.group_common:
-                    # right only [samples, common genotype]
+                    # right now only [samples, common genotype]
                     # TODO: wrap this differently to get tensor like [samples, genes, common var genotype]
                     # can be for a varying amount of genes, depending on groupby
                     # TODO: check if this groupby still would keep empty stuff
@@ -895,6 +894,7 @@ class DenseGTDataset(Dataset):
                 common_variants = torch.tensor(common_variants, dtype=torch.float)
 
                 if self.group_common:
+                    # import pdb; pdb.set_trace()
                     common_variants = [
                         common_variants[vmap] for vmap in self.group_matrix_maps
                     ]
