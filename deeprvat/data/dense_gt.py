@@ -185,8 +185,6 @@ class DenseGTDataset(Dataset):
         )
 
         self.transform_data()
-        # this will subset away the gene_id and exon_id
-        # TODO: can we add a check in here so that only the gene_id and exon_id are kept until things are grouped
         self.setup_variants(min_common_variant_count, min_common_af, variants)
 
         # this needs the gene_id or the exon_id for grouping
@@ -697,18 +695,18 @@ class DenseGTDataset(Dataset):
         # can use gene_file to map annotaiton index back to string
 
         variants_with_ids = safe_merge(
-            variants[["id"]].reset_index(drop=True),
+            self.variants[["id"]].reset_index(drop=True),
             self.annotation_df[["gene_ids", "exon_ids"]].reset_index(),
         )
 
-        common_variant_groups = self.variants_with_gene_ids.loc[
+        common_variant_groups = variants_with_ids.loc[
             self.variants["common_variant_mask"],
             ["id", "matrix_index", self.grouping_column],
         ].set_index("matrix_index", drop=False)
 
         common_variant_groups = common_variant_groups.explode(self.grouping_column)
         common_variant_groups = common_variant_groups[
-            common_variant_groups["gene_ids"].notna()
+            common_variant_groups[self.grouping_column].notna()
         ]
 
         if self.return_sparse:
@@ -752,11 +750,15 @@ class DenseGTDataset(Dataset):
             self.group_names = []
             self.group_matrix_maps = []
             for name, group in common_variant_groups:
+                # name: gene_id
+                # group: set of variants mapped to that gene
+                # list of gene names
                 self.group_names += [name]
+                # list of numpy arrays mapping gene grouping order to matrix_index
                 self.group_matrix_maps.append(group["matrix_index"].to_numpy())
 
     def get_variant_groups(self):
-        # never used inside of dense_gt.py ir train.py
+        # never used inside of dense_gt.py or train.py
         logger.debug("Setting up groups for common variants")
         logger.debug("    Computing grouping")
         common_variant_groups = self.variants.loc[
@@ -780,14 +782,19 @@ class DenseGTDataset(Dataset):
         )
         return common_variant_groups
 
-    def get_common_variants(
+    def get_common_variants_tensor(
         self, sparse_variants: np.ndarray, sparse_genotype: np.ndarray
     ):
+        # gets called from __getitem__
+        # taking out all variant information added as -1 padding in hdf5
         padding_mask = sparse_variants >= 0
+        # add mask for specific variants to keep/remove
         if self.variants_to_keep is not None:
             padding_mask &= np.isin(sparse_variants, self.variants_to_keep)
 
+        # remove -1 padding from variant_matrix
         masked_sparse_variants = sparse_variants[padding_mask]
+        # what makes this common only?
         sparse_common_variants = self.matrix_index[masked_sparse_variants]
         masked_sparse_genotype = sparse_genotype[padding_mask]
 
@@ -796,6 +803,7 @@ class DenseGTDataset(Dataset):
         sparse_genotype = masked_sparse_genotype[common_variant_mask]
 
         if not self.use_common_variants:
+            # this is what we get with paper DeepRVAT
             common_variants = torch.tensor([], dtype=torch.float)
         else:
             if self.return_sparse:
@@ -817,6 +825,71 @@ class DenseGTDataset(Dataset):
                         torch.tensor(sparse_genotype, dtype=torch.float),
                     )
             else:
+                # build vector of full genotype length
+                common_variants = np.zeros(self.n_variants)
+                common_variants[sparse_common_variants] = sparse_genotype
+                common_variants = torch.tensor(common_variants, dtype=torch.float)
+
+                if self.group_common:
+                    # right only [samples, common genotype]
+                    # TODO: wrap this differently to get tensor like [samples, genes, common var genotype]
+                    # can be for a varying amount of genes, depending on groupby
+                    # TODO: check if this groupby still would keep empty stuff
+                    common_variants = [
+                        # vmap: numpy array containing matrix_index of variants for this group
+                        # and group should either be a gene or an exon
+                        common_variants[vmap] for vmap in self.group_matrix_maps
+                    ]
+
+        return common_variants, masked_sparse_variants, masked_sparse_genotype
+
+    def get_group_matrix_maps(self):
+        return self.group_matrix_maps
+
+    def get_common_variants(
+        self, sparse_variants: np.ndarray, sparse_genotype: np.ndarray
+    ):
+        # gets called from __getitem__
+        # taking out all variant information added as -1 padding in hdf5
+        padding_mask = sparse_variants >= 0
+        # add mask for specific variants to keep/remove
+        if self.variants_to_keep is not None:
+            padding_mask &= np.isin(sparse_variants, self.variants_to_keep)
+
+        # remove -1 padding from variant_matrix
+        masked_sparse_variants = sparse_variants[padding_mask]
+        # what makes this common only?
+        sparse_common_variants = self.matrix_index[masked_sparse_variants]
+        masked_sparse_genotype = sparse_genotype[padding_mask]
+
+        common_variant_mask = sparse_common_variants >= 0
+        sparse_common_variants = sparse_common_variants[common_variant_mask]
+        sparse_genotype = masked_sparse_genotype[common_variant_mask]
+
+        if not self.use_common_variants:
+            # this is what we get with paper DeepRVAT
+            common_variants = torch.tensor([], dtype=torch.float)
+        else:
+            if self.return_sparse:
+                if self.group_common:
+                    variants = [[] for _ in self.group_names]
+                    genotypes = [[] for _ in self.group_names]
+                    for var, gt in zip(sparse_common_variants, sparse_genotype):
+                        for group_id in self.common_variant_groups.iloc[var]:
+                            variants[group_id].append(var)
+                            genotypes[group_id].append(gt)
+
+                    common_variants = (
+                        [torch.tensor(x, dtype=torch.long) for x in variants],
+                        [torch.tensor(x, dtype=torch.float) for x in genotypes],
+                    )
+                else:
+                    common_variants = (
+                        torch.tensor(sparse_common_variants, dtype=torch.long),
+                        torch.tensor(sparse_genotype, dtype=torch.float),
+                    )
+            else:
+                # build vector of full genotype length
                 common_variants = np.zeros(self.n_variants)
                 common_variants[sparse_common_variants] = sparse_genotype
                 common_variants = torch.tensor(common_variants, dtype=torch.float)
