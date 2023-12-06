@@ -786,67 +786,6 @@ class DenseGTDataset(Dataset):
         )
         return common_variant_groups
 
-    def get_common_variants_tensor(
-        self, sparse_variants: np.ndarray, sparse_genotype: np.ndarray
-    ):
-        # gets called from __getitem__
-        # taking out all variant information added as -1 padding in hdf5
-        padding_mask = sparse_variants >= 0
-        # add mask for specific variants to keep/remove
-        if self.variants_to_keep is not None:
-            padding_mask &= np.isin(sparse_variants, self.variants_to_keep)
-
-        # remove -1 padding from variant_matrix
-        masked_sparse_variants = sparse_variants[padding_mask]
-        # what makes this common only?
-        sparse_common_variants = self.matrix_index[masked_sparse_variants]
-        masked_sparse_genotype = sparse_genotype[padding_mask]
-
-        common_variant_mask = sparse_common_variants >= 0
-        sparse_common_variants = sparse_common_variants[common_variant_mask]
-        sparse_genotype = masked_sparse_genotype[common_variant_mask]
-
-        if not self.use_common_variants:
-            # this is what we get with paper DeepRVAT
-            common_variants = torch.tensor([], dtype=torch.float)
-        else:
-            if self.return_sparse:
-                if self.group_common:
-                    variants = [[] for _ in self.group_names]
-                    genotypes = [[] for _ in self.group_names]
-                    for var, gt in zip(sparse_common_variants, sparse_genotype):
-                        for group_id in self.common_variant_groups.iloc[var]:
-                            variants[group_id].append(var)
-                            genotypes[group_id].append(gt)
-
-                    common_variants = (
-                        [torch.tensor(x, dtype=torch.long) for x in variants],
-                        [torch.tensor(x, dtype=torch.float) for x in genotypes],
-                    )
-                else:
-                    common_variants = (
-                        torch.tensor(sparse_common_variants, dtype=torch.long),
-                        torch.tensor(sparse_genotype, dtype=torch.float),
-                    )
-            else:
-                # build vector of full genotype length
-                common_variants = np.zeros(self.n_variants)
-                common_variants[sparse_common_variants] = sparse_genotype
-                common_variants = torch.tensor(common_variants, dtype=torch.float)
-
-                if self.group_common:
-                    # right now only [samples, common genotype]
-                    # TODO: wrap this differently to get tensor like [samples, genes, common var genotype]
-                    # can be for a varying amount of genes, depending on groupby
-                    # TODO: check if this groupby still would keep empty stuff
-                    common_variants = [
-                        # vmap: numpy array containing matrix_index of variants for this group
-                        # and group should either be a gene or an exon
-                        common_variants[vmap] for vmap in self.group_matrix_maps
-                    ]
-
-        return common_variants, masked_sparse_variants, masked_sparse_genotype
-
     def get_group_matrix_maps(self):
         return self.group_matrix_maps
 
@@ -863,6 +802,7 @@ class DenseGTDataset(Dataset):
         # remove -1 padding from variant_matrix
         masked_sparse_variants = sparse_variants[padding_mask]
         # what makes this common only?
+        # TODO: add common_variant_mask to padding_mask?
         sparse_common_variants = self.matrix_index[masked_sparse_variants]
         masked_sparse_genotype = sparse_genotype[padding_mask]
 

@@ -529,12 +529,13 @@ class DeepSet(BaseModel):
         return result
 
 
-class DeepSetLinearCommon(BaseModel):
+class DeepSetLinearCommon(DeepSet):
     def __init__(
         self,
         config: dict,
         n_annotations: Dict[str, int],
         n_covariates: Dict[str, int],
+        n_common_geno: Dict[str, int],  # information on size of common variant genotype vector per pheno
         n_genes: Dict[str, int],
         phenotypes: List[str],
         agg_model: Optional[nn.Module] = None,
@@ -545,7 +546,7 @@ class DeepSetLinearCommon(BaseModel):
         super().__init__(
             config,
             n_annotations,
-            n_covariates + 1,  # adding common vars as one additional covariate
+            n_covariates,
             n_genes,
             phenotypes,
             agg_model,
@@ -554,10 +555,20 @@ class DeepSetLinearCommon(BaseModel):
             **kwargs,
         )
 
-        # TODO: is common_variants actually part of this_batch?
-        self.common_cov = nn.Linear(
-            # TODO: figure out correct shape
-            this_batch["common_variants"].shape[1], 1
+        self.save_hyperparameters(
+            "n_common_geno"
+        )
+
+        # add slightly cusomized gene_pheno, adding common genotype vector dims
+        # dict of various linear layers used for phenotype prediction.
+        # Returns can be tested against ground truth data.
+        self.gene_pheno = nn.ModuleDict(
+            {
+                pheno: nn.Linear(
+                    self.hparams.n_covariates + self.hparams.n_common_geno[pheno] + self.hparams.n_genes[pheno], 1
+                )
+                for pheno in self.hparams.phenotypes
+            }
         )
 
     def forward(self, batch):
@@ -567,8 +578,7 @@ class DeepSetLinearCommon(BaseModel):
             # x.shape = samples x genes x annotations x variants
             x = self.agg_model(x).squeeze(dim=2)
             # x.shape = samples x genes
-            c = self.common_cov(this_batch["common_varaints"])
-            x = torch.cat((this_batch["covariates"], c, x), dim=1)
+            x = torch.cat((this_batch["covariates"], this_batch["common_variants"], x), dim=1)
             # x.shape = samples x (genes + covariates)
             result[pheno] = self.gene_pheno[pheno](x).squeeze(dim=1)
             # result[pheno].shape = samples
