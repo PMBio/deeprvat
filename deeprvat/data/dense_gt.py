@@ -211,6 +211,7 @@ class DenseGTDataset(Dataset):
 
         idx = self.index_map[idx]
 
+        # subset full genotype and variant matrices for given samples
         sparse_variants = self.variant_matrix[idx, :]
         sparse_genotype = self.genotype_matrix[idx, :]
         (
@@ -786,13 +787,11 @@ class DenseGTDataset(Dataset):
         )
         return common_variant_groups
 
-    def get_group_matrix_maps(self):
-        return self.group_matrix_maps
-
     def get_common_variants(
         self, sparse_variants: np.ndarray, sparse_genotype: np.ndarray
     ):
         # gets called from __getitem__
+        # inputs contain full, unfiltered genotype and variant data
         # taking out all variant information added as -1 padding in hdf5
         padding_mask = sparse_variants >= 0
         # add mask for specific variants to keep/remove
@@ -801,8 +800,6 @@ class DenseGTDataset(Dataset):
 
         # remove -1 padding from variant_matrix
         masked_sparse_variants = sparse_variants[padding_mask]
-        # what makes this common only?
-        # TODO: add common_variant_mask to padding_mask?
         sparse_common_variants = self.matrix_index[masked_sparse_variants]
         masked_sparse_genotype = sparse_genotype[padding_mask]
 
@@ -838,11 +835,17 @@ class DenseGTDataset(Dataset):
                 common_variants[sparse_common_variants] = sparse_genotype
                 common_variants = torch.tensor(common_variants, dtype=torch.float)
 
+
                 if self.group_common:
                     # import pdb; pdb.set_trace()
-                    common_variants = [
-                        common_variants[vmap] for vmap in self.group_matrix_maps
-                    ]
+                    # common_variants = [
+                    #     common_variants[vmap] for vmap in self.group_matrix_maps
+                    # ]
+
+                    # repurposing the group_common flag here
+                    # subset it down to the indices already collected in self.group_matrix_maps
+                    common_geno_idx = np.unique(np.concatenate(self.group_matrix_maps, axis=None))
+                    common_variants = common_variants[common_geno_idx]
 
         return common_variants, masked_sparse_variants, masked_sparse_genotype
 

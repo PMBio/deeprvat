@@ -613,11 +613,18 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         self.n_annotations = any_pheno_data["input_tensor_zarr"].shape[2]
         self.n_covariates = any_pheno_data["covariates"].shape[1]
 
-        for _, pheno_data in self.data.items():
+        # init dict for use in loop
+        self.n_common_geno = {}
+
+        for pheno_key, pheno_data in self.data.items():
             n_samples = pheno_data["input_tensor_zarr"].shape[0]
             assert pheno_data["covariates"].shape[0] == n_samples
             assert pheno_data["y"].shape[0] == n_samples
             assert pheno_data["common_variants"].shape[0] == n_samples
+
+            # get the number of common genotype variants per pheno
+            # TODO: check in config that group_common is on
+            self.n_common_geno[pheno_key] = pheno_data["common_variants"].shape[1]
 
             # TODO: Rewrite this for multiphenotype data
             self.upsampling_factor = upsampling_factor
@@ -854,6 +861,7 @@ def run_bagging(
             config=config["model"]["config"],
             n_annotations=dm.n_annotations,
             n_covariates=dm.n_covariates,
+            # TODO: add common geno vars shape here
             n_genes=dm.n_genes,
             phenotypes=list(data.keys()),
             **config["model"].get("kwargs", {}),
