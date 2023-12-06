@@ -48,10 +48,10 @@ def process_sparse_gt_file(
     samples: List[str],
     calls_to_exclude: pd.DataFrame = None,
 ) -> Tuple[List[np.ndarray], List[np.ndarray]]:
-    sparse_gt = pd.read_csv(
+    sparse_gt = pd.read_table(
         file,
         names=["chrom", "pos", "ref", "alt", "sample", "gt"],
-        sep="\t",
+        engine="pyarrow",
         index_col=None,
     )
     sparse_gt = sparse_gt[sparse_gt["sample"].isin(samples)]
@@ -183,7 +183,7 @@ def process_sparse_gt(
     logging.info("Reading variants...")
     start_time = time.time()
 
-    variants = pd.read_csv(variant_file, sep="\t")
+    variants = pd.read_table(variant_file, engine="pyarrow")
 
     # Filter all variants based on chromosome
     if chromosomes is not None:
