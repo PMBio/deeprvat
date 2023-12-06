@@ -693,6 +693,8 @@ class DenseGTDataset(Dataset):
         # add grouping column (gene_id) here from self.annotations
         # same merge logic as in line 579
 
+        # import pdb; pdb.set_trace()
+
         variants_with_gene_ids = safe_merge(
             self.variants[["id", "matrix_index"]].reset_index(drop=True),
             self.annotation_df[["gene_ids"]].reset_index(),
@@ -707,6 +709,9 @@ class DenseGTDataset(Dataset):
         common_variant_groups = common_variant_groups[
             common_variant_groups[self.grouping_column].notna()
         ]
+
+        # drop duplicates after explode
+        common_variant_groups = common_variant_groups.drop_duplicates(subset=["id", "gene_ids"])
 
         if self.return_sparse:
             logger.debug("    Computing group IDs")
