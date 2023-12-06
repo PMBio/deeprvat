@@ -299,20 +299,12 @@ def process_sparse_gt(
 
         logging.info(f"sparse gt chrom(es) are: {sparse_gt_chrom}")
 
-        #        processed = Parallel(n_jobs=threads, verbose=50)(
-        #            delayed(process_sparse_gt_file)(
-        #                f.as_posix(), variants_chrom, samples, calls_to_exclude
-        #            )
-        #            for f in sparse_gt_chrom
-        #        )
-
-        processed = []
-        for f in sparse_gt_chrom:
-            processed.append(
-                process_sparse_gt_file(
-                    f.as_posix(), variants_chrom, samples, calls_to_exclude
-                )
+        processed = Parallel(n_jobs=threads, verbose=50)(
+            delayed(process_sparse_gt_file)(
+                f.as_posix(), variants_chrom, samples, calls_to_exclude
             )
+            for f in sparse_gt_chrom
+        )
 
         postprocessed_gt = postprocess_sparse_gt(processed, 1, len(samples))
         postprocessed_variants = postprocess_sparse_gt(processed, 0, len(samples))
