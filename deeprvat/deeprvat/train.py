@@ -623,7 +623,6 @@ class MultiphenoBaggingData(pl.LightningDataModule):
             assert pheno_data["common_variants"].shape[0] == n_samples
 
             # get the number of common genotype variants per pheno
-            # TODO: check in config that group_common is on
             self.n_common_geno[pheno_key] = pheno_data["common_variants"].shape[1]
 
             # TODO: Rewrite this for multiphenotype data
@@ -857,11 +856,12 @@ def run_bagging(
 
         # setup the model architecture as specified in config
         model_class = getattr(deeprvat_models, config["model"]["type"])
+
         model = model_class(
             config=config["model"]["config"],
             n_annotations=dm.n_annotations,
             n_covariates=dm.n_covariates,
-            # TODO: add common geno vars shape here
+            n_common_geno=dm.n_common_geno,
             n_genes=dm.n_genes,
             phenotypes=list(data.keys()),
             **config["model"].get("kwargs", {}),
@@ -979,7 +979,7 @@ def run_bagging(
         click.Path(exists=True),
         click.Path(exists=True),
         click.Path(exists=True)
-    ), # phenotype_name, input_tensor_file, covariates_file, y_files, common_vars_file
+    ),  # phenotype_name, input_tensor_file, covariates_file, y_files, common_vars_file
 )
 @click.argument("config-file", type=click.Path(exists=True))
 @click.argument("log-dir", type=click.Path())
