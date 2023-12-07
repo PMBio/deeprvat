@@ -19,7 +19,8 @@ reference_dir = working_dir / config["reference_dir_name"]
 preprocess_threads = config["preprocess_threads"]
 
 fasta_file = reference_dir / config["reference_fasta_file"]
-fasta_index_file = reference_dir / f"{config['reference_fasta_file']}.fai"
+fasta_file_uppercase = reference_dir / f'{Path(config["reference_fasta_file"]).stem}_upper.fa'
+fasta_index_file = f"{fasta_file_uppercase}.fai"
 
 norm_dir = working_dir / config["norm_dir_name"]
 sparse_dir = norm_dir / config["sparse_dir_name"]
@@ -64,7 +65,7 @@ rule combine_genotypes:
 rule normalize:
     input:
         samplefile=norm_dir / "samples_chr.csv",
-        fasta=fasta_file,
+        fasta=fasta_file_uppercase,
         fastaindex=fasta_index_file,
     params:
         vcf_file=lambda wildcards: vcf_look_up[wildcards.vcf_stem],
@@ -76,11 +77,19 @@ rule normalize:
 
 rule index_fasta:
     input:
-        fasta=fasta_file,
+        fasta=fasta_file_uppercase,
     output:
         fasta_index_file,
     shell:
         f"{load_samtools} samtools faidx {{input.fasta}}"
+
+rule uppercase_fast:
+    input:
+        fasta=fasta_file,
+    output:
+        fasta_file_uppercase,
+    shell:
+        "awk '!/^>/ {{print toupper($0)}} /^>/ {{print}}'" + " {input.fasta} > {output}"
 
 
 rule sparsify:
