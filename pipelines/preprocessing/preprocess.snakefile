@@ -18,7 +18,7 @@ reference_dir = working_dir / config["reference_dir_name"]
 
 preprocess_threads = config["preprocess_threads"]
 
-fasta_file = reference_dir / config["reference_fasta_file"]
+src_fasta_file = reference_dir / config["reference_fasta_file"]
 fasta_file_uppercase = reference_dir / f'{Path(config["reference_fasta_file"]).stem}_upper.fa'
 fasta_index_file = f"{fasta_file_uppercase}.fai"
 
@@ -85,7 +85,7 @@ rule index_fasta:
 
 rule uppercase_fast:
     input:
-        fasta=fasta_file,
+        fasta=src_fasta_file,
     output:
         fasta_file_uppercase,
     shell:
