@@ -83,7 +83,7 @@ rule index_fasta:
     shell:
         f"{load_samtools} samtools faidx {{input.fasta}}"
 
-rule uppercase_fast:
+rule uppercase_fasta:
     input:
         fasta=src_fasta_file,
     output:
