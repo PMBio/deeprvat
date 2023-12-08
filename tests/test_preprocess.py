@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
 from deeprvat.preprocessing.preprocess import cli as preprocess_cli
+import deeprvat.preprocessing.preprocess as deeprvat_preprocessing
 from click.testing import CliRunner
 from pathlib import Path
 import h5py
@@ -309,3 +310,72 @@ def test_process_and_combine_sparse_gt(
     assert np.array_equal(written_variant_matrix, expected_data["variant_matrix"])
     assert np.array_equal(written_genotype_matrix, expected_data["genotype_matrix"])
     assert np.array_equal(written_samples, expected_data["samples"])
+
+
+@pytest.mark.parametrize(
+    "input_file_path, expected_chrom, col_names, chrom_field",
+    [
+        (
+            "add_variant_ids/add_variant_ids_tsv/input/variants_no_id.tsv.gz",
+            "chr1",
+            ["chrom", "id", "ref", "alt"],
+            "chrom",
+        ),
+        (
+            "add_variant_ids/add_variant_ids_parquet/input/variants_no_id.tsv.gz",
+            "chr1",
+            ["chrom", "id", "ref", "alt"],
+            "chrom",
+        ),
+        (
+            "process_and_combine_sparse_gt/no_filters_minimal_split/input/sparse_gt/chr1/input_c1_b1.tsv.gz",
+            "chr1",
+            ["chrom", "id", "ref", "alt", "variant", "stuff"],
+            "chrom",
+        ),
+        (
+            "process_and_combine_sparse_gt/no_filters_minimal_split/input/sparse_gt/chr1/input_c1_b2.tsv.gz",
+            "chr1",
+            ["chrom", "id", "ref", "alt", "variant", "stuff"],
+            "chrom",
+        ),
+        (
+            "process_and_combine_sparse_gt/no_filters_minimal_split/input/sparse_gt/chr2/input_c2_b1.tsv.gz",
+            "chr2",
+            ["chrom", "id", "ref", "alt", "variant", "stuff"],
+            "chrom",
+        ),
+        (
+            "get_file_chr/chr1_sample.tsv",
+            "chr1",
+            ["id", "chrom", "ref", "alt", "variant", "stuff"],
+            "chrom",
+        ),
+        (
+            "get_file_chr/chr1_sample.tsv",
+            "chr1",
+            ["id", "chromosome", "ref", "alt", "variant", "stuff"],
+            "chromosome",
+        ),
+        (
+            "get_file_chr/chr2_sample.tsv",
+            "chr2",
+            ["id", "chrom", "ref", "alt", "variant", "stuff"],
+            "chrom",
+        ),
+        (
+            "get_file_chr/no_chr_sample.tsv",
+            None,
+            ["id", "chrom", "ref", "alt", "variant", "stuff"],
+            "chrom",
+        ),
+    ],
+)
+def test_get_file_chromosome(input_file_path, expected_chrom, col_names, chrom_field):
+    chrom_file = tests_data_dir / input_file_path
+
+    chrom = deeprvat_preprocessing.get_file_chromosome(
+        chrom_file, col_names=col_names, chrom_field=chrom_field
+    )
+
+    assert chrom == expected_chrom
