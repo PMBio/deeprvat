@@ -82,12 +82,16 @@ def get_burden(
                 )
                 burden.append(this_burden.cpu().numpy())
             burden = np.concatenate(burden, axis=2)
-            # TODO: add DeepSet model here and get forward pass on batch["common_variants"]
         else:
             burden = None
 
     y = batch["y"]
-    x = batch["x_phenotypes"]
+    x = batch["x_phenotypes"]  # containes other covariates e.g. age, genetic PCs
+
+    # get common geno on forward pass
+    # cvar = batch["common_variants"].to_numpy()
+    # glue common variant genotype to other covariates
+    # x = np.stack(x, cvar, axis=1)
 
     return burden, y, x
 
@@ -280,7 +284,7 @@ def compute_burdens_(
             enumerate(dl),
             file=sys.stdout,
             total=(n_samples // batch_size + (n_samples % batch_size != 0)),
-        ):  
+        ):
             # run forward pass on all repeats to get gene burden
             this_burdens, this_y, this_x = get_burden(
                 batch, agg_models, device=device, skip_burdens=skip_burdens
@@ -729,6 +733,8 @@ def regress_on_gene(
         if len(x_pheno.shape) == 1:
             x_pheno = np.expand_dims(x_pheno, axis=1)
         X = np.concatenate((X, x_pheno), axis=1)
+
+    # TODO: add something similar for common genotype?
 
     genes_params_pvalues = ([], [], [])
     for this_y in np.split(y, y.shape[1], axis=1):

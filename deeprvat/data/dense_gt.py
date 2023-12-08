@@ -443,6 +443,7 @@ class DenseGTDataset(Dataset):
         else:
             logger.warning("Not transforming phenotype")
 
+
     def setup_annotations(
         self,
         annotation_file: Optional[str],
@@ -834,7 +835,6 @@ class DenseGTDataset(Dataset):
                 common_variants = np.zeros(self.n_variants)
                 common_variants[sparse_common_variants] = sparse_genotype
                 common_variants = torch.tensor(common_variants, dtype=torch.float)
-
 
                 if self.group_common:
                     # import pdb; pdb.set_trace()

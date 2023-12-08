@@ -213,7 +213,7 @@ def make_dataset_(
         )
     ]
     rare_batches = [b["rare_variant_annotations"] for b in batches]
-    
+
     max_n_variants = max(r.shape[-1] for r in rare_batches)
     logging.info("MAXVAR:%s", max_n_variants)
     logger.info("Building input_tensor, covariates, and y")
@@ -225,7 +225,7 @@ def make_dataset_(
     )
     covariates = torch.cat([b["x_phenotypes"] for b in batches])
     y = torch.cat([b["y"] for b in batches])
-    
+
     common_var_batches = [b["common_variants"] for b in batches]
     max_n_common_variants = max(r.shape[-1] for r in common_var_batches)
     logging.info("MAX COMMMON VAR:%s", max_n_common_variants)
@@ -236,11 +236,19 @@ def make_dataset_(
         ]
     )
 
-    #Note: Common variants are only subsetted by missing y values mask
+    # Note: Common variants are only subsetted by missing y values mask
     logger.info("Subsetting samples by min_variant_count and missing y values")
     input_tensor, covariates, y, common_variants = subset_samples(
         input_tensor, covariates, y, common_variants, config["training"]["min_variant_count"]
     )
+
+    # TODO: add standardization of common_var genotype here ?
+
+    if config["data"]["dataset_config"]["std_common"]:
+        cvar_mean = torch.mean(common_variants, dim=0)
+        cvar_std = torch.std(common_variants, dim=0)
+
+        common_variants = (common_variants - cvar_mean) / cvar_std
 
     return input_tensor, covariates, y, common_variants
 
