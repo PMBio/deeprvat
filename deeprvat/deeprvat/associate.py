@@ -99,7 +99,7 @@ def make_dataset_(
     else:
         ds = DenseGTDataset(
             data_config["gt_file"],
-            variant_file= data_config["variant_file"],
+            variant_file=data_config["variant_file"],
             split="",
             skip_y_na=False,
             **copy.deepcopy(data_config["dataset_config"]),
@@ -288,7 +288,9 @@ def load_one_model(
 @click.argument("model-config-file", type=click.Path(exists=True))
 @click.argument("data-config-file", type=click.Path(exists=True))
 @click.argument("checkpoint-files", type=click.Path(exists=True), nargs=-1)
-def reverse_models(model_config_file: str, data_config_file: str, checkpoint_files: Tuple[str]):
+def reverse_models(
+    model_config_file: str, data_config_file: str, checkpoint_files: Tuple[str]
+):
     with open(model_config_file) as f:
         model_config = yaml.safe_load(f)
 
@@ -373,10 +375,14 @@ def reverse_models(model_config_file: str, data_config_file: str, checkpoint_fil
 
         agg_model = load_one_model(data_config, checkpoint, device=device)
         score = agg_model(
-            torch.tensor(plof, dtype=torch.float, device=device).reshape((n_variants, 1, -1, 1))
+            torch.tensor(plof, dtype=torch.float, device=device).reshape(
+                (n_variants, 1, -1, 1)
+            )
         ).reshape(n_variants)
         score_zero = agg_model(
-            torch.tensor(plof_zero, dtype=torch.float, device=device).reshape((n_variants, 1, -1, 1))
+            torch.tensor(plof_zero, dtype=torch.float, device=device).reshape(
+                (n_variants, 1, -1, 1)
+            )
         ).reshape(n_variants)
         mean_difference = torch.mean(score - score_zero).item()
 
@@ -482,7 +488,7 @@ def compute_burdens(
         with open(dataset_file, "rb") as f:
             dataset = pickle.load(f)
     else:
-        dataset = make_dataset_(config)
+        dataset = make_dataset_(data_config_file)
 
     if torch.cuda.is_available():
         logger.info("Using GPU")
@@ -534,8 +540,11 @@ def regress_on_gene_scoretest(gene: str, burdens: np.ndarray, model_score):
             f"gene {gene}, p-value: {pv}, using saddle instead."
         )
         pv = model_score.pv_alt_model(burdens, method="saddle")
-
-    beta = model_score.coef(burdens)["beta"][0, 0]
+    # beta only for linear models
+    try:
+        beta = model_score.coef(burdens)["beta"][0, 0]
+    except:
+        beta = None
 
     genes_params_pvalues = ([], [], [])
     genes_params_pvalues[0].append(gene)
@@ -614,7 +623,12 @@ def regress_(
         logger.info(f"X shape: {X.shape}, Y shape: {y.shape}")
 
         # compute null_model for score test
-        model_score = scoretest.ScoretestNoK(y, X)
+        if len(np.unique(y)) == 2:
+            logger.info("Fitting binary model since only found two distinct y values")
+            model_score = scoretest.ScoretestLogit(y, X)
+        else:
+            logger.info("Fitting linear model")
+            model_score = scoretest.ScoretestNoK(y, X)
         genes_betas_pvals = [
             regress_on_gene_scoretest(gene, burdens[mask, i], model_score)
             for i, gene in tqdm(

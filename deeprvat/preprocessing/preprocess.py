@@ -178,9 +178,7 @@ def process_sparse_gt(
     total_variants = len(variants)
     if len(exclude_variants) > 0:
         variant_exclusion_files = [
-            Path(directory) / v
-            for directory in exclude_variants
-            for v in Path(directory).glob("*.tsv*")
+            v for directory in exclude_variants for v in Path(directory).glob("*.tsv*")
         ]
 
         variants_to_exclude = pd.concat(
@@ -229,8 +227,7 @@ def process_sparse_gt(
         else:
             logging.info(f"Found no samples to exclude in {exclude_samples}")
 
-    # Assumes only numeric sample names
-    samples = sorted([s for s in samples if int(s) > 0])
+    samples = list(samples)
 
     logging.info("Processing sparse GT files by chromosome")
     total_calls_dropped = 0

@@ -7,22 +7,20 @@ import math
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+import copy
+
 
 import click
-import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 import yaml
-import random
 from scipy.stats import beta
-from scipy.stats import norm
 from scipy.sparse import coo_matrix, spmatrix
-from statsmodels.stats.multitest import fdrcorrection
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 from deeprvat.data import DenseGTDataset
-from seak.scoretest import ScoretestNoK
+from seak import scoretest
 
 logging.basicConfig(
     format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
@@ -40,6 +38,14 @@ class GotNone(Exception):
 
 def replace_in_array(arr, old_val, new_val):
     return np.where(arr == old_val, new_val, arr)
+
+
+def get_caf(G):
+    # get the cumulative allele frequency
+    ac = G.sum(axis=0)  # allele count of each variant
+    af = ac / (G.shape[0] * 2)  # allele frequency of each variant
+    caf = af.sum()
+    return caf
 
 
 #     return mask
@@ -170,9 +176,6 @@ def get_anno(
     var_weight_function: str,
     maf_col: str,
 ):
-
-    # temp_genotypes -= np.nanmean(temp_genotypes, axis=0)
-    # G1 = np.ma.masked_invalid(temp_genotypes).filled(0.)
     assert np.all(np.isfinite(G))
 
     weights, plof_mask = get_weights(
@@ -185,41 +188,52 @@ def get_anno(
 def call_score(GV, null_model_score, pval_dict, test_type):
     # score test
     # p-value for the score-test
+    start_time = time.time()
     pv = null_model_score.pv_alt_model(GV)
+    end_time = time.time()
+    time_diff = end_time - start_time
+    pval_dict["time"] = time_diff
     logger.info(f"p-value: {pv}")
     if pv < 0.0:
         logger.warning(
             f"Negative value encountered in p-value computation "
             f"p-value: {pv}, using saddle instead."
         )
-        #get test time
+        # get test time
         start_time = time.time()
         pv = null_model_score.pv_alt_model(GV, method="saddle")
         end_time = time.time()
         time_diff = end_time - start_time
-        pval_dict['time'] = time_diff
+        pval_dict["time"] = time_diff
     pval_dict["pval"] = pv
     if pv < 1e-3 and test_type == "burden":
         logger.info("Computing regression coefficient")
         # if gene is quite significant get the regression coefficient + SE
-        beta = null_model_score.coef(GV)
-        logger.info(f"Regression coefficient: {beta}")
-        pval_dict["beta"] = beta["beta"][0, 0]
-        pval_dict["betaSd"] = np.sqrt(beta["var_beta"][0, 0])
+        # only works for quantitative traits
+        try:
+            beta = null_model_score.coef(GV)
+            logger.info(f"Regression coefficient: {beta}")
+            pval_dict["beta"] = beta["beta"][0, 0]
+            pval_dict["betaSd"] = np.sqrt(beta["var_beta"][0, 0])
+        except:
+            pval_dict["beta"] = None
+            pval_dict["betaSd"] = None
     return pval_dict
+
 
 # set up the test-function for a single gene
 def test_gene(
     G_full: spmatrix,
     gene: int,
     grouped_annotations: pd.DataFrame,
-    dataset: DenseGTDataset,
+    Y,
     weight_cols: List[str],
-    null_model_score: ScoretestNoK,
+    null_model_score: scoretest.ScoretestNoK,
     test_config: Dict,
     var_type,
     test_type,
     maf_col,
+    min_mac,
 ) -> Dict[str, Any]:
     # Find variants present in gene
     # Convert sparse genotype to CSC
@@ -234,15 +248,20 @@ def test_gene(
     # Important: cast G into numpy array. Otherwise it will be a matrix and
     # the * operator does matrix mutiplication (.dot()) instead of scalar multiplication (.multiply())
     G = np.asarray(G)
-    logger.info(f'G shape and sum {G.shape, G.sum()}')
+    logger.info(f"G shape and sum {G.shape, G.sum()}")
     # GET expected allele count (EAC) as in Karczewski et al. 2022/Genebass
     vars_per_sample = np.sum(G, axis=1)
     samples_with_variant = vars_per_sample[vars_per_sample > 0].shape[0]
-    EAC = np.sum(vars_per_sample)
+    if len(np.unique(Y)) == 2:
+        n_cases = (Y > 0).sum()
+    else:
+        n_cases = Y.shape[0]
+    EAC = get_caf(G) * n_cases
 
     pval_dict = {}
 
     pval_dict["EAC"] = EAC
+    pval_dict["n_cases"] = n_cases
     pval_dict["gene"] = gene
     pval_dict["pval"] = np.nan
     pval_dict["EAC_filtered"] = np.nan
@@ -253,12 +272,15 @@ def test_gene(
     pval_dict["time"] = np.nan
 
     var_weight_function = test_config.get("var_weight_function", "sift_polyphen")
+    max_n_markers = test_config.get("max_n_markers", 5000)
+    # skips genes with more than max_n_markers qualifying variants
 
     logger.info(f"Using function {var_weight_function} for variant weighting")
 
-    # keep backwards compatibility
-
-    weights, _, = get_anno(
+    (
+        weights,
+        _,
+    ) = get_anno(
         G, variant_ids, annotation_df, weight_cols, var_weight_function, maf_col
     )
     variant_weight_th = (
@@ -275,12 +297,12 @@ def test_gene(
         f"Number of variants after thresholding using threshold {variant_weight_th}: {len(pos)}"
     )
     pval_dict["n_QV"] = len(pos)
-
-    if len(pos) > 0:
+    pval_dict["markers_after_mac_collapsing"] = len(pos)
+    if (len(pos) > 0) & (len(pos) < max_n_markers):
         G_f = G[:, pos]
-        EAC_filtered = np.sum(np.sum(G_f, axis=1))
+        EAC_filtered = EAC = get_caf(G_f) * n_cases
         pval_dict["EAC_filtered"] = EAC_filtered
-
+        MAC = G_f.sum(axis=0)
         count = G_f[G_f == 2].shape[0]
 
         # confirm that variants we include are rare variants
@@ -306,11 +328,28 @@ def test_gene(
         pval_dict["n_cluster"] = GW.shape[1]
 
         ### COLLAPSE kernel if doing burden test
-
+        collapse_ultra_rare = True
         if test_type == "skat":
             logger.info("Running Skat test")
-            GW = GW
+            if collapse_ultra_rare:
+                logger.info(f"Max Collapsing variants with MAC <= {min_mac}")
+                MAC_mask = MAC <= min_mac
+                if MAC_mask.sum() > 0:
+                    logger.info(f"Number of collapsed positions: {MAC_mask.sum()}")
+                    GW_collapse = copy.deepcopy(GW)
+                    GW_collapse = GW_collapse[:, MAC_mask].max(axis=1).reshape(-1, 1)
+                    GW = GW[:, ~MAC_mask]
+                    GW = np.hstack((GW_collapse, GW))
+                    logger.info(f"GW shape {GW.shape}")
+                else:
+                    logger.info(
+                        f"No ultra rare variants to collapse ({MAC_mask.sum()})"
+                    )
+                    GW = GW
+            else:
+                GW = GW
 
+        pval_dict["markers_after_mac_collapsing"] = GW.shape[1]
         if test_type == "burden":
             collapse_method = test_config.get("collapse_method", "binary")
             logger.info(f"Running burden test with collapsing method {collapse_method}")
@@ -321,7 +360,7 @@ def test_gene(
     else:
         GW = GW_full = np.zeros(G.shape[0])
 
-    return pval_dict, GW, GW_full  
+    return pval_dict, GW, GW_full
 
 
 def run_association_(
@@ -338,18 +377,24 @@ def run_association_(
 ) -> pd.DataFrame:
     # initialize the null models
     # ScoretestNoK automatically adds a bias column if not present
-    null_model_score = ScoretestNoK(Y, X)
+    if len(np.unique(Y)) == 2:
+        print("Fitting binary model since only found two distinct y values")
+        null_model_score = scoretest.ScoretestLogit(Y, X)
+    else:
+        null_model_score = scoretest.ScoretestNoK(Y, X)
     stats = []
     GW_list = {}
     GW_full_list = {}
     time_list_inner = {}
     weight_cols = config.get("weight_cols", [])
     logger.info(f"Testing with this config: {config['test_config']}")
-
+    min_mac = config["test_config"].get("min_mac", 0)
     # Get column with minor allele frequency
     annotations = config["data"]["dataset_config"]["annotations"]
     maf_col = [
-        annotation for annotation in annotations if re.search(r"_AF|_MAF", annotation)
+        annotation
+        for annotation in annotations
+        if re.search(r"_AF|_MAF|^MAF", annotation)
     ]
     assert len(maf_col) == 1
     maf_col = maf_col[0]
@@ -361,13 +406,14 @@ def run_association_(
                 G_full,
                 gene,
                 grouped_annotations,
-                dataset,
+                Y,
                 weight_cols,
                 null_model_score,
                 config["test_config"],
                 var_type,
                 test_type,
-                maf_col
+                maf_col,
+                min_mac,
             )
             if persist_burdens:
                 GW_list[gene] = GW
@@ -412,7 +458,7 @@ def _add_annotation_cols(annotations, config):
 @click.option("--phenotype", type=str)
 @click.option("--variant-type", type=str)
 @click.option("--rare-maf", type=float)
-@click.option("--maf-column", type=str, default="combined_UKB_NFE_AF")
+@click.option("--maf-column", type=str, default="MAF")
 @click.option("--simulated-phenotype-file", type=str)
 @click.argument("old_config_file", type=click.Path(exists=True))
 @click.argument("new_config_file", type=click.Path())
@@ -422,7 +468,7 @@ def update_config(
     simulated_phenotype_file: str,
     variant_type: Optional[str],
     rare_maf: Optional[float],
-    maf_column: Optional[str],
+    maf_column: str,
     new_config_file: str,
 ):
     with open(old_config_file) as f:
@@ -432,6 +478,7 @@ def update_config(
         config["data"]["dataset_config"][
             "sim_phenotype_file"
         ] = simulated_phenotype_file
+    logger.info(f"Reading MAF column from column {maf_column}")
 
     if phenotype is not None:
         config["data"]["dataset_config"]["y_phenotypes"] = [phenotype]
@@ -630,7 +677,6 @@ def run_association(
     if isinstance(G_full, spmatrix):
         G_full = G_full.tocsr()
     G_full = G_full[this_data_idx]
-    ## HAKIME
     logger.info(f"all_variants shape: {all_variants.shape}")
 
     X = data_full["x_phenotypes"].numpy()[this_data_idx]
@@ -647,9 +693,10 @@ def run_association(
     exploded_annotations = (
         dataset.annotation_df.query("id in @all_variants")
         .explode("gene_ids")
+        .reset_index()
         .drop_duplicates()
-    )  # row can be duplicated if a variant is assigned to a gene multiple times
-
+        .set_index("id")
+    )
     grouped_annotations = exploded_annotations.groupby("gene_ids")
     gene_ids = pd.read_parquet(dataset.gene_file, columns=["id"])["id"].to_list()
     gene_ids = list(
@@ -658,7 +705,6 @@ def run_association(
 
     logger.info(f"Number of genes to test: {len(gene_ids)}")
     # grouped annotations also contains non-coding gene ids
-    # gene_ids = list(grouped_annotations.groups.keys())
 
     if debug:
         logger.info("Debug mode: Using only 100 genes")
@@ -735,8 +781,6 @@ def combine_results(result_files: Tuple[str], out_file: str):
     logger.info("Doing simple postprocessing of results")
 
     cols_to_keep = ["gene", "EAC", "pval"]
-
-    # res_df.to_parquet(out_file)
 
     if "EAC" in res_df.columns:
         logger.info("Filtering for genes with EAC > 50")

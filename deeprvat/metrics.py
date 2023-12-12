@@ -30,7 +30,6 @@ class PearsonCorr:
         pass
 
     def __call__(self, burden, y):
-
         if len(burden.shape) > 1:  # was the burden computed for >1 genes
             corrs = []
             for i in range(burden.shape[1]):  # number of genes
@@ -53,7 +52,6 @@ class PearsonCorrTorch:
         pass
 
     def __call__(self, burden, y):
-
         if len(burden.shape) > 1:  # was the burden computed for >1 genes
             corrs = []
             for i in range(burden.shape[1]):  # number of genes
@@ -75,7 +73,6 @@ class PearsonCorrTorch:
         return corr
 
     def calculate_pearsonr(self, x, y):
-
         vx = x - torch.mean(x)
         vy = y - torch.mean(y)
 
