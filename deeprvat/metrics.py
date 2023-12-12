@@ -128,19 +128,19 @@ class LassoLossVal:
     def __init__(self):
         pass
     
-    def __call__(self, preds, y, lambda_, gamma, gamma_skip, l1_weights, l2_weights):
+    def __call__(self, preds, y, lambda_, gamma, gamma_skip, l1_skip_weights, l2_weights, l2_skip_weights):
         x = (F.mse_loss(preds, y) 
-                + lambda_ * l1_weights 
+                + lambda_ * l1_skip_weights 
                 + gamma * l2_weights
-                + gamma_skip * l2_weights)
+                + gamma_skip * l2_skip_weights)
         return x
 
 class LassoLossTrain:
     def __init__(self):
         pass
 
-    def __call__(self, preds, y, gamma, gamma_skip, l2_weights):
+    def __call__(self, preds, y, gamma, gamma_skip, l2_weights, l2_skip_weights):
         x = (F.mse_loss(preds, y) 
                 + gamma * l2_weights 
-                + gamma_skip * l2_weights)
+                + gamma_skip * l2_skip_weights)
         return x

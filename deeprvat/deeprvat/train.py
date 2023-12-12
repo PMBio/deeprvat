@@ -660,7 +660,7 @@ def run_bagging(
                 n_covariates=dm.n_covariates,
                 n_genes=dm.n_genes,
                 gene_count=gene_count,
-                lambda_= current_lambda, #config['model']["config"]['lambda'],
+                lambda_=current_lambda, #config['model']["config"]['lambda'],
                 gamma=0.0,
                 gamma_skip=0.0,
                 M=10.0,
@@ -676,6 +676,19 @@ def run_bagging(
                 config=config["model"]["config"],
                 lambda_= current_lambda,
             )
+
+        #####
+        #mock up lambda_schedule prediction from model attribute
+        # print('STARTING LAMBDA INIT FINDER NOW!!!!!!!!')
+        # est_lambda = model.lambda_start(M=10.0)
+        # start_l = (est_lambda 
+        #             / config["model"]["config"]["optimizer"]["config"]["lr"] 
+        #             / 10 # divide by 10 for initial training
+        # )
+        # print(f"estimated lambda: {est_lambda}")
+        # print(f"Estimated Start Lambda : {start_l}")
+        # import pdb; pdb.set_trace()
+        ########
 
         tb_log_dir = f"{log_dir}/bag_{k}/lambda_{current_lambda}"
         logger.info(f"    Writing TensorBoard logs to {tb_log_dir}")

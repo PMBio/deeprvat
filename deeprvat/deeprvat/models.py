@@ -437,7 +437,8 @@ class BaseLassoModel(pl.LightningModule):
                 torch.stack([ (fn(y_pred, batch[pheno]["y"],
                                   self.hparams['gamma'],
                                   self.hparams['gamma_skip'],
-                                  self.l2_regularization()))
+                                  self.l2_regularization(),
+                                  self.l2_regularization_skip()))
                              for pheno, y_pred in y_pred_by_pheno.items()]))
             else:
                 results[name] = torch.mean(
@@ -487,7 +488,8 @@ class BaseLassoModel(pl.LightningModule):
                         self.hparams['gamma'],
                         self.hparams['gamma_skip'],
                         self.l1_regularization_skip().item(),
-                        self.l2_regularization()))
+                        self.l2_regularization(),
+                        self.l2_regularization_skip().item()))
                         for pheno, y_pred in y_pred_by_pheno.items()]))
             else:
                 results[name] = torch.mean(
@@ -515,7 +517,8 @@ class BaseLassoModel(pl.LightningModule):
                                     self.hparams['gamma'],
                                     self.hparams['gamma_skip'],
                                     self.l1_regularization_skip().item(),
-                                    self.l2_regularization()))
+                                    self.l2_regularization(),
+                                    self.l2_regularization_skip().item()))
             else:
                 results[name] = (fn(y_pred, y))
             self.log(f"val_{name}", results[name])
@@ -682,6 +685,7 @@ class DeepSetLasso(BaseLassoModel):
         factor=2,
     ):
         """Estimate when the model will start to sparsify."""
+        # TODO: fix this for group vs regular Lasso
         def is_sparse(lambda_):
             with torch.no_grad():
                 beta = self.skip.weight.data
@@ -707,7 +711,7 @@ class DeepSetLasso(BaseLassoModel):
 
     def l2_regularization(self):
         """
-        L2 regulatization of the MLPs in phi & rho without the first layer
+        L2 regularization of the MLPs in phi & rho without the first layer
         which is bounded by the skip connection
         """
         ans = 0
