@@ -101,8 +101,9 @@ def subset_samples(
     input_tensor: torch.Tensor,
     covariates: torch.Tensor,
     y: torch.Tensor,
+    meta_data: torch.Tensor,
     min_variant_count: int,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     # First sum over annotations (dim 2) for each variant in each gene.
     # Then get the number of non-zero values across all variants in all
     # genes for each sample.
@@ -124,10 +125,11 @@ def subset_samples(
     input_tensor = input_tensor[mask]
     covariates = covariates[mask]
     y = y[mask]
+    meta_data = meta_data[mask]
 
     logger.info(f"{input_tensor.shape[0]} / {n_samples_orig} samples kept")
 
-    return input_tensor, covariates, y
+    return input_tensor, covariates, y, meta_data
 
 
 def make_dataset_(
@@ -390,7 +392,7 @@ class MultiphenoDataset(Dataset):
                 "covariates": self.data[pheno]["covariates"][slice_],
                 "rare_variant_annotations": torch.tensor(annotations),
                 "y": self.data[pheno]["y"][slice_],
-                "gene_id": self.data[pheno]["gene_id"][slice_],
+                "gene_id": self.data[pheno]["gene_id"],
             }
 
         return result
