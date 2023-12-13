@@ -1,36 +1,29 @@
+# cpanm Bio::ToolBox
+# mamba install -c bioconda bedops
+# pip install git+https://github.com/fls-bioinformatics-core/genomics@1.13.0
+
 
 rule all:
     input:
         "workdir/filtered_output.vcf.gz",
 
-
 rule fiter_gtf:
     input:
-        "gtf/gencode.v44.annotation.gtf",
+        "gtf/gencode.v44.annotation.gtf.gz",
     output:
-        "workdir/filtered_genes.gtf",
+        "workdir/filtered_genes.gtf.gz.gz",
     shell:
-        'get_features.pl --in "{input}" --out "{output}" --include "gene_biotype=protein_coding" --feature "gene"'
-#        'zgrep -w "gene" "{input}" | grep "protein_coding" > "{output}"'
-
-# https://github.com/tjparnell/biotoolbox
-# https://metacpan.org/dist/Bio-ToolBox/view/scripts/get_features.pl
-# https://www.biostars.org/p/56280/
-# https://sciberg.com/resources/bioinformatics-scripts/converting-gtf-files-into-bed-files
-# https://gffutils.readthedocs.io/en/latest/gtf2bed.html
-# https://github.com/fls-bioinformatics-core/GFFUtils
-# mamba install -c bioconda bedops
-# pip install git+https://github.com/fls-bioinformatics-core/genomics@1.13.0
-
+        'get_features.pl --in "{input}" --out "{output}" --include "gene_type=protein_coding" --feature "gene" --gtf --gz'
 
 rule create_bed:
     input:
-        "workdir/filtered_genes.gtf",
+        "workdir/filtered_genes.gtf.gz",
     output:
         "workdir/filtered_genes.bed",
+    params:
+        maxmem="8G"
     shell:
-        'convert2bed --input=gtf --output=bed  < "{input}" > "{output}"'
-#        'awk -F"\t" \'{{print $1"\t"$4"\t"$5"\t"$9}}\' "{input}" > "{output}"'
+        'convert2bed --max-mem={params.maxmem} --input=gtf --output=bed  < "{input}" > "{output}"'
 
 
 rule index_fasta:
@@ -41,12 +34,6 @@ rule index_fasta:
     shell:
         "samtools faidx {input}"
 
-
-# https://www.biostars.org/p/70795/
-# https://www.biostars.org/p/206140/
-
-
-# 1.fai file can also be directly used with -g. As per bedtools: ".fai files may be used as genome (-g) files."
 rule expand_regions:
     input:
         bed="workdir/filtered_genes.bed",
@@ -66,4 +53,4 @@ rule filter_vcf_file:
     output:
         "workdir/filtered_output.vcf.gz",
     shell:
-        'bcftools view -R "{input.bed}" "{input.vcf}" | pv | gzip > "{output}"'
+        'bcftools view -R "{input.bed}" "{input.vcf}"  | gzip > "{output}"'
