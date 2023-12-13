@@ -6,11 +6,21 @@ rule all:
 
 rule fiter_gtf:
     input:
-        "gtf/gencode.v44.annotation.gtf.gz",
+        "gtf/gencode.v44.annotation.gtf",
     output:
         "workdir/filtered_genes.gtf",
     shell:
-        'zgrep -w "gene" "{input}" | grep "protein_coding" > "{output}"'
+        'get_features.pl --in "{input}" --out "{output}" --include "gene_biotype=protein_coding" --feature "gene"'
+#        'zgrep -w "gene" "{input}" | grep "protein_coding" > "{output}"'
+
+# https://github.com/tjparnell/biotoolbox
+# https://metacpan.org/dist/Bio-ToolBox/view/scripts/get_features.pl
+# https://www.biostars.org/p/56280/
+# https://sciberg.com/resources/bioinformatics-scripts/converting-gtf-files-into-bed-files
+# https://gffutils.readthedocs.io/en/latest/gtf2bed.html
+# https://github.com/fls-bioinformatics-core/GFFUtils
+# mamba install -c bioconda bedops
+# pip install git+https://github.com/fls-bioinformatics-core/genomics@1.13.0
 
 
 rule create_bed:
@@ -19,7 +29,8 @@ rule create_bed:
     output:
         "workdir/filtered_genes.bed",
     shell:
-        'awk -F"\t" \'{{print $1"\t"$4"\t"$5"\t"$9}}\' "{input}" > "{output}"'
+        'convert2bed --input=gtf --output=bed  < "{input}" > "{output}"'
+#        'awk -F"\t" \'{{print $1"\t"$4"\t"$5"\t"$9}}\' "{input}" > "{output}"'
 
 
 rule index_fasta:
@@ -31,25 +42,21 @@ rule index_fasta:
         "samtools faidx {input}"
 
 
-rule create_genome_file:
-    input:
-        "gtf/GRCh38_full_analysis_set_plus_decoy_hla.fa.fai",
-    output:
-        "workdir/genome_file.genome",
-    shell:
-        'cut -f 1,2 "{input}" > "{output}"'
+# https://www.biostars.org/p/70795/
+# https://www.biostars.org/p/206140/
 
 
+# 1.fai file can also be directly used with -g. As per bedtools: ".fai files may be used as genome (-g) files."
 rule expand_regions:
     input:
         bed="workdir/filtered_genes.bed",
-        genome="workdir/genome_file.genome",
+        faidx="gtf/GRCh38_full_analysis_set_plus_decoy_hla.fa.fai",
     params:
         region_expand=3000,
     output:
         "workdir/expanded_regions.bed",
     shell:
-        'bedtools slop -i "{input.bed}" -g "{input.genome}" -b {params.region_expand}  > "{output}"'
+        'bedtools slop -i "{input.bed}" -g "{input.faidx}" -b {params.region_expand}  > "{output}"'
 
 
 rule filter_vcf_file:
