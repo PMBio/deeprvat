@@ -516,6 +516,18 @@ class MultiphenoDataset(Dataset):
     #     slice_indices = np.nonzero(np.isin(arange, indices))
     #     return z[slice_indices]
 
+    def index_input_tensor_zarr(self, pheno: str, indices: np.ndarray):
+        # IMPORTANT!!! Never call this function after self.subset_samples()
+
+        x = self.data[pheno]["input_tensor_zarr"]
+        first_idx = indices[0]
+        last_idx = indices[-1]
+        slice_ = slice(first_idx, last_idx + 1)
+        arange = np.arange(first_idx, last_idx + 1)
+        z = x[slice_]
+        slice_indices = np.nonzero(np.isin(arange, indices))
+        return z[slice_indices]
+
 
 class MultiphenoBaggingData(pl.LightningDataModule):
     """
