@@ -305,16 +305,21 @@ def reverse_models(
         logger.info("Using CPU")
         device = torch.device("cpu")
 
-    plof_df = (
-        dd.read_parquet(
-            annotation_file,
-            columns=data_config["data"]["dataset_config"]["rare_embedding"]["config"][
-                "annotations"
-            ],
-        )
-        .query(" or ".join([f"{c} == 1" for c in PLOF_COLS]))
-        .compute()
-    )
+    # plof_df = (
+    #     dd.read_parquet(
+    #         annotation_file,
+    #         columns=data_config["data"]["dataset_config"]["rare_embedding"]["config"][
+    #             "annotations"
+    #         ],
+    #     )
+    #     .query(" or ".join([f"{c} == 1" for c in PLOF_COLS]))
+    #     .compute()
+    # )
+
+    plof_df = pd.read_parquet(annotation_file, 
+            columns=data_config["data"]["dataset_config"]["rare_embedding"]["config"]["annotations"])
+    plof_df = plof_df[plof_df[PLOF_COLS].eq(1).any(axis=1)]
+
 
     plof_zero_df = plof_df.copy()
     plof_zero_df.loc[:, PLOF_COLS] = 0.0
@@ -327,7 +332,6 @@ def reverse_models(
         if Path(checkpoint + ".dropped").is_file():
             # Ignore checkpoints that were chosen to be dropped
             continue
-
         agg_model = load_one_model(data_config, checkpoint, device=device)
         score = agg_model(
             torch.tensor(plof, dtype=torch.float, device=device).reshape(
