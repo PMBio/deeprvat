@@ -78,12 +78,45 @@ def cli():
     pass
 
 
+def subset_samples(
+    input_tensor: torch.Tensor,
+    covariates: torch.Tensor,
+    y: torch.Tensor,
+    min_variant_count: int,
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    # First sum over annotations (dim 2) for each variant in each gene.
+    # Then get the number of non-zero values across all variants in all
+    # genes for each sample.
+    n_samples_orig = input_tensor.shape[0]
+
+    # n_variants_per_sample = np.sum(
+    #     np.sum(input_tensor.numpy(), axis=2) != 0, axis=(1, 2)
+    # )
+    # n_variant_mask = n_variants_per_sample >= min_variant_count
+    n_variant_mask = (
+        np.sum(np.any(input_tensor.numpy(), axis=(1, 2)), axis=1) >= min_variant_count
+    )
+
+    # Also make sure we don't have NaN values for y
+    nan_mask = ~y.squeeze().isnan()
+    mask = n_variant_mask & nan_mask.numpy()
+
+    # Subset all the tensors
+    input_tensor = input_tensor[mask]
+    covariates = covariates[mask]
+    y = y[mask]
+
+    logger.info(f"{input_tensor.shape[0]} / {n_samples_orig} samples kept")
+
+    return input_tensor, covariates, y
+
+
 def make_dataset_(
     config: Dict,
     debug: bool = False,
-    training_dataset_file: str = None,
+    training_dataset_file: Optional[str] = None,
     pickle_only: bool = False,
-):
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Subfunction of make_dataset()
     Convert a dataset file to the sparse format used for training and testing associations
@@ -181,11 +214,16 @@ def make_dataset_(
     input_tensor = torch.cat(
         [
             F.pad(r, (0, max_n_variants - r.shape[-1]), value=pad_value)
-            for r in tqdm(rare_batches, file=sys.stdout)
+            for r in rare_batches
         ]
     )
     covariates = torch.cat([b["x_phenotypes"] for b in batches])
     y = torch.cat([b["y"] for b in batches])
+
+    logger.info("Subsetting samples by min_variant_count and missing y values")
+    input_tensor, covariates, y = subset_samples(
+        input_tensor, covariates, y, config["training"]["min_variant_count"]
+    )
 
     return input_tensor, covariates, y
 
@@ -299,11 +337,21 @@ class MultiphenoDataset(Dataset):
         )
 
         self.cache_tensors = cache_tensors
+        if self.cache_tensors:
+            self.zarr_root = zarr.group()
+        elif temp_dir is not None:
+            temp_path = Path(resolve_path_with_env(temp_dir)) / "deeprvat_training"
+            temp_path.mkdir(parents=True, exist_ok=True)
+            self.input_tensor_dir = TemporaryDirectory(
+                prefix="training_data", dir=str(temp_path)
+            )
+            # Create root group here
+
         self.chunksize = chunksize
         if self.cache_tensors:
             logger.info("Keeping all input tensors in main memory")
 
-        for _, pheno_data in self.data.items():
+        for pheno, pheno_data in self.data.items():
             if pheno_data["y"].shape == (pheno_data["input_tensor_zarr"].shape[0], 1):
                 pheno_data["y"] = pheno_data["y"].squeeze()
             elif pheno_data["y"].shape != (pheno_data["input_tensor_zarr"].shape[0],):
@@ -312,20 +360,34 @@ class MultiphenoDataset(Dataset):
                 )
 
             if self.cache_tensors:
-                pheno_data["input_tensor"] = pheno_data["input_tensor_zarr"][:]
+                zarr.copy(
+                    pheno_data["input_tensor_zarr"],
+                    self.zarr_root,
+                    name=pheno,
+                    chunks=(self.chunksize, None, None, None),
+                    compressor=Blosc(clevel=1),
+                )
+                pheno_data["input_tensor_zarr"] = self.zarr_root[pheno]
+                # pheno_data["input_tensor"] = pheno_data["input_tensor_zarr"][:]
+            elif temp_dir is not None:
+                tensor_path = (
+                    Path(self.input_tensor_dir.name) / pheno / "input_tensor.zarr"
+                )
+                zarr.copy(
+                    pheno_data["input_tensor_zarr"],
+                    zarr.DirectoryStore(tensor_path),
+                    chunks=(self.chunksize, None, None, None),
+                    compressor=Blosc(clevel=1),
+                )
+                pheno_data["input_tensor_zarr"] = zarr.open(tensor_path)
 
         self.min_variant_count = min_variant_count
         self.samples = {
             pheno: pheno_data["samples"][split]
             for pheno, pheno_data in self.data.items()
         }
-        temp_path = (Path(resolve_path_with_env(temp_dir)) / "deeprvat_training"
-                  if temp_dir is not None
-                  else Path("deeprvat_training"))
-        temp_path.mkdir(parents=True, exist_ok=True)
-        self.input_tensor_dir = TemporaryDirectory(prefix="training_data", dir=str(temp_path))
 
-        self.subset_samples()
+        # self.subset_samples()
 
         self.total_samples = sum([s.shape[0] for s in self.samples.values()])
 
@@ -369,11 +431,12 @@ class MultiphenoDataset(Dataset):
             assert np.array_equal(idx, np.arange(idx[0], idx[-1] + 1))
             slice_ = slice(idx[0], idx[-1] + 1)
 
-            annotations = (
-                self.data[pheno]["input_tensor"][slice_]
-                if self.cache_tensors
-                else self.data[pheno]["input_tensor_zarr"][slice_, :, :, :]
-            )
+            # annotations = (
+            #     self.data[pheno]["input_tensor"][slice_]
+            #     if self.cache_tensors
+            #     else self.data[pheno]["input_tensor_zarr"][slice_, :, :, :]
+            # )
+            annotations = self.data[pheno]["input_tensor_zarr"][slice_, :, :, :]
 
             result[pheno] = {
                 "indices": self.samples[pheno][slice_],
@@ -384,6 +447,7 @@ class MultiphenoDataset(Dataset):
 
         return result
 
+    # NOTE: This function is broken with current cache_tensors behavior
     def subset_samples(self):
         """
         Function used to sort out samples which contain real phenotypes with NaN values and
