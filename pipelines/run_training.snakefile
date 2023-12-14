@@ -14,37 +14,29 @@ n_repeats = config['n_repeats']
 debug = '--debug ' if debug_flag else ''
 do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
 tensor_compression_level = config['training'].get('tensor_compression_level', 1)
-pretrained_model_path = Path('models') #Path(config.get("pretrained_model_path", "pretrained_models"))
 
 wildcard_constraints:
     repeat="\d+",
     trial="\d+",
 
 include: "training/config.snakefile"
-include: "association_testing/association_dataset.snakefile"
-include: "association_testing/burdens.snakefile"
-include: "association_testing/regress_eval.snakefile"
+include: "training/training_dataset.snakefile"
+include: "training/train.snakefile"
 
 rule all:
     input:
-        expand("{phenotype}/deeprvat/eval/significant.parquet",
-               phenotype=phenotypes),
-        expand("{phenotype}/deeprvat/eval/all_results.parquet",
-               phenotype=phenotypes)
+        expand('models/repeat_{repeat}/best/bag_{bag}.ckpt',
+               bag=range(n_bags), repeat=range(n_repeats)),
+        "models/config.yaml"
 
-rule all_burdens:
+rule all_training_dataset:
     input:
-        [
-            (f'{p}/deeprvat/burdens/chunk{c}.' +
-             ("finished" if p == phenotypes[0] else "linked"))
-            for p in phenotypes
-            for c in range(n_burden_chunks)
-        ]
-
-rule all_association_dataset:
-    input:
-        expand('{phenotype}/deeprvat/association_dataset.pkl',
-               phenotype=phenotypes)
+        input_tensor = expand('{phenotype}/deeprvat/input_tensor.zarr',
+                              phenotype=phenotypes, repeat=range(n_repeats)),
+        covariates = expand('{phenotype}/deeprvat/covariates.zarr',
+                            phenotype=phenotypes, repeat=range(n_repeats)),
+        y = expand('{phenotype}/deeprvat/y.zarr',
+                   phenotype=phenotypes, repeat=range(n_repeats))
 
 rule all_config:
     input:
