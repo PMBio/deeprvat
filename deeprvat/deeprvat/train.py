@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from pprint import pformat, pprint
 from tempfile import TemporaryDirectory
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 
 import click
 import math
@@ -112,11 +112,15 @@ def subset_samples(
 
 
 def make_dataset_(
-    config: Dict,
-    debug: bool = False,
-    training_dataset_file: Optional[str] = None,
-    pickle_only: bool = False,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    debug: bool,
+    pickle_only: bool,
+    compression_level: int,
+    training_dataset_file: Optional[str],
+    config_file: Union[str, Path],
+    input_tensor_out_file: str,
+    covariates_out_file: str,
+    y_out_file: str,
+):
     """
     Subfunction of make_dataset()
     Convert a dataset file to the sparse format used for training and testing associations
@@ -133,6 +137,10 @@ def make_dataset_(
     :returns: Tuple containing input_tensor, covariates, and target values.
     :rtype: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
     """
+
+    with open(config_file) as f:
+        config = yaml.safe_load(f)
+
     n_phenotypes = config.get("n_phenotypes", None)
     if n_phenotypes is not None:
         if "seed_genes" in config:
@@ -225,7 +233,20 @@ def make_dataset_(
         input_tensor, covariates, y, config["training"]["min_variant_count"]
     )
 
-    return input_tensor, covariates, y
+    if not pickle_only:
+        logger.info("Saving tensors")
+        zarr.save_array(
+            input_tensor_out_file,
+            input_tensor.numpy(),
+            chunks=(1000, None, None, None),
+            compressor=Blosc(clevel=compression_level),
+        )
+        del input_tensor
+        zarr.save_array(covariates_out_file, covariates.numpy())
+        zarr.save_array(y_out_file, y.numpy())
+
+    # DEBUG
+    return ds.dataset
 
 
 @cli.command()
@@ -270,26 +291,16 @@ def make_dataset(
     :returns: None
     """
 
-    with open(config_file) as f:
-        config = yaml.safe_load(f)
-
-    input_tensor, covariates, y = make_dataset_(
-        config,
-        debug=debug,
-        training_dataset_file=training_dataset_file,
-        pickle_only=pickle_only,
+    make_dataset_(
+        debug,
+        pickle_only,
+        compression_level,
+        training_dataset_file,
+        config_file,
+        input_tensor_out_file,
+        covariates_out_file,
+        y_out_file,
     )
-    if not pickle_only:
-        logger.info("Saving tensors")
-        zarr.save_array(
-            input_tensor_out_file,
-            input_tensor.numpy(),
-            chunks=(1000, None, None, None),
-            compressor=Blosc(clevel=compression_level),
-        )
-        del input_tensor
-        zarr.save_array(covariates_out_file, covariates.numpy())
-        zarr.save_array(y_out_file, y.numpy())
 
 
 class MultiphenoDataset(Dataset):
@@ -381,7 +392,7 @@ class MultiphenoDataset(Dataset):
                 )
                 pheno_data["input_tensor_zarr"] = zarr.open(tensor_path)
 
-        self.min_variant_count = min_variant_count
+        # self.min_variant_count = min_variant_count
         self.samples = {
             pheno: pheno_data["samples"][split]
             for pheno, pheno_data in self.data.items()
@@ -447,67 +458,63 @@ class MultiphenoDataset(Dataset):
 
         return result
 
-    # NOTE: This function is broken with current cache_tensors behavior
-    def subset_samples(self):
-        """
-        Function used to sort out samples which contain real phenotypes with NaN values and
-        samples with fewer variants for each gene than the specified minimum.
-        """
-        for pheno, pheno_data in self.data.items():
-            # First sum over annotations (dim 2) for each variant in each gene.
-            # Then get the number of non-zero values across all variants in all
-            # genes for each sample.
-            n_samples_orig = self.samples[pheno].shape[0]
+    # # NOTE: This function is broken with current cache_tensors behavior
+    # def subset_samples(self):
+    #     for pheno, pheno_data in self.data.items():
+    #         # First sum over annotations (dim 2) for each variant in each gene.
+    #         # Then get the number of non-zero values across all variants in all
+    #         # genes for each sample.
+    #         n_samples_orig = self.samples[pheno].shape[0]
 
-            # TODO: Compute n_variant_mask one block of 10,000 samples at a time to reduce memory usage
-            input_tensor = pheno_data["input_tensor_zarr"].oindex[self.samples[pheno]]
-            n_variants_per_sample = np.sum(
-                np.sum(input_tensor, axis=2) != 0, axis=(1, 2)
-            )
-            n_variant_mask = n_variants_per_sample >= self.min_variant_count
+    #         # TODO: Compute n_variant_mask one block of 10,000 samples at a time to reduce memory usage
+    #         input_tensor = pheno_data["input_tensor_zarr"].oindex[self.samples[pheno]]
+    #         n_variants_per_sample = np.sum(
+    #             np.sum(input_tensor, axis=2) != 0, axis=(1, 2)
+    #         )
+    #         n_variant_mask = n_variants_per_sample >= self.min_variant_count
 
-            # Also make sure we don't have NaN values for y
-            nan_mask = ~pheno_data["y"][self.samples[pheno]].isnan()
-            mask = n_variant_mask & nan_mask.numpy()
+    #         # Also make sure we don't have NaN values for y
+    #         nan_mask = ~pheno_data["y"][self.samples[pheno]].isnan()
+    #         mask = n_variant_mask & nan_mask.numpy()
 
-            # Set the tensor indices to use and subset all the tensors
-            self.samples[pheno] = self.samples[pheno][mask]
-            pheno_data["y"] = pheno_data["y"][self.samples[pheno]]
-            pheno_data["covariates"] = pheno_data["covariates"][self.samples[pheno]]
-            if self.cache_tensors:
-                pheno_data["input_tensor"] = pheno_data["input_tensor"][
-                    self.samples[pheno]
-                ]
-            else:
-                # TODO: Again do this in blocks of 10,000 samples
-                # Create a temporary directory to store the zarr array
-                tensor_path = (
-                    Path(self.input_tensor_dir.name) / pheno / "input_tensor.zarr"
-                )
-                zarr.save_array(
-                    tensor_path,
-                    pheno_data["input_tensor_zarr"][:][self.samples[pheno]],
-                    chunks=(self.chunksize, None, None, None),
-                    compressor=Blosc(clevel=1),
-                )
-                pheno_data["input_tensor_zarr"] = zarr.open(tensor_path)
+    #         # Set the tensor indices to use and subset all the tensors
+    #         self.samples[pheno] = self.samples[pheno][mask]
+    #         pheno_data["y"] = pheno_data["y"][self.samples[pheno]]
+    #         pheno_data["covariates"] = pheno_data["covariates"][self.samples[pheno]]
+    #         if self.cache_tensors:
+    #             pheno_data["input_tensor"] = pheno_data["input_tensor"][
+    #                 self.samples[pheno]
+    #             ]
+    #         else:
+    #             # TODO: Again do this in blocks of 10,000 samples
+    #             # Create a temporary directory to store the zarr array
+    #             tensor_path = (
+    #                 Path(self.input_tensor_dir.name) / pheno / "input_tensor.zarr"
+    #             )
+    #             zarr.save_array(
+    #                 tensor_path,
+    #                 pheno_data["input_tensor_zarr"][:][self.samples[pheno]],
+    #                 chunks=(self.chunksize, None, None, None),
+    #                 compressor=Blosc(clevel=1),
+    #             )
+    #             pheno_data["input_tensor_zarr"] = zarr.open(tensor_path)
 
-            logger.info(
-                f"{pheno}: {self.samples[pheno].shape[0]} / "
-                f"{n_samples_orig} samples kept"
-            )
+    #         logger.info(
+    #             f"{pheno}: {self.samples[pheno].shape[0]} / "
+    #             f"{n_samples_orig} samples kept"
+    #         )
 
-    def index_input_tensor_zarr(self, pheno: str, indices: np.ndarray):
-        # IMPORTANT!!! Never call this function after self.subset_samples()
+    # def index_input_tensor_zarr(self, pheno: str, indices: np.ndarray):
+    #     # IMPORTANT!!! Never call this function after self.subset_samples()
 
-        x = self.data[pheno]["input_tensor_zarr"]
-        first_idx = indices[0]
-        last_idx = indices[-1]
-        slice_ = slice(first_idx, last_idx + 1)
-        arange = np.arange(first_idx, last_idx + 1)
-        z = x[slice_]
-        slice_indices = np.nonzero(np.isin(arange, indices))
-        return z[slice_indices]
+    #     x = self.data[pheno]["input_tensor_zarr"]
+    #     first_idx = indices[0]
+    #     last_idx = indices[-1]
+    #     slice_ = slice(first_idx, last_idx + 1)
+    #     arange = np.arange(first_idx, last_idx + 1)
+    #     z = x[slice_]
+    #     slice_indices = np.nonzero(np.isin(arange, indices))
+    #     return z[slice_indices]
 
 
 class MultiphenoBaggingData(pl.LightningDataModule):
@@ -520,7 +527,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         data: Dict[str, Dict],
         train_proportion: float,
         sample_with_replacement: bool = True,
-        min_variant_count: int = 1,
+        # min_variant_count: int = 1,
         upsampling_factor: int = 1,
         batch_size: Optional[int] = None,
         num_workers: Optional[int] = 0,
@@ -608,7 +615,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
                 }
 
         self.save_hyperparameters(
-            "min_variant_count",
+            # "min_variant_count",
             "train_proportion",
             "batch_size",
             "num_workers",
@@ -658,7 +665,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
 
         dataset = MultiphenoDataset(
             self.data,
-            self.hparams.min_variant_count,
+            # self.hparams.min_variant_count,
             self.hparams.batch_size,
             split="train",
             cache_tensors=self.hparams.cache_tensors,
@@ -684,7 +691,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         )
         dataset = MultiphenoDataset(
             self.data,
-            self.hparams.min_variant_count,
+            # self.hparams.min_variant_count,
             self.hparams.batch_size,
             split="val",
             cache_tensors=self.hparams.cache_tensors,
@@ -785,7 +792,7 @@ def run_bagging(
             for k, v in config["training"].items()
             if k
             in (
-                "min_variant_count",
+                # "min_variant_count",
                 "upsampling_factor",
                 "sample_with_replacement",
                 "cache_tensors",
