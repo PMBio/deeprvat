@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 # 9. Different min_variant_counts
 
 script_dir = Path(__file__).resolve().parent
-tests_data_dir = script_dir / "test_data/training"
+tests_data_dir = script_dir / "test_data" / "training"
 example_data_dir = script_dir.parent / "example"
 test_config_file = tests_data_dir / "config.yaml"
 

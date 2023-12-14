@@ -127,12 +127,12 @@ model:
             config: {}
 
 training_data:
-    gt_file: ../example/genotypes.h5
-    variant_file: ../example/variants.parquet
+    gt_file: example/genotypes.h5
+    variant_file: example/variants.parquet
     dataset_config:
         min_common_af:
             MAF: 0.01
-        phenotype_file: ../example/phenotypes.parquet
+        phenotype_file: example/phenotypes.parquet
         y_transformation: quantile_transform
         x_phenotypes:
             - age
@@ -157,7 +157,7 @@ training_data:
             - genetic_PC_18
             - genetic_PC_19
             - genetic_PC_20
-        annotation_file: ../example/annotations.parquet
+        annotation_file: example/annotations.parquet
         annotations:
             - MAF
             - MAF_MB
@@ -245,12 +245,12 @@ training_data:
         num_workers: 8
 
 data:
-    gt_file: ../example/genotypes.h5
-    variant_file: ../example/variants.parquet
+    gt_file: example/genotypes.h5
+    variant_file: example/variants.parquet
     dataset_config:
         min_common_af:
             MAF: 0.01
-        phenotype_file: ../example/phenotypes.parquet
+        phenotype_file: example/phenotypes.parquet
         y_transformation: quantile_transform
         x_phenotypes:
             - age
@@ -275,7 +275,7 @@ data:
             - genetic_PC_18
             - genetic_PC_19
             - genetic_PC_20
-        annotation_file: ../example/annotations.parquet
+        annotation_file: example/annotations.parquet
         annotations:
             - MAF
             - MAF_MB
@@ -312,7 +312,7 @@ data:
             - DeepRipe_plus_MBNL1_parclip
             - DeepRipe_plus_QKI_parclip
             - SpliceAI_delta_score
-        gene_file: ../example/protein_coding_genes.parquet
+        gene_file: example/protein_coding_genes.parquet
         use_common_variants: False
         use_rare_variants: True
         rare_embedding:
@@ -355,7 +355,7 @@ data:
                 thresholds:
                     MAF: "MAF < 1e-3"
                     CADD_PHRED:  "CADD_PHRED > 5"
-                gene_file: ../example/protein_coding_genes.parquet
+                gene_file: example/protein_coding_genes.parquet
                 verbose: True
         verbose: True
     dataloader_config:
