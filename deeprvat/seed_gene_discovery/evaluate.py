@@ -50,28 +50,29 @@ def evaluate_(associations: Dict[str, pd.DataFrame], alpha: float):
                             Removing remaining NA pvals"
                 )
                 result = result.dropna(subset=["pval"])
-            corrected_result = pval_correction(result, alpha, correction_type=correction_type)
+            corrected_result = pval_correction(
+                result, alpha, correction_type=correction_type
+            )
             corrected_result[f"-log10pval_corrected"] = -np.log10(
                 corrected_result[f"pval_corrected"]
             )
-            corrected_result['correction_method'] = correction_type
+            corrected_result["correction_method"] = correction_type
             corrected_results.append(corrected_result)
 
             sig = corrected_result.query(f"significant")
             n_sig = len(sig)
-            logger.info(f'Significant genes: {n_sig}')
+            logger.info(f"Significant genes: {n_sig}")
             metrics[f"significant{sig_col_suffix}"] = n_sig
             print(f"Number of gene/model pairs: {n_sig}")
             n_sig_unique = sig["gene"].unique().shape[0]
             metrics[f"significant_unique{sig_col_suffix}"] = n_sig_unique
             print(f"Number of unique significant genes: {n_sig_unique}")
-        
+
         corrected_results = pd.concat(corrected_results)
         all_evaluations[pheno] = corrected_results
 
         all_sig = corrected_results.query(f"significant")
         all_significant[pheno] = all_sig
-
 
         print(all_sig)
 
@@ -86,9 +87,11 @@ def evaluate_(associations: Dict[str, pd.DataFrame], alpha: float):
 
     return all_significant, all_evaluations, all_metrics, all_plots
 
+
 @click.group()
 def cli():
     pass
+
 
 @cli.command()
 @click.argument("config-file", type=click.Path(exists=True))
@@ -157,4 +160,3 @@ def qqplot(df):
 
 if __name__ == "__main__":
     cli()
-
