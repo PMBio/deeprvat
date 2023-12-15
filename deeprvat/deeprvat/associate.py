@@ -197,7 +197,9 @@ def compute_burdens_(
     bottleneck: bool = False,
     compression_level: int = 1,
     skip_burdens: bool = False,
-) -> Tuple[np.ndarray, zarr.core.Array, zarr.core.Array, zarr.core.Array, zarr.core.Array]:
+) -> Tuple[
+    np.ndarray, zarr.core.Array, zarr.core.Array, zarr.core.Array, zarr.core.Array
+]:
     """
     Compute burdens using the PyTorch model for each repeat.
 
