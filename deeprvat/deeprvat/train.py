@@ -315,7 +315,7 @@ class MultiphenoDataset(Dataset):
         # covariates: zarr.core.Array,
         # y: zarr.core.Array,
         data: Dict[str, Dict],
-        min_variant_count: int,
+        # min_variant_count: int,
         batch_size: int,
         split: str = "train",
         cache_tensors: bool = False,
