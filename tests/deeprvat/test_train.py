@@ -113,7 +113,7 @@ def multipheno_data():
 )
 def test_multiphenodataset(multipheno_data, cache_tensors: bool, batch_size: int):
     data, reference = multipheno_data
-    dataset = MultiphenoDataset(data, 1, batch_size, cache_tensors=cache_tensors)
+    dataset = MultiphenoDataset(data, batch_size, cache_tensors=cache_tensors)
     dl = DataLoader(dataset, batch_size=None, num_workers=0)
     reconstructed = reconstruct_from_batches(dl)
 
