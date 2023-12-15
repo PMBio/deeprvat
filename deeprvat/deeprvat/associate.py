@@ -594,6 +594,7 @@ def compute_burdens(
     :type out_dir: str
     :return: Corresonding genes, computed burdens, y phenotypes, x phenotypes and sample ids are saved in the out_dir.
     :rtype: [np.ndarray], [zarr.core.Array], [zarr.core.Array], [zarr.core.Array], [zarr.core.Array]
+    
     .. note::
         Checkpoint models all corresponding to the same repeat are averaged for that repeat.
     """
