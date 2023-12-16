@@ -2,6 +2,7 @@ import logging
 import sys
 from pathlib import Path
 from typing import Dict, Optional, Tuple
+from itertools import combinations
 
 import click
 import numpy as np
@@ -174,12 +175,16 @@ def process_results(
     results: pd.DataFrame,
     n_repeats: int = 6,
     alpha: float = 0.05,
+    repeat_combi: str = None, 
     correction_method: str = "FDR",
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     deeprvat_results = results.query(
         f'experiment == "DeepRVAT ({n_repeats} repeats)"'
         ' and experiment_group == "DeepRVAT"'
     )
+    if repeat_combi is not None:
+        deeprvat_results = deeprvat_results.query("repeat_combi == @repeat_combi")
+    assert len(deeprvat_results['repeat_combi'].unique()) == 1
     baseline_results = results.query(
         "experiment_group in @BASELINE_GROUPS"
         " and correction_method == @correction_method"
@@ -191,7 +196,6 @@ def process_results(
         correction_method=correction_method,
         alpha=alpha,
     )
-
     all_pvals = get_pvals(combined_results, method_mapping=METHOD_NAMES)
 
     significant = all_pvals.query("significant")
@@ -200,7 +204,6 @@ def process_results(
         ascending=[True, True, True, False, True],
     )
     significant = significant.drop_duplicates(subset=["phenotype", "gene", "Method"])
-
     return significant, all_pvals
 
 
@@ -212,6 +215,7 @@ def evaluate_(
     baseline_results: Optional[pd.DataFrame] = None,
     debug: bool = False,
     correction_method: str = "FDR",
+    analyze_all_repeats: bool = False,
 ):
     if seed_genes is not None:
         seed_gene_ids = seed_genes["id"]
@@ -232,30 +236,62 @@ def evaluate_(
 
     logger.info("Evaluation results:")
     results = pd.DataFrame()
+    max_combinations = 20
+    logger.info(f"Maximum number of repeat combinations that will be analyzed {max_combinations}")
     for n_repeats in range(1, n_total_repeats + 1):
-        rep_str = f"{n_repeats} repeats"
-        repeat_mask = (
-            associations["model"].str.split("_").apply(lambda x: x[-1]).astype(int)
-            < n_repeats
-        )
-        this_result = associations[repeat_mask].copy()
+        logger.info(f"Analyzing results for {n_repeats} repeats")
+        all_repeat_combinations = list(combinations(range(n_total_repeats), n_repeats))[:max_combinations]
+        logger.info(all_repeat_combinations)
+        for combi in all_repeat_combinations:
+            rep_str = [f"repeat_{i}" for i in combi]
+            repeat_mask = [i in rep_str for i in associations["model"]]
+            # repeat_mask = (
+            #     associations["model"].str.split("_").apply(lambda x: x[-1]).astype(int)
+            #     < n_repeats
+            # )
+            this_result = associations[repeat_mask].copy()
 
-        experiment_name = f"DeepRVAT ({n_repeats} repeats)"
-        this_result["experiment"] = experiment_name
+            experiment_name = f"DeepRVAT ({n_repeats} repeats)"
+            this_result["experiment"] = experiment_name
+            this_result["repeat_combi"] =  '-'.join(str(x) for x in combi)
 
-        results = pd.concat([results, this_result])
+            results = pd.concat([results, this_result])
 
     results["-log10pval"] = -np.log10(results["pval"])
     results["experiment_group"] = "DeepRVAT"
 
     results = pd.concat([results, baseline_results])
 
-    significant, all_pvalues = process_results(
-        results,
-        n_repeats=n_total_repeats,
-        alpha=alpha,
-        correction_method=correction_method,
-    )
+
+    significant = pd.DataFrame()
+    all_pvalues = pd.DataFrame()
+    if analyze_all_repeats:
+        logger.info('Evaluating for all possible repeat combinations')
+        for n_repeats in range(1, n_total_repeats + 1):
+            logger.info(f'getting significant associations for all combinations for repeats {n_repeats}')
+            all_repeat_combinations = results.query(f'experiment == "DeepRVAT ({n_repeats} repeats)"')["repeat_combi"].unique()
+            for combi in all_repeat_combinations:
+                this_significant, this_all_pvalues = process_results(
+                    results,
+                    n_repeats=n_repeats,
+                    alpha=alpha,
+                    repeat_combi=combi,
+                    correction_method=correction_method,
+                )
+                this_significant = this_significant.assign(repeats = n_repeats,
+                    repeat_combination = combi)
+                this_all_pvalues = this_all_pvalues.assign(repeats = n_repeats,
+                    repeat_combination = combi)
+                significant = pd.concat([significant, this_significant])
+                all_pvalues = pd.concat([all_pvalues, this_all_pvalues])
+    else:
+        logger.info('Only evaluating for the largest number of repeats')
+        significant, all_pvalues = process_results(
+                results,
+                n_repeats=n_total_repeats,
+                alpha=alpha,
+                correction_method=correction_method,
+            )
 
     return significant, all_pvalues
 
@@ -265,6 +301,7 @@ def evaluate_(
 @click.option("--debug", is_flag=True)
 @click.option("--phenotype", type=str)
 @click.option("--use-seed-genes", is_flag=True)
+@click.option("--analyze-all-repeats", is_flag=True)
 @click.option("--correction-method", type=str, default="FDR")
 @click.option("--n-repeats", type=int)
 @click.argument("association-files", type=click.Path(exists=True), nargs=-1)
@@ -279,6 +316,7 @@ def evaluate(
     association_files: Tuple[str],
     config_file: str,
     out_dir: str,
+    analyze_all_repeats: Optional[bool]
 ):
     with open(config_file) as f:
         config = yaml.safe_load(f)
@@ -286,6 +324,7 @@ def evaluate(
     associations = pd.concat(
         [pd.read_parquet(f, engine="pyarrow") for f in association_files]
     )
+    logger.info('Associations loaded')
     pheno = (
         phenotype
         if phenotype is not None
@@ -315,7 +354,6 @@ def evaluate(
         )
     else:
         baseline_results = pd.DataFrame()
-
     significant, all_pvals = evaluate_(
         associations,
         alpha,
@@ -324,6 +362,7 @@ def evaluate(
         baseline_results=baseline_results,
         correction_method=correction_method,
         debug=debug,
+        analyze_all_repeats = analyze_all_repeats,
     )
 
     logger.info("Saving results")
