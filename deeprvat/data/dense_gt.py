@@ -51,6 +51,7 @@ class DenseGTDataset(Dataset):
         x_phenotypes: List[str] = [],
         grouping_level: Optional[str] = "gene",
         group_common: bool = False,
+        in_association: bool = False,
         return_sparse: bool = False,
         annotations: List[str] = [],
         annotation_file: Optional[str] = None,
@@ -127,6 +128,14 @@ class DenseGTDataset(Dataset):
                     self.variant_matrix = f["variant_matrix"][:]
                     self.genotype_matrix = f["genotype_matrix"][:]
 
+        # check if we need to standardize the common genotype data
+        # if so cache the whole thing in memory to perform the computation
+        # if config["training_data"]["dataset_config"]["std_common"]:
+        #     self.genotype_matrix = f["genotype_matrix"][:]
+        #     cvar_mean = np.mean(self.genotype_matrix, dim=0)
+        #     cvar_std = np.std(self.genotype_matrix, dim=0)
+        #     self.genotype_matrix = (self.genotype_matrix - cvar_mean) / cvar_std
+
         logger.info(
             f"Using phenotype file {phenotype_file} and genotype file {self.gt_filename}"
         )
@@ -165,6 +174,7 @@ class DenseGTDataset(Dataset):
                 )
 
         self.group_common = group_common
+        self.in_association = in_association
         self.return_sparse = return_sparse
 
         self.annotations = annotations
@@ -837,15 +847,17 @@ class DenseGTDataset(Dataset):
                 common_variants = torch.tensor(common_variants, dtype=torch.float)
 
                 if self.group_common:
-                    # import pdb; pdb.set_trace()
-                    # common_variants = [
-                    #     common_variants[vmap] for vmap in self.group_matrix_maps
-                    # ]
-
-                    # repurposing the group_common flag here
-                    # subset it down to the indices already collected in self.group_matrix_maps
-                    common_geno_idx = np.unique(np.concatenate(self.group_matrix_maps, axis=None))
-                    common_variants = common_variants[common_geno_idx]
+                    if self.in_association:
+                        # check if this instance is used for association testing
+                        # if so return the follow genotype vector while also
+                        # creating self.group_matrix_maps
+                        return common_variants, masked_sparse_variants, masked_sparse_genotype
+                    else:
+                        # repurposing the group_common flag here
+                        # subset genotype vector down to the indices collected in self.group_matrix_maps
+                        # this subsetting is only needed if this instance is used for training
+                        common_geno_idx = np.unique(np.concatenate(self.group_matrix_maps, axis=None))
+                        common_variants = common_variants[common_geno_idx]
 
         return common_variants, masked_sparse_variants, masked_sparse_genotype
 

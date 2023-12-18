@@ -242,13 +242,11 @@ def make_dataset_(
         input_tensor, covariates, y, common_variants, config["training"]["min_variant_count"]
     )
 
-    # TODO: add standardization of common_var genotype here ?
+    # if config["data"]["std_common"]:
+    #     cvar_mean = torch.mean(common_variants, dim=0)
+    #     cvar_std = torch.std(common_variants, dim=0)
 
-    if config["data"]["dataset_config"]["std_common"]:
-        cvar_mean = torch.mean(common_variants, dim=0)
-        cvar_std = torch.std(common_variants, dim=0)
-
-        common_variants = (common_variants - cvar_mean) / cvar_std
+    #     common_variants = (common_variants - cvar_mean) / cvar_std
 
     return input_tensor, covariates, y, common_variants
 
@@ -317,7 +315,7 @@ def make_dataset(
         del input_tensor
         zarr.save_array(covariates_out_file, covariates.numpy())
         zarr.save_array(y_out_file, y.numpy())
-        zarr.save_array(common_vars_out_file, 
+        zarr.save_array(common_vars_out_file,
                         common_variants.numpy(),
                         chunks=(1000, None),
                         compressor=Blosc(clevel=compression_level),
