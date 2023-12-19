@@ -27,6 +27,7 @@ dependencies:
   - tqdm=4.59
   - zarr=2.13
   - Cython=0.29
+  - parallel=20230922
   - pip=23.1.2
   - plotnine=0.10.1
   - pip:

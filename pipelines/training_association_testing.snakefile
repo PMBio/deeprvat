@@ -5,6 +5,7 @@ configfile: 'config.yaml'
 debug_flag = config.get('debug', False)
 phenotypes = config['phenotypes']
 phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
+training_phenotypes = config["training"].get("phenotypes", phenotypes)
 
 n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
 n_regression_chunks = config.get('n_regression_chunks', 40) if not debug_flag else 2
@@ -14,6 +15,7 @@ n_repeats = config['n_repeats']
 debug = '--debug ' if debug_flag else ''
 do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
 tensor_compression_level = config['training'].get('tensor_compression_level', 1)
+n_parallel_training_jobs = config["training"].get("n_parallel_jobs", 1)
 
 wildcard_constraints:
     repeat="\d+",
@@ -65,10 +67,10 @@ rule combine_regression_chunks:
 rule regress:
     input:
         config = "{phenotype}/deeprvat/hpopt_config.yaml",
-        chunks = lambda wildcards: expand(
-            ('{{phenotype}}/deeprvat/burdens/chunk{chunk}.' +
-             ("finished" if wildcards.phenotype == phenotypes[0] else "linked")),
-            chunk=range(n_burden_chunks)
+        chunks = lambda wildcards: (
+            [] if wildcards.phenotype == phenotypes[0]
+            else expand('{{phenotype}}/deeprvat/burdens/chunk{chunk}.linked',
+                        chunk=range(n_burden_chunks))
         ),
         phenotype_0_chunks =  expand(
             phenotypes[0] + '/deeprvat/burdens/chunk{chunk}.finished',
@@ -204,7 +206,6 @@ rule link_config:
     shell:
         "ln -s repeat_0/config.yaml {output}"
 
-
 rule best_training_run:
     input:
         expand('models/repeat_{{repeat}}/trial{trial_number}/config.yaml',
@@ -227,43 +228,46 @@ rule best_training_run:
 rule train:
     input:
         config = expand('{phenotype}/deeprvat/hpopt_config.yaml',
-                        phenotype=phenotypes),
+                        phenotype=training_phenotypes),
         input_tensor = expand('{phenotype}/deeprvat/input_tensor.zarr',
-                              phenotype=phenotypes),
+                              phenotype=training_phenotypes),
         covariates = expand('{phenotype}/deeprvat/covariates.zarr',
-                            phenotype=phenotypes),
+                            phenotype=training_phenotypes),
         y = expand('{phenotype}/deeprvat/y.zarr',
-                   phenotype=phenotypes),
+                   phenotype=training_phenotypes),
     output:
-        config = 'models/repeat_{repeat}/trial{trial_number}/config.yaml',
-        finished = 'models/repeat_{repeat}/trial{trial_number}/finished.tmp'
+        expand('models/repeat_{repeat}/trial{trial_number}/config.yaml',
+               repeat=range(n_repeats), trial_number=range(n_trials)),
+        expand('models/repeat_{repeat}/trial{trial_number}/finished.tmp',
+               repeat=range(n_repeats), trial_number=range(n_trials))
     params:
         phenotypes = " ".join(
             [f"--phenotype {p} "
              f"{p}/deeprvat/input_tensor.zarr "
              f"{p}/deeprvat/covariates.zarr "
              f"{p}/deeprvat/y.zarr"
-             for p in phenotypes])
+             for p in training_phenotypes])
     shell:
-        ' && '.join([
-            'deeprvat_train train '
-            + debug +
-            '--trial-id {wildcards.trial_number} '
-            "{params.phenotypes} "
-            'config.yaml '
-            'models/repeat_{wildcards.repeat}/trial{wildcards.trial_number} '
-            'models/repeat_{wildcards.repeat}/hyperparameter_optimization.db',
-            'touch {output.finished}'
-        ])
+        f"parallel --jobs {n_parallel_training_jobs} --halt now,fail=1 --results train_repeat{{{{1}}}}_trial{{{{2}}}}/ "
+        'deeprvat_train train '
+        + debug +
+        '--trial-id {{2}} '
+        "{params.phenotypes} "
+        'config.yaml '
+        'models/repeat_{{1}}/trial{{2}} '
+        "models/repeat_{{1}}/hyperparameter_optimization.db '&&' "
+        "touch models/repeat_{{1}}/trial{{2}}/finished.tmp "
+        "::: " + " ".join(map(str, range(n_repeats))) + " "
+        "::: " + " ".join(map(str, range(n_trials)))
 
 rule all_training_dataset:
     input:
         input_tensor = expand('{phenotype}/deeprvat/input_tensor.zarr',
-                              phenotype=phenotypes, repeat=range(n_repeats)),
+                              phenotype=training_phenotypes, repeat=range(n_repeats)),
         covariates = expand('{phenotype}/deeprvat/covariates.zarr',
-                            phenotype=phenotypes, repeat=range(n_repeats)),
+                            phenotype=training_phenotypes, repeat=range(n_repeats)),
         y = expand('{phenotype}/deeprvat/y.zarr',
-                   phenotype=phenotypes, repeat=range(n_repeats))
+                   phenotype=training_phenotypes, repeat=range(n_repeats))
 
 rule training_dataset:
     input:
