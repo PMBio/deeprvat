@@ -1,6 +1,6 @@
 name: DeepRVAT
 run-name: DeepRVAT 🧬🧪💻🧑‍🔬
-on: [ push ]
+on: [push]
 
 jobs:
   DeepRVAT-Pipeline-Smoke-Tests:
@@ -11,23 +11,23 @@ jobs:
       - name: Training Association Testing smoke test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
-          directory: 'example'
-          snakefile: 'pipelines/training_association_testing.snakefile'
-          args: '-j 2 -n'
+          directory: "example"
+          snakefile: "pipelines/training_association_testing.snakefile"
+          args: "-j 2 -n"
       - name: Link pretrained models
         run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
       - name: Association Testing Pretrained Smoke Test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
-          directory: 'example'
-          snakefile: 'pipelines/association_testing_pretrained.snakefile'
-          args: '-j 2 -n'
+          directory: "example"
+          snakefile: "pipelines/association_testing_pretrained.snakefile"
+          args: "-j 2 -n"
       - name: Seed Gene Discovery Smoke Test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
-          directory: 'example'
-          snakefile: 'pipelines/seed_gene_discovery.snakefile'
-          args: '-j 2 -n'
+          directory: "example"
+          snakefile: "pipelines/seed_gene_discovery.snakefile"
+          args: "-j 2 -n"
 
   DeepRVAT-Pipeline-Tests:
     runs-on: ubuntu-latest
@@ -70,7 +70,6 @@ jobs:
           --snakefile ${{ github.workspace }}/pipelines/seed_gene_discovery.snakefile --show-failed-logs
         shell: micromamba-shell {0}
 
-
   DeepRVAT-Preprocessing-Pipeline-Smoke-Tests:
     runs-on: ubuntu-latest
     steps:
@@ -79,19 +78,18 @@ jobs:
       - name: Preprocessing Smoke Test With QC
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
-          directory: 'example/preprocess'
-          snakefile: 'pipelines/preprocess_with_qc.snakefile'
-          args: '-j 2 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
-          stagein: 'touch example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa example/preprocess/workdir/reference/gencode.v44.annotation.gtf.gz'
+          directory: "example/preprocess"
+          snakefile: "pipelines/preprocess_with_qc.snakefile"
+          args: "-j 2 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml"
+          stagein: "touch example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa example/preprocess/workdir/reference/gencode.v44.annotation.gtf.gz"
 
       - name: Preprocessing Smoke Test No QC
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
-          directory: 'example/preprocess'
-          snakefile: 'pipelines/preprocess_no_qc.snakefile'
-          args: '-j 2 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
-          stagein: 'touch example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa example/preprocess/workdir/reference/gencode.v44.annotation.gtf.gz'
-
+          directory: "example/preprocess"
+          snakefile: "pipelines/preprocess_no_qc.snakefile"
+          args: "-j 2 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml"
+          stagein: "touch example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa example/preprocess/workdir/reference/gencode.v44.annotation.gtf.gz"
 
   DeepRVAT-Annotation-Pipeline-Smoke-Tests:
     runs-on: ubuntu-latest
@@ -101,16 +99,14 @@ jobs:
       - name: Annotations Smoke Test
         uses: snakemake/snakemake-github-action@v1.25.1
         with:
-          directory: 'example/annotations'
-          snakefile: 'pipelines/annotations.snakefile'
-          args: '-j 2 -n --configfile pipelines/config/deeprvat_annotation_config.yaml'
-
+          directory: "example/annotations"
+          snakefile: "pipelines/annotations.snakefile"
+          args: "-j 2 -n --configfile pipelines/config/deeprvat_annotation_config.yaml"
 
   DeepRVAT-Preprocessing-Pipeline-Tests-No-QC:
     runs-on: ubuntu-latest
     needs: DeepRVAT-Preprocessing-Pipeline-Smoke-Tests
     steps:
-
       - name: Check out repository code
         uses: actions/checkout@v3
       - uses: mamba-org/setup-micromamba@v1.4.3
@@ -144,9 +140,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: example/preprocess/workdir/reference
-          key: ${{ runner.os }}-reference-gtf 
+          key: ${{ runner.os }}-reference-gtf
 
-      - name: Download and unpack gtf data
+      - name: Download gtf data
         if: steps.cache-gtf.outputs.cache-hit != 'true'
         run: |
           cd ${{ github.workspace }}/example/preprocess && \
@@ -160,12 +156,10 @@ jobs:
           --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml --show-failed-logs
         shell: micromamba-shell {0}
 
-
   DeepRVAT-Preprocessing-Pipeline-Tests-With-QC:
     runs-on: ubuntu-latest
     needs: DeepRVAT-Preprocessing-Pipeline-Smoke-Tests
     steps:
-
       - name: Check out repository code
         uses: actions/checkout@v3
       - uses: mamba-org/setup-micromamba@v1.4.3
@@ -193,6 +187,20 @@ jobs:
           wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38.primary_assembly.genome.fa.gz \
           -O workdir/reference/GRCh38.primary_assembly.genome.fa.gz \
           && gzip -d workdir/reference/GRCh38.primary_assembly.genome.fa.gz
+
+      - name: Cache GTF file
+        id: cache-gtf
+        uses: actions/cache@v3
+        with:
+          path: example/preprocess/workdir/reference
+          key: ${{ runner.os }}-reference-gtf
+
+      - name: Download gtf data
+        if: steps.cache-gtf.outputs.cache-hit != 'true'
+        run: |
+          cd ${{ github.workspace }}/example/preprocess && \
+          wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz \
+          -O workdir/reference/gencode.v44.annotation.gtf.gz
 
       - name: Run preprocessing pipeline
         run: |
