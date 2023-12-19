@@ -140,7 +140,7 @@ jobs:
           && gzip -d workdir/reference/GRCh38.primary_assembly.genome.fa.gz
 
       - name: Cache GTF file
-        id: cache-fasta
+        id: cache-gtf
         uses: actions/cache@v3
         with:
           path: example/preprocess/workdir/reference
