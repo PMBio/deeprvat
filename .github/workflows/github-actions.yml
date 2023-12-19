@@ -82,7 +82,7 @@ jobs:
           directory: 'example/preprocess'
           snakefile: 'pipelines/preprocess_with_qc.snakefile'
           args: '-j 2 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
-          stagein: 'touch example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa'
+          stagein: 'touch example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa example/preprocess/workdir/gencode.v44.annotation.gtf.gz'
 
       - name: Preprocessing Smoke Test No QC
         uses: snakemake/snakemake-github-action@v1.24.0
@@ -90,7 +90,7 @@ jobs:
           directory: 'example/preprocess'
           snakefile: 'pipelines/preprocess_no_qc.snakefile'
           args: '-j 2 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
-          stagein: 'touch example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa'
+          stagein: 'touch example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa example/preprocess/workdir/gencode.v44.annotation.gtf.gz'
 
 
   DeepRVAT-Annotation-Pipeline-Smoke-Tests:
