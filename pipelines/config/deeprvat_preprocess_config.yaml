@@ -27,7 +27,7 @@ sparse_dir_name : sparse
 reference_fasta_file : GRCh38.primary_assembly.genome.fa
 
 gtf_file : gencode.v44.annotation.gtf.gz
-convert2bed_max_mem: 64GB
+convert2bed_max_mem: 64G
 region_expand: 3000
 
 

@@ -37,10 +37,12 @@ qc_allelic_imbalance_dir = qc_dir / "allelic_imbalance"
 qc_duplicate_vars_dir = qc_dir / "duplicate_vars"
 qc_filtered_samples_dir = qc_dir / "filtered_samples"
 
-bed_file = working_dir / "filtered_genes.bed"
-expanded_bed = working_dir / "expanded_regions.bed"
+gtf_workdir = working_dir / "gtf"
+
 gtf_file = reference_dir / config["gtf_file"]
-gtf_filtered_file = "workdir/filtered_genes.gtf"
+gtf_filtered_file = gtf_workdir / "filtered_genes.gtf"
+bed_file = gtf_workdir / "filtered_genes.bed"
+expanded_bed = gtf_workdir / "expanded_regions.bed"
 
 
 with open(config["vcf_files_list"]) as file:
