@@ -796,6 +796,7 @@ def regress_(
     use_x_pheno: bool = True,
     do_scoretest: bool = True,
     cvar_vector_dict: Dict[int, np.array] = None,
+    cvar_vector_arr: np.ndarray = None
 ) -> pd.DataFrame:
     """
     Perform regression on multiple genes.
@@ -814,12 +815,14 @@ def regress_(
     :type genes: pd.Series
     :param x_pheno: X phenotype data.
     :type x_pheno: np.ndarray
-    :param cvar_vector_dict: dictionary of common variant genotype data per gene.
-    :type cvar_vector_dict: Dict[int, np.array]
     :param use_x_pheno: Flag to include x phenotype data when performing OLS regression, defaults to True.
     :type use_x_pheno: bool
     :param do_scoretest: Flag to use the scoretest from SEAK, defaults to True.
     :type do_scoretest: bool
+    :param cvar_vector_dict: dictionary of common variant genotype data per gene.
+    :type cvar_vector_dict: Dict[int, np.array]
+    :param cvar_vector_arr: numpy ndarray of common variant genotype for all genes.
+    :type cvar_vector_arr: np.ndarray
     :return: DataFrame containing regression results on all genes.
     :rtype: pd.DataFrame
     """
@@ -855,8 +858,8 @@ def regress_(
         ]
     else:
         if cvar_vector_dict is not None:
-            # regression with common variant genotype
-            logger.info("Running regression on each gene using OLS")
+            # regression with common variant genotype per gene
+            logger.info("Running regression on each gene and gene common variant genotype using OLS")
             genes_betas_pvals = [
                 regress_on_gene(
                     gene,
@@ -871,9 +874,26 @@ def regress_(
                     zip(gene_indices, genes), total=genes.shape[0], file=sys.stdout
                 )
             ]
+        elif cvar_vector_arr is not None:
+            # regression with full common variant genotype
+            logger.info("Running regression on each gene using OLS")
+            genes_betas_pvals = [
+                regress_on_gene(
+                    gene,
+                    burdens[:, i],
+                    y,
+                    x_pheno,
+                    use_bias,
+                    use_x_pheno,
+                    common_var_genotype=cvar_vector_arr,
+                )
+                for i, gene in tqdm(
+                    zip(gene_indices, genes), total=genes.shape[0], file=sys.stdout
+                )
+            ]
         else:
             # regression with rare only
-            logger.info("Running regression on each gene using OLS")
+            logger.info("Running regression on each gene and full common variant genotype using OLS")
             genes_betas_pvals = [
                 regress_on_gene(
                     gene,
@@ -961,8 +981,6 @@ def regress(
     x_pheno = zarr.open(Path(burden_dir) / "x.zarr")[:]
     genes = pd.Series(np.load(Path(burden_dir) / "genes.npy"))
 
-    # debug = True
-
     if sample_file is not None:
         with open(sample_file, "rb") as f:
             samples = pickle.load(f)["association_samples"]
@@ -986,6 +1004,7 @@ def regress(
         config = yaml.safe_load(f)
 
     use_common = config["data"]["dataset_config"]["use_common_variants"]
+    group_common = config["data"]["dataset_config"]["group_common"]
 
     if gene_file is not None:
         logger.info("Loading gene names")
@@ -1002,44 +1021,71 @@ def regress(
     genes = genes.iloc[chunk_start:chunk_end]
 
     cvar_vector_dict = None
+    sample_indices = None
+
+    # do everything as normal for the files needed for rare association
+    # in addition to gene chunks, also introduce sample chunks
 
     if use_common:
+
         # load additional files if common variant data should be added
         cvar = zarr.open(Path(burden_dir) / "common_variants.zarr")
-
-        with open(Path(burden_dir) / "common_variants_group_map.pkl", 'rb') as file:
-            cvar_group_map = pickle.load(file)
-
-        # build dict containing needed genotype positions per gene in chunk
-        cvar_vector_dict = {}
 
         # build index array for samples
         # apply nan mask to slice coordinates
         sample_indices = np.arange(0, len(cvar))[nan_mask]
 
-        for g_i in gene_indices:
-            g_i_cvar = None
-            # load common variant information for required genes only
-            if g_i in cvar_group_map.keys():
-                # load common variant genotype data for gene i
-                var_indices = np.expand_dims(cvar_group_map[g_i], axis=1)
-                g_i_cvar = cvar.get_coordinate_selection(
-                    (sample_indices, var_indices)
-                )
+        if group_common:
+            # Do prev introduced code
+            with open(Path(burden_dir) / "common_variants_group_map.pkl", 'rb') as file:
+                cvar_group_map = pickle.load(file)
 
-            cvar_vector_dict[g_i] = g_i_cvar
+            # build dict containing needed genotype positions per gene in chunk
+            cvar_vector_dict = {}
 
-    associations = regress_(
-        config,
-        use_bias,
-        burdens,
-        y,
-        gene_indices,
-        genes,
-        x_pheno,
-        cvar_vector_dict=cvar_vector_dict,
-        do_scoretest=do_scoretest,
-    )
+
+            for g_i in gene_indices:
+                g_i_cvar = None
+                # load common variant information for required genes only
+                if g_i in cvar_group_map.keys():
+                    # load common variant genotype data for gene i
+                    var_indices = np.expand_dims(cvar_group_map[g_i], axis=1)
+                    g_i_cvar = cvar.get_coordinate_selection(
+                        (sample_indices, var_indices)
+                    )
+
+                cvar_vector_dict[g_i] = g_i_cvar
+
+            associations = regress_(
+                config,
+                use_bias,
+                burdens,
+                y,
+                gene_indices,
+                genes,
+                x_pheno,
+                cvar_vector_dict=cvar_vector_dict,
+                do_scoretest=do_scoretest,
+            )
+        else:
+            # Full common geno regression
+
+            var_indices = np.arange(0, cvar.shape[1])
+            mask_cvar = cvar.get_coordinate_selection(
+                (sample_indices, var_indices)
+            )
+
+            associations = regress_(
+                config,
+                use_bias,
+                burdens,
+                y,
+                gene_indices,
+                genes,
+                x_pheno,
+                cvar_vector_arr=mask_cvar,
+                do_scoretest=False,
+            )
 
     logger.info("Saving results")
     Path(out_dir).mkdir(parents=True, exist_ok=True)
