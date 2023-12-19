@@ -117,7 +117,7 @@ jobs:
           cache-downloads: true
 
       - name: Install biotoolbox
-        run: cpanm Bio::ToolBox@1.691
+        run: cpanm Bio::ToolBox@1.691 --force
         shell: micromamba-shell {0}
 
       - name: Install DeepRVAT
@@ -174,7 +174,7 @@ jobs:
           cache-downloads: true
 
       - name: Install biotoolbox
-        run: cpanm Bio::ToolBox@1.691
+        run: cpanm Bio::ToolBox@1.691 --force
         shell: micromamba-shell {0}
 
       - name: Install DeepRVAT
