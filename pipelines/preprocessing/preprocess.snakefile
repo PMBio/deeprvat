@@ -40,9 +40,9 @@ qc_filtered_samples_dir = qc_dir / "filtered_samples"
 gtf_workdir = working_dir / "gtf"
 
 gtf_file = reference_dir / config["gtf_file"]
-gtf_filtered_file = gtf_workdir / "filtered_genes.gtf"
-bed_file = gtf_workdir / "filtered_genes.bed"
-expanded_bed = gtf_workdir / "expanded_regions.bed"
+gtf_filtered_file = gtf_workdir / f"{gtf_file.stem}_filtered_genes.gtf"
+bed_file = gtf_workdir / f"{gtf_file.stem}_filtered_genes.bed"
+expanded_bed = gtf_workdir / f"{gtf_file.stem}_filtered_expanded_regions.bed"
 
 
 with open(config["vcf_files_list"]) as file:
