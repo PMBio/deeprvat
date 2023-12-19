@@ -26,6 +26,11 @@ sparse_dir_name : sparse
 # Expected to be found in working_dir/reference_dir
 reference_fasta_file : GRCh38.primary_assembly.genome.fa
 
+gtf_file : gencode.v44.annotation.gtf.gz
+convert2bed_max_mem: 64GB
+region_expand: 3000
+
+
 # The format of the name of the "raw" vcf files
 vcf_files_list: vcf_files_list.txt
 
