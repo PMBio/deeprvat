@@ -40,7 +40,7 @@ jobs:
           environment-name: deeprvat-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
           cache-environment: true
-          cache-downloads: true
+          cache-downloads: true    
       - name: Install DeepRVAT
         run: pip install -e ${{ github.workspace }}
         shell: micromamba-shell {0}
@@ -116,6 +116,10 @@ jobs:
           cache-environment: true
           cache-downloads: true
 
+      - name: Install biotoolbox
+        run: cpanm Bio::ToolBox@1.691
+        shell: micromamba-shell {0}
+
       - name: Install DeepRVAT
         run: pip install -e ${{ github.workspace }}
         shell: micromamba-shell {0}
@@ -168,6 +172,10 @@ jobs:
           environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
           cache-environment: true
           cache-downloads: true
+
+      - name: Install biotoolbox
+        run: cpanm Bio::ToolBox@1.691
+        shell: micromamba-shell {0}
 
       - name: Install DeepRVAT
         run: pip install -e ${{ github.workspace }}
