@@ -162,13 +162,19 @@ wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38
 gzip -d workdir/reference/GRCh38.primary_assembly.genome.fa.gz
 ```
 
-4. Run with the example config
+4. Download the gtf file
+
+```shell
+wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz -P workdir/reference/GRCh38.primary_assembly.genome.fa.gz
+```
+
+5. Run with the example config
 
 ```shell
 snakemake -j 1 --snakefile ../../pipelines/preprocess_with_qc.snakefile --configfile ../../pipelines/config/deeprvat_preprocess_config.yaml
 ```
 
-5. Enjoy the preprocessed data 🎉
+6. Enjoy the preprocessed data 🎉
 
 ```shell
 ls -l workdir/preprocesed
@@ -206,13 +212,20 @@ wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38
 gzip -d workdir/reference/GRCh38.primary_assembly.genome.fa.gz
 ```
 
-4. Run with the example config
+5. Download the gtf file
+
+```shell
+wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz -P workdir/reference/GRCh38.primary_assembly.genome.fa.gz
+```
+
+
+6. Run with the example config
 
 ```shell
 snakemake -j 1 --snakefile ../../pipelines/preprocess_no_qc.snakefile --configfile ../../pipelines/config/deeprvat_preprocess_config.yaml
 ```
 
-5. Enjoy the preprocessed data 🎉
+7. Enjoy the preprocessed data 🎉
 
 ```shell
 ls -l workdir/preprocesed
