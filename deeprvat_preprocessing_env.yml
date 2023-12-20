@@ -17,4 +17,5 @@ dependencies:
   - samtools=1.17
   - bedtools=2.31.1
   - perl-app-cpanminus=1.7047
+  - bedops=2.4.41
   - gcc=13.2.0  
