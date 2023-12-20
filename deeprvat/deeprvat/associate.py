@@ -628,6 +628,7 @@ def regress_(
 @click.option("--repeat", type=int, default=0)
 @click.option("--do-scoretest", is_flag=True)
 @click.option("--sample-file", type=click.Path(exists=True))
+@click.option("--burden-file", type=click.Path(exists=True))
 @click.argument("config-file", type=click.Path(exists=True))
 @click.argument("burden-dir", type=click.Path(exists=True))
 @click.argument("out-dir", type=click.Path())
@@ -643,10 +644,16 @@ def regress(
     out_dir: str,
     do_scoretest: bool,
     sample_file: Optional[str],
+    burden_file: Optional[str],
 ):
     logger.info("Loading saved burdens")
+    if burden_file is not None:
+        logger.info(f'Loading burdens from {burden_file}')
+        burdens = zarr.open(burden_file)[:, :, repeat]
+    else:
+        burdens = zarr.open(Path(burden_dir) / "burdens.zarr")[:, :, repeat]
+    logger.info(f'Loading x, y, genes from {burden_dir}')
     y = zarr.open(Path(burden_dir) / "y.zarr")[:]
-    burdens = zarr.open(Path(burden_dir) / "burdens.zarr")[:, :, repeat]
     x_pheno = zarr.open(Path(burden_dir) / "x.zarr")[:]
     genes = pd.Series(np.load(Path(burden_dir) / "genes.npy"))
 
