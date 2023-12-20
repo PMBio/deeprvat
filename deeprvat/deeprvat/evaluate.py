@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 from itertools import combinations
+import random
 
 import click
 import numpy as np
@@ -60,7 +61,7 @@ def get_baseline(
     df["experiment_group"] = experiment_name
     df["correction_method"] = "FDR"
     df["experiment"] = "Baseline"
-
+    
     return df
 
 
@@ -183,11 +184,11 @@ def process_results(
     )
 
     assert (deeprvat_results.groupby('gene').size() == n_repeats).all()
-    import ipdb; ipdb.set_trace()
     baseline_results = results.query(
-        "experiment_group in @BASELINE_GROUPS"
-        " and correction_method == @correction_method"
-    )
+        "experiment_group in @BASELINE_GROUPS")
+    if "correction_method" in baseline_results.columns:
+        # if use_seed_gene is not True the correction_method column is not in results
+        baseline_results = results.query("correction_method == @correction_method")
 
     combined_results = combine_results(
         deeprvat_results,
@@ -236,14 +237,18 @@ def evaluate_(
 
     logger.info("Evaluation results:")
     logger.info(f"Analyzing results for {repeats_to_analyze} repeats")
-
+    
     if max_repeat_combis > 1:
+        random.seed(10) #to ensoure that the same values for all_repeat_combinations
+        # when running this script for each phenotype
         significant = pd.DataFrame()
         all_pvalues = pd.DataFrame()
         logger.info(f"Maximum number of repeat combinations that will be analyzed {max_repeat_combis}")
-        all_repeat_combinations = list(combinations(range(n_total_repeats), repeats_to_analyze))[:max_repeat_combis]
+        all_repeat_combinations = list(combinations(range(n_total_repeats), repeats_to_analyze))#[:max_repeat_combis]
+        n_combis_to_sample = min(max_repeat_combis, len(all_repeat_combinations))
+        all_repeat_combinations = random.sample(all_repeat_combinations, n_combis_to_sample)
         for combi in all_repeat_combinations:
-            logger.info(combi)
+            logger.info(f'Repeat combination {combi}')
             rep_str = [f"repeat_{i}" for i in combi]
             repeat_mask = [i in rep_str for i in associations["model"]]
 
@@ -298,8 +303,9 @@ def evaluate_(
 @click.option("--debug", is_flag=True)
 @click.option("--phenotype", type=str)
 @click.option("--use-seed-genes", is_flag=True)
+@click.option("--save-default", is_flag=True)
 @click.option("--max-repeat-combis", type=int, default = 1)
-@click.option("--repeats-to-analyze", type=int, default = 6)
+@click.option("--repeats-to-analyze", type=int)
 @click.option("--correction-method", type=str, default="FDR")
 @click.option("--n-repeats", type=int)
 @click.argument("association-files", type=click.Path(exists=True), nargs=-1)
@@ -309,6 +315,7 @@ def evaluate(
     debug: bool,
     phenotype: Optional[str],
     use_seed_genes: bool,
+    save_default: bool,
     correction_method: str,
     n_repeats: Optional[int],
     association_files: Tuple[str],
@@ -319,7 +326,7 @@ def evaluate(
 ):
     with open(config_file) as f:
         config = yaml.safe_load(f)
-
+    repeats_to_analyze = repeats_to_analyze if repeats_to_analyze is not None else n_repeats
     associations = pd.concat(
         [pd.read_parquet(f, engine="pyarrow") for f in association_files]
     )
@@ -330,7 +337,6 @@ def evaluate(
         else config["data"]["dataset_config"]["y_phenotypes"][0]
     )
     associations["phenotype"] = pheno
-
     alpha = config["alpha"]
 
     repeats = n_repeats if n_repeats is not None else config["n_repeats"]
@@ -369,6 +375,12 @@ def evaluate(
     out_path = Path(out_dir)
     significant.to_parquet(out_path / f"significant_{repeats_to_analyze}repeats.parquet", engine="pyarrow")
     all_pvals.to_parquet(out_path / f"all_results_{repeats_to_analyze}repeats.parquet", engine="pyarrow")
+    if (repeats_to_analyze == n_repeats) & (max_repeat_combis == 1) | save_default :
+        logger.info('Also saving result without repeat suffix since its the "default"')
+        #save the 'traditional' output
+        significant.to_parquet(out_path / f"significant.parquet", engine="pyarrow")
+        all_pvals.to_parquet(out_path / f"all_results.parquet", engine="pyarrow")
+
 
 
 if __name__ == "__main__":
