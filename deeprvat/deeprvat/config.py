@@ -64,7 +64,7 @@ def update_config(
                 )
             seed_config = config["phenotypes"][phenotype]
             correction_method = seed_config.get("correction_method", None)
-            min_seed_genes = seed_config.get("min_seed_genes", None)
+            min_seed_genes = seed_config.get("min_seed_genes", 5)
             max_seed_genes = seed_config.get("max_seed_genes", None)
             threshold = seed_config.get("pvalue_threshold", None)
             assert (
@@ -87,21 +87,21 @@ def update_config(
             else:
                 logger.info("Not performing EAC filtering of baseline results")
             logger.info(f"  Correcting p-values using {correction_method} method")
+            alpha = config.get('alpha_seed_genes', config.get('alpha'))
             baseline_df = pval_correction(
-                baseline_df, config["alpha"], correction_type=correction_method
+                baseline_df, alpha, correction_type=correction_method
             )
-
             baseline_df = baseline_df.sort_values("pval_corrected")
 
             if baseline_results_out is not None:
                 baseline_df.to_parquet(baseline_results_out, engine="pyarrow")
-
             if correction_method is not None:
-                if len(baseline_df.query("significant")) < 5:
+                logger.info(f'Using significant genes with corrected pval < {alpha}')
+                if len(baseline_df.query("significant")) < min_seed_genes:
                     logger.info(
-                        "Selecting top 5 genes from baseline because less than 5 genes are significant"
+                        "Selecting top {min_seed_genes} genes from baseline because less than {min_seed_genes} genes are significant"
                     )
-                    baseline_df = baseline_df.head(5)  # TODO make this flexible
+                    baseline_df = baseline_df.head(min_seed_genes)  # TODO make this flexible
                 else:
                     baseline_df = baseline_df.query("significant")
                 logger.info(f"  {len(baseline_df)} significant genes from baseline")
