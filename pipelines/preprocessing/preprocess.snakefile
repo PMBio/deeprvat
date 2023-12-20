@@ -73,13 +73,13 @@ rule normalize:
         samplefile=norm_dir / "samples_chr.csv",
         fasta=fasta_file,
         fastaindex=fasta_index_file,
-        expander_bed=expanded_bed,
+        expanded_bed=expanded_bed,
     params:
         vcf_file=lambda wildcards: vcf_look_up[wildcards.vcf_stem],
     output:
         bcf_file=bcf_dir / "{vcf_stem}.bcf",
     shell:
-        f"""{load_bcftools} bcftools view -R "{{input.expander_bed}}" "{{params.vcf_file}}" --output-type u \
+        f"""{load_bcftools} bcftools view -R "{{input.expanded_bed}}" "{{params.vcf_file}}" --output-type u \
         | bcftools view --samples-file {{input.samplefile}} --output-type u  \
         | bcftools view --include 'COUNT(GT="alt") > 0' --output-type u \
         | bcftools norm -m-both -f {{input.fasta}} --output-type b --output {{output.bcf_file}}"""
