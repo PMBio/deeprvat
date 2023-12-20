@@ -74,6 +74,13 @@ sparse_dir_name : sparse
 
 # Expected to be found in working_dir/reference_dir
 reference_fasta_file : GRCh38.primary_assembly.genome.fa
+gtf_file : gencode.v44.annotation.gtf.gz
+
+# Mac memory used by convert2bed
+convert2bed_max_mem: 64G
+
+# Increase the BED entry by the same number base pairs in each direction
+region_expand: 3000
 
 # The format of the name of the "raw" vcf files
 vcf_files_list: vcf_files_list.txt
@@ -82,8 +89,9 @@ vcf_files_list: vcf_files_list.txt
 preprocess_threads: 16
 
 # You can specify a different zcat cmd for example gzcat here, default zcat
-zcat_cmd: gzcat
-   ```
+zcat_cmd:
+
+```
 
 The config above would use the following directory structure:
 
