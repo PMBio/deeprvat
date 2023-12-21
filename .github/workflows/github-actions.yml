@@ -8,12 +8,31 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
+      - uses: mamba-org/setup-micromamba@v1.4.3
+        with:
+          environment-name: deeprvat-preprocess-gh-action
+          environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
+          cache-environment: true
+          cache-downloads: true
+
+      - name: Fake fasta data
+        run: touch workdir/reference/GRCh38.primary_assembly.genome.fa.gz
+
+      - name: Run preprocessing pipeline dry run
+        run: |
+          python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example/preprocess \
+          --snakefile ${{ github.workspace }}/pipelines/preprocess_no_qc.snakefile \
+          --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml --show-failed-logs
+        shell: micromamba-shell {0}
+
       - name: Training Association Testing smoke test
         uses: snakemake/snakemake-github-action@v1.24.0
         with:
           directory: 'example'
           snakefile: 'pipelines/training_association_testing.snakefile'
           args: '-j 2 -n'
+
+          
       - name: Link pretrained models
         run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
       - name: Association Testing Pretrained Smoke Test
