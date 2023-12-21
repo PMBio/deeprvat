@@ -16,7 +16,7 @@ jobs:
           cache-downloads: true
 
       - name: Fake fasta data
-        run: touch ${{ github.workspace }}/example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa.gz
+        run: touch ${{ github.workspace }}/example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa
 
       - name: Run preprocessing pipeline dry run
         run: |
