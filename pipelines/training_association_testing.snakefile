@@ -5,6 +5,7 @@ configfile: 'config.yaml'
 debug_flag = config.get('debug', False)
 phenotypes = config['phenotypes']
 phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
+training_phenotypes = config["training"].get("phenotypes", phenotypes)
 
 n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
 n_regression_chunks = config.get('n_regression_chunks', 40) if not debug_flag else 2
@@ -15,6 +16,7 @@ debug = '--debug ' if debug_flag else ''
 do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
 tensor_compression_level = config['training'].get('tensor_compression_level', 1)
 pretrained_model_path = Path('models')
+n_parallel_training_jobs = config["training"].get("n_parallel_jobs", 1)
 
 wildcard_constraints:
     repeat="\d+",
@@ -57,11 +59,11 @@ rule all_training:
 rule all_training_dataset:
     input:
         input_tensor = expand('{phenotype}/deeprvat/input_tensor.zarr',
-                              phenotype=phenotypes, repeat=range(n_repeats)),
+                              phenotype=training_phenotypes, repeat=range(n_repeats)),
         covariates = expand('{phenotype}/deeprvat/covariates.zarr',
-                            phenotype=phenotypes, repeat=range(n_repeats)),
+                            phenotype=training_phenotypes, repeat=range(n_repeats)),
         y = expand('{phenotype}/deeprvat/y.zarr',
-                   phenotype=phenotypes, repeat=range(n_repeats))
+                   phenotype=training_phenotypes, repeat=range(n_repeats))
 
 rule all_config:
     input:

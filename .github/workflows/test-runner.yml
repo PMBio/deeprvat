@@ -6,6 +6,25 @@ jobs:
   DeepRVAT-Tests-Runner:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - uses: mamba-org/setup-micromamba@v1.4.3
+        with:
+          environment-name: deeprvat-preprocess-gh-action
+          environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
+          cache-environment: true
+          cache-downloads: true
+
+      - name: Install DeepRVAT
+        run: pip install -e ${{ github.workspace }}
+        shell: micromamba-shell {0}
+      - name: Run pytest deeprvat
+        run: pytest -v ${{ github.workspace }}/tests/deeprvat
+        shell: micromamba-shell {0}
+
+  DeepRVAT-Tests-Runner-Preprocessing:
+    runs-on: ubuntu-latest
+    steps:
 
       - name: Check out repository code
         uses: actions/checkout@v3
@@ -20,6 +39,6 @@ jobs:
         run: pip install -e ${{ github.workspace }}
         shell: micromamba-shell {0}
 
-      - name: Run pytest
-        run: pytest -v ${{ github.workspace }}/tests
+      - name: Run pytest preprocessing
+        run: pytest -v ${{ github.workspace }}/tests/preprocessing
         shell: micromamba-shell {0}
