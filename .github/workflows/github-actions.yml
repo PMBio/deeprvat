@@ -14,10 +14,6 @@ jobs:
           environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
           cache-environment: true
           cache-downloads: true
-
-      - name: Link pretrained models
-        run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
-
       - name: Smoketest training_association_testing pipeline
         run: |
           python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example \
