@@ -1,9 +1,9 @@
 
 rule link_config:
     input:
-        'models/repeat_0/config.yaml'
+        '{model_path}/repeat_0/config.yaml'
     output:
-        "models/config.yaml"
+        '{model_path}/config.yaml'
     threads: 1
     shell:
         "ln -s repeat_0/config.yaml {output}"
@@ -11,20 +11,20 @@ rule link_config:
 
 rule best_training_run:
     input:
-        expand('models/repeat_{{repeat}}/trial{trial_number}/config.yaml',
+        expand('{model_path}/repeat_{{repeat}}/trial{trial_number}/config.yaml',
                trial_number=range(n_trials)),
     output:
-        checkpoints = expand('models/repeat_{{repeat}}/best/bag_{bag}.ckpt',
+        checkpoints = expand('{model_path}/repeat_{{repeat}}/best/bag_{bag}.ckpt',
                              bag=range(n_bags)),
-        config = 'models/repeat_{repeat}/config.yaml'
+        config = '{model_path}/repeat_{repeat}/config.yaml'
     threads: 1
     shell:
         (
             'deeprvat_train best-training-run '
             + debug +
-            'models/repeat_{wildcards.repeat} '
-            'models/repeat_{wildcards.repeat}/best '
-            'models/repeat_{wildcards.repeat}/hyperparameter_optimization.db '
+            '{model_path}/repeat_{wildcards.repeat} '
+            '{model_path}/repeat_{wildcards.repeat}/best '
+            '{model_path}/repeat_{wildcards.repeat}/hyperparameter_optimization.db '
             '{output.config}'
         )
 
@@ -39,9 +39,9 @@ rule train:
         y = expand('{phenotype}/deeprvat/y.zarr',
                    phenotype=training_phenotypes),
     output:
-        expand('models/repeat_{repeat}/trial{trial_number}/config.yaml',
+        expand('{model_path}/repeat_{repeat}/trial{trial_number}/config.yaml',
                repeat=range(n_repeats), trial_number=range(n_trials)),
-        expand('models/repeat_{repeat}/trial{trial_number}/finished.tmp',
+        expand('{model_path}/repeat_{repeat}/trial{trial_number}/finished.tmp',
                repeat=range(n_repeats), trial_number=range(n_trials))
     params:
         phenotypes = " ".join(
@@ -57,8 +57,8 @@ rule train:
         '--trial-id {{2}} '
         "{params.phenotypes} "
         'config.yaml '
-        'models/repeat_{{1}}/trial{{2}} '
-        "models/repeat_{{1}}/hyperparameter_optimization.db '&&' "
-        "touch models/repeat_{{1}}/trial{{2}}/finished.tmp "
+        '{model_path}/repeat_{{1}}/trial{{2}} '
+        '{model_path}/repeat_{{1}}/hyperparameter_optimization.db "&&" '
+        'touch {model_path}/repeat_{{1}}/trial{{2}}/finished.tmp '
         "::: " + " ".join(map(str, range(n_repeats))) + " "
         "::: " + " ".join(map(str, range(n_trials)))
