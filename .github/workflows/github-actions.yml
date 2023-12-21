@@ -14,4 +14,4 @@ jobs:
           directory: 'example/preprocess'
           snakefile: 'pipelines/preprocess_with_qc_debug.snakefile'
           args: '-j 2 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
-          stagein: 'mamba install snakemake=7.32.4 && touch example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa'
+          stagein: 'micromamba install snakemake=7.32.4 && touch example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa'
