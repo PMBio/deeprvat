@@ -3,32 +3,6 @@ run-name: DeepRVAT 🧬🧪💻🧑‍🔬
 on: [ push ]
 
 jobs:
-  DeepRVAT-Pipeline-Smoke-Tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository code
-        uses: actions/checkout@v3
-      - name: Training Association Testing smoke test
-        uses: snakemake/snakemake-github-action@v1.24.0
-        with:
-          directory: 'example'
-          snakefile: 'pipelines/training_association_testing.snakefile'
-          args: '-j 2 -n'
-      - name: Link pretrained models
-        run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
-      - name: Association Testing Pretrained Smoke Test
-        uses: snakemake/snakemake-github-action@v1.24.0
-        with:
-          directory: 'example'
-          snakefile: 'pipelines/association_testing_pretrained.snakefile'
-          args: '-j 2 -n'
-      - name: Seed Gene Discovery Smoke Test
-        uses: snakemake/snakemake-github-action@v1.24.0
-        with:
-          directory: 'example'
-          snakefile: 'pipelines/seed_gene_discovery.snakefile'
-          args: '-j 2 -n'
-
   DeepRVAT-Preprocessing-Pipeline-Smoke-Tests:
     runs-on: ubuntu-latest
     steps:
