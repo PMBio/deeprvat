@@ -38,6 +38,7 @@ rule preprocess_with_qc:
                 f"--exclude-variants {qc_duplicate_vars_dir}",
                 f"--exclude-calls {qc_read_depth_dir}",
                 f"--exclude-samples {qc_filtered_samples_dir}",
+                f"--exclude-samples {qc_indmiss_samples_dir}",
                 "--chromosomes ",
                 ",".join(str(chr) for chr in set(chromosomes)),
                 f"--threads {preprocess_threads}",
