@@ -8,26 +8,37 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
-      - name: Training Association Testing smoke test
-        uses: snakemake/snakemake-github-action@v1.24.0
+      - uses: mamba-org/setup-micromamba@v1.4.3
         with:
-          directory: 'example'
-          snakefile: 'pipelines/training_association_testing.snakefile'
-          args: '-j 2 -n'
+          environment-name: deeprvat-gh-action
+          environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
+          cache-environment: true
+          cache-downloads: true
+
       - name: Link pretrained models
         run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
-      - name: Association Testing Pretrained Smoke Test
-        uses: snakemake/snakemake-github-action@v1.24.0
-        with:
-          directory: 'example'
-          snakefile: 'pipelines/association_testing_pretrained.snakefile'
-          args: '-j 2 -n'
-      - name: Seed Gene Discovery Smoke Test
-        uses: snakemake/snakemake-github-action@v1.24.0
-        with:
-          directory: 'example'
-          snakefile: 'pipelines/seed_gene_discovery.snakefile'
-          args: '-j 2 -n'
+
+      - name: Smoketest training_association_testing pipeline
+        run: |
+          python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example \
+          --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
+        shell: micromamba-shell {0}
+      - name: Link pretrained models
+        run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
+        shell: bash -el {0}
+      - name: Smoketest association_testing_pretrained pipeline
+        run: |
+          python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example \
+          --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained.snakefile --show-failed-logs
+        shell: micromamba-shell {0}
+      - name: Copy seed gene discovery snakemake config
+        run: cd ${{ github.workspace }}/example && cp ../deeprvat/seed_gene_discovery/config.yaml .
+        shell: bash -el {0}
+      - name: Smoketest seed_gene_discovery pipeline
+        run: |
+          python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example \
+          --snakefile ${{ github.workspace }}/pipelines/seed_gene_discovery.snakefile --show-failed-logs
+        shell: micromamba-shell {0}
 
   DeepRVAT-Pipeline-Tests:
     runs-on: ubuntu-latest
@@ -76,21 +87,32 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
-      - name: Preprocessing Smoke Test With QC
-        uses: snakemake/snakemake-github-action@v1.24.0
+      - uses: mamba-org/setup-micromamba@v1.4.3
         with:
-          directory: 'example/preprocess'
-          snakefile: 'pipelines/preprocess_with_qc.snakefile'
-          args: '-j 2 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
-          stagein: 'touch example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa'
+          environment-name: deeprvat-preprocess-gh-action
+          environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
+          cache-environment: true
+          cache-downloads: true
 
-      - name: Preprocessing Smoke Test No QC
-        uses: snakemake/snakemake-github-action@v1.24.0
-        with:
-          directory: 'example/preprocess'
-          snakefile: 'pipelines/preprocess_no_qc.snakefile'
-          args: '-j 2 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
-          stagein: 'touch example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa'
+      - name: Fake fasta data
+        if: steps.cache-fasta.outputs.cache-hit != 'true'
+        run: |
+          cd ${{ github.workspace }}/example/preprocess && touch workdir/reference/GRCh38.primary_assembly.genome.fa
+
+      - name: Run preprocessing pipeline no qc Smoke Test
+        run: |
+          python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example/preprocess \
+          --snakefile ${{ github.workspace }}/pipelines/preprocess_no_qc.snakefile \
+          --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml --show-failed-logs
+        shell: micromamba-shell {0}
+
+
+      - name: Preprocessing pipeline with qc Smoke Test
+        run: |
+          python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example/preprocess \
+          --snakefile ${{ github.workspace }}/pipelines/preprocess_with_qc.snakefile \
+          --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml --show-failed-logs
+        shell: micromamba-shell {0}
 
 
   DeepRVAT-Annotation-Pipeline-Smoke-Tests:
@@ -98,19 +120,24 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
-      - name: Annotations Smoke Test
-        uses: snakemake/snakemake-github-action@v1.25.1
+      - uses: mamba-org/setup-micromamba@v1.4.3
         with:
-          directory: 'example/annotations'
-          snakefile: 'pipelines/annotations.snakefile'
-          args: '-j 2 -n --configfile pipelines/config/deeprvat_annotation_config.yaml'
+          environment-name: deeprvat-preprocess-gh-action
+          environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
+          cache-environment: true
+          cache-downloads: true
+      - name: Annotations Smoke Test
+        run: |
+          python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example/annotations \
+          --snakefile ${{ github.workspace }}/pipelines/annotations.snakefile \
+          --configfile ${{ github.workspace }}/pipelines/config/deeprvat_annotation_config.yaml --show-failed-logs
+        shell: micromamba-shell {0}
 
 
   DeepRVAT-Preprocessing-Pipeline-Tests-No-QC:
     runs-on: ubuntu-latest
     needs: DeepRVAT-Preprocessing-Pipeline-Smoke-Tests
     steps:
-
       - name: Check out repository code
         uses: actions/checkout@v3
       - uses: mamba-org/setup-micromamba@v1.4.3
