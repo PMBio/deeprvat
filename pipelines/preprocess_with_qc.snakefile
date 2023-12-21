@@ -24,7 +24,7 @@ rule preprocess_with_qc:
             qc_allelic_imbalance_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems
         ),
         qc_filtered_samples=qc_filtered_samples_dir,
-        qc_indmiss_samples=expand(qc_indmiss_samples_dir / "{vcf_stem}.tsv", vcf_stem=vcf_stems)
+        qc_indmiss_samples=expand(qc_indmiss_samples_dir / "{vcf_stem}.csv", vcf_stem=vcf_stems)
     output:
         expand(preprocessed_dir / "genotypes_chr{chr}.h5",chr=chromosomes),
     shell:
