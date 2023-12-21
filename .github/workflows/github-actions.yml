@@ -12,6 +12,6 @@ jobs:
         uses: snakemake/snakemake-github-action@v1.25.1
         with:
           directory: 'example/preprocess'
-          snakefile: 'pipelines/preprocess_with_qc.snakefile'
+          snakefile: 'pipelines/preprocess_with_qc_debug.snakefile'
           args: '-j 2 -n --configfile pipelines/config/deeprvat_preprocess_config.yaml'
           stagein: 'touch example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa'
