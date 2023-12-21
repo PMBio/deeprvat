@@ -16,7 +16,7 @@ jobs:
           cache-downloads: true
 
       - name: Fake fasta data
-        run: touch workdir/reference/GRCh38.primary_assembly.genome.fa.gz
+        run: touch ${{ github.workspace }}/example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa.gz
 
       - name: Run preprocessing pipeline dry run
         run: |
@@ -32,7 +32,7 @@ jobs:
           snakefile: 'pipelines/training_association_testing.snakefile'
           args: '-j 2 -n'
 
-          
+
       - name: Link pretrained models
         run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
       - name: Association Testing Pretrained Smoke Test
