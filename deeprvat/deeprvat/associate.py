@@ -754,6 +754,25 @@ def regress_on_gene(
         logger.warning(f"Burden for gene {gene} is 0 for all samples; skipping")
         return None
 
+    if common_var_genotype is not None:
+        # add common variant genotype vector to X
+        X = np.concatenate((X, common_var_genotype.T), axis=1)
+
+    if use_x_pheno:
+        if len(x_pheno.shape) == 1:
+            x_pheno = np.expand_dims(x_pheno, axis=1)
+        X = np.concatenate((X, x_pheno), axis=1)
+
+    if common_var_genotype is not None:
+        # standardize X column wise
+        mean = np.mean(X, axis=0)
+        variance = np.mean((X - mean) ** 2, axis=0)
+        # add small epsilon to avoid nans like done in batchnorm
+        eps = 0.00005
+        std = (variance + eps)**0.5
+        X = (X - mean) / std
+        assert np.sum(np.isnan(X)) == 0, "NaN introduced due to standardization"
+
     # Bias shouldn't be necessary if y is centered or standardized
     if use_bias:
         try:
@@ -764,15 +783,6 @@ def regress_on_gene(
             )
             return None
 
-    if use_x_pheno:
-        if len(x_pheno.shape) == 1:
-            x_pheno = np.expand_dims(x_pheno, axis=1)
-        X = np.concatenate((X, x_pheno), axis=1)
-
-    if common_var_genotype is not None:
-        # add common variant genotype vector to X
-        X = np.concatenate((X, common_var_genotype.T), axis=1)
-
     genes_params_pvalues = ([], [], [])
     for this_y in np.split(y, y.shape[1], axis=1):
         mask = ~np.isnan(this_y).reshape(-1)
@@ -780,7 +790,25 @@ def regress_on_gene(
         results = model.fit()
         genes_params_pvalues[0].append(gene)
         genes_params_pvalues[1].append(results.params[0])
-        genes_params_pvalues[2].append(results.pvalues[0])
+
+        if common_var_genotype is not None:
+            # test that each coefficient is jointly statistically sig. from zero
+            # we added the intercept at the end of the design matrix
+            # exluding intercept from F-test
+            hyp_matrix = np.identity(len(results.params))
+            hyp_to = X.shape[1]
+
+            if use_bias:
+                hyp_to -= 1
+            if use_x_pheno:
+                hyp_to -= x_pheno.shape[1]
+
+            hyp_matrix = hyp_matrix[:hyp_to, :]
+
+            f_test_result = results.f_test(hyp_matrix)
+            genes_params_pvalues[2].append(f_test_result.pvalue)
+        else:
+            genes_params_pvalues[2].append(results.pvalues[0])
 
     return genes_params_pvalues
 
@@ -1033,7 +1061,8 @@ def regress(
 
         # build index array for samples
         # apply nan mask to slice coordinates
-        sample_indices = np.arange(0, len(cvar))[nan_mask]
+        max_idx = 1000 if debug else len(cvar)
+        sample_indices = np.arange(0, max_idx)[nan_mask]
 
         if group_common:
             # Do prev introduced code
