@@ -3,7 +3,7 @@ run-name: DeepRVAT 🧬🧪💻🧑‍🔬
 on: [ push ]
 
 jobs:
-  DeepRVAT-Preprocessing-Pipeline-Smoke-Tests:
+  DeepRVAT-Preprocessing-Pipeline-Smoke-Tests-New_name:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
