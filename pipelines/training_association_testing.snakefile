@@ -52,9 +52,9 @@ rule all_association_dataset:
 
 rule all_training:
     input:
-        expand('{model_path}/repeat_{repeat}/best/bag_{bag}.ckpt',
+        expand(model_path / 'repeat_{repeat}/best/bag_{bag}.ckpt',
                bag=range(n_bags), repeat=range(n_repeats)),
-        "{model_path}/config.yaml"
+        model_path / "config.yaml"
 
 rule all_training_dataset:
     input:

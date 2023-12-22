@@ -1,9 +1,9 @@
 
 rule link_config:
     input:
-        '{model_path}/repeat_0/config.yaml'
+        model_path / 'repeat_0/config.yaml'
     output:
-        '{model_path}/config.yaml'
+        model_path / 'config.yaml'
     threads: 1
     shell:
         "ln -s repeat_0/config.yaml {output}"
@@ -11,12 +11,12 @@ rule link_config:
 
 rule best_training_run:
     input:
-        expand('{model_path}/repeat_{{repeat}}/trial{trial_number}/config.yaml',
+        expand(model_path / 'repeat_{{repeat}}/trial{trial_number}/config.yaml',
                trial_number=range(n_trials)),
     output:
-        checkpoints = expand('{model_path}/repeat_{{repeat}}/best/bag_{bag}.ckpt',
+        checkpoints = expand(model_path / 'repeat_{{repeat}}/best/bag_{bag}.ckpt',
                              bag=range(n_bags)),
-        config = '{model_path}/repeat_{repeat}/config.yaml'
+        config = model_path / 'repeat_{repeat}/config.yaml'
     threads: 1
     shell:
         (
@@ -39,9 +39,9 @@ rule train:
         y = expand('{phenotype}/deeprvat/y.zarr',
                    phenotype=training_phenotypes),
     output:
-        expand('{model_path}/repeat_{repeat}/trial{trial_number}/config.yaml',
+        expand(model_path / 'repeat_{repeat}/trial{trial_number}/config.yaml',
                repeat=range(n_repeats), trial_number=range(n_trials)),
-        expand('{model_path}/repeat_{repeat}/trial{trial_number}/finished.tmp',
+        expand(model_path / 'repeat_{repeat}/trial{trial_number}/finished.tmp',
                repeat=range(n_repeats), trial_number=range(n_trials))
     params:
         phenotypes = " ".join(
