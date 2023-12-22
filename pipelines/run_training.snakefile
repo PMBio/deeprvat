@@ -25,34 +25,10 @@ wildcard_constraints:
 include: "training/config.snakefile"
 include: "training/training_dataset.snakefile"
 include: "training/train.snakefile"
-include: "association_testing/association_dataset.snakefile"
-include: "association_testing/burdens.snakefile"
-include: "association_testing/regress_eval.snakefile"
 
 rule all:
     input:
-        expand("{phenotype}/deeprvat/eval/significant.parquet",
-               phenotype=phenotypes),
-        expand("{phenotype}/deeprvat/eval/all_results.parquet",
-               phenotype=phenotypes)
-
-rule all_burdens:
-    input:
-        [
-            (f'{p}/deeprvat/burdens/chunk{c}.' +
-             ("finished" if p == phenotypes[0] else "linked"))
-            for p in phenotypes
-            for c in range(n_burden_chunks)
-        ]
-
-rule all_association_dataset:
-    input:
-        expand('{phenotype}/deeprvat/association_dataset.pkl',
-               phenotype=phenotypes)
-
-rule all_training:
-    input:
-        expand(model_path / 'repeat_{repeat}/best/bag_{bag}.ckpt',
+        expand( model_path / 'repeat_{repeat}/best/bag_{bag}.ckpt',
                bag=range(n_bags), repeat=range(n_repeats)),
         model_path / "config.yaml"
 
