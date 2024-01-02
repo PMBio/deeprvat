@@ -37,6 +37,13 @@ qc_allelic_imbalance_dir = qc_dir / "allelic_imbalance"
 qc_duplicate_vars_dir = qc_dir / "duplicate_vars"
 qc_filtered_samples_dir = qc_dir / "filtered_samples"
 
+gtf_workdir = working_dir / "gtf"
+
+gtf_file = reference_dir / config["gtf_file"]
+gtf_filtered_file = gtf_workdir / f"{gtf_file.stem}_filtered_genes.gtf"
+bed_file = gtf_workdir / f"{gtf_file.stem}_filtered_genes.bed"
+expanded_bed = gtf_workdir / f"{gtf_file.stem}_filtered_expanded_regions.bed"
+
 
 with open(config["vcf_files_list"]) as file:
     vcf_files = [Path(line.rstrip()) for line in file]
@@ -66,12 +73,48 @@ rule normalize:
         samplefile=norm_dir / "samples_chr.csv",
         fasta=fasta_file,
         fastaindex=fasta_index_file,
+        expanded_bed=expanded_bed,
     params:
         vcf_file=lambda wildcards: vcf_look_up[wildcards.vcf_stem],
     output:
         bcf_file=bcf_dir / "{vcf_stem}.bcf",
     shell:
-        f"""{load_bcftools} bcftools view --samples-file {{input.samplefile}} --output-type u {{params.vcf_file}} | bcftools view --include 'COUNT(GT="alt") > 0' --output-type u | bcftools norm -m-both -f {{input.fasta}} --output-type b --output {{output.bcf_file}}"""
+        f"""{load_bcftools} bcftools view -R "{{input.expanded_bed}}" "{{params.vcf_file}}" --output-type u \
+        | bcftools view --samples-file {{input.samplefile}} --output-type u  \
+        | bcftools view --include 'COUNT(GT="alt") > 0' --output-type u \
+        | bcftools norm -m-both -f {{input.fasta}} --output-type b --output {{output.bcf_file}}"""
+
+
+rule fiter_gtf:
+    input:
+        gtf_file,
+    output:
+        gtf_filtered_file,
+    shell:
+        'get_features.pl --in "{input}" --out "{output}" --include "gene_type=protein_coding" --feature "gene" --gtf'
+
+
+rule create_bed:
+    input:
+        gtf_filtered_file,
+    output:
+        bed_file
+    params:
+        maxmem=config["convert2bed_max_mem"]
+    shell:
+        'convert2bed --max-mem={params.maxmem} --input=gtf --output=bed  < "{input}" > "{output}"'
+
+
+rule expand_regions:
+    input:
+        bed=bed_file,
+        faidx=fasta_index_file,
+    params:
+        region_expand=config["region_expand"],
+    output:
+        expanded_bed
+    shell:
+        'bedtools slop -i "{input.bed}" -g "{input.faidx}" -b {params.region_expand}  > "{output}"'
 
 
 rule index_fasta:
