@@ -82,7 +82,7 @@ def get_baseline_results(
         ): f"{r['base']}/{pheno}/{r['type']}/eval/burden_associations.parquet"
         for r in config["baseline_results"]
     }
-
+    logger.info(f'reading baseline from {baseline_paths}')
     for (t, m), p in baseline_paths.items():
         result_list.append(
             get_baseline(
@@ -277,8 +277,8 @@ def evaluate_(
             all_pvalues = pd.concat([all_pvalues, this_all_pvalues])
 
     else:
-        logger.info(f'Only evaluating for one repeat combination range({repeats_to_analyze})')
         rep_str = [f"repeat_{i}" for i in range(repeats_to_analyze)]
+        logger.info(f'Only evaluating for one repeat combination range({rep_str})')
         repeat_mask = [i in rep_str for i in associations["model"]]
         this_result = associations[repeat_mask].copy()
         experiment_name = f"DeepRVAT ({repeats_to_analyze} repeats)"
