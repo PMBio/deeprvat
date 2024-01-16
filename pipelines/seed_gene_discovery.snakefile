@@ -249,6 +249,7 @@ rule config:
         "{phenotype}/{vtype}/config.yaml",
     params:
         rare_maf=str(rare_maf),
+        maf_column = "MAF"
     threads: 1
     resources:
         mem_mb=1024,
@@ -261,7 +262,7 @@ rule config:
         "seed_gene_pipeline update-config "
                     + "--phenotype {wildcards.phenotype} "
                     + "--variant-type {wildcards.vtype} "
-                    + "--maf-column MAF "
+                    + "--maf-column {params.maf_column} "
                     + "--rare-maf "
                     + "{params.rare_maf}"
                     + " {input.config} "
