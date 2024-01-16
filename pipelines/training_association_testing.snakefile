@@ -16,6 +16,8 @@ debug = '--debug ' if debug_flag else ''
 do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
 tensor_compression_level = config['training'].get('tensor_compression_level', 1)
 n_parallel_training_jobs = config["training"].get("n_parallel_jobs", 1)
+DEEPRVAT_ANALYSIS_DIR=os.environ['DEEPRVAT_ANALYSIS_DIR']
+py_deeprvat_analysis= f'python {DEEPRVAT_ANALYSIS_DIR}'
 
 wildcard_constraints:
     repeat="\d+",
@@ -23,10 +25,48 @@ wildcard_constraints:
 
 rule all:
     input:
-        expand("{phenotype}/deeprvat/eval/significant.parquet",
+        significant = expand("{phenotype}/deeprvat/eval/significant.parquet",
                phenotype=phenotypes),
-        expand("{phenotype}/deeprvat/eval/all_results.parquet",
-               phenotype=phenotypes)
+        results = expand("{phenotype}/deeprvat/eval/all_results.parquet",
+               phenotype=phenotypes),
+        replication = "replication.parquet",
+        plots = "dicovery_replication_plot.png"
+
+rule plot:
+    conda:
+        "r-env"
+    input:
+        significant = expand("{phenotype}/deeprvat/eval/significant.parquet",
+               phenotype=phenotypes),
+        results = expand("{phenotype}/deeprvat/eval/all_results.parquet",
+               phenotype=phenotypes),
+        replication = "replication.parquet"
+    output:
+        "dicovery_replication_plot.png"
+    params:
+        results_dir = './',
+        code_dir = f'{DEEPRVAT_ANALYSIS_DIR}/association_testing'
+    script:
+        f'{DEEPRVAT_ANALYSIS_DIR}/association_testing/figure_3_main.R'
+
+#requires that comparison_results.pkl is linked to the experiment directory
+rule compute_replication:
+    input:
+        results = expand("{phenotype}/deeprvat/eval/all_results.parquet",
+            phenotype = training_phenotypes)
+    output:
+        'replication.parquet'
+    params:
+        result_files = lambda wildcards, input: ''.join([
+            f'--result-files {f} '
+            for f in input.results
+        ])
+    shell:
+        py_deeprvat_analysis + '/association_testing/compute_replication.py '
+        '--out-file {output} '
+        '{params.result_files} '
+        './ '
+
 
 rule evaluate:
     input:
