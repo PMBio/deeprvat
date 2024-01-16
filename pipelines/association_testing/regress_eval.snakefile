@@ -61,3 +61,25 @@ rule regress:
         '{input.config} '
         '{wildcards.phenotype}/deeprvat/burdens ' #TODO make this w/o repeats
         '{wildcards.phenotype}/deeprvat/repeat_{wildcards.repeat}/results'
+
+rule make_saige_input:
+    input:
+        burdens = lambda wildcards: expand(
+            ('{{phenotype}}/deeprvat/burdens/chunk{chunk}.' +
+             ("finished" if wildcards.phenotype == phenotypes[0] else "linked")),
+            chunk=range(n_burden_chunks)
+        ),
+        dataset = "{phenotype}/deeprvat/association_dataset.pkl",
+    output:
+        vcf = "{phenotype}/deeprvat/repeat_{repeat}/saige_input/dosages.vcf.gz",
+        group_file = "{phenotype}/deeprvat/repeat_{repeat}/saige_input/groups.txt",
+        phenotype_file = "{phenotype}/deeprvat/repeat_{repeat}/saige_input/phenotypes.txt",
+    threads: 1
+    shell:
+        "deeprvat_associate make-saige-input "
+        "--repeat {wildcards.repeat} "
+        "{input.dataset} "
+        "{wildcards.phenotype}/deeprvat/burdens "
+        "{output.vcf} "
+        "{output.group_file} "
+        "{output.phenotype_file}"
