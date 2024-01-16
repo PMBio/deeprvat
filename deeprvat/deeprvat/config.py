@@ -104,7 +104,6 @@ def update_config(
                     baseline_df = baseline_df.head(min_seed_genes)  # TODO make this flexible
                 else:
                     baseline_df = baseline_df.query("significant")
-                logger.info(f"  {len(baseline_df)} significant genes from baseline")
             else:
                 if threshold is not None:
                     baseline_temp = baseline_df.query(f"pval_corrected < @threshold")
@@ -123,7 +122,8 @@ def update_config(
                         )
 
             baseline_df = baseline_df.drop_duplicates(subset="gene")
-
+            logger.info(f"  {len(baseline_df)} significant genes from baseline")
+            
             genes = pd.read_parquet(
                 config["data"]["dataset_config"]["gene_file"], engine="pyarrow"
             )
