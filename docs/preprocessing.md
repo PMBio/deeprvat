@@ -50,17 +50,18 @@ An example file is included in this repo: [example config](https://github.com/PM
 # What chromosomes should be processed
 included_chromosomes : [21,22]
 
+# The format of the name of the "raw" vcf files
+vcf_files_list: vcf_files_list.txt
+
+# Number of threads to use in the preprocessing script, separate from snakemake threads
+preprocess_threads: 16
+
 # If you need to run a cmd to load bcf and samtools specify it here, see example
 bcftools_load_cmd : # module load bcftools/1.10.2 &&
 samtools_load_cmd : # module load samtools/1.9 &&
 
 # Path to where you want to write results and intermediate data
 working_dir: workdir
-# Path to ukbb data
-data_dir: data
-
-# These paths are all relative to the data dir
-metadata_dir_name: metadata
 
 # These paths are all relative to the working dir
 # Here will the finished preprocessed files end up
@@ -75,23 +76,14 @@ sparse_dir_name : sparse
 # Expected to be found in working_dir/reference_dir
 reference_fasta_file : GRCh38.primary_assembly.genome.fa
 
-# The format of the name of the "raw" vcf files
-vcf_files_list: vcf_files_list.txt
-
-# Number of threads to use in the preprocessing script, separate from snakemake threads
-preprocess_threads: 16
-
 # You can specify a different zcat cmd for example gzcat here, default zcat
-zcat_cmd: gzcat
+zcat_cmd:
    ```
 
 The config above would use the following directory structure:
 
 ```shell
 parent_directory
-|-- data
-|   |-- metadata
-|   `-- vcf
 `-- workdir
     |-- norm
     |   |-- bcf
