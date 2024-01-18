@@ -67,7 +67,8 @@ module deeprvat_workflow:
     snakefile: 
         f"{DEEPRVAT_DIR}/pipelines/training_association_testing_with_prefix.snakefile"
     prefix:
-        'cv_split{cv_split}/deeprvat'
+        './'
+        # 'cv_split{cv_split}/deeprvat'
     config:
         config
 
