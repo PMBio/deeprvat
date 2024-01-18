@@ -16,7 +16,7 @@ delete_burden_cache:
 
 choose_training_genes:
     - "-q short"
-evaluate:
+deeprvat_evaluate:
     - "-q long"
 best_cv_run:
     - "-q short"
