@@ -542,10 +542,6 @@ class DenseGTDataset(Dataset):
         variants = dd.read_parquet(self.variant_filename, engine="pyarrow").compute()
         variants = variants.set_index("id", drop=False)
         variants = variants.drop(columns="matrix_index", errors="ignore")
-        self.variants_to_keep = variants['id']
-        if self.variants_to_keep is not None:
-            logger.info("Selecting subset of variants as defined by variants_to_keep")
-            variants = variants.loc[self.variants_to_keep]
         logger.debug("    Filtering variants")
         if min_common_variant_count is not None:
             mask = (variants["count"] >= min_common_variant_count) & (
@@ -588,6 +584,7 @@ class DenseGTDataset(Dataset):
         rare_variant_mask = ~mask
         chromosome_mask = variants["chrom"].isin(self.chromosomes).to_numpy()
         additional_mask = chromosome_mask
+        additional_mask &= variants["id"].isin(set(self.annotation_df.index))
         if self.exons_to_keep is not None:
             raise NotImplementedError("The variant dataframes have outdated exon_ids")
             additional_mask &= (
