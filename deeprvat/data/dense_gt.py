@@ -219,7 +219,7 @@ class DenseGTDataset(Dataset):
             all_sparse_variants,
             sparse_genotype,
         ) = self.get_common_variants(sparse_variants, sparse_genotype)
-
+        # print('getitem')
         rare_variant_annotations = self.get_rare_variants(
             idx, all_sparse_variants, sparse_genotype
         ) #idx is not used by get_rare_variants
@@ -542,7 +542,7 @@ class DenseGTDataset(Dataset):
         variants = dd.read_parquet(self.variant_filename, engine="pyarrow").compute()
         variants = variants.set_index("id", drop=False)
         variants = variants.drop(columns="matrix_index", errors="ignore")
-
+        self.variants_to_keep = variants['id']
         if self.variants_to_keep is not None:
             logger.info("Selecting subset of variants as defined by variants_to_keep")
             variants = variants.loc[self.variants_to_keep]
@@ -789,6 +789,7 @@ class DenseGTDataset(Dataset):
     ):
         padding_mask = sparse_variants >= 0
         if self.variants_to_keep is not None:
+            # print('filtering for variants_to_keep')
             padding_mask &= np.isin(sparse_variants, self.variants_to_keep)
 
         masked_sparse_variants = sparse_variants[padding_mask]

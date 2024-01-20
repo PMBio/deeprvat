@@ -97,10 +97,28 @@ class PaddedAnnotations:
             return torch.tensor([])
 
         variants_mapped = self.variant_map[variant_ids]
+        # print('variant_ids_unique')
+        # print(np.unique(variant_ids))
+        # print('variants_mapped')
+        # print(variants_mapped)
+        # print('variants_mapped_unique')
+        # print(np.unique(variants_mapped))
+        # print('variants_sum')
+        # print(sum(variants_mapped < 0))
+        # print(variants_mapped.shape)
         mask = variants_mapped >= 0
+        # print('mask')
+        # print(mask.shape)
         variant_ids = variant_ids[mask]
+        # print('variant_ids')
+        # print(variant_ids.shape)
+        # print('genotype')
+        # print(genotype.shape)
         genotype = genotype[mask]
+        # print(genotype.shape)
+        # print(genotype)
         rows = []
+        # print('embed')
         for v, g in zip(variant_ids, genotype):
             ids = self.exp_anno_id_indices[v]  # np.ndarray
             # homozygous variants are considered twice
@@ -109,11 +127,10 @@ class PaddedAnnotations:
         result = [[] for _ in range(len(self.genes))]
         if len(rows) > 0:
             rows = np.concatenate(rows)
-            # logger.info(f"rows {rows}")
             for i in rows:
                 gene = self.gene_map[self.genes_np[i]]  # NOTE: Changed
                 result[gene].append(self.annotation_df_np[i, :])
-
+        # print(result)
         return result
 
     def collate_fn(
@@ -131,8 +148,19 @@ class PaddedAnnotations:
 
         n_samples = len(batch)
         max_n_variants = max(len(gene) for sample in batch for gene in sample)
+        # print(f'max n variants {max_n_variants}')
         n_annotations = len(self.annotations)
-        result = np.zeros(
+        # print('collate_fn')
+        #got until here
+        # print('hot')
+        # (16, 17981, 34, 24931)
+        # print('ho')
+        # np.zeros(
+        #     (n_samples, self.n_genes, n_annotations, max_n_variants), dtype=np.float32
+        # )
+        # print('ho')
+        # print((n_samples, self.n_genes, n_annotations, max_n_variants))
+        result = np.zeros( #this is causing the bug
             (n_samples, self.n_genes, n_annotations, max_n_variants), dtype=np.float32
         )
         for i, sample in enumerate(batch):
