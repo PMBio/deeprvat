@@ -14,6 +14,8 @@ debug = '--debug ' if debug_flag else ''
 do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
 pretrained_model_path = Path(config.get("pretrained_model_path", "pretrained_models"))
 
+training_phenotypes = config["training"].get("phenotypes", phenotypes)
+phenotypes = training_phenotypes
 wildcard_constraints:
     repeat="\d+",
     trial="\d+",
@@ -34,6 +36,9 @@ rule evaluate:
         "{phenotype}/deeprvat/eval/significant.parquet",
         "{phenotype}/deeprvat/eval/all_results.parquet"
     threads: 1
+    resources:
+        mem_mb = 16000,
+        load = 16000
     shell:
         'deeprvat_evaluate '
         + debug +
@@ -55,6 +60,9 @@ rule combine_regression_chunks:
     output:
         '{phenotype}/deeprvat/repeat_{repeat}/results/burden_associations.parquet',
     threads: 1
+    resources:
+        mem_mb = 2048,
+        load = 2000
     shell:
         'deeprvat_associate combine-regression-results '
         '--model-name repeat_{wildcards.repeat} '
@@ -76,6 +84,10 @@ rule regress:
     output:
         temp('{phenotype}/deeprvat/repeat_{repeat}/results/burden_associations_{chunk}.parquet'),
     threads: 2
+    resources:
+        mem_mb = lambda wildcards, attempt: 28676 + (attempt - 1) * 4098,
+        # mem_mb = 16000,
+        load = lambda wildcards, attempt: 28000 + (attempt - 1) * 4000
     shell:
         'deeprvat_associate regress '
         + debug +
@@ -109,6 +121,10 @@ rule link_burdens:
         model_config = pretrained_model_path / 'config.yaml',
     output:
         '{phenotype}/deeprvat/burdens/chunk{chunk}.linked'
+    resources:
+        mem_mb = lambda wildcards, attempt: 20480 + (attempt - 1) * 4098,
+        # mem_mb = 16000,
+        load = lambda wildcards, attempt: 16000 + (attempt - 1) * 4000
     threads: 8
     shell:
         ' && '.join([
@@ -139,6 +155,10 @@ rule compute_burdens:
     output:
         '{phenotype}/deeprvat/burdens/chunk{chunk}.finished'
     threads: 8
+    resources:
+        mem_mb = 2000000,        # Using this value will tell our modified lsf.profile not to set a memory resource
+        load = 8000,
+        gpus = 1
     shell:
         ' && '.join([
             ('deeprvat_associate compute-burdens '
@@ -164,6 +184,9 @@ rule association_dataset:
     output:
         '{phenotype}/deeprvat/association_dataset.pkl'
     threads: 4
+    resources:
+        mem_mb = lambda wildcards, attempt: 32000 * (attempt + 1),
+        load = 64000
     shell:
         'deeprvat_associate make-dataset '
         + debug +
@@ -179,6 +202,9 @@ rule reverse_models:
     output:
         temp(pretrained_model_path / "reverse_finished.tmp")
     threads: 4
+    resources:
+        mem_mb = 20480,
+        load = 20480
     shell:
         " && ".join([
             ("deeprvat_associate reverse-models "
