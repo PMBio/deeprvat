@@ -92,7 +92,8 @@ rule evaluate:
         use_seed_genes = '--use-seed-genes', 
         n_repeats = f'{n_repeats}',
         repeats_to_analyze = f'{n_repeats}',
-        max_repeat_combis = 1
+        max_repeat_combis = 1,
+        combine_pval = ''
     resources:
         mem_mb = lambda wildcards, attempt: 25000 + attempt * 4098,
     shell:
@@ -103,6 +104,7 @@ rule evaluate:
         '--repeats-to-analyze {params.repeats_to_analyze} '#number of repeats to analyze
         '--max-repeat-combis {params.max_repeat_combis} '
         '--correction-method FDR '
+        '{params.combine_pval} '
         '{input.associations} '
         '{input.config} '
         '{params.out_path}'

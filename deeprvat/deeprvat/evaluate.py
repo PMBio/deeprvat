@@ -9,8 +9,9 @@ import click
 import numpy as np
 import pandas as pd
 import yaml
+from seak.cct import cct
 
-from deeprvat.utils import pval_correction
+from deeprvat.utils import pval_correction, bfcorrect_df
 
 logging.basicConfig(
     format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
@@ -99,6 +100,7 @@ def get_baseline_results(
     return pd.concat(result_list)
 
 
+
 def combine_results(
     deeprvat_results: pd.DataFrame,
     baseline_results: pd.DataFrame,
@@ -171,12 +173,34 @@ def get_pvals(results, method_mapping=None, phenotype_mapping={}):
 
     return pvals
 
+def min_bonferroni_aggregate(pvals):
+    pval = min(pvals * len(pvals))
+    return pval
+
+def aggregate_pvals_per_gene(df, agg_method):
+    grouping_cols = ['phenotype', 'gene', 'experiment', 'experiment_group', 'repeat_combi', 'correction_method']
+    grouping_cols = list(set(grouping_cols).intersection(set(df.columns)))
+    select_cols = grouping_cols + ['pval']
+    agg_results = df.copy()[select_cols]
+    logger.info(f'aggregating pvalues using grouping cols {grouping_cols}')
+    agg_results = agg_results.groupby(grouping_cols, dropna = False)
+    if agg_method == 'bonferroni':
+        logger.info('using bonferroni')
+        agg_results = agg_results.agg(min_bonferroni_aggregate).reset_index()
+    elif agg_method == 'cct':
+        logger.info('using cct')
+        agg_results = agg_results.agg(cct).reset_index()
+    else:
+        raise ValueError(
+            f"Unknown agg_method type: {agg_method}. ")
+    return(agg_results)
 
 def process_results(
     results: pd.DataFrame,
     n_repeats: int = 6,
     alpha: float = 0.05,
     correction_method: str = "FDR",
+    combine_pval: str = None
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     deeprvat_results = results.query(
         f'experiment == "DeepRVAT ({n_repeats} repeats)"'
@@ -190,6 +214,13 @@ def process_results(
         # if use_seed_gene is not True the correction_method column is not in results
         baseline_results = results.query("correction_method == @correction_method")
 
+    if combine_pval is not None:
+        logger.info('Aggregating pvalues to one pvalue per gene')
+        deeprvat_results = aggregate_pvals_per_gene(deeprvat_results, combine_pval)
+        if len(baseline_results) > 0:
+            #len(baseline_results) > 0 so for the case that use_seed_genes = False don't run this
+            baseline_results = aggregate_pvals_per_gene(baseline_results, combine_pval)
+    
     combined_results = combine_results(
         deeprvat_results,
         baseline_results,
@@ -217,6 +248,7 @@ def evaluate_(
     baseline_results: Optional[pd.DataFrame] = None,
     debug: bool = False,
     correction_method: str = "FDR",
+    combine_pval: str = None,
 ):
     if seed_genes is not None:
         seed_gene_ids = seed_genes["id"]
@@ -266,6 +298,7 @@ def evaluate_(
                 n_repeats=repeats_to_analyze,
                 alpha=alpha,
                 correction_method=correction_method,
+                combine_pval=combine_pval
             )
             combi_str = '-'.join(str(x) for x in combi)
             this_significant = this_significant.assign(repeats = repeats_to_analyze,
@@ -293,6 +326,7 @@ def evaluate_(
             n_repeats=repeats_to_analyze,
             alpha=alpha,
             correction_method=correction_method,
+            combine_pval=combine_pval
         )
 
     return significant, all_pvalues
@@ -308,6 +342,7 @@ def evaluate_(
 @click.option("--repeats-to-analyze", type=int)
 @click.option("--correction-method", type=str, default="FDR")
 @click.option("--n-repeats", type=int)
+@click.option("--combine-pval", type=str, default = None)
 @click.argument("association-files", type=click.Path(exists=True), nargs=-1)
 @click.argument("config-file", type=click.Path(exists=True))
 @click.argument("out-dir", type=click.Path())
@@ -322,7 +357,8 @@ def evaluate(
     config_file: str,
     out_dir: str,
     max_repeat_combis: int,
-    repeats_to_analyze: Optional[int]
+    repeats_to_analyze: Optional[int],
+    combine_pval,
 ):
     with open(config_file) as f:
         config = yaml.safe_load(f)
@@ -368,14 +404,15 @@ def evaluate(
         correction_method=correction_method,
         debug=debug,
         max_repeat_combis = max_repeat_combis,
-        repeats_to_analyze = repeats_to_analyze
+        repeats_to_analyze = repeats_to_analyze,
+        combine_pval = combine_pval
     )
 
     logger.info("Saving results")
     out_path = Path(out_dir)
     significant.to_parquet(out_path / f"significant_{repeats_to_analyze}repeats.parquet", engine="pyarrow")
     all_pvals.to_parquet(out_path / f"all_results_{repeats_to_analyze}repeats.parquet", engine="pyarrow")
-    if (repeats_to_analyze == n_repeats) & (max_repeat_combis == 1) | save_default :
+    if (repeats_to_analyze == n_repeats) & (max_repeat_combis == 1)  | save_default :
         logger.info('Also saving result without repeat suffix since its the "default"')
         #save the 'traditional' output
         significant.to_parquet(out_path / f"significant.parquet", engine="pyarrow")
