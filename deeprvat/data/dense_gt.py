@@ -266,8 +266,8 @@ class DenseGTDataset(Dataset):
         self.phenotype_df = pd.read_parquet(phenotype_file, engine="pyarrow")
         gt_file = h5py.File(self.gt_filename, "r") #TODO change this to using with open
         samples_gt = gt_file['samples'][:]
-        samples_gt = np.array([item.decode('utf-8') for item in samples_gt]).astype(int)
-        samples_phenotype_df = np.array(self.phenotype_df.index.astype(int))
+        samples_gt = np.array([item.decode('utf-8') for item in samples_gt])
+        samples_phenotype_df = np.array(self.phenotype_df.index)
         assert all(samples_phenotype_df == samples_gt) #TODO allow this to be different, 
         #in principle done by introducing self.index_map_geno and self.index_map_pheno  but needs sanity check
         # but phenotypes_df has first to be sorted in the same order as samples_gt
@@ -299,7 +299,7 @@ class DenseGTDataset(Dataset):
         binary_cols = [
             c for c in self.y_phenotypes if self.phenotype_df[c].dtype == bool
         ]
-        samples_to_keep_mask = [True if i in samples_to_keep else False for i in self.phenotype_df.index.astype(int)]
+        samples_to_keep_mask = [True if i in samples_to_keep else False for i in self.phenotype_df.index]
         assert sum(samples_to_keep_mask) == len(samples_to_keep)
         mask_cols = copy.deepcopy(self.x_phenotypes)
         if skip_y_na:
@@ -311,7 +311,7 @@ class DenseGTDataset(Dataset):
             f"Number of samples with phenotype and covariates: {mask.sum()}"
         )
         mask &= samples_to_keep_mask
-        samples_to_keep = self.phenotype_df.index[mask].astype(int)
+        samples_to_keep = self.phenotype_df.index[mask]
         self.n_samples = mask.sum()
         logger.info(
             f"Final number of kept samples: {self.n_samples}"
