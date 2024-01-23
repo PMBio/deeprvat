@@ -558,6 +558,8 @@ class DenseGTDataset(Dataset):
 
             af_vals = af_annotation[af_col].to_numpy()
             ids_to_keep = set(af_annotation.loc[(af_vals >= af_threshold) & (af_vals <= 1 - af_threshold), "id"])
+            if self.variants_to_keep is not None: # Caution: This has not been tested yet but should work 
+                ids_to_keep.intersect(self.variants_to_keep)
             mask = variants["id"].isin(ids_to_keep).to_numpy()
 
             logger.debug(f'    {mask.sum()} variants "common" by AF filter')
