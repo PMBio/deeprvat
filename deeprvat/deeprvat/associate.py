@@ -529,7 +529,7 @@ def make_saige_input_(
 @click.option("--repeat", type=int, default=-1)
 @click.option("--average-repeats", is_flag=True)
 @click.argument("dataset-file", type=click.Path(exists=True, path_type=Path))
-@click.argument("burden-dir", type=click.Path(exists=True, path_type=Path))
+@click.argument("burden-dir", type=click.Path(exists=True, path_type=Path), nargs=-1)
 @click.argument("vcf", type=click.Path(path_type=Path))
 @click.argument("group-file", type=click.Path(path_type=Path))
 @click.argument("phenotype-file", type=click.Path(path_type=Path))
@@ -537,7 +537,7 @@ def make_saige_input(
     repeat: int,
     average_repeats: bool,
     dataset_file: Path,
-    burden_dir: Path,
+    burden_dir: Tuple[Path],
     bgen: Path,
     group_file: Path,
     phenotype_file: Path,
@@ -545,21 +545,24 @@ def make_saige_input(
     make_saige_input_(
         repeat,
         average_repeats,
-        dataset_file,
-        burden_dir,
+        phenotype,
+        # dataset_file,
+        # burden_dir,
         bgen,
         group_file,
         phenotype_file,
     )
 
+
 def make_regenie_input_(
     repeat: int,
     average_repeats: bool,
-    dataset_file: Path,
-    burden_dir: Path,
-        gtf: Path,
+    phenotype: Tuple[Tuple[str, Path, Path]],  # dataset_file, burden_dir
+    # dataset_file: Path,
+    # burden_dir: Tuple[Path],
+    # gtf: Path,
     bgen: Path,
-    group_file: Path,
+    covariate_file: Path,
     phenotype_file: Path,
 ):
     logger.setLevel(logging.INFO)
@@ -569,144 +572,151 @@ def make_regenie_input_(
             "Exactly one of --repeat or --average-repeats must be specified"
         )
 
-    ## Make VCF
+    ## Make BGEN
 
     # Load data
     logger.info("Loading computed burdens, covariates, phenotypes and metadata")
-    sample_ids = zarr.load(burden_dir / "sample_ids.zarr")
-    covariates = zarr.load(burden_dir / "x.zarr")
-    y = zarr.load(burden_dir / "y.zarr")
-    genes = np.load(burden_dir / "genes.npy")
 
-    burdens_zarr = zarr.open(burden_dir / "burdens.zarr")
-    if average_repeats:
-        burdens = np.zeros(burdens_zarr.shape[:2])
-        for repeat in range(burdens_zarr.shape[2]):
-            burdens += burdens_zarr[:, :, repeat]
-        burdens = burdens / burdens_zarr.shape[2]
-    else:
-        assert repeat < burdens_zarr.shape[2]
-        burdens = burdens_zarr[:, :, repeat]
+    phenotype_names = [p[0] for p in phenotype]
+    dataset_files = [p[1] for p in phenotype]
+    burden_dirs = [p[2] for p in phenotype]
 
-    assert burdens_zarr.shape[0] == sample_ids.shape[0]
-    assert burdens_zarr.shape[0] == covariates.shape[0]
-    assert burdens_zarr.shape[0] == y.shape[0]
-    assert burdens_zarr.shape[1] == genes.shape[0]
+    sample_ids = zarr.load(burden_dirs[0] / "sample_ids.zarr")
+    covariates = zarr.load(burden_dirs[0] / "x.zarr")
+    ys = [zarr.load(b / "y.zarr") for b in burden_dirs]
+    genes = np.load(burden_dirs[0] / "genes.npy")
 
-    mask = np.all(~np.isnan(np.concatenate([y, covariates], axis=1)), axis=1)
+    # burdens_zarr = zarr.open(burden_dirs[0] / "burdens.zarr")
+    # if average_repeats:
+    #     burdens = np.zeros(burdens_zarr.shape[:2])
+    #     for repeat in range(burdens_zarr.shape[2]):
+    #         burdens += burdens_zarr[:, :, repeat]
+    #     burdens = burdens / burdens_zarr.shape[2]
+    # else:
+    #     assert repeat < burdens_zarr.shape[2]
+    #     burdens = burdens_zarr[:, :, repeat]
 
-    logger.info(f"Keeping {np.sum(mask)} samples with defined phenotype and covariates")
+    # assert burdens_zarr.shape[0] == sample_ids.shape[0]
+    # assert burdens_zarr.shape[0] == covariates.shape[0]
+    # assert burdens_zarr.shape[0] == y.shape[0]
+    # assert burdens_zarr.shape[1] == genes.shape[0]
 
-    sample_ids = sample_ids[mask]
-    covariates = covariates[mask]
-    y = y[mask]
-    burdens = burdens[mask]
+    # TODO: Do we need to filter NAs for REGENIE?
+    # mask = np.all(~np.isnan(np.concatenate([y, covariates], axis=1)), axis=1)
 
-    with gzip.open(vcf, "wb", compresslevel=1) as f:
-        logger.info("Creating VCF file with artificial variants and burdens as dosages")
-        logger.info("  This can take a while for large datasets")
+    # logger.info(f"Keeping {np.sum(mask)} samples with defined phenotype and covariates")
 
-        # Make VCF header
-        header = ""  # TODO: Replace this with real metadata
-        header += (
-            "\t".join(
-                [
-                    "#CHROM",
-                    "POS",
-                    "ID",
-                    "REF",
-                    "ALT",
-                    "QUAL",
-                    "FILTER",
-                    "INFO",
-                    "FORMAT",
-                ]
-            )
-            + "\t"
-        )
-        header += "\t".join(sample_ids.astype(str)) + "\n"
+    # sample_ids = sample_ids[mask]
+    # covariates = covariates[mask]
+    # ys = [y[mask] for y in ys]
+    # # burdens = burdens[mask]
 
-        f.write(header.encode("utf-8"))
+    # with gzip.open(vcf, "wb", compresslevel=1) as f:
+    #     logger.info("Creating VCF file with artificial variants and burdens as dosages")
+    #     logger.info("  This can take a while for large datasets")
 
-        # Create one fake variant per gene, with burdens as dosages
-        gene_block_size = 1000
-        pos = (2 * np.arange(genes.shape[0], dtype=np.int32) + 1).astype(np.bytes_)
-        for start_index in trange(0, genes.shape[0], gene_block_size, file=sys.stdout):
-            end_index = min(genes.shape[0], start_index + gene_block_size)
-            this_burdens = burdens[:, start_index:end_index]
+    #     # Make VCF header
+    #     header = ""  # TODO: Replace this with real metadata
+    #     header += (
+    #         "\t".join(
+    #             [
+    #                 "#CHROM",
+    #                 "POS",
+    #                 "ID",
+    #                 "REF",
+    #                 "ALT",
+    #                 "QUAL",
+    #                 "FILTER",
+    #                 "INFO",
+    #                 "FORMAT",
+    #             ]
+    #         )
+    #         + "\t"
+    #     )
+    #     header += "\t".join(sample_ids.astype(str)) + "\n"
 
-            this_burdens = this_burdens.transpose().astype(np.bytes_)
-            this_burdens = np.char.add(np.bytes_(b"\t./.:"), this_burdens)
+    #     f.write(header.encode("utf-8"))
 
-            metadata = np.char.add(
-                np.char.add(b"1\t", pos[start_index:end_index]),
-                b"\t.\tA\tC\t100\tPASS\t.\tGT:DS",
-            )
+    #     # Create one fake variant per gene, with burdens as dosages
+    #     gene_block_size = 1000
+    #     pos = (2 * np.arange(genes.shape[0], dtype=np.int32) + 1).astype(np.bytes_)
+    #     for start_index in trange(0, genes.shape[0], gene_block_size, file=sys.stdout):
+    #         end_index = min(genes.shape[0], start_index + gene_block_size)
+    #         this_burdens = burdens[:, start_index:end_index]
 
-            first, last = np.split(
-                this_burdens,
-                [
-                    1,
-                ],
-                axis=1,
-            )
-            this_burdens = np.char.add(metadata.reshape(metadata.shape[0], 1), first)
+    #         this_burdens = this_burdens.transpose().astype(np.bytes_)
+    #         this_burdens = np.char.add(np.bytes_(b"\t./.:"), this_burdens)
 
-            cells = np.concatenate([this_burdens, last], axis=1)
-            lines = [b"".join(x) for x in cells]
-            block = b"\n".join(lines) + b"\n"
+    #         metadata = np.char.add(
+    #             np.char.add(b"1\t", pos[start_index:end_index]),
+    #             b"\t.\tA\tC\t100\tPASS\t.\tGT:DS",
+    #         )
 
-            f.write(block)
+    #         first, last = np.split(
+    #             this_burdens,
+    #             [
+    #                 1,
+    #             ],
+    #             axis=1,
+    #         )
+    #         this_burdens = np.char.add(metadata.reshape(metadata.shape[0], 1), first)
 
-        # pos = lambda i: str(2 * i + 1)
-        # for i, g in tqdm(enumerate(genes), total=genes.shape[0], file=sys.stdout):
-        #     if i % 1000 == 0:
-        #         buffer = b""
-        #         start_index = i // 1000
-        #         end_index = start_index + 1000
-        #         this_burdens = burdens_zarr[:, start_index:end_index, repeat][
-        #             mask
-        #         ].astype(str)
+    #         cells = np.concatenate([this_burdens, last], axis=1)
+    #         lines = [b"".join(x) for x in cells]
+    #         block = b"\n".join(lines) + b"\n"
 
-        #     import ipdb
+    #         f.write(block)
 
-        #     ipdb.set_trace()
+    #     # pos = lambda i: str(2 * i + 1)
+    #     # for i, g in tqdm(enumerate(genes), total=genes.shape[0], file=sys.stdout):
+    #     #     if i % 1000 == 0:
+    #     #         buffer = b""
+    #     #         start_index = i // 1000
+    #     #         end_index = start_index + 1000
+    #     #         this_burdens = burdens_zarr[:, start_index:end_index, repeat][
+    #     #             mask
+    #     #         ].astype(str)
 
-        #     line = "\t".join(
-        #         ["1", pos(i), ".", "A", "C", "100", "PASS", ".", "GT:DS", "0/1:"]
-        #     )
-        #     # line += "\t0/1:".join([str(float(x)) for x in burdens[:, i][mask]])
-        #     line += "\t0/1:".join(this_burdens[:, i % 1000])
-        #     buffer += line.encode("utf-8") + b"\n"
+    #     #     import ipdb
 
-        #     # DEBUG
-        #     if i == 21:
-        #         f.write(buffer)
-        #         buffer = b""
+    #     #     ipdb.set_trace()
 
-        #     # DEBUG
-        #     if i > 20:
-        #         break
+    #     #     line = "\t".join(
+    #     #         ["1", pos(i), ".", "A", "C", "100", "PASS", ".", "GT:DS", "0/1:"]
+    #     #     )
+    #     #     # line += "\t0/1:".join([str(float(x)) for x in burdens[:, i][mask]])
+    #     #     line += "\t0/1:".join(this_burdens[:, i % 1000])
+    #     #     buffer += line.encode("utf-8") + b"\n"
 
-    ## Make group file
-    logger.info("Creating group file")
-    with open(group_file, "w") as f:
-        for i, g in enumerate(genes):
-            group = f"{g} var 1:{pos[i]}:A:C\n"
-            group += f"{g} anno deeprvat\n"
-            group += f"{g} weight 1\n"
-            f.write(group)
+    #     #     # DEBUG
+    #     #     if i == 21:
+    #     #         f.write(buffer)
+    #     #         buffer = b""
 
-    ## Make phenotype file
+    #     #     # DEBUG
+    #     #     if i > 20:
+    #     #         break
+
+    ## Make covariate file
+    logger.info("Creating covariate file")
+    sample_df = pd.DataFrame({"FID": sample_ids, "IID": sample_ids})
+
     logger.info("Creating phenotype file")
-    with open(dataset_file, "rb") as f:
+    with open(dataset_files[0], "rb") as f:
         dataset = pickle.load(f)
 
-    pheno_df = pd.DataFrame({dataset.y_phenotypes[0]: y.squeeze()})
-    cov_df = pd.DataFrame(covariates, columns=dataset.x_phenotypes)
-    sample_df = pd.DataFrame(sample_ids, columns=["sample"])
-    out_df = pd.concat([pheno_df, cov_df, sample_df], axis=1)
-    out_df.to_csv(phenotype_file, sep=" ", index=False)
+    covariate_names = dataset.x_phenotypes
+    cov_df = pd.DataFrame(covariates, columns=covariate_names)
+    cov_df = pd.concat(sample_df, cov_df, axis=1, ignore_index=True)
+    cov_df.to_csv(covariate_file, sep=" ", index=False)
+
+    ## Make phenotype file
+    pheno_df_list = []
+    for p, y in zip(phenotype_names, ys):
+        pheno_df_list.append(pd.DataFrame({p: y.squeeze()}))
+
+    pheno_df = pd.concat([sample_df] + pheno_df_list, axis=1, ignore_index=True)
+    pheno_df.to_csv(pheno_df, sep=" ", index=False)
 
     logger.info("Done")
 
@@ -714,30 +724,40 @@ def make_regenie_input_(
 @cli.command()
 @click.option("--repeat", type=int, default=-1)
 @click.option("--average-repeats", is_flag=True)
-@click.argument("dataset-file", type=click.Path(exists=True, path_type=Path))
-@click.argument("burden-dir", type=click.Path(exists=True, path_type=Path))
-@click.argument("gtf", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--phenotype",
+    type=Tuple[
+        str,
+        click.Path(exists=True, path_type=Path),
+        click.Path(exists=True, path_type=Path),
+    ],
+    multiple=True,
+)  # phenotype_name, dataset_file, burden_dir
+# @click.argument("dataset-file", type=click.Path(exists=True, path_type=Path))
+# @click.argument("burden-dir", type=click.Path(exists=True, path_type=Path))
+# @click.argument("gtf", type=click.Path(exists=True, path_type=Path))
 @click.argument("bgen", type=click.Path(path_type=Path))
-@click.argument("group-file", type=click.Path(path_type=Path))
+@click.argument("covariate-file", type=click.Path(path_type=Path))
 @click.argument("phenotype-file", type=click.Path(path_type=Path))
 def make_regenie_input(
     repeat: int,
     average_repeats: bool,
-    dataset_file: Path,
-    burden_dir: Path,
-        gtf: Path,
+    phenotype: Tuple[str, Path, Path],
+    gtf: Path,
     bgen: Path,
     group_file: Path,
+    covariate_file: Path,
     phenotype_file: Path,
 ):
     make_regenie_input_(
         repeat,
         average_repeats,
-        dataset_file,
-        burden_dir,
-        gtf,
+        phenotype,
+        # dataset_file,
+        # burden_dir,
+        # gtf,
         bgen,
-        group_file,
+        covariate_file,
         phenotype_file,
     )
 
