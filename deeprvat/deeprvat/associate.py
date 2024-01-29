@@ -485,6 +485,7 @@ def compute_burdens(
 
 def regress_on_gene_scoretest(gene: str, burdens: np.ndarray, model_score):
     burdens = burdens.reshape(burdens.shape[0], -1)
+    assert np.all(burdens != 0) # TODO check this!
     logger.info(f"Burdens shape: {burdens.shape}")
 
     if np.all(np.abs(burdens) < 1e-6):
@@ -647,11 +648,11 @@ def regress(
     burden_file: Optional[str],
 ):
     logger.info("Loading saved burdens")
-    if burden_file is not None:
-        logger.info(f'Loading burdens from {burden_file}')
-        burdens = zarr.open(burden_file)[:, :, repeat]
-    else:
-        burdens = zarr.open(Path(burden_dir) / "burdens.zarr")[:, :, repeat]
+    # if burden_file is not None:
+    #     logger.info(f'Loading burdens from {burden_file}')
+    #     burdens = zarr.open(burden_file)[:, :, repeat]
+    # else:
+    #     burdens = zarr.open(Path(burden_dir) / "burdens.zarr")[:, :, repeat]
     logger.info(f'Loading x, y, genes from {burden_dir}')
     y = zarr.open(Path(burden_dir) / "y.zarr")[:]
     x_pheno = zarr.open(Path(burden_dir) / "x.zarr")[:]
@@ -662,18 +663,18 @@ def regress(
             samples = pickle.load(f)["association_samples"]
         if debug:
             samples = [s for s in samples if s < 1000]
-        burdens = burdens[samples]
+        # burdens = burdens[samples]
         y = y[samples]
         x_pheno = x_pheno[samples]
 
-    n_samples = burdens.shape[0]
+    n_samples = y.shape[0]
     assert y.shape[0] == n_samples
     assert x_pheno.shape[0] == n_samples
     assert len(genes) == burdens.shape[1]
 
     nan_mask = ~np.isnan(y).squeeze()
     y = y[nan_mask]
-    burdens = burdens[nan_mask]
+    # burdens = burdens[nan_mask]
     x_pheno = x_pheno[nan_mask]
 
     with open(config_file) as f:
@@ -690,9 +691,22 @@ def regress(
     chunk_end = min(len(genes), chunk_start + chunk_size)
     if chunk == n_chunks - 1:
         assert chunk_end == len(genes)
-    gene_indices = np.arange(chunk_start, chunk_end)
-    genes = genes.iloc[chunk_start:chunk_end]
+    # gene_indices = np.arange(chunk_start, chunk_end)
 
+    genes = genes.iloc[chunk_start:chunk_end]
+    gene_indices = np.arange(len(genes))
+    print(f'Only extracting genes in range {chunk_start, chunk_end}')
+    if burden_file is not None:
+        logger.info(f'Loading burdens from {burden_file}')
+        burdens = zarr.open(burden_file)[:, chunk_start:chunk_end, repeat]
+    else:
+        burdens = zarr.open(Path(burden_dir) / "burdens.zarr")[:,  chunk_start:chunk_end, repeat]
+
+    if sample_file is not None:
+        burdens = burdens[samples]
+    burdens = burdens[nan_mask]
+    assert len(genes) == burdens.shape[1]
+    
     associations = regress_(
         config,
         use_bias,
