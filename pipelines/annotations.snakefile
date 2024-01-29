@@ -38,8 +38,7 @@ bcf_dir = Path(config["bcf_dir"])
 anno_tmp_dir = Path(config["anno_tmp_dir"])
 anno_dir = Path(config["anno_dir"])
 metadata_dir = Path(config["metadata_dir"])
-vep_plugin_repo = Path(config["vep_plugin_repo"])
-condel_config_path = vep_plugin_repo / "config" / "Condel" / "config"
+condel_config_path = vep_plugin_dir / "config" / "Condel" / "config"
 
 
 # init cadd PLugin

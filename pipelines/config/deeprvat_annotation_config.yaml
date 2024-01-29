@@ -15,7 +15,7 @@ anno_tmp_dir : output_dir/annotations/tmp
 anno_dir : output_dir/annotations
 
 vep_cache_dir : repo_dir/ensembl-vep/cache/vep109
-vep_plugin_dir : repo_dir/ensembl-vep/Plugins
+vep_plugin_dir : repo_dir/VEP_Plugins
 spliceAI_snv_file : annotation_data/spliceAI/spliceai_scores.raw.snv.hg38.vcf.gz
 spliceAI_indel_file : annotation_data/spliceAI/spliceai_scores.raw.indel.hg38.vcf.gz
 primateAI_file : annotation_data/primateAI/PrimateAI_scores_v0.2_GRCh38_sorted.tsv.bgz
@@ -26,7 +26,6 @@ deeprvat_repo_dir : deeprvat_repo_dir
 kipoiveff_repo_dir : repo_dir/kipoi-veff2
 faatpipe_repo_dir : repo_dir/faatpipe
 vep_repo_dir : repo_dir/ensembl-vep
-vep_plugin_repo : repo_dir/VEP_plugins
 variant_file_path : preprocessing_workdir/norm/variants/variants.tsv.gz
 pybedtools_tmp_path : output_dir/annotations/tmp/pybedtools
 n_jobs_deepripe : 32
