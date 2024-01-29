@@ -307,9 +307,6 @@ class DenseGTDataset(Dataset):
         if skip_x_na:
             mask_cols += self.x_phenotypes
         mask = (self.phenotype_df[mask_cols].notna()).all(axis=1)
-        logger.info(
-            f"Number of samples with phenotype and covariates: {mask.sum()}"
-        )
         mask &= samples_to_keep_mask
         samples_to_keep = self.phenotype_df.index[mask].astype(int)
         self.n_samples = mask.sum()
