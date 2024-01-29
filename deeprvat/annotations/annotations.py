@@ -18,7 +18,7 @@ from joblib import Parallel, delayed
 from keras.models import load_model
 from sklearn.decomposition import PCA
 from tqdm import tqdm, trange
-
+import warnings
 
 def precision(y_true, y_pred):
     """
@@ -622,6 +622,98 @@ def deepripe_score_variant_onlyseq_all(
 def cli():
     pass
 
+
+@cli.command()
+@click.argument("anno_path", type=click.Path(exists=True))
+@click.argument("gtf_path", type=click.Path(exists=True))
+@click.argument("genes_path", type=click.Path(exists=True))
+@click.argument("output_path", type=click.Path(exists=False))
+@click.argument("max_dist", type=int)
+def filter_annotations_by_exon_distance(anno_path:str, gtf_path:str, genes_path:str, output_path:str, max_dist:int)->None:
+    """Filters annotation based on distance to the nearest exon of gene it is associated with. 
+
+    Args:
+        anno_path (str): Annotation parquet file 
+            containing variant annotations to filter 
+        gtf_path (str): gtf file containing start and end positions of 
+            all relevant exons of all relevant genes. 
+            Df is filtered for protein coding exons.
+        genes_path (str): list of protein coding genes and their IDs in the annotation DF
+        output_path (str): were to write the resulting parquet file
+        max_dist (int): base pairs used to filter
+    Returns: None
+    Writes: parquet file containing filtered annotations
+    """
+    logger.info('read gtf file as pandas df')
+    gtf = pr.read_gtf(gtf_path)
+    gtf = gtf.as_df()
+
+
+    logger.info('filter gtf for protein coding exons from the HAVANA DB')
+    gtf = gtf.query("Source == 'HAVANA' and Feature == 'exon' and gene_type == 'protein_coding' and transcript_type == 'protein_coding'")
+
+
+    logger.info("split gene ID column on '.'")
+    gtf[['gene_base','feature']] = gtf['gene_id'].str.split('.', expand=True)
+
+
+    logger.info(' read protein_coding_genes')
+    pcg = pd.read_parquet(genes_path, columns = ['gene', 'id'])
+
+
+    logger.info(' only select necessary columns, rename to fit gtf file')
+    gtf =gtf[['gene_id', 'Start', 'End']].rename(columns={'gene_id':'gene'})
+
+
+    logger.info(" add gene ids to gtf file")
+
+    
+    gtf = gtf.merge(pcg, on = 'gene' )
+
+
+    logger.info(" only select necessary columns, rename to fit gtf file")
+    gtf = gtf[['Start','End','id']].rename(columns={'id':'gene_id'})
+
+
+    logger.info("reading annotations to filter ")
+    anno_df = pd.read_parquet(anno_path)
+    anno_df = anno_df[['id', 'pos','gene_id']]
+
+
+    logger.info("adding exons to annotations (1:M merge)")
+
+    merged = anno_df.merge(gtf, how = 'left', on='gene_id')
+    del anno_df
+
+    logger.info("adding positons of start and end of each exon relative to variant position to df")
+    merged['start_diff'] =  merged['Start'] - merged['pos']
+    merged['end_diff'] =merged['End'] -  merged['pos'] 
+
+
+    logger.info(f"filtering all rows that are further than {max_dist}bp away from each exon ")
+    len_bf_filtering = len(merged)
+    filtered_merge = merged.query('(start_diff <= 0 & end_diff >= 0) | abs(start_diff) <= @max_dist | abs(end_diff) <= @max_dist')
+    del merged
+    len_after_filtering = len(filtered_merge)
+    logger.info(f'filtered rows by exon distance ({max_dist}bp), dropped({len_bf_filtering - len_after_filtering} rows / {np.round(100*(len_bf_filtering - len_after_filtering)/len_bf_filtering)}%)')
+
+
+    logger.info("select necessary columns, drop duplicates")
+    filtered_merge = filtered_merge[['id', 'gene_id']]
+    filtered_merge = filtered_merge.drop_duplicates()
+    logger.info(f'dropped dublicates in data frame (dropped {len_after_filtering - len(filtered_merge)}rows/ {np.round(100*(len_after_filtering - len(filtered_merge))/len_after_filtering)}%).')
+
+
+
+    logger.info("Reading in annotations for filtering")
+    anno_df = pd.read_parquet(anno_path)
+    
+    filtered = anno_df.merge(filtered_merge, on = ['id', 'gene_id'], how = 'inner')
+
+    logger.info(f'filtered annotations based on filterd id, gene_id (dropped {len(anno_df) - len(filtered)} / {np.round(100*(len(anno_df)-len(filtered))/len(anno_df))}% of rows).')
+
+    logger.info(f'writing result to {output_path}')
+    filtered.to_parquet(output_path)
 
 @cli.command()
 @click.option("--n-components", type=int, default=100)
@@ -2101,14 +2193,14 @@ def read_deepripe_file(f:str ):
 @cli.command()
 @click.option("--included-chromosomes", type=str)
 @click.argument("annotation_dir", type=click.Path(exists=True))
-@click.argument("deepSEA_name_pattern", type=str)
+@click.argument("deepsea_name_pattern", type=str)
 @click.argument("pvcf-blocks_file", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
 @click.argument("njobs", type=int)
-def concatenate_deepSEA(
+def concatenate_deepsea(
     included_chromosomes: Optional[str],
     annotation_dir: str,
-    deepSEA_name_pattern: str,
+    deepsea_name_pattern: str,
     pvcf_blocks_file: str,
     out_file: str,
     njobs:int,
@@ -2150,7 +2242,7 @@ def concatenate_deepSEA(
         ]
     pvcf_blocks = zip(pvcf_blocks_df["Chromosome"], pvcf_blocks_df["Block"])
     file_paths = [
-        annotation_dir / deepripe_name_pattern.format(chr=p[0], block=p[1])
+        annotation_dir / deepsea_name_pattern.format(chr=p[0], block=p[1])
         for p in pvcf_blocks
     ]
     logger.info("check if out_file already exists")
@@ -2193,7 +2285,7 @@ def concatenate_deepSEA(
 @click.argument("deepripe_k5_file", type=click.Path(exists=True))
 @click.argument("variant_file", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
-@click.option("--VEPcols_to_retain", type=str)
+@click.option("--vepcols_to_retain", type=str)
 def merge_annotations(vep_header_line:int,
                     vep_file:str,
                     deepripe_parclip_file:str,
@@ -2201,7 +2293,7 @@ def merge_annotations(vep_header_line:int,
                     deepripe_k5_file:str,
                     variant_file:str,
                     out_file:str,
-                    VEPcols_to_retain:Optional[str],
+                    vepcols_to_retain:Optional[str],
                   ):
     """
     Merge VEP, DeepRipe (parclip, hg2, k5), and variant files into one dataFrame and save result as parquet file 
@@ -2214,13 +2306,13 @@ def merge_annotations(vep_header_line:int,
     - deepripe_k5_file (str): Path to the DeepRipe k5 file.
     - variant_file (str): Path to the variant file.
     - out_file (str): Path to save the merged output file in Parquet format.
-    - VEPcols_to_retain (Optional[str]): Comma-separated list of additional VEP columns to retain.
+    - vepcols_to_retain (Optional[str]): Comma-separated list of additional VEP columns to retain.
 
     Returns:
     None
 
     Example:
-    $ python annotations.py merge_annotations 1 vep_file.tsv deepripe_parclip.csv deepripe_hg2.csv deepripe_k5.csv variant_file.tsv merged_output.parquet --VEPcols_to_retain="AlphaMissense,PolyPhen"
+    $ python annotations.py merge_annotations 1 vep_file.tsv deepripe_parclip.csv deepripe_hg2.csv deepripe_k5.csv variant_file.tsv merged_output.parquet --vepcols_to_retain="AlphaMissense,PolyPhen"
     """
     #load vep file
     vep_df = pd.read_csv(
@@ -2229,9 +2321,9 @@ def merge_annotations(vep_header_line:int,
                 sep="\t",
                 na_values = "-"
             )
-    if VEPcols_to_retain is not None:
-        VEPcols_to_retain = [c for c in VEPcols_to_retain.split(",")]
-    vep_df = process_vep(vep_file=vep_df, VEPcols_to_retain = VEPcols_to_retain)
+    if vepcols_to_retain is not None:
+        vepcols_to_retain = [c for c in vepcols_to_retain.split(",")]
+    vep_df = process_vep(vep_file=vep_df, vepcols_to_retain = vepcols_to_retain)
     logger.info(f"vep_df shape is {vep_df.shape}")
     #load deepripe_parclip
     deepripe_parclip_df = pd.read_csv(deepripe_parclip_file)
@@ -2246,6 +2338,11 @@ def merge_annotations(vep_header_line:int,
     logger.info(f"reading in {variant_file}")
     variants = pd.read_csv(variant_file, sep="\t")
 
+
+    logger.info('columns left:')
+    logger.info(vep_df.columns)
+    logger.info('columns right:')
+    logger.info(variants.columns)
     #merge vep to variants M:1
     ca = vep_df.merge(variants, how = "left",  on=["chrom", "pos", "ref", "alt"], validate= "m:1")
     del vep_df
@@ -2292,40 +2389,68 @@ def process_deepripe(deepripe_df:pd.DataFrame, column_prefix:str)->pd.DataFrame:
 
 
     
-def process_vep(vep_file: pd.DataFrame, VEPcols_to_retain:list = []) -> pd.DataFrame:
+def process_vep(vep_file: pd.DataFrame, vepcols_to_retain:list = []) -> pd.DataFrame:
     """
     Process the VEP DataFrame, extracting relevant columns and handling data types.
 
     Parameters:
     - vep_file (pd.DataFrame): DataFrame containing VEP data.
-    - VEPcols_to_retain (list, optional): List of additional columns to retain. Defaults to an empty list.
+    - vepcols_to_retain (list, optional): List of additional columns to retain. Defaults to an empty list.
 
     Returns:
     pd.DataFrame: Processed VEP DataFrame.
 
     Example:
-    vep_file = process_vep(vep_file, VEPcols_to_retain=["additional_col1", "additional_col2"])
+    vep_file = process_vep(vep_file, vepcols_to_retain=["additional_col1", "additional_col2"])
     """
-    vep_file[["chrom", "pos", "ref", "alt"]] = (
-        vep_file["#Uploaded_variation"]
-        .str.replace("_", ":")
-        .str.replace("/", ":")
-        .str.split(":", expand=True)
-    )
-    
-    vep_file["pos"] = vep_file["pos"].astype(int)   
+    if "#Uploaded_variation" in vep_file.columns:
+        vep_file[["chrom", "pos", "ref", "alt"]] = (
+            vep_file["#Uploaded_variation"]
+            .str.replace("_", ":")
+            .str.replace("/", ":")
+            .str.split(":", expand=True)
+        )
+    else:
+        logger.info("Necessary column #Uploaded_variation not found in vep columns")
+    if "pos" in vep_file.columns:
+        vep_file["pos"] = vep_file["pos"].astype(int)   
+    else:
+        logger.info('pos not found in VEP columns ')
     logger.info(vep_file.columns)
-    vep_file[["STRAND","TSL", "GENE_PHENO", "CADD_PHRED","CADD_RAW"]] =vep_file[["STRAND","TSL", "GENE_PHENO", "CADD_PHRED","CADD_RAW"]].astype(str)
+    str_cols = ["STRAND","TSL", "GENE_PHENO", "CADD_PHRED","CADD_RAW"]
+    str_cols_present =  [i for i in str_cols if i in vep_file.columns ]
+    str_cols_not_present = set(str_cols) - set(str_cols_present)
+    if len(str_cols_not_present)>0:
+        logger.info(f"following expected columns were not found in VEP: {str_cols_not_present}")
+    vep_file[str_cols_present] =vep_file[str_cols_present].astype(str)
     float_vals = ['DISTANCE', 'gnomADg_FIN_AF', 'AF', 'AFR_AF', 'AMR_AF','EAS_AF', 'EUR_AF', 'SAS_AF', 'MAX_AF','MOTIF_POS', 'MOTIF_SCORE_CHANGE',  'CADD_PHRED', 'CADD_RAW', 'PrimateAI', 'TSL', 'Condel']    
-    vep_file[float_vals] = vep_file[float_vals].replace('-', 'NaN').astype(float)
-    necessary_columns = [ 'chrom', 'pos', 'ref', 'alt', 'gnomADe_NFE_AF', 'CADD_PHRED', 'CADD_RAW', 'Consequence','PrimateAI', 'AbSplice_DNA', 'SIFT_score', 'PolyPhen_score', 'SpliceAI_delta', 'UKB_AF', 'combined_UKB_NFE_AF', 'combined_UKB_NFE_AF_MB', 'gene_id', 'chrom', 'pos', 'ref', 'alt', 'Condel']+(VEPcols_to_retain or [])
-    vep_file= vep_file[necessary_columns]
-    dummies = vep_file["Consequence"].str.get_dummies(",").add_prefix("Consequence_")
+    float_vals_present = [i for i in float_vals if i in vep_file.columns ]
+    float_vals_not_present = set(float_vals) - set(float_vals_present)
+    if len(float_vals_not_present)>0:
+        logger.info(f"following expected columns were not found in VEP: {float_vals_not_present}")
+    vep_file[float_vals_present] = vep_file[float_vals_present].replace('-', 'NaN').astype(float)
+
+
+
+    necessary_columns = [ 'chrom', 'pos', 'ref', 'alt', 'Gene','gnomADe_NFE_AF', 'CADD_PHRED', 'CADD_RAW', 'Consequence','PrimateAI', 'Alpha_Missense', 'am_pathogenicity','AbSplice_DNA','PolyPhen', 'SIFT', 'SpliceAI_pred', 'SIFT_score', 'PolyPhen_score', 'SpliceAI_delta', 'UKB_AF', 'combined_UKB_NFE_AF', 'combined_UKB_NFE_AF_MB', 'gene_id', 'Condel']+(vepcols_to_retain or [])
+    necessary_columns_present = [i for i in necessary_columns if i in vep_file.columns ]
+    necessary_columns_not_present = set(necessary_columns) - set(necessary_columns_present)
+    if len(necessary_columns_not_present)>0:
+        warnings.warn(f"following expected columns were not found in VEP: {necessary_columns_not_present}")
+
+    vep_file= vep_file[necessary_columns_present]
+
+
+
+    if "Consequence" in vep_file.columns:
+        dummies = vep_file["Consequence"].str.get_dummies(",").add_prefix("Consequence_")
     all_consequences=  ['Consequence_splice_acceptor_variant','Consequence_5_prime_UTR_variant','Consequence_TFBS_ablation','Consequence_start_lost','Consequence_incomplete_terminal_codon_variant','Consequence_intron_variant', 'Consequence_stop_gained', 'Consequence_splice_donor_5th_base_variant', 'Consequence_downstream_gene_variant', 'Consequence_intergenic_variant', 'Consequence_splice_donor_variant','Consequence_NMD_transcript_variant', 'Consequence_protein_altering_variant', 'Consequence_splice_polypyrimidine_tract_variant', 'Consequence_inframe_insertion', 'Consequence_mature_miRNA_variant', 'Consequence_synonymous_variant', 'Consequence_regulatory_region_variant', 'Consequence_non_coding_transcript_exon_variant', 'Consequence_stop_lost', 'Consequence_TF_binding_site_variant', 'Consequence_splice_donor_region_variant', 'Consequence_stop_retained_variant', 'Consequence_splice_region_variant', 'Consequence_coding_sequence_variant', 'Consequence_upstream_gene_variant', 'Consequence_frameshift_variant', 'Consequence_start_retained_variant', 'Consequence_3_prime_UTR_variant', 'Consequence_inframe_deletion', 'Consequence_missense_variant', 'Consequence_non_coding_transcript_variant']
     all_consequences = list(set(all_consequences))
     mask = pd.DataFrame(data = np.zeros(shape= ( len(vep_file), len(all_consequences))), columns=all_consequences ,  dtype=float)
     mask[list(dummies.columns)]=dummies
     vep_file[mask.columns]=mask
+
+
     return vep_file
 
 @cli.command()
@@ -2432,9 +2557,7 @@ def compute_exon_ids(n_jobs: int, max_dist: int, source: List[str],
 
     logger.info('Reading GTF')
     gtf = pr.read_gtf(gtf_file)
-    #gtf = gtf[gtf.gene_type == 'protein_coding']
-    #gtf=gtf[gtf.Feature=='gene']
-
+    
     exons_by_chrom = {k: gtf[k].as_df() for k, _ in gtf.keys()}
     exons_by_chrom = {
         k:
