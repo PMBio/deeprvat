@@ -44,20 +44,20 @@ assert len(set(baseline_path)) == 1
 baseline_path = baseline_path[0]
 
 repeats_to_analyze = [1, 3, 6, 10, 15, 20, 30]
-repeats_to_analyze = [1, 3, 6, 10, 15, 20, 30]
+# repeats_to_analyze = [6,  30]
 # repeats_to_analyze = [6]
-max_repeat_combis = 10
+max_repeat_combis = 15
 
 phenotypes = training_phenotypes
 
 use_seed_opts = ['use_seed', 'wo_seed']
 use_seed_dict = {'use_seed': '--use-seed-genes ', 'wo_seed': ' '}
 
-pval_agg_dict = {'bonferroni': '--combine-pval bonferroni',
+
+pval_agg_dict = {
+                    'bonferroni': '--combine-pval bonferroni',
                     'cct': '--combine-pval cct',
                     'none': ''}
-
-
 
 rule all:
     input:
@@ -87,7 +87,7 @@ module deeprvat_workflow:
 
 use rule compute_replication from deeprvat_workflow as deeprvat_compute_replication with:
     input:
-        results = expand("{phenotype}/deeprvat/eval/{{use_seed}}/all_results_{{repeat}}repeats_pval_agg_{{pval_agg}}.parquet",
+        results = expand("{phenotype}/deeprvat/eval/{{use_seed}}/pval_agg_{{pval_agg}}/all_results_{{repeat}}repeats.parquet",
             phenotype = training_phenotypes)
     output:
         'replication/replication_{use_seed}_{repeat}_repeats_pval_agg_{pval_agg}.parquet'
@@ -101,9 +101,9 @@ use rule compute_replication from deeprvat_workflow as deeprvat_compute_replicat
 
 rule all_evaluate:
     input:
-        expand("{phenotype}/deeprvat/eval/{use_seed}/significant_{repeat}repeats_pval_agg_{pval_agg}.parquet",
+        expand("{phenotype}/deeprvat/eval/{use_seed}/pval_agg_{pval_agg}/significant_{repeat}repeats.parquet",
             repeat = repeats_to_analyze, phenotype = phenotypes, use_seed = use_seed_opts, pval_agg = pval_agg_dict.keys()),
-        expand("{phenotype}/deeprvat/eval/{use_seed}/all_results_{repeat}repeats_pval_agg_{pval_agg}.parquet",
+        expand("{phenotype}/deeprvat/eval/{use_seed}/pval_agg_{pval_agg}/all_results_{repeat}repeats.parquet",
             repeat = repeats_to_analyze, phenotype = phenotypes, use_seed = use_seed_opts, pval_agg = pval_agg_dict.keys())
 use rule evaluate from deeprvat_workflow as deeprvat_evaluate with:
     input:
@@ -111,14 +111,15 @@ use rule evaluate from deeprvat_workflow as deeprvat_evaluate with:
                               repeat=range(n_repeats)),
         config = f'{config_file_prefix}{{phenotype}}/deeprvat/hpopt_config.yaml',
     output:
-        "{phenotype}/deeprvat/eval/{use_seed}/significant_{repeat}repeats_pval_agg_{pval_agg}.parquet",
-        "{phenotype}/deeprvat/eval/{use_seed}/all_results_{repeat}repeats_pval_agg_{pval_agg}.parquet"
+        "{phenotype}/deeprvat/eval/{use_seed}/pval_agg_{pval_agg}/significant_{repeat}repeats.parquet",
+        "{phenotype}/deeprvat/eval/{use_seed}/pval_agg_{pval_agg}/all_results_{repeat}repeats.parquet"
     params:
-        out_path = '{phenotype}/deeprvat/eval/{use_seed}',
+        out_path = '{phenotype}/deeprvat/eval/{use_seed}/pval_agg_{pval_agg}',
         use_seed_genes = lambda wildcards: use_seed_dict[wildcards.use_seed],
         n_repeats = f'{n_repeats}',
         repeats_to_analyze = '{repeat}',
         max_repeat_combis = f"{max_repeat_combis}",
         combine_pval = lambda wildcards: pval_agg_dict[wildcards.pval_agg],
+
 
 

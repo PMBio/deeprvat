@@ -149,7 +149,8 @@ use rule evaluate from deeprvat_workflow as deeprvat_evaluate with:
         use_seed_genes = lambda wildcards: use_seed_dict[wildcards.use_seed],
         n_repeats = 6,
         repeats_to_analyze = 6, 
-        max_repeat_combis = 1
+        max_repeat_combis = 1,
+        combine_pval = ''
 
 use rule combine_regression_chunks from deeprvat_workflow as deeprvat_combine_regression_chunks with:
     input:
@@ -217,12 +218,13 @@ use rule choose_training_genes from deeprvat_workflow as deeprvat_choose_trainin
 use rule config from deeprvat_workflow as deeprvat_config with:
     input:
         config = 'cv_split{cv_split}/deeprvat/config.yaml', # TODO: change this into cv specific config
-        # baseline = f'{baseline_path}/cv_split{{cv_split}}/baseline/{{phenotype}}/eval/burden_associations.parquet',
-        baseline = lambda wildcards: [
-            str(Path(r['base']) / f'cv_split{wildcards.cv_split}'/ 'baseline' / wildcards.phenotype / r['type'] /
-                'eval/burden_associations.parquet')
-            for r in config['baseline_results']
-        ]
+        baseline = f'{baseline_path}/{{phenotype}}/eval/burden_associations.parquet'
+        # baseline = f'{baseline_path}/cv_split{{cv_split}}/baseline/{{phenotype}}/eval/burden_associations.parquet', ## comment this in for fold-specific baselines
+        # baseline = lambda wildcards: [
+        #     str(Path(r['base']) / f'cv_split{wildcards.cv_split}'/ 'baseline' / wildcards.phenotype / r['type'] /
+        #         'eval/burden_associations.parquet')
+        #     for r in config['baseline_results']
+        # ] 
     params:
         baseline_results = lambda wildcards, input: ''.join([
             f'--baseline-results {b} '

@@ -9,6 +9,8 @@ training_phenotypes = config["training"].get("phenotypes", phenotypes)
 
 n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
 n_regression_chunks = config.get('n_regression_chunks', 40) if not debug_flag else 2
+
+
 n_trials = config['hyperparameter_optimization']['n_trials']
 n_bags = config['training']['n_bags'] if not debug_flag else 3
 n_repeats = config['n_repeats']
@@ -31,9 +33,9 @@ wildcard_constraints:
 
 n_avg_chunks = 20
 repeats_to_average = [6, 10, 20, 25, 29, 30]
-# repeats_to_average = [6, 30]
-n_total_repeats = 30
-n_combinations = 10
+repeats_to_average = [6]
+n_total_repeats = 6
+n_combinations = 1
 burden_agg_fcts = ['mean', 'max']
 burden_agg_fcts = ['mean']
 rep_list, combi_list = [], []
@@ -59,13 +61,14 @@ print(config_file_prefix)
 for n_repeats in repeats_to_average:
     all_repeat_combinations = list(combinations(range(n_total_repeats), n_repeats))
     if n_repeats == n_total_repeats:
-        repeat_combis[f'repeats_{n_repeats}_combi_0'] = this_repeats[0]
+        repeat_combis[f'repeats_{n_repeats}_combi_0'] = all_repeat_combinations[0]
     else:
         this_repeats = random.sample(all_repeat_combinations, n_combinations)
         for combi in range(n_combinations):
             repeat_combis[f'repeats_{n_repeats}_combi_{combi}'] = this_repeats[combi]
 
 use_seed_opts = ['use_seed', 'wo_seed']
+use_seed_opts = ['wo_seed']
 use_seed_dict = {'use_seed': '--use-seed-genes ', 'wo_seed': ' '}
 
 rule all:
@@ -214,7 +217,7 @@ rule regress_avg:
         temp('{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/combi_{combi}/burden_associations_{chunk}.parquet'),
     threads: 2
     resources:
-        mem_mb = lambda wildcards, attempt: 28676 + (attempt - 1) * 4098,
+        mem_mb = lambda wildcards, attempt: 28676  + (attempt - 1) * 4098,
         # mem_mb = 16000,
         load = lambda wildcards, attempt: 28000 + (attempt - 1) * 4000
     params:
