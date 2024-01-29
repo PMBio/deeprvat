@@ -116,13 +116,15 @@ def combine_test_set_burdens(
         print(burden_dir)
         this_y = zarr.open(f'{burden_dir}/y.zarr')
         this_x = zarr.open(f'{burden_dir}/x.zarr')
-        this_burdens = zarr.open(f'{burden_dir}/burdens.zarr')
+        # this_burdens = zarr.open(f'{burden_dir}/burdens.zarr')
 
-        assert  this_y.shape[0] == this_x.shape[0] == this_burdens.shape[0]
+        assert  this_y.shape[0] == this_x.shape[0] #== this_burdens.shape[0]
         n_total_samples.append(this_y.shape[0])
+        
     n_total_samples = np.sum(n_total_samples)
     print(f'Total number of samples {n_total_samples}')
     if not skip_burdens:
+        this_burdens = zarr.open(f'{burden_dir}/burdens.zarr') # any burden tensor (here from the last file to get dims 1 -n)
         burdens = zarr.open(
             Path(out_dir) / "burdens.zarr",
             mode="a",
@@ -159,9 +161,8 @@ def combine_test_set_burdens(
         end_idx = start_idx + this_y.shape[0]
         this_x = zarr.open(f'{burden_dir}/x.zarr')[:]
         if not skip_burdens:
-            print('writing burdens')
-            this_burdens = zarr.open(f'{burden_dir}/burdens.zarr')
-            print('loading burdens')
+            logger.info('writing burdens')
+            this_burdens = zarr.open(f'{burden_dir}/burdens.zarr')[:]
             burdens[start_idx:end_idx] = this_burdens
         print((start_idx, end_idx))
         y[start_idx:end_idx] = this_y
