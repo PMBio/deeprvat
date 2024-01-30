@@ -11,9 +11,7 @@ zcat_cmd = config.get("zcat_cmd") or "zcat"
 preprocessing_cmd = "deeprvat_preprocess"
 
 working_dir = Path(config["working_dir"])
-data_dir = Path(config["data_dir"])
 preprocessed_dir = working_dir / config["preprocessed_dir_name"]
-metadata_dir = data_dir / config["metadata_dir_name"]
 reference_dir = working_dir / config["reference_dir_name"]
 
 preprocess_threads = config["preprocess_threads"]
