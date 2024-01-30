@@ -90,7 +90,6 @@ zcat_cmd:
 The config above would use the following directory structure:
 
 ```shell
-
 parent_directory
 -- workdir
     |-- norm
