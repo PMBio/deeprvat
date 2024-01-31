@@ -64,27 +64,26 @@ rule regress:
 
 rule make_regenie_input:
     input:
-        burdens = lambda wildcards: expand(
-            ('{{phenotype}}/deeprvat/burdens/chunk{chunk}.' +
-             ("finished" if wildcards.phenotype == phenotypes[0] else "linked")),
-            chunk=range(n_burden_chunks)
-        ),
+        burdens = [f'{phenotype}/deeprvat/burdens/chunk{chunk}.' +
+                   ("finished" if phenotype == phenotypes[0] else "linked")
+                   for phenotype in phenotypes
+                   for chunk in range(n_burden_chunks)],
         datasets = expand("{phenotype}/deeprvat/association_dataset.pkl",
                           phenotype=phenotypes),
     params:
         phenotypes = " ".join([f"--phenotype {p} {p}/deeprvat/association_dataset.pkl {p}/deeprvat/burdens"
-                               for ]) + " "
+                               for p in phenotypes]) + " "
     output:
-        # bgen = "{phenotype}/deeprvat/regenie_input/pseudo_variants.bgen",
-        covariant_file = "regenie_input/covariates.txt",
+        bgen = "{phenotype}/deeprvat/regenie_input/deeprvat_pseudovariants.bgen",
+        covariate_file = "regenie_input/covariates.txt",
         phenotype_file = "regenie_input/phenotypes.txt",
     threads: 1
     shell:
-        "deeprvat_associate make-saige-input "
+        "deeprvat_associate make-regenie-input "
         "--average-repeats "
         "{params.phenotypes}"
         # "{input.dataset} "
         # "{wildcards.phenotype}/deeprvat/burdens "
-        # "{output.vcf} "
+        "{output.bgen} "
         "{output.covariate_file} "
         "{output.phenotype_file}"
