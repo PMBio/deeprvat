@@ -581,10 +581,22 @@ def make_regenie_input_(
     dataset_files = [p[1] for p in phenotype]
     burden_dirs = [p[2] for p in phenotype]
 
-    sample_ids = zarr.load(burden_dirs[0] / "sample_ids.zarr")
-    covariates = zarr.load(burden_dirs[0] / "x.zarr")
+    sample_ids = zarr.load(
+        burden_dirs[0] / "sample_ids.zarr"
+    )  # TODO: Check consistency across burden_dirs
+    covariates = zarr.load(
+        burden_dirs[0] / "x.zarr"
+    )  # TODO: Check consistency across burden_dirs
     ys = [zarr.load(b / "y.zarr") for b in burden_dirs]
-    genes = np.load(burden_dirs[0] / "genes.npy")
+    genes = np.load(
+        burden_dirs[0] / "genes.npy"
+    )  # TODO: Check consistency across burden_dirs
+
+    # Sanity check: sample_ids, covariates, and genes should be consistent for all phenotypes
+    for i in range(1, len(burden_dirs)):
+        assert np.array_equal(sample_ids, zarr.load(burden_dirs[i] / "sample_ids.zarr"))
+        assert np.array_equal(covariates, zarr.load(burden_dirs[i] / "x.zarr"))
+        assert np.array_equal(genes, np.load(burden_dirs[i] / "genes.npy"))
 
     # burdens_zarr = zarr.open(burden_dirs[0] / "burdens.zarr")
     # if average_repeats:
@@ -701,22 +713,22 @@ def make_regenie_input_(
     logger.info("Creating covariate file")
     sample_df = pd.DataFrame({"FID": sample_ids, "IID": sample_ids})
 
-    logger.info("Creating phenotype file")
     with open(dataset_files[0], "rb") as f:
         dataset = pickle.load(f)
 
     covariate_names = dataset.x_phenotypes
     cov_df = pd.DataFrame(covariates, columns=covariate_names)
-    cov_df = pd.concat(sample_df, cov_df, axis=1, ignore_index=True)
-    cov_df.to_csv(covariate_file, sep=" ", index=False)
+    cov_df = pd.concat([sample_df, cov_df], axis=1)
+    cov_df.to_csv(covariate_file, sep=" ", index=False, na_rep="NA")
 
     ## Make phenotype file
+    logger.info("Creating phenotype file")
     pheno_df_list = []
     for p, y in zip(phenotype_names, ys):
         pheno_df_list.append(pd.DataFrame({p: y.squeeze()}))
 
-    pheno_df = pd.concat([sample_df] + pheno_df_list, axis=1, ignore_index=True)
-    pheno_df.to_csv(pheno_df, sep=" ", index=False)
+    pheno_df = pd.concat([sample_df] + pheno_df_list, axis=1)
+    pheno_df.to_csv(phenotype_file, sep=" ", index=False, na_rep="NA")
 
     logger.info("Done")
 
@@ -726,11 +738,11 @@ def make_regenie_input_(
 @click.option("--average-repeats", is_flag=True)
 @click.option(
     "--phenotype",
-    type=Tuple[
+    type=(
         str,
         click.Path(exists=True, path_type=Path),
         click.Path(exists=True, path_type=Path),
-    ],
+    ),
     multiple=True,
 )  # phenotype_name, dataset_file, burden_dir
 # @click.argument("dataset-file", type=click.Path(exists=True, path_type=Path))
@@ -742,10 +754,9 @@ def make_regenie_input_(
 def make_regenie_input(
     repeat: int,
     average_repeats: bool,
-    phenotype: Tuple[str, Path, Path],
-    gtf: Path,
+    phenotype: Tuple[Tuple[str, Path, Path]],
+    # gtf: Path,
     bgen: Path,
-    group_file: Path,
     covariate_file: Path,
     phenotype_file: Path,
 ):
