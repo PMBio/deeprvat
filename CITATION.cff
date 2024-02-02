@@ -1,0 +1,68 @@
+cff-version: 1.2.0
+title: DeepRVAT
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Brian
+    family-names: Clarke
+    orcid: 'https://orcid.org/0000-0002-6695-286X'
+  - given-names: Eva
+    family-names: Holtkamp
+    orcid: 'https://orcid.org/0000-0002-2129-9908'
+  - given-names: Hakime
+    family-names: Öztürk
+  - given-names: Marcel
+    family-names: Mück
+    orcid: 'https://orcid.org/0009-0000-3129-2630'
+  - given-names: Magnus
+    family-names: Wahlberg
+    orcid: 'https://orcid.org/0009-0001-9140-2392'
+  - given-names: Kayla
+    family-names: Meyer
+    orcid: 'https://orcid.org/0009-0003-5063-5266'
+  - given-names: Felix
+    family-names: Munzlinger
+    orcid: 'https://orcid.org/0009-0005-1407-8145'
+  - given-names: Felix
+    family-names: Brechtmann
+    orcid: 'https://orcid.org/0000-0002-0110-152X'
+  - given-names: Florian Rupert
+    family-names: Hölzlwimmer
+    orcid: 'https://orcid.org/0000-0002-5522-2562'
+  - given-names: Julien
+    family-names: Gagneur
+    orcid: 'https://orcid.org/0000-0002-8924-8365'
+  - given-names: Oliver
+    family-names: Stegle
+    orcid: 'https://orcid.org/0000-0002-8818-7193'
+identifiers:
+  - type: doi
+    value: 10.1101/2023.07.12.548506
+repository-code: 'https://github.com/PMBio/deeprvat'
+abstract: >-
+  Integration of variant annotations using deep set networks
+  boosts rare variant association genetics.
+  Rare genetic variants can strongly predispose to disease,
+  yet accounting for rare variants in genetic analyses is
+  statistically challenging. While rich variant annotations
+  hold the promise to enable well-powered rare variant
+  association tests, methods integrating variant annotations
+  in a data-driven manner are lacking. Here, we propose
+  DeepRVAT, a set neural network-based approach to learn
+  burden scores from rare variants, annotations and
+  phenotypes. In contrast to existing methods, DeepRVAT
+  yields a single, trait-agnostic, nonlinear gene impairment
+  score, enabling both risk prediction and gene discovery in
+  a unified framework. On 21 quantitative traits and
+  whole-exome-sequencing data from UK Biobank, DeepRVAT
+  offers substantial increases in gene discoveries and
+  improved replication rates in held-out data. Moreover, we
+  demonstrate that the integrative DeepRVAT gene impairment
+  score greatly improves detection of individuals at high
+  genetic risk. We show that pre-trained DeepRVAT scores
+  generalize across traits, opening up the possibility to
+  conduct highly computationally efficient rare variant
+  tests.
+license: MIT

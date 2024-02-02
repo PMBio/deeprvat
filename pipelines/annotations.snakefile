@@ -388,11 +388,77 @@ rule deepRiPe_eclip_k5:
     shell:
         f"mkdir -p {pybedtools_tmp_path/'k5'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/'k5'} {saved_deepripe_models_path} {{threads}} 'eclip_k5'"
 
+    output:
+        anno_dir / "all_variants.deepSea.csv",
+    shell:
+        " ".join(
+        [
+            "python",
+            f"{annotation_python_file}",
+            "concatenate-deepripe",
+            "--included-chromosomes",
+            ",".join(included_chromosomes),
+            "--sep '\t'",
+            f"{anno_dir}",
+            str(
+        source_variant_file_pattern + ".CLI.deepseapredict.diff.tsv"
+                ).format(chr="{{chr}}", block="{{block}}"),
+                str(metadata_dir / config["pvcf_blocks_file"]),
+                str(
+                    anno_dir / "all_variants.deepSea.csv",
+                ),
+            ]
+        )
+
+
+rule deepSea:
+    input:
+        variants=anno_tmp_dir
+        / (source_variant_file_pattern + "_variants_header.vcf.gz"),
+        fasta=fasta_dir / fasta_file_name,
+    output:
+        anno_dir / (source_variant_file_pattern + ".CLI.deepseapredict.diff.tsv"),
+    conda:
+        "kipoi-veff2"
+    shell:
+        "kipoi_veff2_predict {input.variants} {input.fasta} {output} -l 1000 -m 'DeepSEA/predict' -s 'diff'"
+
+
+rule deepRiPe_parclip:
+    input:
+        variants=anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
+        fasta=fasta_dir / fasta_file_name,
+    output:
+        anno_dir / (source_variant_file_pattern + "_variants.parclip_deepripe.csv.gz"),
+    shell:
+        f"mkdir -p {pybedtools_tmp_path / 'parclip'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'parclip'} {saved_deepripe_models_path} {{threads}} 'parclip'"
+
+
+rule deepRiPe_eclip_hg2:
+    input:
+        variants=anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
+        fasta=fasta_dir / fasta_file_name,
+    output:
+        anno_dir / (source_variant_file_pattern + "_variants.eclip_hg2_deepripe.csv.gz"),
+    threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
+    shell:
+        f"mkdir -p {pybedtools_tmp_path / 'hg2'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'hg2'} {saved_deepripe_models_path} {{threads}} 'eclip_hg2'"
+
+
+rule deepRiPe_eclip_k5:
+    input:
+        variants=anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
+        fasta=fasta_dir / fasta_file_name,
+    output:
+        anno_dir / (source_variant_file_pattern + "_variants.eclip_k5_deepripe.csv.gz"),
+    threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
+    shell:
+        f"mkdir -p {pybedtools_tmp_path / 'k5'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'k5'} {saved_deepripe_models_path} {{threads}} 'eclip_k5'"
 
 
 rule vep:
     input:
-        vcf=anno_tmp_dir / (vcf_pattern + "_stripped.vcf.gz"),
+        vcf=anno_tmp_dir / (source_variant_file_pattern + "_stripped.vcf.gz"),
         fasta=fasta_dir / fasta_file_name,
     output:
         anno_dir / (vcf_pattern + "_vep_anno.tsv"),
@@ -467,9 +533,9 @@ rule extract_with_header:
 
 rule strip_chr_name:
     input:
-        anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
+        anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
     output:
-        anno_tmp_dir / (vcf_pattern + "_stripped.vcf.gz"),
+        anno_tmp_dir / (source_variant_file_pattern + "_stripped.vcf.gz"),
     shell:
         f"{load_hts} cut -c 4- {{input}} |bgzip > {{output}}"
 
@@ -478,7 +544,7 @@ rule extract_variants:
     input:
         bcf_dir / (vcf_pattern + ".bcf"),
     output:
-        anno_tmp_dir / (vcf_pattern + "_variants.vcf"),
+        anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
     shell:
         " ".join(
             [

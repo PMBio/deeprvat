@@ -1,6 +1,5 @@
 import gc
 import logging
-import os
 import sys
 import time
 from pathlib import Path
@@ -49,10 +48,10 @@ def process_sparse_gt_file(
     samples: List[str],
     calls_to_exclude: pd.DataFrame = None,
 ) -> Tuple[List[np.ndarray], List[np.ndarray]]:
-    sparse_gt = pd.read_csv(
+    sparse_gt = pd.read_table(
         file,
         names=["chrom", "pos", "ref", "alt", "sample", "gt"],
-        sep="\t",
+        engine="pyarrow",
         index_col=None,
     )
     sparse_gt = sparse_gt[sparse_gt["sample"].isin(samples)]
@@ -146,6 +145,18 @@ def add_variant_ids(variant_file: str, out_file: str, duplicates_file: str):
     )
 
 
+def get_file_chromosome(file, col_names, chrom_field="chrom"):
+    chrom_df = pd.read_csv(
+        file, names=col_names, sep="\t", index_col=None, nrows=1, usecols=[chrom_field]
+    )
+
+    chrom = None
+    if not chrom_df.empty:
+        chrom = chrom_df[chrom_field][0]
+
+    return chrom
+
+
 @cli.command()
 @click.option("--exclude-variants", type=click.Path(exists=True), multiple=True)
 @click.option("--exclude-samples", type=click.Path(exists=True))
@@ -171,19 +182,24 @@ def process_sparse_gt(
 ):
     logging.info("Reading variants...")
     start_time = time.time()
-    variants = pd.read_csv(variant_file, sep="\t")
+
+    variants = pd.read_table(variant_file, engine="pyarrow")
+
+    # Filter all variants based on chromosome
     if chromosomes is not None:
         chromosomes = [f"chr{chrom}" for chrom in chromosomes.split(",")]
         variants = variants[variants["chrom"].isin(chromosomes)]
     total_variants = len(variants)
+
     if len(exclude_variants) > 0:
         variant_exclusion_files = [
-            v for directory in exclude_variants for v in Path(directory).glob("*.tsv*")
+            v for directory in exclude_variants for v in Path(directory).rglob("*.tsv*")
         ]
 
+        exclusion_file_cols = ["chrom", "pos", "ref", "alt"]
         variants_to_exclude = pd.concat(
             [
-                pd.read_csv(v, sep="\t", names=["chrom", "pos", "ref", "alt"])
+                pd.read_csv(v, sep="\t", names=exclusion_file_cols)
                 for v in tqdm(variant_exclusion_files)
             ],
             ignore_index=True,
@@ -212,7 +228,7 @@ def process_sparse_gt(
     if exclude_samples is not None:
         total_samples = len(samples)
 
-        if sample_exclusion_files := list(Path(exclude_samples).glob("*.csv")):
+        if sample_exclusion_files := list(Path(exclude_samples).rglob("*.csv")):
             samples_to_exclude = set(
                 pd.concat(
                     [
@@ -227,8 +243,7 @@ def process_sparse_gt(
         else:
             logging.info(f"Found no samples to exclude in {exclude_samples}")
 
-    # Assumes only numeric sample names
-    samples = sorted([s for s in samples if int(s) > 0])
+    samples = list(samples)
 
     logging.info("Processing sparse GT files by chromosome")
     total_calls_dropped = 0
@@ -237,39 +252,51 @@ def process_sparse_gt(
     for chrom in tqdm(variant_groups.groups.keys()):
         logging.info(f"Processing chromosome {chrom}")
         logging.info("Reading in filtered calls")
+
+        exclude_calls_file_cols = ["chrom", "pos", "ref", "alt", "sample"]
+
+        calls_to_exclude = pd.DataFrame(columns=exclude_calls_file_cols)
+
         if exclude_calls is not None:
-            chrom_dir = os.path.join(exclude_calls, chrom)
-            exclude_calls_chrom = Path(chrom_dir).glob("*.tsv*")
+            exclude_calls_chrom = Path(exclude_calls).rglob("*.tsv*")
+            exclude_calls_chrom_files = []
+            for exclude_call_file in exclude_calls_chrom:
+                file_chrom = get_file_chromosome(
+                    exclude_call_file, col_names=exclude_calls_file_cols
+                )
 
-            calls_to_exclude = pd.concat(
-                [
-                    pd.read_csv(
-                        c,
-                        names=["chrom", "pos", "ref", "alt", "sample"],
-                        sep="\t",
-                        index_col=None,
-                    )
-                    for c in tqdm(exclude_calls_chrom)
-                ],
-                ignore_index=True,
-            )
+                if file_chrom == chrom:
+                    exclude_calls_chrom_files.append(exclude_call_file)
 
-            calls_dropped = len(calls_to_exclude)
-            total_calls_dropped += calls_dropped
-            logging.info(f"Dropped {calls_dropped} calls")
-        else:
-            calls_to_exclude = pd.DataFrame(
-                columns=["chrom", "pos", "ref", "alt", "sample"]
-            )
+            if exclude_calls_chrom_files:
+                calls_to_exclude = pd.concat(
+                    [
+                        pd.read_csv(
+                            c,
+                            names=exclude_calls_file_cols,
+                            sep="\t",
+                            index_col=None,
+                        )
+                        for c in tqdm(exclude_calls_chrom_files)
+                    ],
+                    ignore_index=True,
+                )
+                calls_dropped = len(calls_to_exclude)
+                total_calls_dropped += calls_dropped
+                logging.info(f"Dropped {calls_dropped} calls")
 
         logging.info("Processing sparse GT files")
 
-        chrom_dir = os.path.join(sparse_gt, chrom)
-        logging.info(f"chrom dir is {chrom_dir}")
-
         variants_chrom = variant_groups.get_group(chrom)
 
-        sparse_gt_chrom = list(Path(chrom_dir).glob("*.tsv*"))
+        sparse_file_cols = ["chrom", "pos", "ref", "alt", "sample", "gt"]
+
+        sparse_gt_chrom = [
+            f
+            for f in Path(sparse_gt).rglob("*.tsv*")
+            if get_file_chromosome(f, col_names=sparse_file_cols) == chrom
+        ]
+
         logging.info(f"sparse gt chrom(es) are: {sparse_gt_chrom}")
 
         processed = Parallel(n_jobs=threads, verbose=50)(

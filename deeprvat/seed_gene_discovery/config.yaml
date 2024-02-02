@@ -20,7 +20,20 @@ phenotypes:
 #   - Platelet_crit
 #   - Platelet_distribution_width
 #   - Red_blood_cell_erythrocyte_count
-
+#   - Body_mass_index_BMI
+#   - Glucose
+#   - Vitamin_D
+#   - Albumin
+#   - Total_protein
+#   - Cystatin_C
+#   - Gamma_glutamyltransferase
+#   - Alkaline_phosphatase
+#   - Creatinine
+#   - Whole_body_fat_free_mass 
+#   - Forced_expiratory_volume_in_1_second_FEV1
+#   - Glycated_haemoglobin_HbA1c
+#   - WHR_Body_mass_index_BMI_corrected
+  
 variant_types:
     - missense
     - plof
@@ -42,7 +55,7 @@ test_config:
     neglect_homozygous: False
     collapse_method: sum #collapsing method for burde
     var_weight_function: beta_maf 
-
+    min_mac: 10
 variant_file: variants.parquet
 
 data:
@@ -98,4 +111,5 @@ data:
     dataloader_config:
         num_workers: 10
         #batch_size: 20
+
 
