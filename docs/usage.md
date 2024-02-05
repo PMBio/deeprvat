@@ -56,6 +56,20 @@ Replace `[path_to_deeprvat]` with the path to your clone of the repository.
 Note that the example data is randomly generated, and so is only suited for testing whether the `deeprvat` package has been correctly installed.
 
 
+### Run the training pipeline on some example data
+
+```shell
+mkdir example
+cd example
+ln -s [path_to_deeprvat]/example/* .
+snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/run_training.snakefile
+```
+
+Replace `[path_to_deeprvat]` with the path to your clone of the repository.
+
+Note that the example data is randomly generated, and so is only suited for testing whether the `deeprvat` package has been correctly installed.
+
+
 ### Run the association testing pipeline with pretrained models
 
 ```shell
