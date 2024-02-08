@@ -50,9 +50,7 @@ rule qc_indmiss:
 
 rule process_individual_missingness:
     input:
-        #stats = qc_indmiss_stats_dir / "{vcf_stem}.stats",
         samples = expand(qc_indmiss_samples_dir / "{vcf_stem}.tsv", vcf_stem=vcf_stems),
-        #sites = qc_indmiss_sites_dir / "{vcf_stem}.tsv"
     output:
         qc_filtered_samples_dir / "indmiss_samples.csv"
     resources:
