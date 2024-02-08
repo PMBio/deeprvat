@@ -5,7 +5,8 @@ import math
 import shutil
 import sys
 import pickle
-from typing import Any, Callable, Dict, Iterable
+from pathlib import Path
+from typing import Any, Callable, Dict, Iterable, Union
 
 import optuna
 import numpy as np
@@ -388,3 +389,30 @@ def suggest_batch_size(
         f"and gpu_mem_bytes {gpu_mem_bytes}: {batch_size}"
     )
     return batch_size
+
+
+def map_samples(
+    samples: np.ndarray,
+    sample_map_file: Union[Path, str],
+    id_col: str,
+    new_id_col: str,
+) -> np.ndarray:
+    sample_map = pd.read_csv(sample_map_file)[[id_col, new_id_col]]
+    sample_map = sample_map[
+        ~(sample_map[id_col].isna() | sample_map[new_id_col].isna())
+    ]
+    sample_map = sample_map.astype(samples.dtype)
+
+    samples_df = pd.DataFrame({id_col: samples})
+    new_samples_df = pd.merge(samples_df, sample_map, how="left", validate="m:1")
+
+    unmapped_samples = set(
+        new_samples_df.loc[new_samples_df[new_id_col].isna(), id_col]
+    )
+    if len(unmapped_samples) > 0:
+        logger.warning(
+            f"The following {len(unmapped_samples)} samples (out of {len(set(samples))}) "
+            f"could not be mapped:\n{unmapped_samples}"
+        )
+
+    return new_samples_df[new_id_col].to_numpy()
