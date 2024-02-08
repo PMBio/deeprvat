@@ -350,5 +350,3 @@ def test_process_individual_missingness(
     )
 
     assert sorted(written_samples["sample"].values) == sorted(expected_filtered_samples)
-
-    assert len(written_samples) == len(expected_filtered_samples)
