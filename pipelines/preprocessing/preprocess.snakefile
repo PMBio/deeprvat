@@ -130,3 +130,9 @@ rule extract_samples:
         norm_dir / "samples_chr.csv",
     shell:
         f"{load_bcftools} bcftools query --list-samples {{input}} > {{output}}"
+
+rule create_excluded_samples_dir:
+    output:
+        directory(qc_filtered_samples_dir),
+    shell:
+        "mkdir -p {output}"
