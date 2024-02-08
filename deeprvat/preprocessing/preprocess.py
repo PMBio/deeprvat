@@ -205,7 +205,7 @@ def process_individual_missingness(
     sample_counts = sample_counts.loc[
         sample_counts["missingness"] >= threshold, ["sample", "missingness"]
     ]
-    sample_counts.to_csv(out_file, sep="\t", index=False)
+    sample_counts[["sample"]].to_csv(out_file, index=False, header=None)
 
 
 @cli.command()
