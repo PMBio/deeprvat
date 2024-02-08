@@ -285,6 +285,7 @@ def process_sparse_gt(
                 s for s in sample_exclusion_files if s.stat().st_size > 0
             ]
             if sample_exclusion_files:
+                logging.info(f"Found {len(sample_exclusion_files)} sample exclusion files")
                 samples_to_exclude = set(
                     pd.concat(
                         [
