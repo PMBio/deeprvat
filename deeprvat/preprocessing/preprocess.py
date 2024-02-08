@@ -158,6 +158,60 @@ def get_file_chromosome(file, col_names, chrom_field="chrom"):
 
 
 @cli.command()
+@click.option("--threshold", type=float, default=0.1)
+@click.argument("pvcf-blocks", type=click.Path(exists=True))
+@click.argument("imiss-dir", type=click.Path(exists=True))
+@click.argument("out-file", type=click.Path())
+def process_individual_missingness(
+    threshold: float, pvcf_blocks: str, imiss_dir: str, out_file: str
+):
+    pvcf_blocks_df = pd.read_csv(
+        pvcf_blocks,
+        sep="\t",
+        header=None,
+        names=["Index", "Chromosome", "Block", "First position", "Last position"],
+        dtype={"Chromosome": str},
+    ).set_index("Index")
+
+    chr_mapping = pd.Series(
+        [str(x) for x in range(1, 23)] + ["X", "Y"],
+        index=[str(x) for x in range(1, 25)],
+    )
+    pvcf_blocks_df["chr_name"] = chr_mapping.loc[
+        pvcf_blocks_df["Chromosome"].values
+    ].values
+
+    imiss_blocks = []
+    total_variants = 0
+    for chrom, block in tqdm(
+        zip(pvcf_blocks_df["chr_name"], pvcf_blocks_df["Block"]),
+        total=len(pvcf_blocks_df),
+    ):
+        missing_counts = pd.read_csv(
+            os.path.join(imiss_dir, "samples", f"ukb23156_c{chrom}_b{block}_v1.tsv"),
+            sep="\t",
+            header=None,
+            usecols=[1, 11],
+        )
+        missing_counts.columns = ["sample", "n_missing"]
+        imiss_blocks.append(missing_counts)
+        total_variants += pd.read_csv(
+            os.path.join(imiss_dir, "sites", f"ukb23156_c{chrom}_b{block}_v1.tsv"),
+            header=None,
+            sep="\t",
+        ).iloc[0, 1]
+
+    imiss = pd.concat(imiss_blocks, ignore_index=True)
+    sample_groups = imiss.groupby("sample")
+    sample_counts = sample_groups.agg(np.sum).reset_index()
+    sample_counts["missingness"] = sample_counts["n_missing"] / total_variants
+    sample_counts = sample_counts.loc[
+        sample_counts["missingness"] >= threshold, ["sample", "missingness"]
+    ]
+    sample_counts.to_csv(out_file, sep="\t", index=False)
+
+
+@cli.command()
 @click.option("--exclude-variants", type=click.Path(exists=True), multiple=True)
 @click.option("--exclude-samples", type=click.Path(exists=True))
 @click.option("--exclude-calls", type=click.Path(exists=True))
