@@ -14,10 +14,12 @@ import click
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
+import pyranges as pr
 import torch
 import torch.nn as nn
 import statsmodels.api as sm
 import yaml
+from bgen import BgenWriter
 from numcodecs import Blosc
 from seak import scoretest
 from statsmodels.tools.tools import add_constant
@@ -555,12 +557,15 @@ def make_saige_input(
 
 
 def make_regenie_input_(
+        skip_samples: bool,
+    skip_covariates: bool,
+    skip_phenotypes: bool,
+    skip_burdens: bool,
     repeat: int,
     average_repeats: bool,
     phenotype: Tuple[Tuple[str, Path, Path]],  # dataset_file, burden_dir
-    # dataset_file: Path,
-    # burden_dir: Tuple[Path],
-    # gtf: Path,
+    gene_file: Path,
+    gtf: Path,
     bgen: Path,
     covariate_file: Path,
     phenotype_file: Path,
@@ -581,159 +586,120 @@ def make_regenie_input_(
     dataset_files = [p[1] for p in phenotype]
     burden_dirs = [p[2] for p in phenotype]
 
-    sample_ids = zarr.load(
-        burden_dirs[0] / "sample_ids.zarr"
-    )  # TODO: Check consistency across burden_dirs
-    covariates = zarr.load(
-        burden_dirs[0] / "x.zarr"
-    )  # TODO: Check consistency across burden_dirs
+    sample_ids = zarr.load(burden_dirs[0] / "sample_ids.zarr")
+    covariates = zarr.load(burden_dirs[0] / "x.zarr")
     ys = [zarr.load(b / "y.zarr") for b in burden_dirs]
-    genes = np.load(
-        burden_dirs[0] / "genes.npy"
-    )  # TODO: Check consistency across burden_dirs
+    genes = np.load(burden_dirs[0] / "genes.npy")
+
+    n_samples = sample_ids.shape[0]
+    n_genes = genes.shape[0]
+    assert covariates.shape[0] == n_samples
+    assert all([y.shape[0] == n_samples for y in ys])
 
     # Sanity check: sample_ids, covariates, and genes should be consistent for all phenotypes
-    for i in range(1, len(burden_dirs)):
+    # TODO: Check burdens as well (though this will be slow)
+    for i in range(1, len(phenotype)):
         assert np.array_equal(sample_ids, zarr.load(burden_dirs[i] / "sample_ids.zarr"))
-        assert np.array_equal(covariates, zarr.load(burden_dirs[i] / "x.zarr"))
+        assert np.array_equal(
+            covariates, zarr.load(burden_dirs[i] / "x.zarr")
+        )  # TODO: Phenotype-specific covariates
         assert np.array_equal(genes, np.load(burden_dirs[i] / "genes.npy"))
 
-    # burdens_zarr = zarr.open(burden_dirs[0] / "burdens.zarr")
-    # if average_repeats:
-    #     burdens = np.zeros(burdens_zarr.shape[:2])
-    #     for repeat in range(burdens_zarr.shape[2]):
-    #         burdens += burdens_zarr[:, :, repeat]
-    #     burdens = burdens / burdens_zarr.shape[2]
-    # else:
-    #     assert repeat < burdens_zarr.shape[2]
-    #     burdens = burdens_zarr[:, :, repeat]
+    logger.warning(
+        "Using burdens from first phenotype passed. "
+        "Burdens from other phenotypes will be ignored."
+    )
+    burdens_zarr = zarr.open(burden_dirs[0] / "burdens.zarr")
+    assert burdens_zarr.shape[0] == n_samples
+    assert burdens_zarr.shape[1] == n_genes
 
-    # assert burdens_zarr.shape[0] == sample_ids.shape[0]
-    # assert burdens_zarr.shape[0] == covariates.shape[0]
-    # assert burdens_zarr.shape[0] == y.shape[0]
-    # assert burdens_zarr.shape[1] == genes.shape[0]
-
-    # TODO: Do we need to filter NAs for REGENIE?
-    # mask = np.all(~np.isnan(np.concatenate([y, covariates], axis=1)), axis=1)
-
-    # logger.info(f"Keeping {np.sum(mask)} samples with defined phenotype and covariates")
-
-    # sample_ids = sample_ids[mask]
-    # covariates = covariates[mask]
-    # ys = [y[mask] for y in ys]
-    # # burdens = burdens[mask]
-
-    # with gzip.open(vcf, "wb", compresslevel=1) as f:
-    #     logger.info("Creating VCF file with artificial variants and burdens as dosages")
-    #     logger.info("  This can take a while for large datasets")
-
-    #     # Make VCF header
-    #     header = ""  # TODO: Replace this with real metadata
-    #     header += (
-    #         "\t".join(
-    #             [
-    #                 "#CHROM",
-    #                 "POS",
-    #                 "ID",
-    #                 "REF",
-    #                 "ALT",
-    #                 "QUAL",
-    #                 "FILTER",
-    #                 "INFO",
-    #                 "FORMAT",
-    #             ]
-    #         )
-    #         + "\t"
-    #     )
-    #     header += "\t".join(sample_ids.astype(str)) + "\n"
-
-    #     f.write(header.encode("utf-8"))
-
-    #     # Create one fake variant per gene, with burdens as dosages
-    #     gene_block_size = 1000
-    #     pos = (2 * np.arange(genes.shape[0], dtype=np.int32) + 1).astype(np.bytes_)
-    #     for start_index in trange(0, genes.shape[0], gene_block_size, file=sys.stdout):
-    #         end_index = min(genes.shape[0], start_index + gene_block_size)
-    #         this_burdens = burdens[:, start_index:end_index]
-
-    #         this_burdens = this_burdens.transpose().astype(np.bytes_)
-    #         this_burdens = np.char.add(np.bytes_(b"\t./.:"), this_burdens)
-
-    #         metadata = np.char.add(
-    #             np.char.add(b"1\t", pos[start_index:end_index]),
-    #             b"\t.\tA\tC\t100\tPASS\t.\tGT:DS",
-    #         )
-
-    #         first, last = np.split(
-    #             this_burdens,
-    #             [
-    #                 1,
-    #             ],
-    #             axis=1,
-    #         )
-    #         this_burdens = np.char.add(metadata.reshape(metadata.shape[0], 1), first)
-
-    #         cells = np.concatenate([this_burdens, last], axis=1)
-    #         lines = [b"".join(x) for x in cells]
-    #         block = b"\n".join(lines) + b"\n"
-
-    #         f.write(block)
-
-    #     # pos = lambda i: str(2 * i + 1)
-    #     # for i, g in tqdm(enumerate(genes), total=genes.shape[0], file=sys.stdout):
-    #     #     if i % 1000 == 0:
-    #     #         buffer = b""
-    #     #         start_index = i // 1000
-    #     #         end_index = start_index + 1000
-    #     #         this_burdens = burdens_zarr[:, start_index:end_index, repeat][
-    #     #             mask
-    #     #         ].astype(str)
-
-    #     #     import ipdb
-
-    #     #     ipdb.set_trace()
-
-    #     #     line = "\t".join(
-    #     #         ["1", pos(i), ".", "A", "C", "100", "PASS", ".", "GT:DS", "0/1:"]
-    #     #     )
-    #     #     # line += "\t0/1:".join([str(float(x)) for x in burdens[:, i][mask]])
-    #     #     line += "\t0/1:".join(this_burdens[:, i % 1000])
-    #     #     buffer += line.encode("utf-8") + b"\n"
-
-    #     #     # DEBUG
-    #     #     if i == 21:
-    #     #         f.write(buffer)
-    #     #         buffer = b""
-
-    #     #     # DEBUG
-    #     #     if i > 20:
-    #     #         break
-
-    ## Make covariate file
-    logger.info("Creating covariate file")
     sample_df = pd.DataFrame({"FID": sample_ids, "IID": sample_ids})
 
-    with open(dataset_files[0], "rb") as f:
-        dataset = pickle.load(f)
+    if not skip_samples:
+        sample_df.rename(columns={"FID": "ID_1", })
 
-    covariate_names = dataset.x_phenotypes
-    cov_df = pd.DataFrame(covariates, columns=covariate_names)
-    cov_df = pd.concat([sample_df, cov_df], axis=1)
-    cov_df.to_csv(covariate_file, sep=" ", index=False, na_rep="NA")
+    if not skip_covariates:
+        ## Make covariate file
+        logger.info("Creating covariate file")
+        with open(dataset_files[0], "rb") as f:
+            dataset = pickle.load(f)
 
-    ## Make phenotype file
-    logger.info("Creating phenotype file")
-    pheno_df_list = []
-    for p, y in zip(phenotype_names, ys):
-        pheno_df_list.append(pd.DataFrame({p: y.squeeze()}))
+        covariate_names = dataset.x_phenotypes
+        cov_df = pd.DataFrame(covariates, columns=covariate_names)
+        cov_df = pd.concat([sample_df, cov_df], axis=1)
+        cov_df.to_csv(covariate_file, sep=" ", index=False, na_rep="NA")
 
-    pheno_df = pd.concat([sample_df] + pheno_df_list, axis=1)
-    pheno_df.to_csv(phenotype_file, sep=" ", index=False, na_rep="NA")
+    if not skip_phenotypes:
+        ## Make phenotype file
+        logger.info("Creating phenotype file")
+        pheno_df_list = []
+        for p, y in zip(phenotype_names, ys):
+            pheno_df_list.append(pd.DataFrame({p: y.squeeze()}))
 
-    logger.info("Done")
+        pheno_df = pd.concat([sample_df] + pheno_df_list, axis=1)
+        pheno_df.to_csv(phenotype_file, sep=" ", index=False, na_rep="NA")
+
+    if not skip_burdens:
+        if average_repeats:
+            logger.info("Averaging burdens across all repeats")
+            burdens = np.zeros(burdens_zarr.shape[:2])
+            for repeat in trange(burdens_zarr.shape[2]):
+                burdens += burdens_zarr[:, :, repeat]
+            burdens = burdens / burdens_zarr.shape[2]
+        else:
+            logger.info(f"Using burdens from repeat {repeat}")
+            assert repeat < burdens_zarr.shape[2]
+            burdens = burdens_zarr[:, :, repeat]
+
+        # Read GTF file and get positions for pseudovariants (center of interval [Start, End])
+        logger.info(
+            f"Assigning positions to pseudovariants based on provided GTF file {gtf}"
+        )
+        gene_pos = pr.read_gtf(gtf)
+        gene_pos = gene_pos[
+            (gene_pos.Feature == "gene") & (gene_pos.gene_type == "protein_coding")
+        ][["Chromosome", "Start", "End", "gene_id"]].as_df()
+        gene_pos = gene_pos.set_index("gene_id")
+        gene_metadata = pd.read_parquet(gene_file).set_index("id")
+        this_gene_pos = gene_pos.loc[gene_metadata.loc[genes, "gene"]]
+        pseudovar_pos = (this_gene_pos.End - this_gene_pos.Start).to_numpy().astype(int)
+        ensgids = this_gene_pos.index.to_numpy()
+
+        logger.info(f"Writing pseudovariants to {bgen}")
+        with BgenWriter(
+            bgen,
+            n_samples,
+            samples=list(sample_ids),
+            metadata="Pseudovariants containing DeepRVAT gene impairment scores. One pseudovariant per gene.",
+        ) as f:
+            for i in trange(n_genes):
+                varid = f"pseudovariant_gene_{ensgids[i]}"
+                this_burdens = burdens[:, i]  # Rescale scores to be in range (0, 2)
+                genotypes = np.stack(
+                    (this_burdens, np.zeros(this_burdens.shape), 1 - this_burdens),
+                    axis=1,
+                )
+
+                f.add_variant(
+                    varid=varid,
+                    rsid=varid,
+                    chrom=this_gene_pos.iloc[i].Chromosome,
+                    pos=pseudovar_pos[i],
+                    alleles=[
+                        "A",
+                        "C",
+                    ],  # TODO: This is completely arbitrary, however, we might want to match it to a reference FASTA at some point
+                    genotypes=genotypes,
+                    ploidy=2,
+                    bit_depth=16,
+                )
 
 
 @cli.command()
+@click.option("--skip-samples", is_flag=True)
+@click.option("--skip-covariates", is_flag=True)
+@click.option("--skip-phenotypes", is_flag=True)
+@click.option("--skip-burdens", is_flag=True)
 @click.option("--repeat", type=int, default=-1)
 @click.option("--average-repeats", is_flag=True)
 @click.option(
@@ -747,26 +713,34 @@ def make_regenie_input_(
 )  # phenotype_name, dataset_file, burden_dir
 # @click.argument("dataset-file", type=click.Path(exists=True, path_type=Path))
 # @click.argument("burden-dir", type=click.Path(exists=True, path_type=Path))
-# @click.argument("gtf", type=click.Path(exists=True, path_type=Path))
+@click.argument("gene-file", type=click.Path(exists=True, path_type=Path))
+@click.argument("gtf", type=click.Path(exists=True, path_type=Path))
 @click.argument("bgen", type=click.Path(path_type=Path))
 @click.argument("covariate-file", type=click.Path(path_type=Path))
 @click.argument("phenotype-file", type=click.Path(path_type=Path))
 def make_regenie_input(
+        skip_samples: bool,
+    skip_covariates: bool,
+    skip_phenotypes: bool,
+    skip_burdens: bool,
     repeat: int,
     average_repeats: bool,
     phenotype: Tuple[Tuple[str, Path, Path]],
-    # gtf: Path,
+    gene_file: Path,
+    gtf: Path,
     bgen: Path,
     covariate_file: Path,
     phenotype_file: Path,
 ):
     make_regenie_input_(
+        skip_covariates,
+        skip_phenotypes,
+        skip_burdens,
         repeat,
         average_repeats,
         phenotype,
-        # dataset_file,
-        # burden_dir,
-        # gtf,
+        gene_file,
+        gtf,
         bgen,
         covariate_file,
         phenotype_file,
