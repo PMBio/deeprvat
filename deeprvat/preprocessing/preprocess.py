@@ -216,7 +216,7 @@ def process_individual_missingness(
 @click.option("--threads", type=int, default=1)
 @click.option("--skip-sanity-checks", is_flag=True)
 @click.argument("variant-file", type=click.Path(exists=True))
-@click.argument("samples", type=click.Path(exists=True))
+@click.argument("samples-path", type=click.Path(exists=True))
 @click.argument("sparse-gt", type=click.Path(exists=True))
 @click.argument("out-file", type=click.Path())
 def process_sparse_gt(
@@ -227,7 +227,7 @@ def process_sparse_gt(
     threads: int,
     skip_sanity_checks: bool,
     variant_file: str,
-    samples: str,
+    samples_path: str,
     sparse_gt: str,
     out_file: str,
 ):
@@ -275,7 +275,7 @@ def process_sparse_gt(
     logging.info(f"...done ({time.time() - start_time} s)")
 
     logging.info("Processing samples")
-    samples = set(pd.read_csv(samples, header=None).loc[:, 0])
+    samples = set(pd.read_csv(samples_path, header=None).loc[:, 0])
     if exclude_samples is not None:
         total_samples = len(samples)
 
