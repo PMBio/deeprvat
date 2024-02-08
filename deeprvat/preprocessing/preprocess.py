@@ -157,38 +157,35 @@ def get_file_chromosome(file, col_names, chrom_field="chrom"):
     return chrom
 
 
+def parse_file_path_list(file_path_list_path: Path):
+    with open(file_path_list_path) as file:
+        vcf_files = [Path(line.rstrip()) for line in file]
+        vcf_stems = [vf.stem.replace(".vcf", "") for vf in vcf_files]
+
+        assert len(vcf_stems) == len(vcf_files)
+
+        vcf_look_up = {stem: file for stem, file in zip(vcf_stems, vcf_files)}
+
+        return vcf_stems, vcf_files, vcf_look_up
+
+
 @cli.command()
 @click.option("--threshold", type=float, default=0.1)
-@click.argument("pvcf-blocks", type=click.Path(exists=True))
+@click.argument("file-paths-list", type=click.Path(exists=True))
 @click.argument("imiss-dir", type=click.Path(exists=True))
 @click.argument("out-file", type=click.Path())
 def process_individual_missingness(
-    threshold: float, pvcf_blocks: str, imiss_dir: str, out_file: str
+    threshold: float, file_paths_list: Path, imiss_dir: str, out_file: str
 ):
-    pvcf_blocks_df = pd.read_csv(
-        pvcf_blocks,
-        sep="\t",
-        header=None,
-        names=["Index", "Chromosome", "Block", "First position", "Last position"],
-        dtype={"Chromosome": str},
-    ).set_index("Index")
+    vcf_stems, _, _ = parse_file_path_list(file_paths_list)
 
-    chr_mapping = pd.Series(
-        [str(x) for x in range(1, 23)] + ["X", "Y"],
-        index=[str(x) for x in range(1, 25)],
-    )
-    pvcf_blocks_df["chr_name"] = chr_mapping.loc[
-        pvcf_blocks_df["Chromosome"].values
-    ].values
+    imiss_dir = Path(imiss_dir)
 
     imiss_blocks = []
     total_variants = 0
-    for chrom, block in tqdm(
-        zip(pvcf_blocks_df["chr_name"], pvcf_blocks_df["Block"]),
-        total=len(pvcf_blocks_df),
-    ):
+    for vcf_stem in tqdm(vcf_stems, desc="VCFs"):
         missing_counts = pd.read_csv(
-            os.path.join(imiss_dir, "samples", f"ukb23156_c{chrom}_b{block}_v1.tsv"),
+            imiss_dir / "samples" / f"{vcf_stem}.tsv",
             sep="\t",
             header=None,
             usecols=[1, 11],
@@ -196,7 +193,7 @@ def process_individual_missingness(
         missing_counts.columns = ["sample", "n_missing"]
         imiss_blocks.append(missing_counts)
         total_variants += pd.read_csv(
-            os.path.join(imiss_dir, "sites", f"ukb23156_c{chrom}_b{block}_v1.tsv"),
+            imiss_dir / "sites" / f"{vcf_stem}.tsv",
             header=None,
             sep="\t",
         ).iloc[0, 1]

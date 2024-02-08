@@ -40,12 +40,12 @@ rule qc_indmiss:
         bcf_dir/ "{vcf_stem}.bcf",
     output:
         stats = qc_indmiss_stats_dir / "{vcf_stem}.stats",
-        samples = qc_indmiss_samples_dir / "{vcf_stem}.csv",
+        samples = qc_indmiss_samples_dir / "{vcf_stem}.tsv",
         sites = qc_indmiss_sites_dir / "{vcf_stem}.tsv"
     resources:
         mem_mb = lambda wildcards, attempt: 256 * attempt
     shell:
-        f'{load_bcftools} bcftools +smpl-stats --output {{output.stats}} {{input}} && grep "^FLT0" {{output.stats}} |cut -f 2 > {{output.samples}} && grep "^SITE0" {{output.stats}} > {{output.sites}}'
+        f'{load_bcftools} bcftools +smpl-stats --output {{output.stats}} {{input}} && grep "^FLT0" {{output.stats}} > {{output.samples}} && grep "^SITE0" {{output.stats}} > {{output.sites}}'
 
 
 rule create_excluded_samples_dir:

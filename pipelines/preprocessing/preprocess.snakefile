@@ -1,8 +1,9 @@
 from pathlib import Path
 
+import deeprvat.preprocessing.preprocess as deeprvat_preprocess
+
 
 configfile: "config/deeprvat_preprocess_config.yaml"
-
 
 load_samtools = config.get("samtools_load_cmd") or ""
 load_bcftools = config.get("bcftools_load_cmd") or ""
@@ -35,15 +36,7 @@ qc_allelic_imbalance_dir = qc_dir / "allelic_imbalance"
 qc_duplicate_vars_dir = qc_dir / "duplicate_vars"
 qc_filtered_samples_dir = qc_dir / "filtered_samples"
 
-
-with open(config["vcf_files_list"]) as file:
-    vcf_files = [Path(line.rstrip()) for line in file]
-    vcf_stems = [vf.stem.replace(".vcf", "") for vf in vcf_files]
-
-    assert len(vcf_stems) == len(vcf_files)
-
-    vcf_look_up = {stem: file for stem, file in zip(vcf_stems, vcf_files)}
-
+vcf_stems, vcf_files, vcf_look_up = deeprvat_preprocess.parse_file_path_list(config["vcf_files_list"])
 chromosomes = config["included_chromosomes"]
 
 
@@ -102,7 +95,7 @@ rule variants:
 
 rule concatenate_variants:
     input:
-        expand(norm_variants_dir / "{vcf_stem}.tsv.gz", vcf_stem=vcf_stems),
+        expand(norm_variants_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
     output:
         norm_variants_dir / "variants_no_id.tsv.gz",
     shell:
