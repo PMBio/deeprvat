@@ -280,15 +280,22 @@ def process_sparse_gt(
         total_samples = len(samples)
 
         if sample_exclusion_files := list(Path(exclude_samples).rglob("*.csv")):
-            samples_to_exclude = set(
-                pd.concat(
-                    [
-                        pd.read_csv(s, header=None).loc[:, 0]
-                        for s in sample_exclusion_files
-                    ],
-                    ignore_index=True,
+
+            sample_exclusion_files = [
+                s for s in sample_exclusion_files if s.stat().st_size > 0
+            ]
+            if sample_exclusion_files:
+                samples_to_exclude = set(
+                    pd.concat(
+                        [
+                            pd.read_csv(s, header=None).loc[:, 0]
+                            for s in sample_exclusion_files
+                        ],
+                        ignore_index=True,
+                    )
                 )
-            )
+            else:
+                samples_to_exclude = set()
             samples -= samples_to_exclude
             logging.info(f"Dropped {total_samples - len(samples)} samples")
         else:

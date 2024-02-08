@@ -48,8 +48,14 @@ rule qc_indmiss:
         f'{load_bcftools} bcftools +smpl-stats --output {{output.stats}} {{input}} && grep "^FLT0" {{output.stats}} > {{output.samples}} && grep "^SITE0" {{output.stats}} > {{output.sites}}'
 
 
-rule create_excluded_samples_dir:
+rule process_individual_missingness:
+    input:
+        #stats = qc_indmiss_stats_dir / "{vcf_stem}.stats",
+        samples = expand(qc_indmiss_samples_dir / "{vcf_stem}.tsv", vcf_stem=vcf_stems),
+        #sites = qc_indmiss_sites_dir / "{vcf_stem}.tsv"
     output:
-        directory(qc_filtered_samples_dir),
+        qc_filtered_samples_dir / "indmiss_samples.csv"
+    resources:
+        mem_mb = lambda wildcards, attempt: 256 * attempt
     shell:
-        "mkdir -p {output}"
+        f"{preprocessing_cmd} process-individual-missingness {config['vcf_files_list']} {qc_indmiss_dir} {{output}}"

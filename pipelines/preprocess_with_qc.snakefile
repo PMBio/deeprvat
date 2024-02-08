@@ -24,7 +24,7 @@ rule preprocess_with_qc:
             qc_allelic_imbalance_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems
         ),
         qc_filtered_samples=qc_filtered_samples_dir,
-        qc_indmiss_samples=expand(qc_indmiss_samples_dir / "{vcf_stem}.tsv", vcf_stem=vcf_stems)
+        qc_indmiss_samples=qc_filtered_samples_dir / "indmiss_samples.csv",
     output:
         expand(preprocessed_dir / "genotypes_chr{chr}.h5",chr=chromosomes),
     shell:
@@ -38,7 +38,6 @@ rule preprocess_with_qc:
                 f"--exclude-variants {qc_duplicate_vars_dir}",
                 f"--exclude-calls {qc_read_depth_dir}",
                 f"--exclude-samples {qc_filtered_samples_dir}",
-                f"--exclude-samples {qc_indmiss_samples_dir}",
                 "--chromosomes ",
                 ",".join(str(chr) for chr in set(chromosomes)),
                 f"--threads {preprocess_threads}",
