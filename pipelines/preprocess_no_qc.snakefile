@@ -25,7 +25,7 @@ rule preprocess_no_qc:
                 "--chromosomes ",
                 ",".join(str(chr) for chr in set(chromosomes)),
                 f"--threads {preprocess_threads}",
-                "{input.variants}",
+                "{input.variants_parquet}",
                 "{input.samples}",
                 f"{sparse_dir}",
                 f"{preprocessed_dir / 'genotypes'}",
