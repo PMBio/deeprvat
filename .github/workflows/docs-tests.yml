@@ -8,7 +8,7 @@ jobs:
   docs-build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ammaraskar/sphinx-action@0.4
       with:
         docs-folder: "docs/"
@@ -16,7 +16,7 @@ jobs:
   docs-link-check:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ammaraskar/sphinx-action@0.4
       with:
         docs-folder: "docs/"
