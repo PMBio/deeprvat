@@ -199,11 +199,8 @@ def process_sparse_gt(
     total_variants = len(variants)
     if len(exclude_variants) > 0:
         variant_exclusion_files = [
-            Path(directory) / v
-            for directory in exclude_variants
-            for v in Path(directory).glob("*.tsv*")
+            v for directory in exclude_variants for v in Path(directory).rglob("*.tsv*")
         ]
-
         variants_to_exclude = pd.concat(
             [
                 pd.read_csv(v, sep="\t", names=["chrom", "pos", "ref", "alt"])
@@ -327,7 +324,6 @@ def process_sparse_gt(
 
             gc.collect()
 
-        del calls_to_exclude
         gc.collect()
 
         out_file_chrom = f"{out_file}_{chrom}.h5"
