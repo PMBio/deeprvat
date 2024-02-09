@@ -557,7 +557,7 @@ def make_saige_input(
 
 
 def make_regenie_input_(
-        skip_samples: bool,
+    skip_samples: bool,
     skip_covariates: bool,
     skip_phenotypes: bool,
     skip_burdens: bool,
@@ -616,7 +616,11 @@ def make_regenie_input_(
     sample_df = pd.DataFrame({"FID": sample_ids, "IID": sample_ids})
 
     if not skip_samples:
-        sample_df.rename(columns={"FID": "ID_1", })
+        sample_df.rename(
+            columns={
+                "FID": "ID_1",
+            }
+        )
 
     if not skip_covariates:
         ## Make covariate file
@@ -719,7 +723,7 @@ def make_regenie_input_(
 @click.argument("covariate-file", type=click.Path(path_type=Path))
 @click.argument("phenotype-file", type=click.Path(path_type=Path))
 def make_regenie_input(
-        skip_samples: bool,
+    skip_samples: bool,
     skip_covariates: bool,
     skip_phenotypes: bool,
     skip_burdens: bool,
@@ -745,6 +749,56 @@ def make_regenie_input(
         covariate_file,
         phenotype_file,
     )
+
+
+def convert_regenie_output_(
+    repeat: int, phenotype: Tuple[str, Tuple[Path, Path]], gene_file: Path
+):
+    genes = pd.read_parquet(gene_file)[["id", "gene"]]
+    for pheno_name, regenie_results, out_file in phenotype:
+        regenie_cols = ["TEST", "SE", "CHISQ"]
+        regenie_col_newnames = [f"regenie_{c}" for c in regenie_cols]
+        result_df = pd.read_csv(regenie_results, sep=" ")[
+            ["ID", "BETA", "LOG10P"] + regenie_cols
+        ]
+
+        result_df["gene"] = result_df["ID"].str.split("_", expand=True)[2]
+        old_len = len(result_df)
+        result_df = pd.merge(result_df, genes, validate="1:1")
+        assert len(result_df) == old_len
+        result_df = result_df.drop(columns="ID")
+        result_df = result_df.drop(columns="gene").rename(columns={"id": "gene"})
+
+        result_df["phenotype"] = pheno_name
+        result_df = result_df.rename(columns={"BETA": "beta"})
+        result_df["pval"] = np.power(10, -result_df["LOG10P"])
+        result_df = result_df.drop(columns="LOG10P")
+        result_df["model"] = f"repeat_{repeat}"
+        result_df = result_df.rename(
+            columns=dict(zip(regenie_cols, regenie_col_newnames))
+        )
+        result_df = result_df[
+            ["phenotype", "gene", "beta", "pval", "model"] + regenie_col_newnames
+        ]
+        result_df.to_parquet(out_file)
+
+
+@cli.command()
+@click.option("--repeat", type=int, default=0)
+@click.option(
+    "--phenotype",
+    type=(
+        str,
+        click.Path(exists=True, path_type=Path),  # REGENIE output file
+        click.Path(path_type=Path),  # Converted results
+    ),
+    multiple=True,
+)
+@click.argument("gene-file", type=click.Path(exists=True, path_type=Path))
+def convert_regenie_output(
+    repeat: int, phenotype: Tuple[str, Tuple[Path, Path]], gene_file: Path
+):
+    convert_regenie_output_(repeat, phenotype, gene_file)
 
 
 def load_one_model(
