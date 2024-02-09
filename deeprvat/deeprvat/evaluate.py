@@ -162,9 +162,11 @@ def get_pvals(results, method_mapping=None, phenotype_mapping={}):
 
     if phenotype_mapping is not None:
         pvals["phenotype"] = pvals["phenotype"].apply(
-            lambda x: phenotype_mapping[x]
-            if x in phenotype_mapping
-            else " ".join(x.split("_"))
+            lambda x: (
+                phenotype_mapping[x]
+                if x in phenotype_mapping
+                else " ".join(x.split("_"))
+            )
         )
 
     return pvals
