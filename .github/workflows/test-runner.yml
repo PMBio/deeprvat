@@ -1,6 +1,6 @@
 name: DeepRVAT test runner
 run-name: DeepRVAT Tests 🧑🏼‍💻✅
-on: [ push, pull_request ]
+on: [ push ]
 
 jobs:
   DeepRVAT-Tests-Runner:

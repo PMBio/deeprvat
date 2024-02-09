@@ -1,6 +1,6 @@
 name: DeepRVAT
 run-name: DeepRVAT 🧬🧪💻🧑‍🔬
-on: [ push, pull_request ]
+on: [ push ]
 
 jobs:
   DeepRVAT-Pipeline-Smoke-Tests:
