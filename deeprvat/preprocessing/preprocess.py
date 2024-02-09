@@ -257,22 +257,22 @@ def process_sparse_gt(
     ):
         logging.info(f"Processing chromosome {chrom}")
         logging.info("Reading in filtered calls")
+
         if exclude_calls is not None:
-            chrom_dir = os.path.join(exclude_calls, chrom)
-            exclude_calls_chrom = list(Path(chrom_dir).glob("*.tsv*"))
-        else:
-            calls_to_exclude = pd.DataFrame(
-                columns=["chrom", "pos", "ref", "alt", "sample"]
-            )
+            exclude_calls_chrom = Path(exclude_calls).rglob("*.tsv*")
 
         logging.info("Processing sparse GT files")
 
-        chrom_dir = os.path.join(sparse_gt, chrom)
-        logging.info(f"chrom dir is {chrom_dir}")
-
         variants_chrom = variant_groups.get_group(chrom)
 
-        sparse_gt_chrom = sorted(list(Path(chrom_dir).glob("*.tsv*")))
+        sparse_file_cols = ["chrom", "pos", "ref", "alt", "sample", "gt"]
+
+        sparse_gt_chrom = [
+            f
+            for f in Path(sparse_gt).rglob("*.tsv*")
+            if get_file_chromosome(f, col_names=sparse_file_cols) == chrom
+        ]
+
         logging.info(
             f"{len(sparse_gt_chrom)} sparse GT files: {[str(s) for s in sparse_gt_chrom]}"
         )
