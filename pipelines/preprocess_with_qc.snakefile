@@ -40,7 +40,6 @@ rule preprocess_with_qc:
                 f"--exclude-samples {qc_filtered_samples_dir}",
                 "--chromosomes ",
                 ",".join(str(chr) for chr in set(chromosomes)),
-                f"--threads {preprocess_threads}",
                 "{input.variants_parquet}",
                 "{input.samples}",
                 f"{sparse_dir}",

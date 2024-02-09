@@ -171,7 +171,6 @@ def get_file_chromosome(file, col_names, chrom_field="chrom"):
 @click.option("--exclude-samples", type=click.Path(exists=True))
 @click.option("--exclude-calls", type=click.Path(exists=True))
 @click.option("--chromosomes", type=str)
-@click.option("--threads", type=int, default=1)
 @click.option("--skip-sanity-checks", is_flag=True)
 @click.argument("variant-file", type=click.Path(exists=True))
 @click.argument("samples", type=click.Path(exists=True))
@@ -183,7 +182,6 @@ def process_sparse_gt(
         exclude_samples: Optional[str],
         exclude_calls: Optional[str],
         chromosomes: Optional[str],
-        threads: int,
         skip_sanity_checks: bool,
         variant_file: str,
         samples: str,
