@@ -409,10 +409,14 @@ def map_samples(
     unmapped_samples = set(
         new_samples_df.loc[new_samples_df[new_id_col].isna(), id_col]
     )
-    if len(unmapped_samples) > 0:
+    n_unmapped = len(unmapped_samples)
+    if n_unmapped > 0:
+        ellipsis = (
+            "" if len(unmapped_samples) < 50 else f" ... ({n_unmapped - 50} not shown)"
+        )
         logger.warning(
-            f"The following {len(unmapped_samples)} samples (out of {len(set(samples))}) "
-            f"could not be mapped:\n{unmapped_samples}"
+            f"The following {n_unmapped} samples (out of {len(set(samples))}) "
+            f"could not be mapped:\n{unmapped_samples[:50]}"
         )
 
     return new_samples_df[new_id_col].to_numpy()

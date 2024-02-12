@@ -557,25 +557,34 @@ def make_saige_input(
 
 
 def make_regenie_input_(
+    debug: bool,
     skip_samples: bool,
     skip_covariates: bool,
     skip_phenotypes: bool,
     skip_burdens: bool,
     repeat: int,
     average_repeats: bool,
-    phenotype: Tuple[Tuple[str, Path, Path]],  # dataset_file, burden_dir
+    phenotype: Tuple[Tuple[str, Path, Path]],
+    sample_file: Optional[Path],
+    covariate_file: Optional[Path],
+    phenotype_file: Optional[Path],
+    bgen: Optional[Path],
     gene_file: Path,
     gtf: Path,
-    bgen: Path,
-    covariate_file: Path,
-    phenotype_file: Path,
 ):
-    logger.setLevel(logging.INFO)
-
-    if (repeat >= 0) + average_repeats != 1:
+    ## Check options
+    if (repeat >= 0) + average_repeats + skip_burdens != 1:
         raise ValueError(
-            "Exactly one of --repeat or --average-repeats must be specified"
+            "Exactly one of --repeat or --average-repeats or --skip-burdens must be specified"
         )
+    if not skip_samples and sample_file is None:
+        raise ValueError("Either sample_file or skip_samples must be specified")
+    if not skip_covariates and covariate_file is None:
+        raise ValueError("Either covariate_file or skip_covariates must be specified")
+    if not skip_phenotypes and phenotype_file is None:
+        raise ValueError("Either phenotype_file or skip_phenotypes must be specified")
+    if not skip_burdens and bgen is None:
+        raise ValueError("Either bgen or skip_burdens must be specified")
 
     ## Make BGEN
 
@@ -591,6 +600,11 @@ def make_regenie_input_(
     ys = [zarr.load(b / "y.zarr") for b in burden_dirs]
     genes = np.load(burden_dirs[0] / "genes.npy")
 
+    if debug:
+        sample_ids = sample_ids[:1000]
+        covariates = covariates[:1000]
+        ys = [y[:1000] for y in ys]
+
     n_samples = sample_ids.shape[0]
     n_genes = genes.shape[0]
     assert covariates.shape[0] == n_samples
@@ -598,33 +612,46 @@ def make_regenie_input_(
 
     # Sanity check: sample_ids, covariates, and genes should be consistent for all phenotypes
     # TODO: Check burdens as well (though this will be slow)
-    for i in range(1, len(phenotype)):
-        assert np.array_equal(sample_ids, zarr.load(burden_dirs[i] / "sample_ids.zarr"))
-        assert np.array_equal(
-            covariates, zarr.load(burden_dirs[i] / "x.zarr")
-        )  # TODO: Phenotype-specific covariates
-        assert np.array_equal(genes, np.load(burden_dirs[i] / "genes.npy"))
+    if not debug:
+        for i in range(1, len(phenotype)):
+            assert np.array_equal(
+                sample_ids, zarr.load(burden_dirs[i] / "sample_ids.zarr")
+            )
+            assert np.array_equal(
+                covariates, zarr.load(burden_dirs[i] / "x.zarr")
+            )  # TODO: Phenotype-specific covariates
+            assert np.array_equal(genes, np.load(burden_dirs[i] / "genes.npy"))
 
     logger.warning(
         "Using burdens from first phenotype passed. "
         "Burdens from other phenotypes will be ignored."
     )
     burdens_zarr = zarr.open(burden_dirs[0] / "burdens.zarr")
-    assert burdens_zarr.shape[0] == n_samples
-    assert burdens_zarr.shape[1] == n_genes
+    if not debug:
+        assert burdens_zarr.shape[0] == n_samples
+        assert burdens_zarr.shape[1] == n_genes
 
     sample_df = pd.DataFrame({"FID": sample_ids, "IID": sample_ids})
 
     if not skip_samples:
-        sample_df.rename(
-            columns={
-                "FID": "ID_1",
-            }
+        ## Make sample file
+        logger.info(f"Creating sample file {sample_file}")
+        samples_out = pd.concat(
+            [
+                pd.DataFrame({"ID_1": 0, "ID_2": 0}, index=[0]),
+                sample_df.rename(
+                    columns={
+                        "FID": "ID_1",
+                        "IID": "ID_2",
+                    }
+                ),
+            ]
         )
+        samples_out.to_csv(sample_file, sep=" ", index=False)
 
     if not skip_covariates:
         ## Make covariate file
-        logger.info("Creating covariate file")
+        logger.info(f"Creating covariate file {covariate_file}")
         with open(dataset_files[0], "rb") as f:
             dataset = pickle.load(f)
 
@@ -635,7 +662,7 @@ def make_regenie_input_(
 
     if not skip_phenotypes:
         ## Make phenotype file
-        logger.info("Creating phenotype file")
+        logger.info(f"Creating phenotype file {phenotype_file}")
         pheno_df_list = []
         for p, y in zip(phenotype_names, ys):
             pheno_df_list.append(pd.DataFrame({p: y.squeeze()}))
@@ -646,14 +673,14 @@ def make_regenie_input_(
     if not skip_burdens:
         if average_repeats:
             logger.info("Averaging burdens across all repeats")
-            burdens = np.zeros(burdens_zarr.shape[:2])
+            burdens = np.zeros((n_samples, n_genes))
             for repeat in trange(burdens_zarr.shape[2]):
-                burdens += burdens_zarr[:, :, repeat]
+                burdens += burdens_zarr[:n_samples, :, repeat]
             burdens = burdens / burdens_zarr.shape[2]
         else:
             logger.info(f"Using burdens from repeat {repeat}")
             assert repeat < burdens_zarr.shape[2]
-            burdens = burdens_zarr[:, :, repeat]
+            burdens = burdens_zarr[:n_samples, :, repeat]
 
         # Read GTF file and get positions for pseudovariants (center of interval [Start, End])
         logger.info(
@@ -700,6 +727,7 @@ def make_regenie_input_(
 
 
 @cli.command()
+@click.option("--debug", is_flag=True)
 @click.option("--skip-samples", is_flag=True)
 @click.option("--skip-covariates", is_flag=True)
 @click.option("--skip-phenotypes", is_flag=True)
@@ -715,14 +743,16 @@ def make_regenie_input_(
     ),
     multiple=True,
 )  # phenotype_name, dataset_file, burden_dir
+@click.option("--sample-file", type=click.Path(path_type=Path))
+@click.option("--bgen", type=click.Path(path_type=Path))
+@click.option("--covariate-file", type=click.Path(path_type=Path))
+@click.option("--phenotype-file", type=click.Path(path_type=Path))
 # @click.argument("dataset-file", type=click.Path(exists=True, path_type=Path))
 # @click.argument("burden-dir", type=click.Path(exists=True, path_type=Path))
 @click.argument("gene-file", type=click.Path(exists=True, path_type=Path))
 @click.argument("gtf", type=click.Path(exists=True, path_type=Path))
-@click.argument("bgen", type=click.Path(path_type=Path))
-@click.argument("covariate-file", type=click.Path(path_type=Path))
-@click.argument("phenotype-file", type=click.Path(path_type=Path))
 def make_regenie_input(
+    debug: bool,
     skip_samples: bool,
     skip_covariates: bool,
     skip_phenotypes: bool,
@@ -730,24 +760,28 @@ def make_regenie_input(
     repeat: int,
     average_repeats: bool,
     phenotype: Tuple[Tuple[str, Path, Path]],
+    sample_file: Optional[Path],
+    covariate_file: Optional[Path],
+    phenotype_file: Optional[Path],
+    bgen: Optional[Path],
     gene_file: Path,
     gtf: Path,
-    bgen: Path,
-    covariate_file: Path,
-    phenotype_file: Path,
 ):
     make_regenie_input_(
-        skip_covariates,
-        skip_phenotypes,
-        skip_burdens,
-        repeat,
-        average_repeats,
-        phenotype,
-        gene_file,
-        gtf,
-        bgen,
-        covariate_file,
-        phenotype_file,
+        debug=debug,
+        skip_samples=skip_samples,
+        skip_covariates=skip_covariates,
+        skip_phenotypes=skip_phenotypes,
+        skip_burdens=skip_burdens,
+        repeat=repeat,
+        average_repeats=average_repeats,
+        phenotype=phenotype,
+        sample_file=sample_file,
+        covariate_file=covariate_file,
+        phenotype_file=phenotype_file,
+        bgen=bgen,
+        gene_file=gene_file,
+        gtf=gtf,
     )
 
 
