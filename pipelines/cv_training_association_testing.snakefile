@@ -44,34 +44,11 @@ baseline_path =  [ r['base'] for r in config['baseline_results']]
 assert len(set(baseline_path)) == 1
 baseline_path = baseline_path[0]
 
-phenotypes = training_phenotypes
-# rule all:
-#     input:
-#         expand('{phenotype}/deeprvat/burdens/merging.finished', 
-#         phenotype = phenotypes)
+
 rule all:
     input:
-        # significant = expand("{phenotype}/deeprvat/eval/significant.parquet",
-        #        phenotype=phenotypes),
-        # results = expand("{phenotype}/deeprvat/eval/all_results.parquet",
-        #        phenotype=phenotypes),
-        # replication = "replication.parquet",
-        plots = expand("dicovery_replication_plot_{use_seed}.png", use_seed = ["wo_seed", 'use_seed'])
-
-
-# rule all:
-#     input:
-#         expand('cv_split{cv_split}/deeprvat/models/repeat_{repeat}/best/bag_{bag}.ckpt',
-#                bag=range(n_bags), repeat=range(n_repeats),
-#                cv_split = range(cv_splits)),
-#         expand('cv_split{cv_split}/deeprvat/models/repeat_{repeat}/config.yaml',
-#                repeat=range(n_repeats),
-#                cv_split = range(cv_splits))
-
-# rule all:
-#     input:
-#         seed_genes = expand('cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/seed_genes.parquet',
-#                             phenotype=phenotypes, cv_split = range(cv_splits)),
+        expand('{phenotype}/deeprvat/burdens/merging.finished', 
+        phenotype = phenotypes)
 
 
 rule spread_config:
@@ -218,13 +195,18 @@ use rule choose_training_genes from deeprvat_workflow as deeprvat_choose_trainin
 use rule config from deeprvat_workflow as deeprvat_config with:
     input:
         config = 'cv_split{cv_split}/deeprvat/config.yaml', # TODO: change this into cv specific config
-        baseline = f'{baseline_path}/{{phenotype}}/eval/burden_associations.parquet'
+        # baseline = f'{baseline_path}/{{phenotype}}/eval/burden_associations.parquet'
         # baseline = f'{baseline_path}/cv_split{{cv_split}}/baseline/{{phenotype}}/eval/burden_associations.parquet', ## comment this in for fold-specific baselines
         # baseline = lambda wildcards: [
         #     str(Path(r['base']) / f'cv_split{wildcards.cv_split}'/ 'baseline' / wildcards.phenotype / r['type'] /
         #         'eval/burden_associations.parquet')
         #     for r in config['baseline_results']
         # ] 
+        baseline = lambda wildcards: [
+            str(Path(r['base']) /wildcards.phenotype / r['type'] /
+                'eval/burden_associations.parquet')
+            for r in config['baseline_results']
+        ] 
     params:
         baseline_results = lambda wildcards, input: ''.join([
             f'--baseline-results {b} '
@@ -262,21 +244,20 @@ use rule association_dataset from deeprvat_workflow as deeprvat_association_data
 suffix_dict = {p: 'linked' if p != burden_phenotype else 'finished' for p in phenotypes}
 rule combine_test_burdens:
     input: 
-        lambda wildcards: [
+        burdens = lambda wildcards: [
             (f'cv_split{cv_split}/deeprvat/{wildcards.phenotype}/deeprvat/burdens/chunk{c}.{suffix_dict[wildcards.phenotype]}')
             for c in range(n_burden_chunks) for cv_split in range(cv_splits)
             ]
+        
     output:
         '{phenotype}/deeprvat/burdens/merging.finished'
     params:
         out_dir = '{phenotype}/deeprvat/burdens',
-        burden_paths = lambda wildcards, input: ''.join([
-            f'--burden-dirs cv_split{fold}/deeprvat/{wildcards.phenotype}/deeprvat/burdens '
-            for fold in range(cv_splits)]),
+        burden_paths = ''.join([ f'--burden-dirs cv_split{fold}/deeprvat/{wildcards.phenotype}/deeprvat/burdens ' for fold in range(cv_splits)]),
         link = lambda wildcards: (f'--link-burdens ../../../{burden_phenotype}/deeprvat/burdens/burdens.zarr' 
             if wildcards.phenotype != burden_phenotype else ' ')
     resources:
-        mem_mb = 20480,
+        mem_mb = lambda wildcards, attempt: 32000 + attempt * 4098 * 2,
     shell:
         ' && '.join([
             conda_check,
