@@ -86,18 +86,25 @@ deeprvat_compute_burdens:
     # - "-R tensorcore"
     # - "-L /bin/bash"
 
-
+prepare_genotypes_per_gene:
+    - "-q long"
 deeprvat_regress:
     - "-q long"
 
 average_burdens:
     - "-q long"
 
+regress_missense:
+    - "-q long"
+regress_plof:
+    - "-q long"
 
 seed_gene_regress_missense:
     - "-q long"
 
 seed_gene_association_dataset:
+    - "-q long"
+association_dataset:
     - "-q long"
     
 seed_gene_regress_plof:
