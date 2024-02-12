@@ -51,6 +51,21 @@ regress:
 combine_regression_chunks:
     - "-q short"
 
+regenie_step1_splitl0:
+    - "-q short"
+
+regenie_step1_runl0:
+    - "-q medium"
+
+regenie_step1_runl1:
+    - "-q medium"
+
+regenie_step1:
+    - "-q verylong"
+
+regenie_step2:
+    - "-q medium"
+
 
 # For CV (phenotype prediction) pipeline
 
