@@ -234,7 +234,7 @@ rule average_burdens:
     priority: 10,
     shell:
         ' && '.join([
-            (f'{py_deeprvat}/average_burdens.py  average-burdens '
+            ('deeprvat_associate  average-burdens '
             '--n-chunks '+ str(n_avg_chunks) + ' '
             '--chunk {wildcards.chunk} '
             '{params.repeats} '
