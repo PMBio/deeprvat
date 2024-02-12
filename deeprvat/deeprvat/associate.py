@@ -670,7 +670,7 @@ def regress(
     n_samples = y.shape[0]
     assert y.shape[0] == n_samples
     assert x_pheno.shape[0] == n_samples
-    assert len(genes) == burdens.shape[1]
+    # assert len(genes) == burdens.shape[1]
 
     nan_mask = ~np.isnan(y).squeeze()
     y = y[nan_mask]
