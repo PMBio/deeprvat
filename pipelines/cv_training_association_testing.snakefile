@@ -247,13 +247,14 @@ rule combine_test_burdens:
         burdens = lambda wildcards: [
             (f'cv_split{cv_split}/deeprvat/{wildcards.phenotype}/deeprvat/burdens/chunk{c}.{suffix_dict[wildcards.phenotype]}')
             for c in range(n_burden_chunks) for cv_split in range(cv_splits)
-            ]
+            ],
+        config = 'config.yaml'
         
     output:
         '{phenotype}/deeprvat/burdens/merging.finished'
     params:
         out_dir = '{phenotype}/deeprvat/burdens',
-        burden_paths = ''.join([ f'--burden-dirs cv_split{fold}/deeprvat/{wildcards.phenotype}/deeprvat/burdens ' for fold in range(cv_splits)]),
+        burden_paths = ''.join([ f'--burden-dirs cv_split{fold}/deeprvat/{wildcards.phenotype}/deeprvat/burdens 'for fold in range(cv_splits)]),
         link = lambda wildcards: (f'--link-burdens ../../../{burden_phenotype}/deeprvat/burdens/burdens.zarr' 
             if wildcards.phenotype != burden_phenotype else ' ')
     resources:
@@ -264,9 +265,11 @@ rule combine_test_burdens:
             py_deeprvat + 'cv_utils.py combine-test-set-burdens '
             '{params.link} '
             '{params.burden_paths} '
-            '{params.out_dir}',
+            '{params.out_dir} '
+            '{input.config}',
         'touch {output}'
         ])
+
 
 
 

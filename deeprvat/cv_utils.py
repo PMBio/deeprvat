@@ -12,6 +12,10 @@ import zarr
 import numpy as np
 from numcodecs import Blosc
 from pathlib import Path
+from deeprvat.utils import (
+    standardize_series,
+    my_quantile_transform,
+)
 
 logging.basicConfig(
     format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
@@ -104,11 +108,15 @@ def generate_test_config(input_config, out_file, fold, n_folds):
 @click.option("--link-burdens", type=click.Path())
 @click.option("--burden-dirs", "-b", multiple=True)
 @click.argument("out_dir", type=click.Path(), default="./")
+@click.argument("config_file", type=click.Path(exists=True))
 def combine_test_set_burdens(
     out_dir,
     link_burdens,
-    burden_dirs
+    burden_dirs,
+    config_file,
 ):  
+    with open(config_file) as f:
+        config = yaml.safe_load(f)
     compression_level = 1
     skip_burdens=(link_burdens is not None)
     n_total_samples = []
@@ -168,7 +176,38 @@ def combine_test_set_burdens(
         y[start_idx:end_idx] = this_y
         x[start_idx:end_idx] = this_x 
         start_idx = end_idx
+    
+    y_transformation = config['data']['dataset_config'].get("y_transformation", None)
+    standardize_xpheno = config['data']['dataset_config'].get("standardize_xpheno", True)
 
+    ## Analogously to what is done in densegt
+    if standardize_xpheno:
+        this_x = x[:]
+        logger.info("  Standardizing combined covariates")
+        for col in range(this_x.shape[1]):
+            this_x[:,col] = standardize_series(this_x[:,col])
+        x[:] = this_x 
+    if y_transformation is not None:   
+        this_y = y[:]
+        n_unique_y_val = np.count_nonzero(~np.isnan(np.unique(this_y)))
+        if n_unique_y_val == 2:
+            logger.warning(
+                "Not applying y transformation because y only has two values and seems to be binary"
+            )           
+            y_transformation = None
+        if y_transformation is not None:
+            if y_transformation == "standardize":
+                logger.info("  Standardizing combined target phenotype (y)")
+                for col in range(this_y.shape[1]):
+                    this_y[:, col] = standardize_series(this_y[:, col] )
+            elif y_transformation == "quantile_transform":
+                logger.info(
+                    f"  Quantile transforming combined target phenotype (y)"
+                )
+                for col in range(this_y.shape[1]):
+                    this_y[:, col] = my_quantile_transform(this_y[:, col])
+            y[:] = this_y
+    print('done')
     if link_burdens is not None:
         source_path = Path(out_dir) / "burdens.zarr"
         source_path.unlink(missing_ok=True)
