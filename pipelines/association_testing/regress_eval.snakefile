@@ -61,3 +61,39 @@ rule regress:
         '{input.config} '
         '{wildcards.phenotype}/deeprvat/burdens ' #TODO make this w/o repeats
         '{wildcards.phenotype}/deeprvat/repeat_{wildcards.repeat}/results'
+
+rule regenie_step2:
+rule regenie_step1_runl1:
+rule regenie_step1_runl0:
+rule regenie_step1_splitl0:
+
+# TODO: Split into
+rule make_regenie_input:
+    input:
+        gene_file = config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"],
+        gtf_file = config["gtf_file"],
+        burdens = [f'{phenotype}/deeprvat/burdens/chunk{chunk}.' +
+                   ("finished" if phenotype == phenotypes[0] else "linked")
+                   for phenotype in phenotypes
+                   for chunk in range(n_burden_chunks)],
+        datasets = expand("{phenotype}/deeprvat/association_dataset.pkl",
+                          phenotype=phenotypes),
+    params:
+        phenotypes = " ".join([f"--phenotype {p} {p}/deeprvat/association_dataset.pkl {p}/deeprvat/burdens"
+                               for p in phenotypes]) + " "
+    output:
+        bgen = "regenie_input/deeprvat_pseudovariants.bgen",
+        covariate_file = "regenie_input/covariates.txt", # TODO: Phenotype-specific covariates
+        phenotype_file = "regenie_input/phenotypes.txt",
+    threads: 1
+    shell:
+        "deeprvat_associate make-regenie-input "
+        "--average-repeats "
+        "{params.phenotypes}"
+        # "{input.dataset} "
+        # "{wildcards.phenotype}/deeprvat/burdens "
+        "{input.gene_file} "
+        "{input.gtf_file} "
+        "{output.bgen} "
+        "{output.covariate_file} "
+        "{output.phenotype_file}"
