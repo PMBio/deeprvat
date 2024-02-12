@@ -697,7 +697,7 @@ def regress(
 
     genes = genes.iloc[chunk_start:chunk_end]
     gene_indices = np.arange(len(genes))
-    print(f'Only extracting genes in range {chunk_start, chunk_end}')
+    logger.info(f'Only extracting genes in range {chunk_start, chunk_end}')
     if burden_file is not None:
         logger.info(f'Loading burdens from {burden_file}')
         burdens = zarr.open(burden_file)[:, chunk_start:chunk_end, repeat]
@@ -726,7 +726,6 @@ def regress(
         Path(out_dir) / f"burden_associations_{chunk}.parquet",
         engine="pyarrow",
     )
-
 
 @cli.command()
 @click.option("--model-name", type=str)
@@ -815,8 +814,213 @@ def average_burdens(
         burdens_new[start_idx:end_idx, :, 0] = this_burdens
     
     logger.info(f'Writing aggregted burdens in range {chunk_start}, {chunk_end} to {burden_out_file}')
-    
 
+#TODO merge these functions into regress(), regress_
+@cli.command()
+@click.option("--debug", is_flag=True)
+@click.option("--chunk", type=int, default=0)
+@click.option("--n-chunks", type=int, default=1)
+@click.option("--use-bias", is_flag=True)
+@click.option("--gene-file", type=click.Path(exists=True))
+@click.option("--repeat", type=int, default=0)
+@click.option("--do-scoretest", is_flag=True)
+@click.option("--sample-file", type=click.Path(exists=True))
+@click.option("--burden-file", type=click.Path(exists=True))
+@click.option("--genes-to-keep", type=click.Path(exists=True))
+@click.option("--common-genotype-prefix", type=str)
+@click.argument("config-file", type=click.Path(exists=True))
+@click.argument("burden-dir", type=click.Path(exists=True))
+@click.argument("out-file", type=click.Path())
+def regress_common(
+    debug: bool,
+    chunk: int,
+    n_chunks: int,
+    use_bias: bool,
+    gene_file: str,
+    repeat: int,
+    config_file: str,
+    burden_dir: str,
+    out_file: str,
+    do_scoretest: bool,
+    sample_file: Optional[str],
+    burden_file: Optional[str],
+    genes_to_keep: Optional[str],
+    common_genotype_prefix: str,
+):
+    logger.info("Loading saved burdens")
+    # if burden_file is not None:
+    #     logger.info(f'Loading burdens from {burden_file}')
+    #     burdens = zarr.open(burden_file)[:, :, repeat]
+    # else:
+    #     burdens = zarr.open(Path(burden_dir) / "burdens.zarr")[:, :, repeat]
+    logger.info(f'Loading x, y, genes from {burden_dir}')
+    y = zarr.open(Path(burden_dir) / "y.zarr")[:]
+    x_pheno = zarr.open(Path(burden_dir) / "x.zarr")[:]
+    genes = pd.Series(np.load(Path(burden_dir) / "genes.npy"))
+    
+    if genes_to_keep is not None:
+        logger.info(f'Reading genes_to_keep file from {genes_to_keep}')
+        genes_to_keep = np.load(genes_to_keep)
+
+    if sample_file is not None:
+        with open(sample_file, "rb") as f:
+            samples = pickle.load(f)["association_samples"]
+        if debug:
+            samples = [s for s in samples if s < 1000]
+        # burdens = burdens[samples]
+        y = y[samples]
+        x_pheno = x_pheno[samples]
+
+    n_samples = y.shape[0]
+    assert y.shape[0] == n_samples
+    assert x_pheno.shape[0] == n_samples
+    # assert len(genes) == burdens.shape[1]
+
+    # TODO commented this out. is this a problem? 
+    # nan_mask = ~np.isnan(y).squeeze()
+    # y = y[nan_mask]
+    # # burdens = burdens[nan_mask]
+    # x_pheno = x_pheno[nan_mask]
+
+    with open(config_file) as f:
+        config = yaml.safe_load(f)
+
+    if gene_file is not None:
+        logger.info("Loading gene names")
+        gene_df = pd.read_parquet(gene_file, engine="pyarrow")
+        gene_df.set_index("id")
+        genes = gene_df.loc[genes, "gene"].str.split(".").apply(lambda x: x[0])
+
+    chunk_size = math.ceil(len(genes) / n_chunks)
+    chunk_start = chunk * chunk_size
+    chunk_end = min(len(genes), chunk_start + chunk_size)
+    if chunk == n_chunks - 1:
+        assert chunk_end == len(genes)
+    # gene_indices = np.arange(chunk_start, chunk_end)
+
+       # gene_indices = np.arange(chunk_start, chunk_end)
+    logger.info(f'processing genes in range {chunk_start}, {chunk_end}')
+    all_genes = copy.deepcopy(genes)
+    genes = genes.iloc[chunk_start:chunk_end]
+    if genes_to_keep is not None:
+        # genes_this_chunk = set(genes).intersection(set(genes_to_keep))
+        genes_this_chunk = [i for i in genes_to_keep if i in list(genes)] #having list is important, otherwise 'in' checks the indices, not the values in the pd.Series
+        gene_indices = np.array([np.where(all_genes == this_gene)[0][0] for this_gene in genes_this_chunk])
+        genes = pd.Series(list(genes_this_chunk))
+
+    logger.info(f'Only extracting genes in range {chunk_start, chunk_end}')
+    
+    if burden_file is not None:
+        logger.info(f'Loading burdens from {burden_file}')
+    else:
+        burden_file = Path(burden_dir) / "burdens.zarr"
+    
+    if genes_to_keep is not None:
+        logger.info(f'Loading burdens at position {gene_indices}')
+        burdens = zarr.open(burden_file)
+        burdens = burdens.oindex[:, gene_indices, repeat]
+        gene_indices = np.arange(len(genes))
+    else:
+        burdens = zarr.open(burden_file)[:, chunk_start:chunk_end, repeat]
+    
+    gene_indices = np.arange(len(genes))
+
+    if sample_file is not None:
+        burdens = burdens[samples]
+    # burdens = burdens[nan_mask]
+    assert len(genes) == burdens.shape[1]
+    logger.info(common_genotype_prefix)
+    associations = regress_common_(
+        config,
+        use_bias,
+        burdens,
+        y,
+        gene_indices,
+        genes,
+        x_pheno,
+        common_genotype_prefix,
+        do_scoretest = do_scoretest,
+    )
+
+    logger.info("Saving results")
+    # Path(out_dir).mkdir(parents=True, exist_ok=True)
+    # associations.to_parquet(
+    #     Path(out_dir) / f"burden_associations_{chunk}.parquet",
+    #     engine="pyarrow",
+    # )
+    associations.to_parquet(Path(out_file), engine="pyarrow")
+
+
+def regress_common_(
+    config: Dict,
+    use_bias: bool,
+    burdens: np.ndarray,
+    y: np.ndarray,
+    gene_indices: np.ndarray,
+    genes: pd.Series,
+    x_pheno: np.ndarray,
+    common_genotype_prefix: str,
+    use_x_pheno: bool = True,
+    do_scoretest: bool = True,
+) -> pd.DataFrame:
+    assert len(gene_indices) == len(genes)
+    logger.info(common_genotype_prefix)
+
+
+    logger.info(f"Computing associations")
+    logger.info(f"Covariates shape: {x_pheno.shape}, y shape: {y.shape}")
+
+    regressed_genes = []
+    betas = []
+    pvals = []
+    logger.info("Running regression on each gene")
+    genes_betas_pvals = []
+    # for i, gene in tqdm(
+    #     zip(gene_indices, genes), total=genes.shape[0], file=sys.stdout):
+    mask = ~np.isnan(y).reshape(-1)
+    y = y[mask]
+    for i, gene in zip(gene_indices, genes):
+        logger.info(f'rergressing on gene {gene}')
+        if common_genotype_prefix is not None:
+            logger.info(f'Reading commong genotypes from {common_genotype_prefix}_{gene}.zarr')
+            common_genotypes = zarr.open(Path(f'{common_genotype_prefix}_{gene}.zarr'))[:]
+
+            logger.info(f'common genotypes shape: {common_genotypes.shape}')
+
+            assert common_genotypes.shape[0] == x_pheno.shape[0]
+            X = np.hstack((x_pheno, common_genotypes))
+        if do_scoretest:
+            logger.info("Running regression on each gene using scoretest from SEAK")
+            X = np.hstack((np.ones((X.shape[0], 1)), X))[mask]
+            # adding bias column
+            logger.info(f"X shape: {X.shape}, Y shape: {y.shape}")
+
+            # compute null_model for score test
+            if len(np.unique(y)) == 2:
+                logger.info("Fitting binary model since only found two distinct y values")
+                model_score = scoretest.ScoretestLogit(y, X)
+            else:
+                logger.info("Fitting linear model")
+                model_score = scoretest.ScoretestNoK(y, X)
+            gene_stats = regress_on_gene_scoretest(gene, burdens[mask, i], model_score)
+        else:
+            logger.info("Running regression on each gene using OLS")
+            gene_stats = regress_on_gene(gene, burdens[:, i], y, X, use_bias, use_x_pheno)
+
+        genes_betas_pvals.append(gene_stats)
+    genes_betas_pvals = [x for x in genes_betas_pvals if x is not None]
+    regressed_genes, betas, pvals = separate_parallel_results(genes_betas_pvals)
+    y_phenotypes = config["data"]["dataset_config"]["y_phenotypes"]
+    regressed_phenotypes = [y_phenotypes] * len(regressed_genes)
+    result = pd.DataFrame(
+        {
+            "phenotype": itertools.chain(*regressed_phenotypes),
+            "gene": itertools.chain(*regressed_genes),
+            "beta": itertools.chain(*betas),
+            "pval": itertools.chain(*pvals),
+        }
+    )
+    return result
 
 if __name__ == "__main__":
     cli()
