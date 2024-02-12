@@ -32,40 +32,19 @@ wildcard_constraints:
     trial="\d+",
 
 n_avg_chunks = 20
-repeats_to_average = [6, 10, 20, 25, 29, 30]
-repeats_to_average = [6]
-n_total_repeats = 6
+repeats_to_average = config.get('n_repeats', 6)
 n_combinations = 1
-burden_agg_fcts = ['mean', 'max']
 burden_agg_fcts = ['mean']
-rep_list, combi_list = [], []
-#only analyse multiple combinations if number of averaged repeats is < total_number of repeats
-for n_avg_repeats in repeats_to_average:
-    if n_avg_repeats == n_repeats:
-        rep_list.append(n_avg_repeats)
-        combi_list.append(0)
-    else:
-        rep_list.extend([n_avg_repeats] * n_combinations)
-        combi_list.extend(range(n_combinations))
-n_combi_dict =  {str(i) : n_combinations  if i != n_total_repeats else 1 for i in repeats_to_average}
+
 
 from itertools import combinations
 import random
 random.seed(10)
-repeat_combis = {}
 
 cv_exp = True if os.path.exists('cv_split0/') else False
 config_file_prefix = 'cv_split0/deeprvat/' if cv_exp else '' #needed in case we analyse a CV experiment
 print(config_file_prefix)
 
-for n_repeats in repeats_to_average:
-    all_repeat_combinations = list(combinations(range(n_total_repeats), n_repeats))
-    if n_repeats == n_total_repeats:
-        repeat_combis[f'repeats_{n_repeats}_combi_0'] = all_repeat_combinations[0]
-    else:
-        this_repeats = random.sample(all_repeat_combinations, n_combinations)
-        for combi in range(n_combinations):
-            repeat_combis[f'repeats_{n_repeats}_combi_{combi}'] = this_repeats[combi]
 
 use_seed_opts = ['use_seed', 'wo_seed']
 use_seed_opts = ['wo_seed']
@@ -86,18 +65,7 @@ rule all:
                burden_agg_fct = burden_agg_fcts, use_seed = use_seed_opts),
         plots = expand(f"plots/dicovery_replication_plot_{{use_seed}}_{{burden_agg_fct}}_{n_repeats}.png",
         burden_agg_fct = burden_agg_fcts, use_seed = use_seed_opts
-        ),
-        # burdens = expand(expand('{{phenotype}}/deeprvat/burdens/logs/burdens_{{burden_agg_fct}}_{n_avg_repeats}_repeats_chunk_{{chunk}}_combination_{combi}.finished',
-        #     zip, n_avg_repeats = rep_list, combi = combi_list),
-        #     chunk = range(n_avg_chunks),
-        #     burden_agg_fct = burden_agg_fcts,
-        #     phenotype = phenotypes[0]),
-        # regr =  expand(expand('{{phenotype}}/deeprvat/{{burden_agg_fct}}_agg_results/{n_avg_repeats}_repeats/combi_{combi}/burden_associations.parquet',
-        #        zip, n_avg_repeats = rep_list, combi = combi_list),
-        #     burden_agg_fct = burden_agg_fcts,
-        #     phenotype = phenotypes
-        # )
-        
+        )
 
 
 
@@ -147,10 +115,7 @@ rule compute_replication_avg:
 # # deeprvat_evaluate --n-repeats 6 --correction-method FDR LDL_direct/deeprvat/repeat_0/results/burden_associations.parquet LDL_direct/deeprvat/repeat_1/results/burden_associations.parquet  LDL_direct/deeprvat/repeat_2/results/burden_associations.parquet LDL_direct/deeprvat/repeat_3/results/burden_associations.parquet LDL_direct/deeprvat/repeat_4/results/burden_associations.parquet LDL_direct/deeprvat/repeat_5/results/burden_associations.parquet LDL_direct/deeprvat/hpopt_config.yaml ./
 rule evaluate_avg:
     input:
-        associations = lambda wildcards: (
-            expand('{{phenotype}}/deeprvat/{{burden_agg_fct}}_agg_results/{{n_avg_repeats}}_repeats/combi_{combi}/burden_associations.parquet',
-                combi = range(n_combi_dict[wildcards.n_avg_repeats]))
-        ),
+        associations ='{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/burden_associations.parquet',
         config = f"{config_file_prefix}{{phenotype}}/deeprvat/hpopt_config.yaml"
     output:
         "{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/eval/{use_seed}/significant.parquet",
@@ -160,7 +125,7 @@ rule evaluate_avg:
         mem_mb = 16000,
         load = 16000
     params:
-        n_combis = lambda wildcards: n_combi_dict[wildcards.n_avg_repeats],
+        n_combis = 1,
         use_seed_genes = lambda wildcards: use_seed_dict[wildcards.use_seed]
     shell:
         'deeprvat_evaluate '
@@ -179,24 +144,24 @@ rule evaluate_avg:
 
 rule all_regression_avg:
     input:
-        expand(expand('{{phenotype}}/deeprvat/{{burden_agg_fct}}_agg_results/{n_avg_repeats}_repeats/combi_{combi}/burden_associations.parquet',
-               zip, n_avg_repeats = rep_list, combi = combi_list),
+        expand('{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/burden_associations.parquet',
+            n_avg_repeats = repeats_to_average,
             burden_agg_fct = burden_agg_fcts,
             phenotype = phenotypes
         )
 
 rule combine_regression_chunks_avg:
     input:
-        expand('{{phenotype}}/deeprvat/{{burden_agg_fct}}_agg_results/{{n_avg_repeats}}_repeats/combi_{{combi}}/burden_associations_{chunk}.parquet', chunk=range(n_regression_chunks)),
+        expand('{{phenotype}}/deeprvat/{{burden_agg_fct}}_agg_results/{{n_avg_repeats}}_repeats/burden_associations_{chunk}.parquet', chunk=range(n_regression_chunks)),
     output:
-        '{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/combi_{combi}/burden_associations.parquet',
+        '{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/burden_associations.parquet',
     threads: 1
     resources:
         mem_mb = lambda wildcards, attempt: 12000 + (attempt - 1) * 4098,
         load = 2000
     shell:
         'deeprvat_associate combine-regression-results '
-        '--model-name repeat_{wildcards.combi} ' #TODO check this!
+        '--model-name repeat_0 ' 
         '{input} '
         '{output}'
 
@@ -210,20 +175,20 @@ rule regress_avg:
                         chunk=range(n_burden_chunks))
         ) if not cv_exp  else '{phenotype}/deeprvat/burdens/merging.finished',
         phenotype_0_chunks =  expand(
-            phenotypes[0] + '/deeprvat/burdens/logs/burdens_{{burden_agg_fct}}_{{n_avg_repeats}}_repeats_chunk_{chunk}_combination_{{combi}}.finished',
+            phenotypes[0] + '/deeprvat/burdens/logs/burdens_{{burden_agg_fct}}_{{n_avg_repeats}}_repeats_chunk_{chunk}.finished',
             chunk=range(n_avg_chunks)
         ),
     output:
-        temp('{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/combi_{combi}/burden_associations_{chunk}.parquet'),
+        temp('{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/burden_associations_{chunk}.parquet'),
     threads: 2
     resources:
         mem_mb = lambda wildcards, attempt: 28676  + (attempt - 1) * 4098,
         # mem_mb = 16000,
         load = lambda wildcards, attempt: 28000 + (attempt - 1) * 4000
     params:
-        burden_file = f'{phenotypes[0]}/deeprvat/burdens/burdens_{{burden_agg_fct}}_{{n_avg_repeats}}_{{combi}}.zarr',
+        burden_file = f'{phenotypes[0]}/deeprvat/burdens/burdens_{{burden_agg_fct}}_{{n_avg_repeats}}.zarr',
         burden_dir = '{phenotype}/deeprvat/burdens',
-        out_dir = '{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/combi_{combi}'
+        out_dir = '{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats'
     shell:
         'deeprvat_associate regress '
         + debug +
@@ -240,8 +205,8 @@ rule regress_avg:
 
 rule all_average_burdens:
     input:
-        expand(expand('{{phenotype}}/deeprvat/burdens/logs/burdens_{{burden_agg_fct}}_{n_avg_repeats}_repeats_chunk_{{chunk}}_combination_{combi}.finished',
-            zip, n_avg_repeats = rep_list, combi = combi_list),
+        expand('{phenotype}/deeprvat/burdens/logs/burdens_{burden_agg_fct}_{n_avg_repeats}_repeats_chunk_{chunk}.finished',
+            n_avg_repeats = repeats_to_average,
             chunk = range(n_avg_chunks),
             burden_agg_fct = burden_agg_fcts,
             phenotype = phenotypes[0]),
@@ -256,14 +221,11 @@ rule average_burdens:
             for c in range(n_burden_chunks)
         ] if not cv_exp else '{phenotype}/deeprvat/burdens/merging.finished'
     output:
-        '{phenotype}/deeprvat/burdens/logs/burdens_{burden_agg_fct}_{n_avg_repeats}_repeats_chunk_{chunk}_combination_{combi}.finished',
+        '{phenotype}/deeprvat/burdens/logs/burdens_{burden_agg_fct}_{n_avg_repeats}_repeats_chunk_{chunk}.finished',
     params:
         burdens_in = '{phenotype}/deeprvat/burdens/burdens.zarr',
-        burdens_out = '{phenotype}/deeprvat/burdens/burdens_{burden_agg_fct}_{n_avg_repeats}_{combi}.zarr',
-        repeats = lambda wildcards, input: ''.join([
-            f'--repeats {r} '
-            for r in  repeat_combis[f'repeats_{wildcards.n_avg_repeats}_combi_{wildcards.combi}']
-        ])
+        burdens_out = '{phenotype}/deeprvat/burdens/burdens_{burden_agg_fct}_{n_avg_repeats}.zarr',
+        repeats = ''.join([f'--repeats {r} ' for r in  range(repeats_to_average)])
     threads: 1
     resources:
         mem_mb = lambda wildcards, attempt: 4098 * 4 + (attempt - 1) * 4098,
@@ -282,4 +244,3 @@ rule average_burdens:
             'touch {output}'
         ])
 
-# run this after rule all_burdens has run with training_association_testing.snakefile
