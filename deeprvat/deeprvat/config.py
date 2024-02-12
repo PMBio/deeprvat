@@ -41,10 +41,10 @@ def update_config(
     seed_genes_out: Optional[str],
     new_config_file: str,
 ):
-    if seed_gene_dir is None and len(baseline_results) == 0:
-        raise ValueError(
-            "One of --seed-gene-dir and --baseline-results " "must be specified"
-        )
+    # if seed_gene_dir is None and len(baseline_results) == 0:
+    #     raise ValueError(
+    #         "One of --seed-gene-dir and --baseline-results " "must be specified"
+    #     )
 
     with open(old_config_file) as f:
         config = yaml.safe_load(f)
