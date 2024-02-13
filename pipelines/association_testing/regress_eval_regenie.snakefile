@@ -73,7 +73,7 @@ rule regenie_step2:
         covariate_file = "regenie_input/covariates.txt",
         phenotype_file = "regenie_input/phenotypes.txt",
         step1_loco = expand("regenie_output/step1/deeprvat_{pheno_num}.loco",
-                            pheno_num=range(1, len(phenotypes))),
+                            pheno_num=range(1, len(phenotypes) + 1)),
         step1_predlist = "regenie_output/step1/deeprvat_pred.list"
         # step1_loco = expand("regenie_output/step1/deeprvat_l1_{pheno_number}.loco",
         #                     pheno_number=range(len(phenotypes))),
