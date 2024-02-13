@@ -2,9 +2,9 @@
 
 # specify genome version hg19 or hg38 
 genome: hg38
-
+extra_info_dna: False
 # store all the vcf file that you want to analyze to directory ../data/resources/vcf_files/
-vcf: ../data/resources/analysis_files/vcf_files/{vcf_id}
+#vcf: /omics/odcf/analysis/OE0540_projects/ukbb/exomes/all_200k/annotations/tmp/absplice_input/{vcf_id}
 
 # parameters for variant filtering
 variant_filtering:
