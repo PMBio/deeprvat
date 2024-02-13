@@ -92,7 +92,6 @@ rule regenie_step2:
         "--sample {input.sample_file} "
         "--phenoFile {input.phenotype_file} "
         "--covarFile {input.covariate_file} "
-        "--qt "
         "--pred {input.step1_predlist} "
         f"--bsize {regenie_step2_bsize} "
         "--threads 16 "
