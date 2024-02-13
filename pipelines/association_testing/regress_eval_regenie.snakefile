@@ -108,7 +108,7 @@ rule regenie_step1:
         phenotype_file = "regenie_input/phenotypes.txt",
     output:
         expand("regenie_output/step1/deeprvat_{pheno_num}.loco",
-               pheno_num=range(1, len(phenotypes))),
+               pheno_num=range(1, len(phenotypes) + 1)),
         "regenie_output/step1/deeprvat_pred.list"
     threads: 24
     resources:
