@@ -51,11 +51,12 @@ rule convert_regenie_output:
         expand("regenie_output/step2/deeprvat_{phenotype}.regenie",
                phenotype=phenotypes)
     output:
-        '{phenotype}/deeprvat/mean_agg_results/burden_associations.parquet',
+        expand('{phenotype}/deeprvat/mean_agg_results/burden_associations.parquet',
+               phenotype=phenotypes)
     params:
         pheno_options = " ".join([
-            "--phenotype {phenotype} regenie_output/step2/deeprvat_{phenotype}.regenie "
-            "deeprvat/mean_agg_results/burden_associations.parquet"
+            f"--phenotype {phenotype} regenie_output/step2/deeprvat_{phenotype}.regenie "
+            f"{phenotype}/deeprvat/mean_agg_results/burden_associations.parquet"
         for phenotype in phenotypes]),
         gene_file = config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"]
     threads: 1
