@@ -476,7 +476,9 @@ class DenseGTDataset(Dataset):
             ).compute()
             self.annotation_df = self.annotation_df.set_index("id")
 
-            self.gene_specific_anno = (self.annotation_df["gene_ids"].dtype != np.dtype("O"))
+            self.gene_specific_anno = self.annotation_df["gene_id"].dtype != np.dtype(
+                "O"
+            )
 
             if type(annotation_aggregation) == str:
                 self.annotation_aggregation = AGGREGATIONS.get(
@@ -522,10 +524,11 @@ class DenseGTDataset(Dataset):
             af_annotation = self.annotation_df[[af_col]].reset_index()
             af_annotation = af_annotation.drop_duplicates()
             if not len(af_annotation["id"]) == len(af_annotation["id"].unique()):
-                raise ValueError("Annotation dataframe has inconsistent allele frequency values")
+                raise ValueError(
+                    "Annotation dataframe has inconsistent allele frequency values"
+                )
             variants_with_af = safe_merge(
-                variants[["id"]].reset_index(drop=True),
-                af_annotation
+                variants[["id"]].reset_index(drop=True), af_annotation
             )
             assert np.all(
                 variants_with_af["id"].to_numpy() == variants["id"].to_numpy()
@@ -568,12 +571,17 @@ class DenseGTDataset(Dataset):
         if self.gene_file is not None:
             genes = set(pd.read_parquet(self.gene_file, columns=["id"])["id"])
             logger.debug(f"    Retaining {len(genes)} genes from {self.gene_file}")
-            ids_to_keep = (self.annotation_df.reset_index()[["id", "gene_id"]]
-                           .query("gene_id in @genes")["id"].to_numpy())
-            additional_mask &= (
-                variants["id"].isin(ids_to_keep)
-                .to_numpy()
+            ids_to_keep = (
+                self.annotation_df.reset_index()[["id", "gene_id"]]
+                .explode("gene_id")
+                .query("gene_id in @genes")["id"]
+                .unique()
             )
+            additional_mask &= variants["id"].isin(ids_to_keep).to_numpy()
+        import ipdb
+
+        ipdb.set_trace()
+
         if self.gene_types_to_keep is not None:
             raise NotImplementedError
             additional_mask &= (
@@ -603,9 +611,7 @@ class DenseGTDataset(Dataset):
             and self.gene_types_to_keep is None
         ):
             if self.gene_specific_anno:
-                rare_variant_mask &= (
-                    variants["gene_id"].notna().to_numpy()
-                )
+                rare_variant_mask &= variants["gene_id"].notna().to_numpy()
             else:
                 rare_variant_mask &= (
                     variants["gene_ids"].apply(lambda x: len(x) > 0).to_numpy()
