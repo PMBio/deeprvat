@@ -491,7 +491,7 @@ def convert2bed(variants_file, output_dir):
 
     df_variants = pd.read_csv(
         variants_file, sep="\t", names=["#CHROM", "POS", "ID", "REF", "ALT"]
-    )  # hg38
+    )
 
     print(df_variants.head())
 
@@ -1001,32 +1001,9 @@ def process_chunk(chrom_file, abs_splice_res_dir, tissues_to_exclude,tissue_agg_
     Example:
     merged_data = process_chunk("chr1_results.csv", Path("abs_splice_results/"), ["Brain", "Heart"], "max", ca_shortened_df)
     """
-    # Dtypes= {
-    #     "variant":str,
-    #     "gene_id":str,
-    #     "tissue":str,
-    #     "delta_logit_psi":np.float64,
-    #     "delta_psi":np.float64,
-    #     "delta_score":np.float64,
-    #     "splice_site_is_expressed":np.float64,
-    #     "AbSplice_DNA":np.float64,
-    #     "junction":str,
-    #     "event_type":str,
-    #     "splice_site":str,
-    #     "ref_psi":np.float64,
-    #     "median_n":np.float64,
-    #     "acceptor_gain":np.float64,
-    #     "acceptor_loss":np.float64,
-    #     "donor_gain":np.float64,
-    #     "donor_loss":np.float64,
-    #     "acceptor_gain_position":np.float64,
-    #     "acceptor_loss_position":np.float64,
-    #     "donor_gain_position":np.float64,
-    #     "donor_loss_position":np.float64,
-    # }
     logger.info(f"Reading file {chrom_file}")
 
-    #ab_splice_res = pd.read_csv(abs_splice_res_dir / chrom_file, dtype=Dtypes, engine = "pyarrow").reset_index()
+
     ab_splice_res = pd.read_csv(abs_splice_res_dir / chrom_file, engine = "pyarrow").reset_index()
 
     ab_splice_res = ab_splice_res.query("tissue not in @tissues_to_exclude")
@@ -1653,8 +1630,6 @@ def process_chunk_addids(chunk:pd.DataFrame, variants:pd.DataFrame) ->pd.DataFra
 
 
 
-
-#TODO: write chunkwise
 @cli.command()
 @click.argument("annotation_file", type=click.Path(exists=True))
 @click.argument("variant_file", type=click.Path(exists=True))
@@ -1930,30 +1905,29 @@ def merge_annotations(vep_header_line:int,
         vepcols_to_retain = [c for c in vepcols_to_retain.split(",")]
     vep_df = process_vep(vep_file=vep_df, vepcols_to_retain = vepcols_to_retain)
     logger.info(f"vep_df shape is {vep_df.shape}")
-    #load deepripe_parclip
+    logger.info('load deepripe_parclip')
+    
     deepripe_parclip_df = pd.read_csv(deepripe_parclip_file)
     deepripe_parclip_df = process_deepripe(deepripe_parclip_df, "parclip")
-    #load deepripe_k5
+    logger.info('load deepripe_k5')
+    
     deepripe_k5_df = pd.read_csv(deepripe_k5_file)
     deepripe_k5_df = process_deepripe(deepripe_k5_df, "k5")
-    #load deepripe_hg2
+    logger.info('load deepripe_hg2')
+    
     deepripe_hg2_df = pd.read_csv(deepripe_hg2_file)
     deepripe_hg2_df = process_deepripe(deepripe_hg2_df, "hg2")
-    #load variant_file
+    logger.info('load variant_file')
+    
     logger.info(f"reading in {variant_file}")
     variants = pd.read_csv(variant_file, sep="\t")
 
 
-    logger.info('columns left:')
-    logger.info(vep_df.columns)
-    logger.info('columns right:')
-    logger.info(variants.columns)
-    #merge vep to variants M:1
+
+    logger.info('merge vep to variants M:1')
     ca = vep_df.merge(variants, how = "left",  on=["chrom", "pos", "ref", "alt"], validate= "m:1")
     del vep_df
-    #merge deepripe files to variants 1:1
-    logger.info(ca.columns)
-    logger.info(deepripe_parclip_df.columns)
+    logger.info('merge deepripe files to variants 1:1')
     ca = ca.merge(deepripe_parclip_df, how = "left", on=["chrom", "pos", "ref", "alt"], validate="m:1")
     ca = ca.merge(deepripe_k5_df, how = "left", on=["chrom", "pos", "ref", "alt"], validate="m:1")
     ca = ca.merge(deepripe_hg2_df, how = "left", on=["chrom", "pos", "ref", "alt"], validate="m:1")

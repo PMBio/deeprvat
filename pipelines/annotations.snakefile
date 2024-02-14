@@ -95,8 +95,6 @@ pvcf_blocks_df["chr_name"] = chr_mapping.loc[pvcf_blocks_df["Chromosome"].values
 
 chromosomes = pvcf_blocks_df["chr_name"]
 block = pvcf_blocks_df["Block"]
-#print(f'chromosomes and blocks used: ')
-#[print(i) for i in zip(chromosomes, block)]
 
 # init absplice
 absplice_repo_dir = Path(config["absplice_repo_dir"])
@@ -128,8 +126,6 @@ absplice_main_conf_path = deeprvat_parent_path / 'pipelines'/'resources'/"config
 with open(absplice_main_conf_path, "r") as fd:
     absplice_main_conf = yaml.safe_load(fd)
 
-#include: deeprvat_parent_path / 'deeprvat' / 'pipelines'/'resources'/"absplice_download_Snakefile"
-#include: deeprvat_parent_path / 'deeprvat' / 'pipelines'/'resources'/"absplice_splicing_pred_DNA_Snakefile"
 
 include: Path('resources')/"absplice_download_Snakefile"
 include: Path('resources')/"absplice_splicing_pred_DNA_Snakefile"
@@ -137,7 +133,7 @@ if absplice_main_conf['AbSplice_RNA'] == True:
     include: deeprvat_parent_path / 'deeprvat' / 'pipelines'/'resources'/"absplice_splicing_pred_RNA_Snakefile"
 
 all_absplice_output_files = list()
-#all_absplice_output_files.append(rules.all_download.input)
+all_absplice_output_files.append(rules.all_download.input)
 all_absplice_output_files.append(rules.all_predict_dna.input)
 
 if absplice_main_conf['AbSplice_RNA'] == True:
@@ -271,7 +267,6 @@ rule calculate_allele_frequency:
         
         
 
-### ===
 
 rule merge_absplice_scores:
     input: 
@@ -295,15 +290,8 @@ rule aggregate_absplice_scores:
     input:
         abscore_files= expand([absplice_output_dir / absplice_main_conf['genome'] / 'dna' / f'{source_variant_file_pattern}_variants_header.vcf.gz_AbSplice_DNA.csv'], zip, chr=chromosomes, block=block),
         current_annotation_file= anno_dir / "vep_deepripe_deepsea.parquet",
-            # expand(
-            #     [anno_tmp_dir / "absplice" / (vcf_pattern + "_AbSplice_DNA.csv")],
-            #     zip,
-            #     chr=chromosomes,
-            #     block=block,
-            # ),
     output:
         score_file = anno_tmp_dir / "abSplice_score_file.parquet",
-        #absplice_res_dir = anno_tmp_dir / 'absplice'
     threads: ncores_agg_absplice
     shell:
         " ".join(
@@ -553,11 +541,7 @@ rule vep:
                 "--force_overwrite",
                 "--no_stats",
                 "--per_gene",
-                "--pick_order biotype,mane_select,mane_plus_clinical,canonical,appris,tsl,ccds,rank,length,ensembl,refseq",
-                # f"--plugin CADD,{cadd_snv_file},{cadd_indel_file}",
-                # f"--plugin SpliceAI,snv={spliceAI_snv_file},indel={spliceAI_indel_file}",
-                # f"--plugin PrimateAI,{primateAIfile}",
-                # f"--plugin Condel,{condel_config_path},s,2",
+                "--pick_order biotype,mane_select,mane_plus_clinical,canonical,appris,tsl,ccds,rank,length,ensembl,refseq"
             ]+['--plugin '+i for i in config['additional_vep_plugin_cmds'].values()]
         )
 
@@ -575,8 +559,6 @@ rule extract_with_header:
             + """ bcftools view  -s '' --force-samples {input} |bgzip  > {output}"""
         )
 
-
-# load_bfc + """  bcftools query -f '%CHROM\\t%POS\\t%ID\\t%REF\\t%ALT\\t%QUAL\\t%FILTER\\n'    --print-header {input} > {output}"""
 
 
 rule strip_chr_name:
