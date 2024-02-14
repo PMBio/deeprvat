@@ -1198,52 +1198,6 @@ logger = logging.getLogger(__name__)
 
 
 
-@cli.command()
-@click.argument("annotation_file", type=click.Path(exists=True))
-@click.argument("deepSEA_pca_file", type=click.Path(exists=True))
-@click.argument("out_file", type=click.Path())
-def merge_deepsea_pcas(annotation_file: str, deepSEA_pca_file: str, out_file: str):
-    """
-    Merge deepRiPe PCA scores with an annotation file and save the result.
-
-    Parameters:
-    - annotation_file (str): Path to the annotation file in parquet format.
-    - deepSEA_pca_file (str): Path to the deepSEA PCA scores file in parquet format.
-    - out_file (str): Path to save the merged file with deepRiPe PCA scores.
-
-    Returns:
-    None
-
-    Notes:
-    - The function reads the annotation file and deepRiPe PCA scores file.
-    - It drops duplicates in both files based on chromosome, position, reference allele, alternative allele, variant ID, and gene ID.
-    - The two dataframes are merged based on chromosome, position, reference allele, alternative allele, and variant ID.
-    - The merged file is saved with deepRiPe PCA scores.
-
-    Example:
-    $ python annotations.py merge_deepsea_pcas annotations.parquet deepSEA_pca_scores.parquet merged_deepsea_pcas.parquet
-    """
-    logger.info('reading current annotations')
-    annotations = pd.read_parquet(annotation_file)
-    logger.info('reading PCAs')
-    deepSEA_pcas = pd.read_parquet(deepSEA_pca_file)
-    deepSEA_pcas = deepSEA_pcas.drop_duplicates(subset = ["chrom", "pos", "ref", "alt", "id"])
-    orig_len = len(annotations)
-    logger.info(f'length of anntation file before merge: {orig_len}')
-    annotations = annotations.drop_duplicates(subset= ["chrom", "pos", "ref", "alt", "id", "Gene"])
-    nodublicates_len = len(annotations)
-    logger.info(f'length of anntation file after dropping dublicates: {nodublicates_len}')
-    logger.info('merging')
-    merged = annotations.merge(
-        deepSEA_pcas, how="left", on=["chrom", "pos", "ref", "alt", "id"]
-    )
-
-    logger.info(f'length of anntation file after merge: {len(merged)}')
-    logger.info('checking lengths')
-    assert len(merged) == nodublicates_len
-    logger.info(f'writing file to {out_file}')
-    merged.to_parquet(out_file)
-
 
 @cli.command()
 @click.argument("in_variants", type=click.Path(exists=True))
