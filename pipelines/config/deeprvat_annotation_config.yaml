@@ -31,6 +31,6 @@ preprocessing_workdir : preprocessing_workdir
 additional_vep_plugin_cmds:
   cadd : CADD,annotation_data/cadd/whole_genome_SNVs.tsv.gz,annotation_data/cadd/gnomad.genomes.r3.0.indel.tsv.gz
   spliceAI : SpliceAI,snv=annotation_data/spliceAI/spliceai_scores.raw.snv.hg38.vcf.gz,indel=annotation_data/spliceAI/spliceai_scores.raw.indel.hg38.vcf.gz
-  primateAI : PrimateAI,{primateAIfile}
+  primateAI : PrimateAI,PrimateAI,annotation_data/primateAI/PrimateAI_scores_v0.2_GRCh38_sorted.tsv.bgz
   condel: Condel,repo_dir/ensembl-vep/Plugin/config/Condel/config,s,2
   alphamissense : AlphaMissense,file=annotation_data/AlphaMissense/AlphaMissense_hg38.tsv.gz
