@@ -26,7 +26,6 @@ def cli():
 
 @cli.command()
 @click.option("--association-only", is_flag=True)
-@click.option("--seed-gene-dir", type=click.Path(exists=True))
 @click.option("--phenotype", type=str)
 @click.option("--baseline-results", type=click.Path(exists=True), multiple=True)
 @click.option("--baseline-results-out", type=click.Path())
@@ -34,12 +33,12 @@ def cli():
 @click.argument("old_config_file", type=click.Path(exists=True))
 @click.argument("new_config_file", type=click.Path())
 def update_config(
-        association_only: bool,
-    old_config_file: str,
+    association_only: bool,
     phenotype: Optional[str],
     baseline_results: Tuple[str],
     baseline_results_out: Optional[str],
     seed_genes_out: Optional[str],
+    old_config_file: str,
     new_config_file: str,
 ):
     """

@@ -578,10 +578,6 @@ class DenseGTDataset(Dataset):
                 .unique()
             )
             additional_mask &= variants["id"].isin(ids_to_keep).to_numpy()
-        import ipdb
-
-        ipdb.set_trace()
-
         if self.gene_types_to_keep is not None:
             raise NotImplementedError
             additional_mask &= (
