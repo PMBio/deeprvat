@@ -40,7 +40,7 @@ main() {
 
     echo "Uploading outputs"
     echo "rm config.yaml"
-    rm config.yaml genotypes.h5 variants_90pct10dp_qc.parquet phenotypes.parquet annotations.parquet protein_coding_genes.parquet
+    rm -rf config.yaml genotypes.h5 variants_90pct10dp_qc.parquet phenotypes.parquet annotations.parquet protein_coding_genes.parquet deeprvat
     echo "dx-upload-all-outputs"
     dx-upload-all-outputs
 
