@@ -131,17 +131,17 @@ with open(absplice_main_conf_path, "r") as fd:
 #include: deeprvat_parent_path / 'deeprvat' / 'pipelines'/'resources'/"absplice_download_Snakefile"
 #include: deeprvat_parent_path / 'deeprvat' / 'pipelines'/'resources'/"absplice_splicing_pred_DNA_Snakefile"
 
-# == !TODO: uncomment == include: Path('resources')/"absplice_download_Snakefile"
-# == !TODO: uncomment == include: Path('resources')/"absplice_splicing_pred_DNA_Snakefile"
+include: Path('resources')/"absplice_download_Snakefile"
+include: Path('resources')/"absplice_splicing_pred_DNA_Snakefile"
 if absplice_main_conf['AbSplice_RNA'] == True:
     include: deeprvat_parent_path / 'deeprvat' / 'pipelines'/'resources'/"absplice_splicing_pred_RNA_Snakefile"
 
-# == !TODO: uncomment == all_absplice_output_files = list()
+all_absplice_output_files = list()
 #all_absplice_output_files.append(rules.all_download.input)
-# == !TODO: uncomment == all_absplice_output_files.append(rules.all_predict_dna.input)
+all_absplice_output_files.append(rules.all_predict_dna.input)
 
-# == !TODO: uncomment == if absplice_main_conf['AbSplice_RNA'] == True:
-# == !TODO: uncomment ==     all_absplice_output_files.append(rules.all_predict_rna.input)
+if absplice_main_conf['AbSplice_RNA'] == True:
+    all_absplice_output_files.append(rules.all_predict_rna.input)
 
 
 rule all:
@@ -169,7 +169,6 @@ rule filter_by_exon_distance:
         annotations_path = anno_dir / "vep_deepripe_deepsea_absplice_maf_pIDs.parquet",
         gtf_file = gtf_file,
         protein_coding_genes = anno_tmp_dir / 'protein_coding_genes.parquet'
-    resources: mem_mb=8000 ##!TODO:remove
     output:
         anno_dir / "vep_deepripe_deepsea_absplice_maf_pIDs_filtered.parquet",
     shell:
@@ -205,7 +204,6 @@ rule add_protein_ids:
 rule create_protein_id_file:
     input: gtf_file
     output: anno_tmp_dir / 'protein_coding_genes.parquet'
-    resources: mem_mb=8000 ##!TODO:remove
     shell:
         " ".join([
             f"python {annotation_python_file}", 
@@ -324,7 +322,6 @@ rule merge_deepsea_pcas:
         deepsea_pcas=deepSEA_tmp_dir / "deepsea_pca.parquet",
     output:
         anno_dir / "vep_deepripe_deepsea.parquet",
-    resources: mem_mb=600000 ##!TODO:remove
     shell:
         " ".join(
             [
