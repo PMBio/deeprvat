@@ -25,6 +25,7 @@ main() {
     cp /mnt/project/DeepRVAT/DeepRVAT/workdir/preprocessed/genotypes.h5 .
     echo "dx download DeepRVAT/data/variants_90pct10dp_qc.parquet"
     cp /mnt/project/DeepRVAT/DeepRVAT/data/variants_90pct10dp_qc.parquet .
+    ln -s variants_90pct10dp_qc.parquet variants.parquet
     echo "dx download DeepRVAT/data/phenotypes.parquet"
     cp /mnt/project/DeepRVAT/DeepRVAT/data/phenotypes.parquet .
     echo "dx download DeepRVAT/data/annotations.parquet"
