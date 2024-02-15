@@ -434,15 +434,6 @@ def make_regenie_input_(
             )  # TODO: Phenotype-specific covariates
             assert np.array_equal(genes, np.load(burden_dirs[i] / "genes.npy"))
 
-    logger.warning(
-        "Using burdens from first phenotype passed. "
-        "Burdens from other phenotypes will be ignored."
-    )
-    burdens_zarr = zarr.open(burden_dirs[0] / "burdens.zarr")
-    if not debug:
-        assert burdens_zarr.shape[0] == n_samples
-        assert burdens_zarr.shape[1] == n_genes
-
     sample_df = pd.DataFrame({"FID": sample_ids, "IID": sample_ids})
 
     if not skip_samples:
@@ -483,6 +474,15 @@ def make_regenie_input_(
         pheno_df.to_csv(phenotype_file, sep=" ", index=False, na_rep="NA")
 
     if not skip_burdens:
+        logger.warning(
+            "Using burdens from first phenotype passed. "
+            "Burdens from other phenotypes will be ignored."
+        )
+        burdens_zarr = zarr.open(burden_dirs[0] / "burdens.zarr")
+        if not debug:
+            assert burdens_zarr.shape[0] == n_samples
+            assert burdens_zarr.shape[1] == n_genes
+
         if average_repeats:
             logger.info("Averaging burdens across all repeats")
             burdens = np.zeros((n_samples, n_genes))
