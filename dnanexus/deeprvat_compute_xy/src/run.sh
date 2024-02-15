@@ -24,8 +24,8 @@ main() {
     pip install -e deeprvat
 
     echo "Downloading data"
-    # echo "dx download DeepRVAT/workdir/preprocessed/genotypes.h5"
-    # cp $BASE/workdir/preprocessed/genotypes.h5 .
+    echo "dx download DeepRVAT/workdir/preprocessed/genotypes.h5"
+    cp $BASE/workdir/preprocessed/genotypes.h5 .
     # cp $BASE/data/genotypes-head1000.h5 .
     # mv genotypes-head1000.h5 genotypes.h5
     echo "dx download DeepRVAT/data/variants_90pct10dp_qc.parquet"
