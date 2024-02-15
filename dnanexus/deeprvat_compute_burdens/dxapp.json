@@ -40,7 +40,7 @@
   "runSpec": {
     "timeoutPolicy": {
       "*": {
-        "hours": 10
+        "hours": 20
       }
     },
     "interpreter": "bash",
