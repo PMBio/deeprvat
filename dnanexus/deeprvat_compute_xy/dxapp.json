@@ -1,0 +1,77 @@
+{
+"name": "deeprvat_compute_xy",
+"title": "deeprvat_compute_xy",
+"summary": "compute DeepRVAT covariates and phenotypes",
+  "dxapi": "1.0.0",
+  "version": "0.0.1",
+  "inputSpec": [
+    {
+        "name": "n_chunks",
+        "label": "n_chunks",
+        "class": "string",
+        "optional": false,
+        "patterns": [
+            "*"
+        ],
+        "help": ""
+    },
+    {
+        "name": "chunk",
+        "label": "chunk",
+        "class": "string",
+        "optional": false,
+    "patterns": [
+        "*"
+    ],
+    "help": ""
+    },
+    {
+        "name": "phenotype",
+        "label": "phenotype",
+        "class": "string",
+        "optional": false,
+    "patterns": [
+        "*"
+    ],
+    "help": ""
+    }
+  ],
+  "outputSpec": [
+    {
+    "name": "results",
+    "label": "results",
+        "class": "array:file",
+      "patterns": [
+        "*"
+      ],
+      "help": ""
+    }
+  ],
+  "runSpec": {
+    "timeoutPolicy": {
+      "*": {
+        "hours": 3
+      }
+    },
+    "interpreter": "bash",
+    "file": "src/run.sh",
+    "distribution": "Ubuntu",
+    "release": "20.04",
+    "version": "0"
+  },
+  "access": {
+    "network": [
+      "*"
+    ],
+    "project": "CONTRIBUTE"
+  },
+  "regionalOptions": {
+    "aws:eu-west-2": {
+      "systemRequirements": {
+        "*": {
+          "instanceType": "mem1_ssd1_v2_x4"
+        }
+      }
+    }
+  }
+}
