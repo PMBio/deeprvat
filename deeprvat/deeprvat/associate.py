@@ -761,6 +761,7 @@ def average_burdens(
     n_chunks: Optional[int] = None,
     chunk: Optional[int] = None,
 ):
+    compression_level = 1
     logger.info(f'Analyzing repeats {repeats}')
     logger.info(f'Reading burdens to aggregate from {burden_file}')
     burdens = zarr.open(burden_file)
