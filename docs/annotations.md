@@ -1,15 +1,15 @@
 # DeepRVAT Annotation pipeline
 
-This pipeline is based on [snakemake](https://snakemake.readthedocs.io/en/stable/). It uses [bcftools + samstools](https://www.htslib.org/), as well as [perl](https://www.perl.org/), [deepRiPe](https://ohlerlab.mdc-berlin.de/software/DeepRiPe_140/) and [deepSEA](http://deepsea.princeton.edu/) as well as [VEP](http://www.ensembl.org/info/docs/tools/vep/index.html), including plugins for [primateAI](https://github.com/Illumina/PrimateAI) and  [spliceAI](https://github.com/Illumina/SpliceAI). DeepRiPe annotations were acquired using [faatpipe repository by HealthML](https://github.com/HealthML/faatpipe)[[1]](#reference-1-target) and DeepSea annotations were calculated using [kipoi-veff2](https://github.com/kipoi/kipoi-veff2)[[2]](#reference-2-target), abSplice scores were computet using [abSplice](https://github.com/gagneurlab/absplice/)[[3]](#reference-3-target)
+This pipeline is based on [snakemake](https://snakemake.readthedocs.io/en/stable/). It uses [bcftools + samstools](https://www.htslib.org/), [perl](https://www.perl.org/), [deepRiPe](https://ohlerlab.mdc-berlin.de/software/DeepRiPe_140/) and [deepSEA](http://deepsea.princeton.edu/) as well as [VEP](http://www.ensembl.org/info/docs/tools/vep/index.html), including plugins for [primateAI](https://github.com/Illumina/PrimateAI) and  [spliceAI](https://github.com/Illumina/SpliceAI). DeepRiPe annotations were acquired using [faatpipe repository by HealthML](https://github.com/HealthML/faatpipe)[[1]](#reference-1-target) and DeepSea annotations were calculated using [kipoi-veff2](https://github.com/kipoi/kipoi-veff2)[[2]](#reference-2-target), abSplice scores were computed using [abSplice](https://github.com/gagneurlab/absplice/)[[3]](#reference-3-target)
 
-![dag](_static/annotation_pipeline_dag.png)
+![dag](_static/annotation_rulegraph.svg)
 *Figure 1: Example DAG of annoation pipeline using only two bcf files as input.*
 
 ## Input
 
 The pipeline uses left-normalized bcf files containing variant information, a reference fasta file as well as a text file that maps data blocks to chromosomes as input. It is expected that the bcf files contain the columns "CHROM" "POS" "ID" "REF" and "ALT". Any other columns, including genotype information are stripped from the data before annotation tools are used on the data. The variants may be split into several vcf files for each chromosome and each "block" of data. The filenames should then contain the corresponding chromosome and block number. The pattern of the file names, as well as file structure may be specified in the corresponding [config file](https://github.com/PMBio/deeprvat/blob/main/pipelines/config/deeprvat_annotation_config.yaml).
 
-(requirements-target)=
+
 ## Requirements 
 
 BCFtools as well as HTSlib should be installed on the machine, 
@@ -39,6 +39,7 @@ The config above would use the following directory structure:
 
 |-- reference
 |   |-- fasta file
+|   |-- gtf file
 
 
 |-- metadata
@@ -70,16 +71,16 @@ The config above would use the following directory structure:
 |   |-- cadd
 |   |-- spliceAI
 |   |-- primateAI
-
+|   |-- AlphaMissense
 
 
 ```
 
 Bcf files created by the [preprocessing pipeline](preprocessing.md) are used as input data. 
-The pipeline also uses the variant.tsv file as well as the reference file from the preprocesing pipeline. 
-The pipeline beginns by installing the repositories needed for the annotations, it will automatically install all repositories in the `repo_dir` folder that can be specified in the config file relative to the annotation working directory.
+Alternatively, vcf files may be used as input data as well.
+The pipeline also uses the variant.tsv file as well as the genotype file from the preprocesing pipeline. 
 The text file mapping blocks to chromosomes is stored in `metadata` folder. The output is stored in the `output_dir/annotations` folder and any temporary files in the `tmp` subfolder. All repositories used including VEP with its corresponding cache as well as plugins are stored in `repo_dir/ensempl-vep`.
-Data for VEP plugins and the CADD cache are stored in `annotation data`. 
+Data for VEP plugins and the CADD cache may be stored in `annotation data`. 
 
 ## Running the annotation pipeline
 ### Preconfiguration
@@ -87,16 +88,21 @@ Data for VEP plugins and the CADD cache are stored in `annotation data`.
   ```shell
     setup_annotation_workflow.sh repo_dir/ensembl-vep/cache repo_dir/ensembl-vep/Plugins repo_dir
   ```
-  or manually clone the repositories mentioned in the [requirements](#requirements-target) into `repo_dir` and install the needed conda environments with  
+  or manually clone the repositories mentioned in the [requirements](#requirements) into `repo_dir` and install the needed conda environments with  
     ```shell
     mamba env create -f repo_dir/absplice/environment.yaml
+    mamba activate absplice
+    pip install -e repo_dir/absplice
     mamba env create -f repo_dir/kipoi-veff2/environment.minimal.linux.yml
+    mamba activate kipoi-veff2
+    pip install -e repo_dir/kipoi-veff2
     mamba env create -f deeprvat/deeprvat_annotations.yml
+    mamba activate deeprvat_annotations
     ```
-  If you already have some of the needed repositories on your machine you can edit the paths in the [config](https://github.com/PMBio/deeprvat/blob/main/pipelines/config/deeprvat_annotation_config.yaml).
+  If you already have some of the needed repositories on your machine you can edit the paths in the [config](https://github.com/PMBio/deeprvat/blob/main/pipelines/config/deeprvat_annotation_config.yaml). Or link the repositories into repo_dir.
   
 
-- Inside the annotation directory create a directory `annotation_dir` and download/link the prescored files for CADD, SpliceAI, and PrimateAI (see [requirements](#requirements-target))
+- Inside the annotation directory create a directory `annotation_dir` and download/link the prescored files for CADD, SpliceAI, and PrimateAI (see [requirements](#requirements))
 
 
 ### Running the pipeline
@@ -109,7 +115,7 @@ After configuration and activating the `deeprvat_annotations` environment run th
 
 It is possible to run the annotation pipeline without having run the preprocessing prior to that. 
 However, the annotation pipeline requires some files from this pipeline that then have to be created manually.
-- Left normalized bcf files from the input. These files do not have to contain any genotype information. "chrom, "pos", "ref" and "alt" columns will suffice.
+- Left normalized bcf or vcf files from the input. These files do not have to contain any genotype information. "chrom, "pos", "ref" and "alt" columns will suffice.
 - a reference fasta file will have to be provided
 - A tab separated file containing all input variants "chrom, "pos", "ref" and "alt" entries each with a unique id.
 
