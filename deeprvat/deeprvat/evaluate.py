@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple
 from itertools import combinations
 import random
+import os
 
 import click
 import numpy as np
@@ -45,7 +46,7 @@ def get_baseline(
     phenotype=None,
     min_eaf=50,
     alpha: float = 0.05,
-    correction_method: str = "FDR",
+    correction_method: str = "Bonferroni",
 ) -> pd.DataFrame:
     baseline = pd.concat([pd.read_parquet(p) for p in paths])
     if "EAC" in baseline.columns:
@@ -60,9 +61,9 @@ def get_baseline(
 
     df = pval_correction(baseline, alpha, correction_type=correction_method)
     df["experiment_group"] = experiment_name
-    df["correction_method"] = "FDR"
+    df["correction_method"] = correction_method
     df["experiment"] = "Baseline"
-    
+
     return df
 
 
@@ -71,7 +72,7 @@ def get_baseline_results(
     pheno,
     deeprvat_genes: np.ndarray,
     alpha: float = 0.05,
-    correction_method: str = "FDR",
+    correction_method: str = "Bonferroni",
 ):
     min_eaf = config.get("min_eaf_baseline", 50)
 
@@ -85,55 +86,82 @@ def get_baseline_results(
     }
     logger.info(f'reading baseline from {baseline_paths}')
     for (t, m), p in baseline_paths.items():
-        result_list.append(
-            get_baseline(
-                [p],
-                f"baseline_{t}_{m}",
-                deeprvat_genes,
-                phenotype=pheno,
-                min_eaf=min_eaf,
-                alpha=alpha,
-                correction_method=correction_method,
+        if os.path.exists(p):
+            result_list.append(
+                get_baseline(
+                    [p],
+                    f"baseline_{t}_{m}",
+                    deeprvat_genes,
+                    phenotype=pheno,
+                    min_eaf=min_eaf,
+                    alpha=alpha,
+                    correction_method=correction_method,
+                )
             )
-        )
-
-    return pd.concat(result_list)
-
-
+        else:
+            logger.warning(f"Baseline path {p} doesn't exist")
+    if len(result_list) > 0:
+        res = pd.concat(result_list)
+    else:
+        logger.warning('No baseline data set existed. Returning empty data frame')
+        res = pd.DataFrame()
+    return res
 
 def combine_results(
     deeprvat_results: pd.DataFrame,
     baseline_results: pd.DataFrame,
-    correction_method: str = "FDR",
+    correction_method: str = "Bonferroni",
     alpha: float = 0.05,
+    combine_pval: str = "Bonferroni"
 ):
     baseline_original = baseline_results.copy()
 
     baseline_original["Discovery type"] = "Baseline"
-    deeprvat_results["Discovery type"] = "New DeepRVAT discovery"
-    baseline_results["Discovery type"] = "Seed gene"
-    combined_results = pd.concat([deeprvat_results, baseline_results])
+    deeprvat_results["Discovery type"] = "DeepRVAT discovery"
 
-    combined = pval_correction(
-        combined_results, alpha, correction_type=correction_method
+    deeprvat_results = pval_correction(
+        deeprvat_results, alpha, correction_type=correction_method
     )
 
     baseline_combined = baseline_original.copy()
     baseline_combined["experiment_group"] = "baseline_combined"
-    baseline_combined = pval_correction(
-        baseline_combined, alpha, correction_type=correction_method
-    )
 
-    combined["experiment"] = "DeepRVAT"
-    combined["experiment_group"] = "DeepRVAT"
-    combined["correction_method"] = correction_method
+    if len(baseline_original) > 0:
+        if combine_pval is not None:
+            print('Aggregating baseline pvalues to one pvalue per gene')
+            baseline_combined = aggregate_pvals_per_gene(baseline_combined, combine_pval)
+            #should only be one pval per gene left
+            assert baseline_combined.groupby('gene').size().unique() == np.array([1])
+        baseline_combined = pval_correction(
+            baseline_combined, alpha, correction_type=correction_method
+        )
+        baseline_original_corrected = pd.DataFrame()
+        for method in baseline_original['experiment_group'].unique():
+            this_corrected = pval_correction(
+                baseline_original.copy().query('experiment_group == @method'), 
+                alpha, correction_type=correction_method
+            )
+            baseline_original_corrected = pd.concat([baseline_original_corrected, this_corrected])
+        # just for sanity check
+        logger.info('Number of tests for each baseline method')
+        baseline_original_corrected['n_tests'] = baseline_original_corrected['pval_corrected']/baseline_original_corrected['pval']
+        logger.info(baseline_original_corrected.groupby('experiment_group')['n_tests'].unique())
+        baseline_original_corrected = baseline_original_corrected.drop(columns = 'n_tests')
+        ###### 
+    else:
+        baseline_original_corrected = baseline_original
+        
 
-    combined = pd.concat([combined, baseline_original, baseline_combined])
+    deeprvat_results["experiment"] = "DeepRVAT"
+    deeprvat_results["experiment_group"] = "DeepRVAT"
+    deeprvat_results["correction_method"] = correction_method
+
+    combined = pd.concat([deeprvat_results, baseline_original_corrected, baseline_combined])
 
     combined["-log10pval"] = -np.log10(combined["pval"])
 
     combined["Discovery type"] = pd.Categorical(
-        combined["Discovery type"], ["New DeepRVAT discovery", "Seed gene", "Baseline"]
+        combined["Discovery type"], ["DeepRVAT discovery", "Baseline"]
     )
     return combined.astype({"significant": bool})
 
@@ -166,14 +194,16 @@ def get_pvals(results, method_mapping=None, phenotype_mapping={}):
 
     if phenotype_mapping is not None:
         pvals["phenotype"] = pvals["phenotype"].apply(
-            lambda x: phenotype_mapping[x]
-            if x in phenotype_mapping
-            else " ".join(x.split("_"))
+            lambda x: (
+                phenotype_mapping[x]
+                if x in phenotype_mapping
+                else " ".join(x.split("_"))
+            )
         )
 
     return pvals
 
-def min_bonferroni_aggregate(pvals):
+def min_Bonferroni_aggregate(pvals):
     pval = min(pvals * len(pvals))
     return pval
 
@@ -184,9 +214,9 @@ def aggregate_pvals_per_gene(df, agg_method):
     agg_results = df.copy()[select_cols]
     print(f'aggregating pvalues using grouping cols {grouping_cols}')
     agg_results = agg_results.groupby(grouping_cols, dropna = False)
-    if agg_method == 'bonferroni':
-        print('using bonferroni')
-        agg_results = agg_results.agg(min_bonferroni_aggregate).reset_index()
+    if agg_method == 'Bonferroni':
+        print('using Bonferroni')
+        agg_results = agg_results.agg(min_Bonferroni_aggregate).reset_index()
     elif agg_method == 'cct':
         print('using cct')
         agg_results = agg_results.agg(cct).reset_index()
@@ -197,33 +227,29 @@ def aggregate_pvals_per_gene(df, agg_method):
 
 def process_results(
     results: pd.DataFrame,
-    n_repeats: int = 6,
     alpha: float = 0.05,
-    correction_method: str = "FDR",
-    combine_pval: str = None
+    correction_method: str = "Bonferroni",
+    combine_pval: str = "Bonferroni"
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+
+    #TODO change this query!
     deeprvat_results = results.query(
-        f'experiment == "DeepRVAT ({n_repeats} repeats)"'
-        ' and experiment_group == "DeepRVAT"'
+        'experiment_group == "DeepRVAT"'
     )
 
-    assert (deeprvat_results.groupby('gene').size() == n_repeats).all()
+    assert (deeprvat_results.groupby('gene').size() == 1).all()
     baseline_results = results.query(
         "experiment_group in @BASELINE_GROUPS")
     if "correction_method" in baseline_results.columns:
-        # if use_seed_gene is not True the correction_method column is not in results
+        # if use_baseline_results is not True the correction_method column is not in results
         baseline_results = results.query("correction_method == @correction_method")
-
-    if combine_pval is not None:
-        print('Aggregating pvalues to one pvalue per gene')
-        deeprvat_results = aggregate_pvals_per_gene(deeprvat_results, combine_pval)
-        baseline_results = aggregate_pvals_per_gene(baseline_results, combine_pval)
 
     combined_results = combine_results(
         deeprvat_results,
         baseline_results,
         correction_method=correction_method,
         alpha=alpha,
+        combine_pval=combine_pval,
     )
 
     all_pvals = get_pvals(combined_results, method_mapping=METHOD_NAMES)
@@ -234,100 +260,45 @@ def process_results(
         ascending=[True, True, True, False, True],
     )
     significant = significant.drop_duplicates(subset=["phenotype", "gene", "Method"])
+
     return significant, all_pvals
 
 
 def evaluate_(
     associations: pd.DataFrame,
     alpha: float,
-    seed_genes: Optional[pd.DataFrame],
-    max_repeat_combis: int,
-    repeats_to_analyze: int,
-    repeats: Optional[int] = None,
     baseline_results: Optional[pd.DataFrame] = None,
     debug: bool = False,
-    correction_method: str = "FDR",
-    combine_pval: str = None,
+    correction_method: str = "Bonferroni",
+    combine_pval: str ="Bonferroni",
 ):
-    if seed_genes is not None:
-        seed_gene_ids = seed_genes["id"]
-        associations = associations.query("gene not in @seed_gene_ids")
 
-    n_total_repeats = (
-        repeats
-        if repeats is not None
-        else associations["model"]
-        .str.split("_")
-        .apply(lambda x: x[-1])
-        .astype(int)
-        .max()
-        + 1
+    logger.info("Evaluation results:")    
+    results = pd.DataFrame()
+    #TODO change this!
+    n_repeats = 1 #TODO maybe completely drop this (we don't need any filtering any more
+    # we just use the entire data frame)
+    rep_str = f"{results} repeats"
+    repeat_mask = (
+        associations["model"].str.split("_").apply(lambda x: x[-1]).astype(int)
+        < n_repeats
     )
-    if debug:
-        n_total_repeats = min(n_total_repeats, 2)
+    results = associations[repeat_mask].copy()
 
-    logger.info("Evaluation results:")
-    logger.info(f"Analyzing results for {repeats_to_analyze} repeats")
-    
-    if max_repeat_combis > 1:
-        random.seed(10) #to ensoure that the same values for all_repeat_combinations
-        # when running this script for each phenotype
-        significant = pd.DataFrame()
-        all_pvalues = pd.DataFrame()
-        logger.info(f"Maximum number of repeat combinations that will be analyzed {max_repeat_combis}")
-        all_repeat_combinations = list(combinations(range(n_total_repeats), repeats_to_analyze))#[:max_repeat_combis]
-        n_combis_to_sample = min(max_repeat_combis, len(all_repeat_combinations))
-        all_repeat_combinations = random.sample(all_repeat_combinations, n_combis_to_sample)
-        for combi in all_repeat_combinations:
-            logger.info(f'Repeat combination {combi}')
-            rep_str = [f"repeat_{i}" for i in combi]
-            repeat_mask = [i in rep_str for i in associations["model"]]
+    results["experiment"] = "DeepRVAT"
 
-            this_result = associations[repeat_mask].copy()
-            experiment_name = f"DeepRVAT ({repeats_to_analyze} repeats)"
-            this_result["experiment"] = experiment_name
-            this_result["repeat_combi"] =  '-'.join(str(x) for x in combi)
+    ########### change until here ##################
+    results["-log10pval"] = -np.log10(results["pval"])
+    results["experiment_group"] = "DeepRVAT"
 
-            this_result["-log10pval"] = -np.log10(this_result["pval"])
-            this_result["experiment_group"] = "DeepRVAT"
-            this_result = pd.concat([this_result, baseline_results])
-            
-            this_significant, this_all_pvalues = process_results(
-                this_result,
-                n_repeats=repeats_to_analyze,
-                alpha=alpha,
-                correction_method=correction_method,
-                combine_pval=combine_pval
-            )
-            combi_str = '-'.join(str(x) for x in combi)
-            this_significant = this_significant.assign(repeats = repeats_to_analyze,
-                repeat_combination = combi_str)
-            this_all_pvalues = this_all_pvalues.assign(repeats = repeats_to_analyze,
-                repeat_combination = combi_str)
-            
-            significant = pd.concat([significant, this_significant])
-            all_pvalues = pd.concat([all_pvalues, this_all_pvalues])
+    results = pd.concat([results, baseline_results])
 
-    else:
-        rep_str = [f"repeat_{i}" for i in range(repeats_to_analyze)]
-        logger.info(f'Only evaluating for one repeat combination range({rep_str})')
-        repeat_mask = [i in rep_str for i in associations["model"]]
-        this_result = associations[repeat_mask].copy()
-        experiment_name = f"DeepRVAT ({repeats_to_analyze} repeats)"
-        this_result["experiment"] = experiment_name
-
-        this_result["-log10pval"] = -np.log10(this_result["pval"])
-        this_result["experiment_group"] = "DeepRVAT"
-        this_result = pd.concat([this_result, baseline_results])
-            
-        significant, all_pvalues = process_results(
-            this_result,
-            n_repeats=repeats_to_analyze,
-            alpha=alpha,
-            correction_method=correction_method,
-            combine_pval=combine_pval
-        )
-
+    significant, all_pvalues = process_results(
+        results,
+        alpha=alpha,
+        correction_method=correction_method,
+        combine_pval=combine_pval
+    )
     return significant, all_pvalues
 
 
@@ -335,33 +306,25 @@ def evaluate_(
 @click.command()
 @click.option("--debug", is_flag=True)
 @click.option("--phenotype", type=str)
-@click.option("--use-seed-genes", is_flag=True)
-@click.option("--save-default", is_flag=True)
-@click.option("--max-repeat-combis", type=int, default = 1)
-@click.option("--repeats-to-analyze", type=int)
-@click.option("--correction-method", type=str, default="FDR")
-@click.option("--n-repeats", type=int)
-@click.option("--combine-pval", type=str, default = None)
+@click.option("--use-baseline-results", is_flag=True)
+@click.option("--correction-method", type=str, default="Bonferroni")
+@click.option("--combine-pval", type=str, default = 'Bonferroni') #Bonferroni min pval per gene for multiple baseline tests
 @click.argument("association-files", type=click.Path(exists=True), nargs=-1)
 @click.argument("config-file", type=click.Path(exists=True))
 @click.argument("out-dir", type=click.Path())
 def evaluate(
     debug: bool,
     phenotype: Optional[str],
-    use_seed_genes: bool,
-    save_default: bool,
+    use_baseline_results: bool,
     correction_method: str,
-    n_repeats: Optional[int],
     association_files: Tuple[str],
     config_file: str,
     out_dir: str,
-    max_repeat_combis: int,
-    repeats_to_analyze: Optional[int],
     combine_pval,
 ):
+    
     with open(config_file) as f:
         config = yaml.safe_load(f)
-    repeats_to_analyze = repeats_to_analyze if repeats_to_analyze is not None else n_repeats
     associations = pd.concat(
         [pd.read_parquet(f, engine="pyarrow") for f in association_files]
     )
@@ -372,18 +335,13 @@ def evaluate(
         else config["data"]["dataset_config"]["y_phenotypes"][0]
     )
     associations["phenotype"] = pheno
+
     alpha = config["alpha"]
 
-    repeats = n_repeats if n_repeats is not None else config["n_repeats"]
 
-    seed_genes = (
-        pd.read_parquet(config["seed_gene_file"], engine="pyarrow")
-        if (use_seed_genes and "seed_gene_file" in config)
-        else None
-    )
 
-    if use_seed_genes:
-        logger.info("Reading seed gene discovery results")
+    if use_baseline_results:
+        logger.info("Reading baseline results")
         deeprvat_genes = associations["gene"].unique()
         baseline_results = get_baseline_results(
             config,
@@ -397,26 +355,17 @@ def evaluate(
     significant, all_pvals = evaluate_(
         associations,
         alpha,
-        seed_genes,
-        repeats=repeats,
         baseline_results=baseline_results,
         correction_method=correction_method,
         debug=debug,
-        max_repeat_combis = max_repeat_combis,
-        repeats_to_analyze = repeats_to_analyze,
         combine_pval = combine_pval
     )
-
+    logger.info('DeepRVAT discvoeries:')
+    logger.info(significant.query('Method == "DeepRVAT"'))
     logger.info("Saving results")
     out_path = Path(out_dir)
-    significant.to_parquet(out_path / f"significant_{repeats_to_analyze}repeats.parquet", engine="pyarrow")
-    all_pvals.to_parquet(out_path / f"all_results_{repeats_to_analyze}repeats.parquet", engine="pyarrow")
-    if (repeats_to_analyze == n_repeats) & (max_repeat_combis == 1) | save_default :
-        logger.info('Also saving result without repeat suffix since its the "default"')
-        #save the 'traditional' output
-        significant.to_parquet(out_path / f"significant.parquet", engine="pyarrow")
-        all_pvals.to_parquet(out_path / f"all_results.parquet", engine="pyarrow")
-
+    significant.to_parquet(out_path / f"significant.parquet", engine="pyarrow")
+    all_pvals.to_parquet(out_path / f"all_results.parquet", engine="pyarrow")
 
 
 if __name__ == "__main__":
