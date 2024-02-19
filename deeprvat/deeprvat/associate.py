@@ -747,7 +747,6 @@ def combine_regression_results(
 @cli.command()
 @click.option("--n-chunks", type=int)
 @click.option("--chunk", type=int)
-@click.option("--initialize-zarr-only", is_flag=True)
 @click.option("-r", "--repeats", multiple = True, type = int)
 @click.option("--agg-fct", type=str, default = 'mean')
 @click.argument("burden-file", type=click.Path(exists=True))
@@ -756,7 +755,6 @@ def average_burdens(
     repeats: Tuple, 
     burden_file: str, 
     burden_out_file: str,
-    initialize_zarr_only: bool, 
     agg_fct: Optional[str] = 'mean',
     n_chunks: Optional[int] = None,
     chunk: Optional[int] = None,
@@ -793,18 +791,18 @@ def average_burdens(
                                 total=(n_samples // batch_size +
                                         (n_samples % batch_size != 0))):
         if i == 0:
-            if not os.path.exists(burden_out_file): 
-                logger.info('Generting new zarr file')
-                burdens_new = zarr.open(
-                    burden_out_file,
-                    mode='a',
-                    shape=(burdens.shape[0], burdens.shape[1], 1),
-                    chunks=(1000, 1000),
-                    dtype=np.float32,
-                    compressor=Blosc(clevel=compression_level))
-            else: 
-                logger.info('Only opening zarr file')
-                burdens_new =  zarr.open(burden_out_file)
+            # if not os.path.exists(burden_out_file): 
+            #     logger.info('Generting new zarr file')
+            burdens_new = zarr.open(
+                burden_out_file,
+                mode='a',
+                shape=(burdens.shape[0], burdens.shape[1], 1),
+                chunks=(1000, 1000),
+                dtype=np.float32,
+                compressor=Blosc(clevel=compression_level))
+            # else: 
+            #     logger.info('Only opening zarr file')
+            #     burdens_new =  zarr.open(burden_out_file)
             
         start_idx = chunk_start + i * batch_size
         end_idx = min(start_idx + batch_size, chunk_end)
