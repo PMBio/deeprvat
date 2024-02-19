@@ -1,5 +1,3 @@
-
-
 rule all_cv_burdens:
     input:
         expand('{phenotype}/deeprvat/burdens/merging.finished', 
@@ -10,7 +8,8 @@ rule all_cv_burdens:
 # # ###########################################################################################################
 module deeprvat_associate:
     snakefile: 
-        f"{DEEPRVAT_DIR}/pipelines/training_association_testing_modular.snakefile" 
+        "../training_association_testing.snakefile" 
+        # f"{DEEPRVAT_DIR}/pipelines/training_association_testing.snakefile" 
         # Wit the version below the module doesn't have the local Namespace
         # alternative is to put the 'header'/variable definitions into all snakefiles
         # "../association_testing/association_dataset.snakefile"
@@ -18,8 +17,6 @@ module deeprvat_associate:
         'cv_split{cv_split}/deeprvat'
     config:
         config
-
-# use rule * from deeprvat_workflow exclude config, evaluate, association_dataset, train, regress  as deeprvat_*
 
 
 # # ############################### Computation of test set deeprvat burdens ##############################################################
@@ -32,7 +29,7 @@ rule make_deeprvat_test_config:
     shell:
         ' && '.join([
             conda_check,
-            py_deeprvat + 'cv_utils.py generate-test-config '
+            'deeprvat_cv_utils generate-test-config '
             '--fold {wildcards.cv_split} '
             f'--n-folds {cv_splits}'
             ' {input.config_train} {output.config_test}'
@@ -71,7 +68,7 @@ rule combine_test_burdens:
     shell:
         ' && '.join([
             conda_check,
-            py_deeprvat + 'cv_utils.py combine-test-set-burdens '
+            'deeprvat_cv_utils combine-test-set-burdens '
             '{params.link} '
             '{params.burden_paths} '
             '{params.out_dir} '

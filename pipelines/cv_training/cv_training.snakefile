@@ -22,7 +22,7 @@ rule spread_config:
     shell:
         ' && '.join([
             conda_check,
-            py_deeprvat + 'cv_utils.py spread-config '
+            'deeprvat_cv_utils spread-config '
             '-m deeprvat '
             '--fold {wildcards.cv_split} '
             # '--fold-specific-baseline '
@@ -35,7 +35,7 @@ rule spread_config:
 # # ###########################################################################################################
 module deeprvat_workflow:
     snakefile: 
-        f"{DEEPRVAT_DIR}/pipelines/training_association_testing_modular.snakefile"
+        "../training_association_testing.snakefile"
         # f"{DEEPRVAT_DIR}/pipelines/training_association_testing_with_prefix.snakefile"
     prefix:
         'cv_split{cv_split}/deeprvat'
@@ -50,8 +50,7 @@ use rule best_training_run from deeprvat_workflow as deeprvat_best_training_run 
     params:
         prefix = 'cv_split{cv_split}/deeprvat'
 
-print('hi')
-print(training_phenotypes)
+
 use rule train from deeprvat_workflow as deeprvat_train with:
     priority: 1000
     params:

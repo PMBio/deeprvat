@@ -1,42 +1,35 @@
 
 ########### Average regression 
-# TODO try to remove this/get rid
-cv_exp = True
-config_file_prefix = 'cv_split0/deeprvat/' if cv_exp else '' #needed in case we analyse a CV experiment
-
 rule evaluate_avg:
     input:
-        associations ='{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/burden_associations.parquet',
+        associations ='{phenotype}/deeprvat/average_regression_results/burden_associations.parquet',
         config = f"{config_file_prefix}{{phenotype}}/deeprvat/hpopt_config.yaml"
     output:
-        "{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/eval/{use_seed}/significant.parquet",
-        "{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/eval/{use_seed}/all_results.parquet"
+        "{phenotype}/deeprvat/eval/significant.parquet",
+        "{phenotype}/deeprvat/eval/all_results.parquet"
     threads: 1
     resources:
         mem_mb = 16000,
         load = 16000
     params:
         n_combis = 1,
-        use_seed_genes = lambda wildcards: use_seed_dict[wildcards.use_seed]
+        use_baseline_results = '--use-baseline-results'
     shell:
         'deeprvat_evaluate '
         + debug +
-        '{params.use_seed_genes} '
-        '--save-default '
-        '--n-repeats {params.n_combis} ' #because we analyze each average combi alone, so the totatl number of combis is the total number of repeats
-        '--correction-method FDR '
-        '--repeats-to-analyze 1 ' #always only analyse one combination 
-        '--max-repeat-combis {params.n_combis} '
+        '{params.use_baseline_results} '
+        '--correction-method Bonferroni '
+        '--phenotype {wildcards.phenotype} '
         '{input.associations} '
         '{input.config} '
-        '{wildcards.phenotype}/deeprvat/{wildcards.burden_agg_fct}_agg_results/{wildcards.n_avg_repeats}_repeats/eval/{wildcards.use_seed}/'
+        '{wildcards.phenotype}/deeprvat/eval'
 
 
 rule combine_regression_chunks_avg:
     input:
-        expand('{{phenotype}}/deeprvat/{{burden_agg_fct}}_agg_results/{{n_avg_repeats}}_repeats/burden_associations_{chunk}.parquet', chunk=range(n_regression_chunks)),
+        expand('{{phenotype}}/deeprvat/average_regression_results/burden_associations_{chunk}.parquet', chunk=range(n_regression_chunks)),
     output:
-        '{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/burden_associations.parquet',
+        '{phenotype}/deeprvat/average_regression_results/burden_associations.parquet',
     threads: 1
     resources:
         mem_mb = lambda wildcards, attempt: 12000 + (attempt - 1) * 4098,
@@ -57,20 +50,20 @@ rule regress_avg:
                         chunk=range(n_burden_chunks))
         ) if not cv_exp  else '{phenotype}/deeprvat/burdens/merging.finished',
         phenotype_0_chunks =  expand(
-            phenotypes[0] + '/deeprvat/burdens/logs/burdens_{{burden_agg_fct}}_{{n_avg_repeats}}_repeats_chunk_{chunk}.finished',
+            phenotypes[0] + '/deeprvat/burdens/logs/burdens_averaging_{chunk}.finished',
             chunk=range(n_avg_chunks)
         ),
     output:
-        temp('{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/burden_associations_{chunk}.parquet'),
+        temp('{phenotype}/deeprvat/average_regression_results/burden_associations_{chunk}.parquet'),
     threads: 2
     resources:
         mem_mb = lambda wildcards, attempt: 28676  + (attempt - 1) * 4098,
         # mem_mb = 16000,
         load = lambda wildcards, attempt: 28000 + (attempt - 1) * 4000
     params:
-        burden_file = f'{phenotypes[0]}/deeprvat/burdens/burdens_{{burden_agg_fct}}_{{n_avg_repeats}}.zarr',
+        burden_file = f'{phenotypes[0]}/deeprvat/burdens/burdens_average.zarr',
         burden_dir = '{phenotype}/deeprvat/burdens',
-        out_dir = '{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats'
+        out_dir = '{phenotype}/deeprvat/average_regression_results'
     shell:
         'deeprvat_associate regress '
         + debug +

@@ -3,8 +3,6 @@ from pathlib import Path
 configfile: 'config.yaml'
 
 conda_check = 'conda info | grep "active environment"'
-DEEPRVAT_DIR = os.environ['DEEPRVAT_DIR']
-py_deeprvat = f'python {DEEPRVAT_DIR}/deeprvat/'
 
 debug_flag = config.get('debug', False)
 phenotypes = config['phenotypes']
@@ -28,20 +26,11 @@ wildcard_constraints:
     trial="\d+",
 
 
-repeats_to_average = [6]
-n_avg_chunks = 20
-burden_agg_fcts = ['mean']
-
-cv_splits = 5
+cv_splits = config.get('n_folds', 5)
 cv_exp = True
 config_file_prefix = 'cv_split0/deeprvat/' if cv_exp else '' #needed in case we analyse a CV experiment
 
-use_seed_opts = ['use_seed', 'wo_seed']
-use_seed_opts = ['wo_seed']
-use_seed_dict = {'use_seed': '--use-seed-genes ', 'wo_seed': ' '}
-
-
-
+include: "../association_testing/plot.snakefile"
 include: "cv_training.snakefile"
 include: "cv_burdens.snakefile"
 include: "../association_testing/burdens.snakefile"
@@ -49,53 +38,36 @@ include: "../association_testing/regress_eval_avg.snakefile"
 
 # phenotypes = training_phenotypes
 
-
-# print(phenotypes)
-# rule all:
-#     input:
-#         expand('{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/burden_associations.parquet',
-#             n_avg_repeats = repeats_to_average,
-#             burden_agg_fct = burden_agg_fcts,
-#             phenotype = phenotypes
-#         )
-
-
-rule all_evaluate_avg:
+rule all_plot: #plot.snakefile
     input:
-        significant = expand("{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/eval/{use_seed}/significant.parquet",
-               phenotype=phenotypes,
-               n_avg_repeats = repeats_to_average,
-               burden_agg_fct = burden_agg_fcts,
-               use_seed = use_seed_opts),
-        results = expand("{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/eval/{use_seed}/all_results.parquet",
-               phenotype=phenotypes,
-               n_avg_repeats = repeats_to_average,
-               burden_agg_fct = burden_agg_fcts,
-               use_seed =  use_seed_opts),
+        "dicovery_replication_plot.png"
 
-rule all_regression_avg:
+rule all_evaluate_avg: #plot.snakefile
     input:
-        expand('{phenotype}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/burden_associations.parquet',
-            n_avg_repeats = repeats_to_average,
-            burden_agg_fct = burden_agg_fcts,
+        significant = expand("{phenotype}/deeprvat/eval/significant.parquet",
+               phenotype=phenotypes),
+        results = expand("{phenotype}/deeprvat/eval/all_results.parquet",
+               phenotype=phenotypes),
+
+rule all_regression_avg: #regress_eval_avg.snakefile
+    input:
+        expand('{phenotype}/deeprvat/average_regression_results/burden_associations.parquet',
             phenotype = phenotypes
         )
 
-rule all_average_burdens:
+rule all_average_burdens: #burdens.snakefile
     input:
-        expand('{phenotype}/deeprvat/burdens/logs/burdens_{burden_agg_fct}_{n_avg_repeats}_repeats_chunk_{chunk}.finished',
-            n_avg_repeats = repeats_to_average,
+        expand('{phenotype}/deeprvat/burdens/logs/burdens_averaging_{chunk}.finished',
             chunk = range(n_avg_chunks),
-            burden_agg_fct = burden_agg_fcts,
             phenotype = phenotypes[0]),
 
-rule all_burdens:
+rule all_burdens: #cv_burdens.snakefile
     input:
         expand('{phenotype}/deeprvat/burdens/merging.finished', 
         phenotype = phenotypes)
 
 
-rule all_training:
+rule all_training: #cv_training.snakefile
     input:
         expand('cv_split{cv_split}/deeprvat/models/repeat_{repeat}/best/bag_{bag}.ckpt',
                bag=range(n_bags), repeat=range(n_repeats),
@@ -105,7 +77,7 @@ rule all_training:
                cv_split = range(cv_splits))
 
 
-rule all_config:
+rule all_config: #cv_training.snakefile
     input:
         expand('cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/hpopt_config.yaml',
                phenotype=phenotypes,

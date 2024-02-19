@@ -10,14 +10,14 @@ rule average_burdens:
             for c in range(n_burden_chunks)
         ] if not cv_exp else '{phenotype}/deeprvat/burdens/merging.finished'
     output:
-        '{phenotype}/deeprvat/burdens/logs/burdens_{burden_agg_fct}_{n_avg_repeats}_repeats_chunk_{chunk}.finished',
+        '{phenotype}/deeprvat/burdens/logs/burdens_averaging_{chunk}.finished',
     params:
         burdens_in = '{phenotype}/deeprvat/burdens/burdens.zarr',
-        burdens_out = '{phenotype}/deeprvat/burdens/burdens_{burden_agg_fct}_{n_avg_repeats}.zarr',
-        repeats = lambda wildcards: ''.join([f'--repeats {r} ' for r in  range(int(wildcards.n_avg_repeats))])
+        burdens_out = '{phenotype}/deeprvat/burdens/burdens_average.zarr',
+        repeats = lambda wildcards: ''.join([f'--repeats {r} ' for r in  range(int(n_repeats))])
     threads: 1
     resources:
-        mem_mb = lambda wildcards, attempt: 4098 * 4 + (attempt - 1) * 4098,
+        mem_mb = lambda wildcards, attempt: 4098 + (attempt - 1) * 4098,
         load = 4000,
     priority: 10,
     shell:
@@ -26,7 +26,7 @@ rule average_burdens:
             '--n-chunks '+ str(n_avg_chunks) + ' '
             '--chunk {wildcards.chunk} '
             '{params.repeats} '
-            '--agg-fct {wildcards.burden_agg_fct}  '
+            '--agg-fct mean  ' #TODO remove this
             '{params.burdens_in} '
             '{params.burdens_out}'),
             'touch {output}'

@@ -1,6 +1,8 @@
 
 #requires that comparison_results.pkl is linked to the experiment directory
 #requires deeprvat-analyis to be installed
+DEEPRVAT_ANALYSIS_DIR = os.environ['DEEPRVAT_ANALYSIS_DIR']
+py_deeprvat_analysis = f'python {DEEPRVAT_ANALYSIS_DIR}'
 
 rule plot:
     conda:
