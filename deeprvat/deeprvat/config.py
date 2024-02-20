@@ -64,7 +64,7 @@ def update_config(
                 )
             seed_config = config["phenotypes"][phenotype]
             correction_method = seed_config.get("correction_method", None)
-            min_seed_genes = seed_config.get("min_seed_genes", 5)
+            min_seed_genes = seed_config.get("min_seed_genes", 3)
             max_seed_genes = seed_config.get("max_seed_genes", None)
             threshold = seed_config.get("pvalue_threshold", None)
             assert (
@@ -83,6 +83,7 @@ def update_config(
                 ]
             )
             if "EAC" in baseline_df:
+                #filter for genes with expected allele count > 50 (as done by Karcewski et al.)
                 baseline_df = baseline_df.query("EAC > 50")
             else:
                 logger.info("Not performing EAC filtering of baseline results")
@@ -96,12 +97,13 @@ def update_config(
             if baseline_results_out is not None:
                 baseline_df.to_parquet(baseline_results_out, engine="pyarrow")
             if correction_method is not None:
+
                 logger.info(f'Using significant genes with corrected pval < {alpha}')
-                if len(baseline_df.query("significant")) < min_seed_genes:
+                if len(baseline_df.query("significant")['gene'].unique()) < min_seed_genes:
                     logger.info(
-                        "Selecting top {min_seed_genes} genes from baseline because less than {min_seed_genes} genes are significant"
+                        f"Selecting top {min_seed_genes} genes from baseline because less than {min_seed_genes} genes are significant"
                     )
-                    baseline_df = baseline_df.head(min_seed_genes)  # TODO make this flexible
+                    baseline_df = baseline_df.drop_duplicates(subset="gene").head(min_seed_genes)  # TODO make this flexible
                 else:
                     baseline_df = baseline_df.query("significant")
             else:
