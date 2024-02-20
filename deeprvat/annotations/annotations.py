@@ -512,8 +512,7 @@ def deepripe_encode_variant_bedline(bedline, genomefasta, flank_size=75):
     - flank_size (int): The size of flanking regions to include in the sequence around the variant position.
 
     Returns:
-    numpy.ndarray: A 3D array representing one-hot encoded sequences.
-        The dimensions are (num_sequences, sequence_length, nucleotide_channels).
+    numpy.ndarray: A 3D array representing one-hot encoded sequences. The dimensions are (num_sequences, sequence_length, nucleotide_channels).
 
     Notes:
     - The input bedline should follow the format: [chromosome, start position, end position, reference allele, alternate allele, strand].
@@ -577,8 +576,7 @@ def deepripe_score_variant_onlyseq_all(
     - n_jobs (int, optional): Number of parallel jobs for processing variant bedlines. Default is 32.
 
     Returns:
-    dict: A dictionary containing variant scores for each choice in the model_group.
-          Each entry has the choice name as the key and the corresponding scores as the value.
+    dict: A dictionary containing variant scores for each choice in the model_group. Each entry has the choice name as the key and the corresponding scores as the value.
     """
     predictions = {}
     encoded_seqs_list = Parallel(n_jobs=n_jobs, verbose=10)(
