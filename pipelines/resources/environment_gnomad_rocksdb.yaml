@@ -1,0 +1,20 @@
+name: gnomad-rocksdb_test_run2
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.6
+  - python-rocksdb>=0.7
+  - rocksdb
+  - cython
+  - pandas
+  - pip
+  - snakemake>=6.1
+  - click
+  - wget
+  - bioconda::cyvcf2==0.30.16
+  # - bioconda::kipoiseq>=0.7
+  - pip:
+    - git+https://github.com/gagneurlab/gnomad_rocksdb.git
+    - git+https://github.com/gagneurlab/splicemap.git
+    - git+https://github.com/gagneurlab/absplice.git@master
+    - git+https://github.com/kipoi/kipoiseq.git@master
