@@ -478,7 +478,7 @@ def convert2bed(variants_file, output_dir):
     Notes:
     - The input variants file should be in tab-separated format with columns: "#CHROM", "POS", "ID", "REF", "ALT".
     - The generated BED file will have columns: "CHR", "Start", "End", "ID", "VAR", "Strand".
-    - The "Start" and "End" columns are set to the "POS" values, and "Strand" is set to '.' for all entries. 
+    - The "Start" and "End" columns are set to the "POS" values, and "Strand" is set to '.' for all entries.
     """
     file_name = variants_file.split("/")[-1]
     print(f"Generating BED file: {output_dir}/{file_name[:-3]}bed")
