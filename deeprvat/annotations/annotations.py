@@ -20,11 +20,12 @@ from sklearn.decomposition import PCA
 from tqdm import tqdm, trange
 import warnings
 
+
 def precision(y_true, y_pred):
     """
     Calculate precision, a metric for the accuracy of the positive predictions.
 
-    Precision is defined as the the fraction of relevant instances among the retrieved instances. 
+    Precision is defined as the the fraction of relevant instances among the retrieved instances.
 
     Parameters:
     - y_true (Tensor): The true labels (ground truth).
@@ -68,7 +69,7 @@ def recall(y_true, y_pred):
     - Recall is calculated as `true_positives / (possible_positives + epsilon)`,
       where epsilon is a small constant to avoid division by zero.
 
-   
+
     References:
     - https://en.wikipedia.org/wiki/Precision_and_recall
     """
@@ -97,7 +98,7 @@ def deepripe_get_model_info(saved_models_dict, saved_deepripe_models_path):
         The second dictionary contains lists of RBP names for each type of model, with keys
         "parclip", "eclip_hg2", and "eclip_k5" and values as lists of RBP names for high, medium, and
         low sequence models.
-    
+
     Notes:
     - The function constructs file paths based on the provided model identifiers.
     - The resulting dictionary structure allows easy access to model paths for different types.
@@ -571,7 +572,7 @@ def deepripe_encode_variant_bedline(bedline, genomefasta, flank_size=75):
 
 
 def deepripe_score_variant_onlyseq_all(
-        model_group, variant_bed, genomefasta, seq_len=200, batch_size=1024, n_jobs=32
+    model_group, variant_bed, genomefasta, seq_len=200, batch_size=1024, n_jobs=32
 ):
     """
     Compute variant scores using a deep learning model for each specified variant.
@@ -591,12 +592,16 @@ def deepripe_score_variant_onlyseq_all(
           Each entry has the choice name as the key and the corresponding scores as the value.
     """
     predictions = {}
-    encoded_seqs_list = Parallel(n_jobs=n_jobs, verbose=10)(delayed(deepripe_encode_variant_bedline)(
+    encoded_seqs_list = Parallel(n_jobs=n_jobs, verbose=10)(
+        delayed(deepripe_encode_variant_bedline)(
             bedline, genomefasta, flank_size=(seq_len // 2) + 2
-        ) for bedline in variant_bed)
-    encoded_seqs_list = [(x if x is not None
-                          else np.ones((2, seq_len + 4, 4)) * float("nan"))
-                         for x in encoded_seqs_list]
+        )
+        for bedline in variant_bed
+    )
+    encoded_seqs_list = [
+        (x if x is not None else np.ones((2, seq_len + 4, 4)) * float("nan"))
+        for x in encoded_seqs_list
+    ]
     encoded_seqs = tf.concat(encoded_seqs_list, 0)
 
     logger.info("Computing predictions")
@@ -628,15 +633,17 @@ def cli():
 @click.argument("gtf_path", type=click.Path(exists=True))
 @click.argument("genes_path", type=click.Path(exists=True))
 @click.argument("output_path", type=click.Path(exists=False))
-@click.option("--max_dist", type=int, default = 300)
-def filter_annotations_by_exon_distance(anno_path:str, gtf_path:str, genes_path:str, output_path:str, max_dist:int)->None:
-    """Filters annotation based on distance to the nearest exon of gene it is associated with. 
+@click.option("--max_dist", type=int, default=300)
+def filter_annotations_by_exon_distance(
+    anno_path: str, gtf_path: str, genes_path: str, output_path: str, max_dist: int
+) -> None:
+    """Filters annotation based on distance to the nearest exon of gene it is associated with.
 
     Args:
-        anno_path (str): Annotation parquet file 
-            containing variant annotations to filter 
-        gtf_path (str): gtf file containing start and end positions of 
-            all relevant exons of all relevant genes. 
+        anno_path (str): Annotation parquet file
+            containing variant annotations to filter
+        gtf_path (str): gtf file containing start and end positions of
+            all relevant exons of all relevant genes.
             Df is filtered for protein coding exons.
         genes_path (str): list of protein coding genes and their IDs in the annotation DF
         output_path (str): were to write the resulting parquet file
@@ -645,76 +652,79 @@ def filter_annotations_by_exon_distance(anno_path:str, gtf_path:str, genes_path:
     Writes: parquet file containing filtered annotations
     """
     import pyranges as pr
-    logger.info('read gtf file as pandas df')
+
+    logger.info("read gtf file as pandas df")
     gtf = pr.read_gtf(gtf_path)
     gtf = gtf.as_df()
 
-
-    logger.info('filter gtf for protein coding exons from the HAVANA DB')
-    gtf = gtf.query("Source == 'HAVANA' and Feature == 'exon' and gene_type == 'protein_coding' and transcript_type == 'protein_coding'")
-
+    logger.info("filter gtf for protein coding exons from the HAVANA DB")
+    gtf = gtf.query(
+        "Source == 'HAVANA' and Feature == 'exon' and gene_type == 'protein_coding' and transcript_type == 'protein_coding'"
+    )
 
     logger.info("split gene ID column on '.'")
-    gtf[['gene_base','feature']] = gtf['gene_id'].str.split('.', expand=True)
+    gtf[["gene_base", "feature"]] = gtf["gene_id"].str.split(".", expand=True)
 
+    logger.info(" read protein_coding_genes")
+    pcg = pd.read_parquet(genes_path, columns=["gene", "id"])
 
-    logger.info(' read protein_coding_genes')
-    pcg = pd.read_parquet(genes_path, columns = ['gene', 'id'])
-
-
-    logger.info(' only select necessary columns, rename to fit gtf file')
-    gtf =gtf[['gene_id', 'Start', 'End']].rename(columns={'gene_id':'gene'})
-
+    logger.info(" only select necessary columns, rename to fit gtf file")
+    gtf = gtf[["gene_id", "Start", "End"]].rename(columns={"gene_id": "gene"})
 
     logger.info(" add gene ids to gtf file")
 
-    
-    gtf = gtf.merge(pcg, on = 'gene' )
-
+    gtf = gtf.merge(pcg, on="gene")
 
     logger.info(" only select necessary columns, rename to fit gtf file")
-    gtf = gtf[['Start','End','id']].rename(columns={'id':'gene_id'})
-
+    gtf = gtf[["Start", "End", "id"]].rename(columns={"id": "gene_id"})
 
     logger.info("reading annotations to filter ")
     anno_df = pd.read_parquet(anno_path)
-    anno_df = anno_df[['id', 'pos','gene_id']]
-
+    anno_df = anno_df[["id", "pos", "gene_id"]]
 
     logger.info("adding exons to annotations (1:M merge)")
 
-    merged = anno_df.merge(gtf, how = 'left', on='gene_id')
+    merged = anno_df.merge(gtf, how="left", on="gene_id")
     del anno_df
 
-    logger.info("adding positons of start and end of each exon relative to variant position to df")
-    merged['start_diff'] =  merged['Start'] - merged['pos']
-    merged['end_diff'] =merged['End'] -  merged['pos'] 
+    logger.info(
+        "adding positons of start and end of each exon relative to variant position to df"
+    )
+    merged["start_diff"] = merged["Start"] - merged["pos"]
+    merged["end_diff"] = merged["End"] - merged["pos"]
 
-
-    logger.info(f"filtering all rows that are further than {max_dist}bp away from each exon ")
+    logger.info(
+        f"filtering all rows that are further than {max_dist}bp away from each exon "
+    )
     len_bf_filtering = len(merged)
-    filtered_merge = merged.query('(start_diff <= 0 & end_diff >= 0) | abs(start_diff) <= @max_dist | abs(end_diff) <= @max_dist')
+    filtered_merge = merged.query(
+        "(start_diff <= 0 & end_diff >= 0) | abs(start_diff) <= @max_dist | abs(end_diff) <= @max_dist"
+    )
     del merged
     len_after_filtering = len(filtered_merge)
-    logger.info(f'filtered rows by exon distance ({max_dist}bp), dropped({len_bf_filtering - len_after_filtering} rows / {np.round(100*(len_bf_filtering - len_after_filtering)/len_bf_filtering)}%)')
-
+    logger.info(
+        f"filtered rows by exon distance ({max_dist}bp), dropped({len_bf_filtering - len_after_filtering} rows / {np.round(100*(len_bf_filtering - len_after_filtering)/len_bf_filtering)}%)"
+    )
 
     logger.info("select necessary columns, drop duplicates")
-    filtered_merge = filtered_merge[['id', 'gene_id']]
+    filtered_merge = filtered_merge[["id", "gene_id"]]
     filtered_merge = filtered_merge.drop_duplicates()
-    logger.info(f'dropped dublicates in data frame (dropped {len_after_filtering - len(filtered_merge)}rows/ {np.round(100*(len_after_filtering - len(filtered_merge))/len_after_filtering)}%).')
-
-
+    logger.info(
+        f"dropped dublicates in data frame (dropped {len_after_filtering - len(filtered_merge)}rows/ {np.round(100*(len_after_filtering - len(filtered_merge))/len_after_filtering)}%)."
+    )
 
     logger.info("Reading in annotations for filtering")
     anno_df = pd.read_parquet(anno_path)
-    
-    filtered = anno_df.merge(filtered_merge, on = ['id', 'gene_id'], how = 'inner')
 
-    logger.info(f'filtered annotations based on filterd id, gene_id (dropped {len(anno_df) - len(filtered)} / {np.round(100*(len(anno_df)-len(filtered))/len(anno_df))}% of rows).')
+    filtered = anno_df.merge(filtered_merge, on=["id", "gene_id"], how="inner")
 
-    logger.info(f'writing result to {output_path}')
+    logger.info(
+        f"filtered annotations based on filterd id, gene_id (dropped {len(anno_df) - len(filtered)} / {np.round(100*(len(anno_df)-len(filtered))/len(anno_df))}% of rows)."
+    )
+
+    logger.info(f"writing result to {output_path}")
     filtered.to_parquet(output_path)
+
 
 @cli.command()
 @click.argument("deepsea-file", type=click.Path(exists=True))
@@ -722,7 +732,13 @@ def filter_annotations_by_exon_distance(anno_path:str, gtf_path:str, genes_path:
 @click.argument("means_sd_df", type=click.Path())
 @click.argument("out-dir", type=click.Path(exists=True))
 @click.option("--n-components", type=int, default=100)
-def deepsea_pca( deepsea_file: str, pca_object: str,  means_sd_df: str, out_dir: str,  n_components: int):
+def deepsea_pca(
+    deepsea_file: str,
+    pca_object: str,
+    means_sd_df: str,
+    out_dir: str,
+    n_components: int,
+):
     """
     Perform Principal Component Analysis (PCA) on DeepSEA data and save the results.
 
@@ -731,7 +747,7 @@ def deepsea_pca( deepsea_file: str, pca_object: str,  means_sd_df: str, out_dir:
     - deepsea_file (str): Path to the DeepSEA data in parquet format.
     - pca_object (str): Path to save or load the PCA object (components) in npy or pickle format.
     - means_sd_df (str): Path to a DataFrame containing pre-calculated means and SDs for standardization.
-                        If path does not exist, standardization will be done using the calculated mean and SD, result will then be saved under this path 
+                        If path does not exist, standardization will be done using the calculated mean and SD, result will then be saved under this path
     - out_dir (str): Path to the output directory where the PCA results will be saved.
 
     Returns:
@@ -759,39 +775,45 @@ def deepsea_pca( deepsea_file: str, pca_object: str,  means_sd_df: str, out_dir:
     deepSEAcols = [c for c in df.columns if c.startswith("DeepSEA")]
     X = df[deepSEAcols].to_numpy()
     del df
-    logger.info("checking wether input contains data frame with pre-calculated means and SDs")
+    logger.info(
+        "checking wether input contains data frame with pre-calculated means and SDs"
+    )
     if os.path.exists(means_sd_df):
         logger.info("standardizing values using existing mean and SD")
         means_sd_data = pd.read_parquet(means_sd_df)
 
-        means = means_sd_data['means'].to_numpy()
-        sds = means_sd_data['SDs'].to_numpy()
+        means = means_sd_data["means"].to_numpy()
+        sds = means_sd_data["SDs"].to_numpy()
         del means_sd_data
-        X_std = (X-means) /sds
+        X_std = (X - means) / sds
         del means
         del sds
 
     else:
         logger.info("standardizing values")
         X_std = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
-        means_sd_data = pd.DataFrame({'names' : deepSEAcols, 'means' : np.mean(X, axis=0), 'SDs' : np.std(X, axis=0)})
+        means_sd_data = pd.DataFrame(
+            {
+                "names": deepSEAcols,
+                "means": np.mean(X, axis=0),
+                "SDs": np.std(X, axis=0),
+            }
+        )
         means_sd_data.to_parquet(means_sd_df)
     del X
-
-    
 
     out_path = Path(out_dir)
 
     if os.path.exists(pca_object):
-        if '.pkl' in pca_object:
-            with open(pca_object, 'rb') as pickle_file:
+        if ".pkl" in pca_object:
+            with open(pca_object, "rb") as pickle_file:
                 logger.info("loading pca objectas pickle file")
                 pca = pickle.load(pickle_file)
                 X_pca = pca.transform(X_std)
-        else: 
-            if '.npy' not in pca_object:
-                logger.error('did not recognize file format, assuming npy')
-            logger.info('loading pca components as npy object')
+        else:
+            if ".npy" not in pca_object:
+                logger.error("did not recognize file format, assuming npy")
+            logger.info("loading pca components as npy object")
             components = np.load(pca_object)
             logger.info(f"Projecting data to {components.shape[0]} PCs")
             X_pca = np.matmul(X_std, components.transpose())
@@ -799,12 +821,11 @@ def deepsea_pca( deepsea_file: str, pca_object: str,  means_sd_df: str, out_dir:
         logger.info(f"creating pca object and saving it to {pca_object}")
         logger.info(f"Projecting rows to {n_components} PCs")
         pca = PCA(n_components=n_components)
-        pca.fit(X_std)       
-        np.save(pca_object, pca.components_)  
-        
+        pca.fit(X_std)
+        np.save(pca_object, pca.components_)
+
         X_pca = np.matmul(X_std, pca.components_.transpose())
-    
-    
+
     del X_std
 
     logger.info(f"Writing values to data frame")
@@ -824,7 +845,6 @@ def deepsea_pca( deepsea_file: str, pca_object: str,  means_sd_df: str, out_dir:
     logger.info("Done")
 
 
-
 @cli.command()
 @click.argument("variants-file", type=click.Path(exists=True))
 @click.argument("output-dir", type=click.Path(exists=True))
@@ -841,7 +861,6 @@ def scorevariants_deepripe(
     saved_deepripe_models_path: str,
     n_jobs: int,
     saved_model_type: str = "parclip",
-    
 ):
     """
     Score variants using deep learning models trained on PAR-CLIP and eCLIP data.
@@ -957,7 +976,7 @@ def scorevariants_deepripe(
         variant_bed,
         genomefasta,
         seq_len=model_seq_len[saved_model_type],
-        n_jobs=n_jobs
+        n_jobs=n_jobs,
     )
 
     for choice in current_model_type.keys():
@@ -978,7 +997,13 @@ def scorevariants_deepripe(
     )
 
 
-def process_chunk(chrom_file, abs_splice_res_dir, tissues_to_exclude,tissue_agg_function, ca_shortened ):
+def process_chunk(
+    chrom_file,
+    abs_splice_res_dir,
+    tissues_to_exclude,
+    tissue_agg_function,
+    ca_shortened,
+):
     """
     Process a chunk of data from absplice site results and merge it with the remaining annotation data.
 
@@ -1003,16 +1028,15 @@ def process_chunk(chrom_file, abs_splice_res_dir, tissues_to_exclude,tissue_agg_
     """
     logger.info(f"Reading file {chrom_file}")
 
-
-    ab_splice_res = pd.read_csv(abs_splice_res_dir / chrom_file, engine = "pyarrow").reset_index()
+    ab_splice_res = pd.read_csv(
+        abs_splice_res_dir / chrom_file, engine="pyarrow"
+    ).reset_index()
 
     ab_splice_res = ab_splice_res.query("tissue not in @tissues_to_exclude")
     logger.info(
         f"AbSplice tissues excluded: {tissues_to_exclude}, Aggregating AbSplice scores using {tissue_agg_function}"
     )
-    logger.info(
-        f"Number of unique variants {len(ab_splice_res['variant'].unique())}"
-    )
+    logger.info(f"Number of unique variants {len(ab_splice_res['variant'].unique())}")
 
     #### aggregate tissue specific ab splice scores
     ab_splice_res = (
@@ -1025,18 +1049,14 @@ def process_chunk(chrom_file, abs_splice_res_dir, tissues_to_exclude,tissue_agg_
         ":", expand=True
     )
 
-    ab_splice_res[["ref", "alt"]] = ab_splice_res["var"].str.split(
-        ">", expand=True
-    )
+    ab_splice_res[["ref", "alt"]] = ab_splice_res["var"].str.split(">", expand=True)
 
     ab_splice_res["pos"] = ab_splice_res["pos"].astype(int)
     logger.info(f"Number of rows of ab_splice df {len(ab_splice_res)}")
     merged = ab_splice_res.merge(
         ca_shortened, how="left", on=["chrom", "pos", "ref", "alt", "gene_id"]
     )
-    logger.info(
-        f"Number of unique variants(id) in merged {len(merged['id'].unique())}"
-    )
+    logger.info(f"Number of unique variants(id) in merged {len(merged['id'].unique())}")
     logger.info(
         f"Number of unique variants(variant) in merged {len(merged['variant'].unique())}"
     )
@@ -1056,7 +1076,7 @@ def aggregate_abscores(
     current_annotation_file: str,
     abs_splice_res_dir: str,
     absplice_score_file: str,
-    njobs:int
+    njobs: int,
 ):
     """
     Aggregate AbSplice scores from AbSplice  results and save the results.
@@ -1089,8 +1109,8 @@ def aggregate_abscores(
             columns={"AbSplice_DNA": "AbSplice_DNA_old"}
         )
     ca_shortened = current_annotations[["id", "Gene", "chrom", "pos", "ref", "alt"]]
-    ca_shortened = ca_shortened.rename(columns={"Gene":"gene_id"})
-    
+    ca_shortened = ca_shortened.rename(columns={"Gene": "gene_id"})
+
     logger.info(ca_shortened.columns)
 
     abs_splice_res_dir = Path(abs_splice_res_dir)
@@ -1103,17 +1123,20 @@ def aggregate_abscores(
     logger.info("creating abSplice score file.. ")
     all_absplice_scores = []
     parallel = Parallel(n_jobs=njobs, return_as="generator", verbose=50)
-    output_generator = parallel(delayed(process_chunk)(i , abs_splice_res_dir, tissues_to_exclude, tissue_agg_function, ca_shortened) for i in tqdm(os.listdir(abs_splice_res_dir)))
+    output_generator = parallel(
+        delayed(process_chunk)(
+            i, abs_splice_res_dir, tissues_to_exclude, tissue_agg_function, ca_shortened
+        )
+        for i in tqdm(os.listdir(abs_splice_res_dir))
+    )
     all_absplice_scores = list(output_generator)
-    
 
     logger.info("concatenating files")
     all_absplice_scores = pd.concat(all_absplice_scores)
     logger.info(f"saving score file to {ab_splice_agg_score_file}")
     all_absplice_scores.to_parquet(ab_splice_agg_score_file)
 
-    
-    
+
 @cli.command()
 @click.argument("current_annotation_file", type=click.Path(exists=True))
 @click.argument("absplice_score_file", type=click.Path())
@@ -1122,8 +1145,7 @@ def merge_abscores(
     current_annotation_file: str,
     absplice_score_file: str,
     out_file: str,
-): 
-
+):
     """
     Merge AbSplice scores with the current annotation file and save the result.
 
@@ -1154,7 +1176,7 @@ def merge_abscores(
     annotations = pd.read_parquet(current_annotation_file, engine="pyarrow").drop(
         columns=["AbSplice_DNA"], errors="ignore"
     )
-    annotations = annotations.rename(columns={"Gene":"gene_id"})
+    annotations = annotations.rename(columns={"Gene": "gene_id"})
     annotations.drop_duplicates(
         inplace=True, subset=["chrom", "pos", "ref", "alt", "gene_id", "id"]
     )
@@ -1171,7 +1193,7 @@ def merge_abscores(
 
     logger.info("Sanity checking merge")
     assert len(merged) == original_len
-    assert len(merged.drop_duplicates(subset = ['id', 'gene_id'])) == len(merged)
+    assert len(merged.drop_duplicates(subset=["id", "gene_id"])) == len(merged)
 
     logger.info(
         f'Filling {merged["AbSplice_DNA"].isna().sum()} '
@@ -1185,7 +1207,6 @@ def merge_abscores(
     merged.to_parquet(annotation_out_file, engine="pyarrow")
 
 
-
 pd.options.mode.chained_assignment = None
 
 
@@ -1195,8 +1216,6 @@ logging.basicConfig(
     stream=sys.stdout,
 )
 logger = logging.getLogger(__name__)
-
-
 
 
 @cli.command()
@@ -1217,7 +1236,7 @@ def process_annotations(in_variants: str, out_variants: str):
     - The function reads the input variant annotation file.
     - It filters for canonical variants.
     - The 'Gene' column is renamed to 'gene_id'.
-    - Consequence_id is generated by combining variant id with gene id. 
+    - Consequence_id is generated by combining variant id with gene id.
     - The processed variant annotations are saved to the specified output file.
 
     Example:
@@ -1235,10 +1254,12 @@ def process_annotations(in_variants: str, out_variants: str):
 
     # combining variant id with gene id
     variants["censequence_id"] = variants["id"].astype(str) + variants["gene_id"]
-    variants.to_parquet(out_variants, compression='zstd')
+    variants.to_parquet(out_variants, compression="zstd")
 
 
-def deepripe_score_variant_onlyseq_all(model_group, variant_bed, genomefasta, seq_len=200, batch_size=1024, n_jobs=32):
+def deepripe_score_variant_onlyseq_all(
+    model_group, variant_bed, genomefasta, seq_len=200, batch_size=1024, n_jobs=32
+):
     """
     Compute variant scores using a deep learning model for each specified variant.
 
@@ -1259,14 +1280,18 @@ def deepripe_score_variant_onlyseq_all(model_group, variant_bed, genomefasta, se
     predictions = {}
 
     # Parallelize the encoding of variant bedlines
-    encoded_seqs_list = Parallel(n_jobs=n_jobs, verbose=10)(delayed(deepripe_encode_variant_bedline)(
-        bedline, genomefasta, flank_size=(seq_len // 2) + 2
-    ) for bedline in variant_bed)
+    encoded_seqs_list = Parallel(n_jobs=n_jobs, verbose=10)(
+        delayed(deepripe_encode_variant_bedline)(
+            bedline, genomefasta, flank_size=(seq_len // 2) + 2
+        )
+        for bedline in variant_bed
+    )
 
     # Handle cases where encoding is None
-    encoded_seqs_list = [(x if x is not None
-                          else np.ones((2, seq_len + 4, 4)) * float("nan"))
-                         for x in encoded_seqs_list]
+    encoded_seqs_list = [
+        (x if x is not None else np.ones((2, seq_len + 4, 4)) * float("nan"))
+        for x in encoded_seqs_list
+    ]
 
     # Concatenate encoded sequences
     encoded_seqs = tf.concat(encoded_seqs_list, 0)
@@ -1296,9 +1321,9 @@ def calculate_scores_max(scores):
         return None
     else:
         # Split the string and extract values from index 1 to 5
-        values = [float(score) for score in scores.split('|')[1:5] if score != 'nan']
+        values = [float(score) for score in scores.split("|")[1:5] if score != "nan"]
         # Calculate the sum
-        if(len(values)>0):
+        if len(values) > 0:
             return np.max(values)
         else:
             return np.NaN
@@ -1312,7 +1337,7 @@ def merge_abscores(
     current_annotation_file: str,
     absplice_score_file: str,
     out_file: str,
-): 
+):
     """
     Merge AbSplice scores with the current annotation file and save the result.
 
@@ -1343,9 +1368,7 @@ def merge_abscores(
         columns=["AbSplice_DNA"], errors="ignore"
     )
     annotations = annotations.rename(columns={"Gene": "gene_id"})
-    annotations.drop_duplicates(
-        inplace=True, subset=[ "gene_id", "id"]
-    )
+    annotations.drop_duplicates(inplace=True, subset=["gene_id", "id"])
     original_len = len(annotations)
 
     logger.info("Merging")
@@ -1359,10 +1382,12 @@ def merge_abscores(
 
     logger.info("Sanity checking merge")
     assert len(merged) == original_len
-    logger.info(f"len of merged after dropping duplicates: {len(merged.drop_duplicates(subset=['id', 'gene_id']))}")
+    logger.info(
+        f"len of merged after dropping duplicates: {len(merged.drop_duplicates(subset=['id', 'gene_id']))}"
+    )
     logger.info(f"len of merged without dropping duplicates: {len(merged)}")
 
-    assert len(merged.drop_duplicates(subset=['id', 'gene_id'])) == len(merged)
+    assert len(merged.drop_duplicates(subset=["id", "gene_id"])) == len(merged)
 
     logger.info(
         f'Filling {merged["AbSplice_DNA"].isna().sum()} '
@@ -1384,9 +1409,6 @@ logging.basicConfig(
     stream=sys.stdout,
 )
 logger = logging.getLogger(__name__)
-
-
-
 
 
 @cli.command()
@@ -1438,8 +1460,6 @@ def merge_deepripe(
     merged.to_parquet(out_file)
 
 
-
-
 @cli.command()
 @click.argument("annotation_file", type=click.Path(exists=True))
 @click.argument("deepripe_pca_file", type=click.Path(exists=True))
@@ -1465,25 +1485,31 @@ def merge_deepsea_pcas(annotation_file: str, deepripe_pca_file: str, out_file: s
     Example:
     $ python annotations.py merge_deepsea_pcas annotations.parquet deepripe_pca_scores.parquet merged_deepsea_pcas.parquet
     """
-    logger.info('reading current annotations')
+    logger.info("reading current annotations")
     annotations = pd.read_parquet(annotation_file)
-    logger.info('reading PCAs')
+    logger.info("reading PCAs")
     deepripe_pcas = pd.read_parquet(deepripe_pca_file)
-    deepripe_pcas = deepripe_pcas.drop_duplicates(subset=["chrom", "pos", "ref", "alt", "id"])
+    deepripe_pcas = deepripe_pcas.drop_duplicates(
+        subset=["chrom", "pos", "ref", "alt", "id"]
+    )
     orig_len = len(annotations)
-    logger.info(f'length of annotation file before merge: {orig_len}')
-    annotations = annotations.drop_duplicates(subset=["chrom", "pos", "ref", "alt", "id", "Gene"])
+    logger.info(f"length of annotation file before merge: {orig_len}")
+    annotations = annotations.drop_duplicates(
+        subset=["chrom", "pos", "ref", "alt", "id", "Gene"]
+    )
     noduplicates_len = len(annotations)
-    logger.info(f'length of annotation file after dropping duplicates: {noduplicates_len}')
-    logger.info('merging')
+    logger.info(
+        f"length of annotation file after dropping duplicates: {noduplicates_len}"
+    )
+    logger.info("merging")
     merged = annotations.merge(
         deepripe_pcas, how="left", on=["chrom", "pos", "ref", "alt", "id"]
     )
 
-    logger.info(f'length of annotation file after merge: {len(merged)}')
-    logger.info('checking lengths')
+    logger.info(f"length of annotation file after merge: {len(merged)}")
+    logger.info("checking lengths")
     assert len(merged) == noduplicates_len
-    logger.info(f'writing file to {out_file}')
+    logger.info(f"writing file to {out_file}")
     merged.to_parquet(out_file)
 
 
@@ -1523,10 +1549,10 @@ def process_annotations(in_variants: str, out_variants: str):
 
     # combining variant id with gene id
     variants["censequence_id"] = variants["id"].astype(str) + variants["gene_id"]
-    variants.to_parquet(out_variants, compression='zstd')
+    variants.to_parquet(out_variants, compression="zstd")
 
 
-def process_chunk_addids(chunk:pd.DataFrame, variants:pd.DataFrame) ->pd.DataFrame:
+def process_chunk_addids(chunk: pd.DataFrame, variants: pd.DataFrame) -> pd.DataFrame:
     """
     Process a chunk of data by adding identifiers from a variants dataframe.
 
@@ -1564,24 +1590,27 @@ def process_chunk_addids(chunk:pd.DataFrame, variants:pd.DataFrame) ->pd.DataFra
         }
     )
     key_cols = ["chrom", "pos", "ref", "alt"]
-    
-    chunk.drop_duplicates(subset=key_cols, inplace = True)
-    chunk_shape= chunk.shape
-   
-    chunk = pd.merge(chunk, variants,  on=key_cols, how="left", validate="1:1")
-    
-    try: 
+
+    chunk.drop_duplicates(subset=key_cols, inplace=True)
+    chunk_shape = chunk.shape
+
+    chunk = pd.merge(chunk, variants, on=key_cols, how="left", validate="1:1")
+
+    try:
         assert chunk_shape[0] == chunk.shape[0]
-    except AssertionError: 
-        logger.error(f"df.shape[0] was {chunk.shape[0]} but chunk_shape[0] was {chunk_shape[0]}")
+    except AssertionError:
+        logger.error(
+            f"df.shape[0] was {chunk.shape[0]} but chunk_shape[0] was {chunk_shape[0]}"
+        )
         raise AssertionError
     try:
         assert chunk.shape[1] == chunk_shape[1] + 1
     except AssertionError:
-        logger.error(f"chunk.shape[1] was {chunk.shape[1]} but chunk_shape[1] + 1 was {chunk_shape[1] + 1}")
-        raise AssertionError       
+        logger.error(
+            f"chunk.shape[1] was {chunk.shape[1]} but chunk_shape[1] + 1 was {chunk_shape[1] + 1}"
+        )
+        raise AssertionError
     return chunk
-
 
 
 @cli.command()
@@ -1589,7 +1618,7 @@ def process_chunk_addids(chunk:pd.DataFrame, variants:pd.DataFrame) ->pd.DataFra
 @click.argument("variant_file", type=click.Path(exists=True))
 @click.argument("njobs", type=int)
 @click.argument("out_file", type=click.Path())
-def add_ids(annotation_file: str, variant_file: str, njobs:int, out_file: str):
+def add_ids(annotation_file: str, variant_file: str, njobs: int, out_file: str):
     """
     Add identifiers from a variant file to an annotation file and save the result.
 
@@ -1612,29 +1641,28 @@ def add_ids(annotation_file: str, variant_file: str, njobs:int, out_file: str):
     """
 
     data = pd.read_csv(annotation_file, chunksize=100_000)
-    
-    
 
     all_variants = pd.read_csv(variant_file, sep="\t")
     parallel = Parallel(n_jobs=njobs, return_as="generator", verbose=50)
 
-    output_generator = parallel(delayed(process_chunk_addids)(chunk, all_variants) for chunk in data)
-    first=True
+    output_generator = parallel(
+        delayed(process_chunk_addids)(chunk, all_variants) for chunk in data
+    )
+    first = True
     for batch in tqdm(output_generator):
         if first:
-            batch.to_parquet(out_file, engine= "fastparquet")
+            batch.to_parquet(out_file, engine="fastparquet")
         else:
-            batch.to_parquet(out_file, engine= "fastparquet", append=True)
-        first=False
+            batch.to_parquet(out_file, engine="fastparquet", append=True)
+        first = False
 
-    
 
 @cli.command()
 @click.argument("annotation_file", type=click.Path(exists=True))
 @click.argument("variant_file", type=click.Path(exists=True))
 @click.argument("njobs", type=int)
 @click.argument("out_file", type=click.Path())
-def add_ids_dask(annotation_file: str, variant_file: str, njobs:int, out_file: str):
+def add_ids_dask(annotation_file: str, variant_file: str, njobs: int, out_file: str):
     """
     Add identifiers from a variant file to an annotation file using Dask and save the result.
 
@@ -1658,22 +1686,20 @@ def add_ids_dask(annotation_file: str, variant_file: str, njobs:int, out_file: s
     """
     data = dd.read_parquet(annotation_file, blocksize=25e9)
     all_variants = pd.read_table(variant_file)
-    data = data.rename(columns={
+    data = data.rename(
+        columns={
             "#CHROM": "chrom",
             "POS": "pos",
             "ID": "variant_name",
             "REF": "ref",
             "ALT": "alt",
             "chr": "chrom",
-        })
+        }
+    )
     key_cols = ["chrom", "pos", "ref", "alt"]
-    data.drop_duplicates(subset=key_cols, inplace = True)
-    data = dd.merge(data, all_variants,  on=key_cols, how="left")
-    data.to_parquet(out_file, engine= "fastparquet", compression='zstd')
-    
-
-
-
+    data.drop_duplicates(subset=key_cols, inplace=True)
+    data = dd.merge(data, all_variants, on=key_cols, how="left")
+    data.to_parquet(out_file, engine="fastparquet", compression="zstd")
 
 
 def chunks(lst, n):
@@ -1702,9 +1728,10 @@ def chunks(lst, n):
     ```
     """
     for i in range(0, len(lst), n):
-        yield lst[i:i + n]
+        yield lst[i : i + n]
 
-def read_deepripe_file(f:str ):
+
+def read_deepripe_file(f: str):
     """
     Read a DeepRipe file from the specified path.
 
@@ -1720,9 +1747,9 @@ def read_deepripe_file(f:str ):
     deepripe_data = read_deepripe_file(file_path)
     ```
     """
-    f = pd.read_table(f, engine='c')
-    return f 
-        
+    f = pd.read_table(f, engine="c")
+    return f
+
 
 @cli.command()
 @click.option("--included-chromosomes", type=str)
@@ -1737,7 +1764,7 @@ def concatenate_deepsea(
     deepsea_name_pattern: str,
     pvcf_blocks_file: str,
     out_file: str,
-    njobs:int,
+    njobs: int,
 ):
     """
     Concatenate DeepSEA files based on the provided patterns and chromosome blocks.
@@ -1788,27 +1815,28 @@ def concatenate_deepsea(
 
     logger.info("reading in f")
 
-    parallel = Parallel(n_jobs=njobs,backend='loky', return_as="generator")
+    parallel = Parallel(n_jobs=njobs, backend="loky", return_as="generator")
     chunked_files = list(chunks(file_paths, njobs))
     logger.info(f"processing {len(chunked_files)} files")
     for chunk in tqdm(chunked_files):
         logger.info(f"Chunk consist of {len(chunk)} files")
         this_generator = parallel((delayed(read_deepripe_file)(f) for f in chunk))
-        current_file= pd.concat(list(this_generator))
+        current_file = pd.concat(list(this_generator))
         if chunk == chunked_files[0]:
             logger.info("creating new file")
-            current_file.to_parquet(out_file, engine= "fastparquet")
+            current_file.to_parquet(out_file, engine="fastparquet")
         else:
             try:
-                current_file.to_parquet(out_file, engine= "fastparquet", append=True)   
-            except ValueError: 
-                
-                out_df_columns = pd.read_parquet(out_file, engine= "fastparquet").columns
-                
-                logger.error(f"columns are not equal in saved/appending file: {[i for i in out_df_columns if i not in current_file.columns]} and {[i for i in current_file.columns if i not in out_df_columns]} ")
-                
-                raise ValueError
+                current_file.to_parquet(out_file, engine="fastparquet", append=True)
+            except ValueError:
 
+                out_df_columns = pd.read_parquet(out_file, engine="fastparquet").columns
+
+                logger.error(
+                    f"columns are not equal in saved/appending file: {[i for i in out_df_columns if i not in current_file.columns]} and {[i for i in current_file.columns if i not in out_df_columns]} "
+                )
+
+                raise ValueError
 
 
 @cli.command()
@@ -1820,17 +1848,18 @@ def concatenate_deepsea(
 @click.argument("variant_file", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
 @click.option("--vepcols_to_retain", type=str)
-def merge_annotations(vep_header_line:int,
-                    vep_file:str,
-                    deepripe_parclip_file:str,
-                    deepripe_hg2_file:str,
-                    deepripe_k5_file:str,
-                    variant_file:str,
-                    out_file:str,
-                    vepcols_to_retain:Optional[str],
-                  ):
+def merge_annotations(
+    vep_header_line: int,
+    vep_file: str,
+    deepripe_parclip_file: str,
+    deepripe_hg2_file: str,
+    deepripe_k5_file: str,
+    variant_file: str,
+    out_file: str,
+    vepcols_to_retain: Optional[str],
+):
     """
-    Merge VEP, DeepRipe (parclip, hg2, k5), and variant files into one dataFrame and save result as parquet file 
+    Merge VEP, DeepRipe (parclip, hg2, k5), and variant files into one dataFrame and save result as parquet file
 
     Parameters:
     - vep_header_line (int): Line number of the header line in the VEP output file.
@@ -1848,52 +1877,52 @@ def merge_annotations(vep_header_line:int,
     Example:
     $ python annotations.py merge_annotations 1 vep_file.tsv deepripe_parclip.csv deepripe_hg2.csv deepripe_k5.csv variant_file.tsv merged_output.parquet --vepcols_to_retain="AlphaMissense,PolyPhen"
     """
-    #load vep file
-    vep_df = pd.read_csv(
-                vep_file,
-                header=vep_header_line,
-                sep="\t",
-                na_values = "-"
-            )
+    # load vep file
+    vep_df = pd.read_csv(vep_file, header=vep_header_line, sep="\t", na_values="-")
     if vepcols_to_retain is not None:
         vepcols_to_retain = [c for c in vepcols_to_retain.split(",")]
-    vep_df = process_vep(vep_file=vep_df, vepcols_to_retain = vepcols_to_retain)
+    vep_df = process_vep(vep_file=vep_df, vepcols_to_retain=vepcols_to_retain)
     logger.info(f"vep_df shape is {vep_df.shape}")
-    logger.info('load deepripe_parclip')
-    
+    logger.info("load deepripe_parclip")
+
     deepripe_parclip_df = pd.read_csv(deepripe_parclip_file)
     deepripe_parclip_df = process_deepripe(deepripe_parclip_df, "parclip")
-    logger.info('load deepripe_k5')
-    
+    logger.info("load deepripe_k5")
+
     deepripe_k5_df = pd.read_csv(deepripe_k5_file)
     deepripe_k5_df = process_deepripe(deepripe_k5_df, "k5")
-    logger.info('load deepripe_hg2')
-    
+    logger.info("load deepripe_hg2")
+
     deepripe_hg2_df = pd.read_csv(deepripe_hg2_file)
     deepripe_hg2_df = process_deepripe(deepripe_hg2_df, "hg2")
-    logger.info('load variant_file')
-    
+    logger.info("load variant_file")
+
     logger.info(f"reading in {variant_file}")
     variants = pd.read_csv(variant_file, sep="\t")
 
-
-
-    logger.info('merge vep to variants M:1')
-    ca = vep_df.merge(variants, how = "left",  on=["chrom", "pos", "ref", "alt"], validate= "m:1")
+    logger.info("merge vep to variants M:1")
+    ca = vep_df.merge(
+        variants, how="left", on=["chrom", "pos", "ref", "alt"], validate="m:1"
+    )
     del vep_df
-    logger.info('merge deepripe files to variants 1:1')
-    ca = ca.merge(deepripe_parclip_df, how = "left", on=["chrom", "pos", "ref", "alt"], validate="m:1")
-    ca = ca.merge(deepripe_k5_df, how = "left", on=["chrom", "pos", "ref", "alt"], validate="m:1")
-    ca = ca.merge(deepripe_hg2_df, how = "left", on=["chrom", "pos", "ref", "alt"], validate="m:1")
-    
-    ca.to_parquet(out_file, compression='zstd')
+    logger.info("merge deepripe files to variants 1:1")
+    ca = ca.merge(
+        deepripe_parclip_df,
+        how="left",
+        on=["chrom", "pos", "ref", "alt"],
+        validate="m:1",
+    )
+    ca = ca.merge(
+        deepripe_k5_df, how="left", on=["chrom", "pos", "ref", "alt"], validate="m:1"
+    )
+    ca = ca.merge(
+        deepripe_hg2_df, how="left", on=["chrom", "pos", "ref", "alt"], validate="m:1"
+    )
+
+    ca.to_parquet(out_file, compression="zstd")
 
 
-
-
-
-
-def process_deepripe(deepripe_df:pd.DataFrame, column_prefix:str)->pd.DataFrame:
+def process_deepripe(deepripe_df: pd.DataFrame, column_prefix: str) -> pd.DataFrame:
     """
     Process the DeepRipe DataFrame, rename columns and drop duplicates.
 
@@ -1908,8 +1937,8 @@ def process_deepripe(deepripe_df:pd.DataFrame, column_prefix:str)->pd.DataFrame:
     deepripe_df = process_deepripe(deepripe_df, "parclip")
     """
     logger.info("renaming deepripe columns")
-    deepripe_df= deepripe_df.rename(columns={"chr": "chrom"})
-    
+    deepripe_df = deepripe_df.rename(columns={"chr": "chrom"})
+
     deepripe_df = deepripe_df.drop(
         columns=["Uploaded_variant", "Unnamed: 0"], errors="ignore"
     )
@@ -1921,7 +1950,7 @@ def process_deepripe(deepripe_df:pd.DataFrame, column_prefix:str)->pd.DataFrame:
     return deepripe_df
 
 
-def process_vep(vep_file: pd.DataFrame, vepcols_to_retain:list = []) -> pd.DataFrame:
+def process_vep(vep_file: pd.DataFrame, vepcols_to_retain: list = []) -> pd.DataFrame:
     """
     Process the VEP DataFrame, extracting relevant columns and handling data types.
 
@@ -1942,43 +1971,139 @@ def process_vep(vep_file: pd.DataFrame, vepcols_to_retain:list = []) -> pd.DataF
             .str.replace("/", ":")
             .str.split(":", expand=True)
         )
-    
-        
+
     if "pos" in vep_file.columns:
-        vep_file["pos"] = vep_file["pos"].astype(int)   
-    
-    vep_file['chrom'] = vep_file['chrom'].apply(lambda x: "{}{}".format('chr', x.split('chr')[-1]))    
-    
-    str_cols = ["STRAND","TSL", "GENE_PHENO", "CADD_PHRED","CADD_RAW", "SpliceAI_pred", "BIOTYPE", "Gene"]
-    str_cols_present =  [i for i in str_cols if i in vep_file.columns ]
+        vep_file["pos"] = vep_file["pos"].astype(int)
+
+    vep_file["chrom"] = vep_file["chrom"].apply(
+        lambda x: "{}{}".format("chr", x.split("chr")[-1])
+    )
+
+    str_cols = [
+        "STRAND",
+        "TSL",
+        "GENE_PHENO",
+        "CADD_PHRED",
+        "CADD_RAW",
+        "SpliceAI_pred",
+        "BIOTYPE",
+        "Gene",
+    ]
+    str_cols_present = [i for i in str_cols if i in vep_file.columns]
     str_cols_not_present = set(str_cols) - set(str_cols_present)
-    vep_file[str_cols_present] =vep_file[str_cols_present].astype(str)
-    
-    
-    float_vals = ['DISTANCE', 'gnomADg_FIN_AF', 'AF', 'AFR_AF', 'AMR_AF','EAS_AF', 'EUR_AF', 'SAS_AF', 'MAX_AF','MOTIF_POS', 'MOTIF_SCORE_CHANGE',  'CADD_PHRED', 'CADD_RAW', 'PrimateAI', 'TSL', 'Condel']    
-    float_vals_present = [i for i in float_vals if i in vep_file.columns ]
+    vep_file[str_cols_present] = vep_file[str_cols_present].astype(str)
+
+    float_vals = [
+        "DISTANCE",
+        "gnomADg_FIN_AF",
+        "AF",
+        "AFR_AF",
+        "AMR_AF",
+        "EAS_AF",
+        "EUR_AF",
+        "SAS_AF",
+        "MAX_AF",
+        "MOTIF_POS",
+        "MOTIF_SCORE_CHANGE",
+        "CADD_PHRED",
+        "CADD_RAW",
+        "PrimateAI",
+        "TSL",
+        "Condel",
+    ]
+    float_vals_present = [i for i in float_vals if i in vep_file.columns]
     float_vals_not_present = set(float_vals) - set(float_vals_present)
-    vep_file[float_vals_present] = vep_file[float_vals_present].replace('-', 'NaN').astype(float)
+    vep_file[float_vals_present] = (
+        vep_file[float_vals_present].replace("-", "NaN").astype(float)
+    )
 
+    necessary_columns = (
+        [
+            "chrom",
+            "pos",
+            "ref",
+            "alt",
+            "Gene",
+            "gnomADe_NFE_AF",
+            "CADD_PHRED",
+            "CADD_RAW",
+            "Consequence",
+            "PrimateAI",
+            "Alpha_Missense",
+            "am_pathogenicity",
+            "AbSplice_DNA",
+            "PolyPhen",
+            "SIFT",
+            "SIFT_score",
+            "PolyPhen_score",
+            "UKB_AF",
+            "combined_UKB_NFE_AF",
+            "combined_UKB_NFE_AF_MB",
+            "gene_id",
+            "Condel",
+        ]
+        + str_cols
+        + float_vals
+        + (vepcols_to_retain or [])
+    )
+    necessary_columns_present = [i for i in necessary_columns if i in vep_file.columns]
+    necessary_columns_not_present = set(necessary_columns) - set(
+        necessary_columns_present
+    )
 
-
-    necessary_columns = [ 'chrom', 'pos', 'ref', 'alt', 'Gene','gnomADe_NFE_AF', 'CADD_PHRED', 'CADD_RAW', 'Consequence','PrimateAI', 'Alpha_Missense', 'am_pathogenicity','AbSplice_DNA','PolyPhen', 'SIFT',  'SIFT_score', 'PolyPhen_score', 'UKB_AF', 'combined_UKB_NFE_AF', 'combined_UKB_NFE_AF_MB', 'gene_id', 'Condel']+str_cols+float_vals+(vepcols_to_retain or [])
-    necessary_columns_present = [i for i in necessary_columns if i in vep_file.columns ]
-    necessary_columns_not_present = set(necessary_columns) - set(necessary_columns_present)
-
-    vep_file= vep_file[list(set(necessary_columns_present))]
+    vep_file = vep_file[list(set(necessary_columns_present))]
 
     if "SpliceAI_pred" in vep_file.columns:
-        vep_file['SpliceAI_delta_score']= vep_file['SpliceAI_pred'].apply(calculate_scores_max)
+        vep_file["SpliceAI_delta_score"] = vep_file["SpliceAI_pred"].apply(
+            calculate_scores_max
+        )
 
     if "Consequence" in vep_file.columns:
-        dummies = vep_file["Consequence"].str.get_dummies(",").add_prefix("Consequence_")
-    all_consequences=  ['Consequence_splice_acceptor_variant','Consequence_5_prime_UTR_variant','Consequence_TFBS_ablation','Consequence_start_lost','Consequence_incomplete_terminal_codon_variant','Consequence_intron_variant', 'Consequence_stop_gained', 'Consequence_splice_donor_5th_base_variant', 'Consequence_downstream_gene_variant', 'Consequence_intergenic_variant', 'Consequence_splice_donor_variant','Consequence_NMD_transcript_variant', 'Consequence_protein_altering_variant', 'Consequence_splice_polypyrimidine_tract_variant', 'Consequence_inframe_insertion', 'Consequence_mature_miRNA_variant', 'Consequence_synonymous_variant', 'Consequence_regulatory_region_variant', 'Consequence_non_coding_transcript_exon_variant', 'Consequence_stop_lost', 'Consequence_TF_binding_site_variant', 'Consequence_splice_donor_region_variant', 'Consequence_stop_retained_variant', 'Consequence_splice_region_variant', 'Consequence_coding_sequence_variant', 'Consequence_upstream_gene_variant', 'Consequence_frameshift_variant', 'Consequence_start_retained_variant', 'Consequence_3_prime_UTR_variant', 'Consequence_inframe_deletion', 'Consequence_missense_variant', 'Consequence_non_coding_transcript_variant']
+        dummies = (
+            vep_file["Consequence"].str.get_dummies(",").add_prefix("Consequence_")
+        )
+    all_consequences = [
+        "Consequence_splice_acceptor_variant",
+        "Consequence_5_prime_UTR_variant",
+        "Consequence_TFBS_ablation",
+        "Consequence_start_lost",
+        "Consequence_incomplete_terminal_codon_variant",
+        "Consequence_intron_variant",
+        "Consequence_stop_gained",
+        "Consequence_splice_donor_5th_base_variant",
+        "Consequence_downstream_gene_variant",
+        "Consequence_intergenic_variant",
+        "Consequence_splice_donor_variant",
+        "Consequence_NMD_transcript_variant",
+        "Consequence_protein_altering_variant",
+        "Consequence_splice_polypyrimidine_tract_variant",
+        "Consequence_inframe_insertion",
+        "Consequence_mature_miRNA_variant",
+        "Consequence_synonymous_variant",
+        "Consequence_regulatory_region_variant",
+        "Consequence_non_coding_transcript_exon_variant",
+        "Consequence_stop_lost",
+        "Consequence_TF_binding_site_variant",
+        "Consequence_splice_donor_region_variant",
+        "Consequence_stop_retained_variant",
+        "Consequence_splice_region_variant",
+        "Consequence_coding_sequence_variant",
+        "Consequence_upstream_gene_variant",
+        "Consequence_frameshift_variant",
+        "Consequence_start_retained_variant",
+        "Consequence_3_prime_UTR_variant",
+        "Consequence_inframe_deletion",
+        "Consequence_missense_variant",
+        "Consequence_non_coding_transcript_variant",
+    ]
     all_consequences = list(set(all_consequences))
-    mask = pd.DataFrame(data = np.zeros(shape= ( len(vep_file), len(all_consequences))), columns=all_consequences ,  dtype=float)
-    mask[list(dummies.columns)]=dummies
-    vep_file[mask.columns]=mask
-
+    mask = pd.DataFrame(
+        data=np.zeros(shape=(len(vep_file), len(all_consequences))),
+        columns=all_consequences,
+        dtype=float,
+    )
+    mask[list(dummies.columns)] = dummies
+    vep_file[mask.columns] = mask
 
     return vep_file
 
@@ -1989,8 +2114,13 @@ def process_vep(vep_file: pd.DataFrame, vepcols_to_retain:list = []) -> pd.DataF
 @click.argument("filename_pattern", type=str)
 @click.argument("out_file", type=click.Path())
 @click.option("--included-chromosomes", type=str)
-
-def concat_annotations(pvcf_blocks_file:str, annotation_dir:str, filename_pattern:str, out_file:str, included_chromosomes:Optional[str]):
+def concat_annotations(
+    pvcf_blocks_file: str,
+    annotation_dir: str,
+    filename_pattern: str,
+    out_file: str,
+    included_chromosomes: Optional[str],
+):
     """
     Concatenate multiple annotation files based on the specified pattern and create a single output file.
 
@@ -2020,7 +2150,7 @@ def concat_annotations(pvcf_blocks_file:str, annotation_dir:str, filename_patter
         pvcf_blocks_df = pvcf_blocks_df[
             pvcf_blocks_df["Chromosome"].isin([str(c) for c in included_chromosomes])
         ]
-    
+
     pvcf_blocks = zip(pvcf_blocks_df["Chromosome"], pvcf_blocks_df["Block"])
     annotation_dir = Path(annotation_dir)
     file_paths = [
@@ -2035,28 +2165,36 @@ def concat_annotations(pvcf_blocks_file:str, annotation_dir:str, filename_patter
 
         if f == file_paths[0]:
             logger.info("creating new file")
-            file.to_parquet(out_file, engine= "fastparquet")
+            file.to_parquet(out_file, engine="fastparquet")
         else:
             try:
-                file.to_parquet(out_file, engine= "fastparquet", append=True)   
-            except ValueError: 
-                
-                out_df_columns = pd.read_parquet(out_file, engine= "fastparquet").columns
-                
-                logger.error(f"columns are not equal in saved/appending file: {[i for i in out_df_columns if i not in file.columns]} and {[i for i in file.columns if i not in out_df_columns]} ")
-                
+                file.to_parquet(out_file, engine="fastparquet", append=True)
+            except ValueError:
+
+                out_df_columns = pd.read_parquet(out_file, engine="fastparquet").columns
+
+                logger.error(
+                    f"columns are not equal in saved/appending file: {[i for i in out_df_columns if i not in file.columns]} and {[i for i in file.columns if i not in out_df_columns]} "
+                )
+
                 raise ValueError
 
 
 @cli.command()
-@click.option('--n-jobs', type=int, default=24)
-@click.option('--max-dist', type=int, default=300)
-@click.option('--source', type=str, multiple=True, default=['HAVANA'])
-@click.argument('gtf-file', type=click.Path(exists=True))
-@click.argument('annotation-file', type=click.Path(exists=True))
-@click.argument('out-file', type=click.Path())
-def compute_exon_ids(n_jobs: int, max_dist: int, source: List[str],
-                     gtf_file: str, annotation_file: str, out_file: str):
+@click.option("--n-jobs", type=int, default=24)
+@click.option("--max-dist", type=int, default=300)
+@click.option("--source", type=str, multiple=True, default=["HAVANA"])
+@click.argument("gtf-file", type=click.Path(exists=True))
+@click.argument("annotation-file", type=click.Path(exists=True))
+@click.argument("out-file", type=click.Path())
+def compute_exon_ids(
+    n_jobs: int,
+    max_dist: int,
+    source: List[str],
+    gtf_file: str,
+    annotation_file: str,
+    out_file: str,
+):
     """
     Compute nearest exons for each annotated region and save the results.
 
@@ -2073,52 +2211,67 @@ def compute_exon_ids(n_jobs: int, max_dist: int, source: List[str],
     """
     import pyranges as pr
     from parallel_pandas import ParallelPandas
+
     ParallelPandas.initialize(n_cpu=n_jobs, split_factor=4, disable_pr_bar=False)
 
-    logger.info('Reading annotations')
+    logger.info("Reading annotations")
     annotations = dd.read_parquet(annotation_file, blocksize=25e9).compute()
-    annotations = annotations.drop(columns=[
-        c for c in [
-            'exon_id', 'gene_id', 'gene_type', 'exon_ids', 'gene_ids',
-            'gene_types'
-        ] if c in annotations.columns
-    ])
-    annotations_by_chrom = annotations.groupby('chrom')
+    annotations = annotations.drop(
+        columns=[
+            c
+            for c in [
+                "exon_id",
+                "gene_id",
+                "gene_type",
+                "exon_ids",
+                "gene_ids",
+                "gene_types",
+            ]
+            if c in annotations.columns
+        ]
+    )
+    annotations_by_chrom = annotations.groupby("chrom")
 
-    logger.info('Reading GTF')
+    logger.info("Reading GTF")
     gtf = pr.read_gtf(gtf_file)
-    
+
     exons_by_chrom = {k: gtf[k].as_df() for k, _ in gtf.keys()}
     exons_by_chrom = {
-        k:
-        df[df['Source'].isin(source)
-           & (df['Feature'] == 'exon')].sort_values(['Start', 'End'
-                                                     ]).reset_index(drop=True)
+        k: df[df["Source"].isin(source) & (df["Feature"] == "exon")]
+        .sort_values(["Start", "End"])
+        .reset_index(drop=True)
         for k, df in exons_by_chrom.items()
     }
 
-    logger.info('Computing nearest exons...')
+    logger.info("Computing nearest exons...")
     try:
         chromosomes = annotations_by_chrom.groups.keys()
         first = True
         for chrom in tqdm(chromosomes):
-            logger.info(f'processing chromosome {chrom}')
-            annotations_with_exons_by_chrom = add_exons(annotations_by_chrom.get_group(chrom), exons_by_chrom[chrom])
-        
-            logger.info(f'writing results to {out_file}')
-            logger.info(f'Shape of Object is {annotations_with_exons_by_chrom.shape}')
-            if first:
-                annotations_with_exons_by_chrom.to_parquet(out_file, engine= "fastparquet")
-            else:
-                annotations_with_exons_by_chrom.to_parquet(out_file, engine= "fastparquet", append=True)
-            first=False
-    
-    except:
-        logger.info('something went wrong')
-        raise ValueError
-    logger.info('...done')
+            logger.info(f"processing chromosome {chrom}")
+            annotations_with_exons_by_chrom = add_exons(
+                annotations_by_chrom.get_group(chrom), exons_by_chrom[chrom]
+            )
 
-def add_exons(annotations: pd.DataFrame, exons: pd.DataFrame)->pd.DataFrame:
+            logger.info(f"writing results to {out_file}")
+            logger.info(f"Shape of Object is {annotations_with_exons_by_chrom.shape}")
+            if first:
+                annotations_with_exons_by_chrom.to_parquet(
+                    out_file, engine="fastparquet"
+                )
+            else:
+                annotations_with_exons_by_chrom.to_parquet(
+                    out_file, engine="fastparquet", append=True
+                )
+            first = False
+
+    except:
+        logger.info("something went wrong")
+        raise ValueError
+    logger.info("...done")
+
+
+def add_exons(annotations: pd.DataFrame, exons: pd.DataFrame) -> pd.DataFrame:
     """
     Add exon information to each annotation.
 
@@ -2131,9 +2284,8 @@ def add_exons(annotations: pd.DataFrame, exons: pd.DataFrame)->pd.DataFrame:
     """
     return annotations.p_apply(lambda var: get_exons(var, exons), axis=1)
 
-def get_exons(variant: pd.Series,
-              exons: pd.DataFrame,
-              max_dist: int = 300) -> int:
+
+def get_exons(variant: pd.Series, exons: pd.DataFrame, max_dist: int = 300) -> int:
     """
     Add exon information to a variant.
 
@@ -2145,33 +2297,37 @@ def get_exons(variant: pd.Series,
     Returns:
     pd.Series: Series with added exon information for the given variant.
     """
-    start_differences = (variant['pos'] - exons['Start'])
-    end_differences = (variant['pos'] - exons['End'])
-    exon_matches = exons[((start_differences >= 0) & (end_differences <= 0) |
-                          (start_differences.abs() <= max_dist) |
-                          (end_differences.abs() <= max_dist))]
+    start_differences = variant["pos"] - exons["Start"]
+    end_differences = variant["pos"] - exons["End"]
+    exon_matches = exons[
+        (
+            (start_differences >= 0) & (end_differences <= 0)
+            | (start_differences.abs() <= max_dist)
+            | (end_differences.abs() <= max_dist)
+        )
+    ]
 
-    variant['exon_ids'] = ','.join(exon_matches['exon_id'])
-    variant['gene_ids'] = ','.join(exon_matches['gene_id'])
-    variant['gene_types'] = ','.join(exon_matches['gene_type'])
+    variant["exon_ids"] = ",".join(exon_matches["exon_id"])
+    variant["gene_ids"] = ",".join(exon_matches["gene_id"])
+    variant["gene_types"] = ",".join(exon_matches["gene_type"])
     return variant
 
 
-
 @cli.command()
-@click.argument('genotype_file', type=click.Path(exists=True))
-@click.argument('variants_filepath', type=click.Path(exists=True))
-@click.argument('out_file', type=click.Path())
-def get_af_from_gt(genotype_file : str, variants_filepath : str, out_file : str):
+@click.argument("genotype_file", type=click.Path(exists=True))
+@click.argument("variants_filepath", type=click.Path(exists=True))
+@click.argument("out_file", type=click.Path())
+def get_af_from_gt(genotype_file: str, variants_filepath: str, out_file: str):
     import h5py
-    variants = pd.read_table(variants_filepath)
-    max_variant_id = variants['id'].max()
 
-    logger.info('Computing allele frequencies')
+    variants = pd.read_table(variants_filepath)
+    max_variant_id = variants["id"].max()
+
+    logger.info("Computing allele frequencies")
     variant_counts = np.zeros(max_variant_id + 1)
-    with h5py.File(genotype_file, 'r') as f:
-        variant_matrix = f['variant_matrix']
-        genotype_matrix = f['genotype_matrix']
+    with h5py.File(genotype_file, "r") as f:
+        variant_matrix = f["variant_matrix"]
+        genotype_matrix = f["genotype_matrix"]
         n_samples = variant_matrix.shape[0]
         for i in trange(n_samples):
             variants = variant_matrix[i]
@@ -2182,86 +2338,102 @@ def get_af_from_gt(genotype_file : str, variants_filepath : str, out_file : str)
             variant_counts[variants] += genotype
 
     af = variant_counts / (2 * n_samples)
-    af_df = pd.DataFrame({'id': np.arange(max_variant_id + 1), 'af': af})
+    af_df = pd.DataFrame({"id": np.arange(max_variant_id + 1), "af": af})
     af_df.to_parquet(out_file)
 
 
-
 @cli.command()
-@click.argument('annotations_path', type=click.Path(exists=True))
-@click.argument('af_df_path', type=click.Path(exists=True))
-@click.argument('out_file', type=click.Path())
-def merge_af(annotations_path : str, af_df_path : str, out_file : str):
+@click.argument("annotations_path", type=click.Path(exists=True))
+@click.argument("af_df_path", type=click.Path(exists=True))
+@click.argument("out_file", type=click.Path())
+def merge_af(annotations_path: str, af_df_path: str, out_file: str):
     annotations_df = pd.read_parquet(annotations_path)
     af_df = pd.read_parquet(af_df_path)
-    merged_df = annotations_df.merge(af_df, how= 'left', on= 'id')
+    merged_df = annotations_df.merge(af_df, how="left", on="id")
     merged_df.to_parquet(out_file)
 
 
-
 @cli.command()
-@click.argument('annotations_path', type=click.Path(exists=True))
-@click.argument('out_file', type=click.Path())
-def calculate_maf(annotations_path : str, out_file : str):
+@click.argument("annotations_path", type=click.Path(exists=True))
+@click.argument("out_file", type=click.Path())
+def calculate_maf(annotations_path: str, out_file: str):
     annotation_file = pd.read_parquet(annotations_path)
-    af = annotation_file['af']
-    annotation_file = annotation_file.drop(columns=['UKB_AF_MB', 'UKB_MAF'], errors='ignore')
-    annotation_file['maf'] = af.apply(lambda x: min(x, 1-x))
-    annotation_file['maf_mb'] = (af * (1 - af) + 1e-8)**(-0.5)
+    af = annotation_file["af"]
+    annotation_file = annotation_file.drop(
+        columns=["UKB_AF_MB", "UKB_MAF"], errors="ignore"
+    )
+    annotation_file["maf"] = af.apply(lambda x: min(x, 1 - x))
+    annotation_file["maf_mb"] = (af * (1 - af) + 1e-8) ** (-0.5)
     annotation_file.to_parquet(out_file)
 
 
-
 @cli.command()
-@click.argument('protein_id_file', type=click.Path(exists=True))
-@click.argument('annotations_path', type=click.Path(exists=True))
-@click.argument('out_file', type=click.Path())
-def add_protein_ids(protein_id_file : str, annotations_path : str, out_file: str):
-    genes  = pd.read_parquet(protein_id_file)
-    genes[['gene_base', 'feature']] = genes['gene'].str.split('.', expand=True)
-    genes.drop(columns = ['feature', 'gene', 'gene_name', 'gene_type'], inplace = True)
-    genes.rename(columns ={'id':'gene_id'}, inplace=True)
+@click.argument("protein_id_file", type=click.Path(exists=True))
+@click.argument("annotations_path", type=click.Path(exists=True))
+@click.argument("out_file", type=click.Path())
+def add_protein_ids(protein_id_file: str, annotations_path: str, out_file: str):
+    genes = pd.read_parquet(protein_id_file)
+    genes[["gene_base", "feature"]] = genes["gene"].str.split(".", expand=True)
+    genes.drop(columns=["feature", "gene", "gene_name", "gene_type"], inplace=True)
+    genes.rename(columns={"id": "gene_id"}, inplace=True)
     annotations = pd.read_parquet(annotations_path)
     annotations = annotations.query("BIOTYPE == 'protein_coding'")
-    annotations.rename(columns ={'gene_id':'gene_base'}, inplace=True)
-    merged = annotations.merge(genes, on = ['gene_base'], how = 'left')
-    merged.dropna(subset= ['gene_id'], inplace=True)
+    annotations.rename(columns={"gene_id": "gene_base"}, inplace=True)
+    merged = annotations.merge(genes, on=["gene_base"], how="left")
+    merged.dropna(subset=["gene_id"], inplace=True)
     merged.to_parquet(out_file)
 
 
 @cli.command()
-@click.argument('gtf_filepath', type=click.Path(exists=True))
-@click.argument('out_file', type=click.Path())
-def create_protein_id_file(gtf_filepath : str, out_file : str):
+@click.argument("gtf_filepath", type=click.Path(exists=True))
+@click.argument("out_file", type=click.Path())
+def create_protein_id_file(gtf_filepath: str, out_file: str):
     import pyranges as pr
+
     gtf = pr.read_gtf(gtf_filepath)
     gtf = gtf.as_df()
-    gtf = gtf.query("Feature =='gene' and gene_type=='protein_coding' and Source=='HAVANA'")
-    gtf = gtf[['gene_id', 'gene_type', 'gene_name']].reset_index(drop=True).reset_index().rename(columns= {'gene_id':'gene', 'index': 'id'})    
+    gtf = gtf.query(
+        "Feature =='gene' and gene_type=='protein_coding' and Source=='HAVANA'"
+    )
+    gtf = (
+        gtf[["gene_id", "gene_type", "gene_name"]]
+        .reset_index(drop=True)
+        .reset_index()
+        .rename(columns={"gene_id": "gene", "index": "id"})
+    )
     gtf.to_parquet(out_file)
 
+
 @cli.command()
-@click.argument('annotation_columns_yaml_file', type=click.Path(exists=True))
-@click.argument('annotations_path', type=click.Path(exists=True))
-@click.argument('out_file', type=click.Path())
-def select_rename_fill_annotations(annotation_columns_yaml_file : str, annotations_path : str, out_file : str):
+@click.argument("annotation_columns_yaml_file", type=click.Path(exists=True))
+@click.argument("annotations_path", type=click.Path(exists=True))
+@click.argument("out_file", type=click.Path())
+def select_rename_fill_annotations(
+    annotation_columns_yaml_file: str, annotations_path: str, out_file: str
+):
     import yaml
-    logger.info(f"reading  in yaml file containing name and fill value mappings from {annotation_columns_yaml_file}")
+
+    logger.info(
+        f"reading  in yaml file containing name and fill value mappings from {annotation_columns_yaml_file}"
+    )
     with open(annotation_columns_yaml_file, "r") as fd:
         config = yaml.safe_load(fd)
-    columns = config['annotation_column_names']
+    columns = config["annotation_column_names"]
     prior_names = list(columns.keys())
     post_names = [list(columns[k].keys())[0] for k in columns]
     fill_vals = [list(columns[k].values())[0] for k in columns]
     column_name_mapping = dict(zip(prior_names, post_names))
     fill_value_mapping = dict(zip(post_names, fill_vals))
     logger.info(f"loading annotations from {annotations_path}")
-    
-    key_cols = ['id', 'gene_id']
-    anno_df = pd.read_parquet(annotations_path, columns = list(set(prior_names + key_cols)))
-    anno_df.rename(columns = column_name_mapping, inplace = True)
-    anno_df.fillna(fill_value_mapping, inplace = True)
+
+    key_cols = ["id", "gene_id"]
+    anno_df = pd.read_parquet(
+        annotations_path, columns=list(set(prior_names + key_cols))
+    )
+    anno_df.rename(columns=column_name_mapping, inplace=True)
+    anno_df.fillna(fill_value_mapping, inplace=True)
     anno_df.to_parquet(out_file)
+
 
 if __name__ == "__main__":
     cli()
