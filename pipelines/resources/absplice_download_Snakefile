@@ -57,7 +57,7 @@ list_outputs.append(Path(absplice_download_dir) /config_download['fasta'][genome
 rule download_splicemaps:
     params:
         version = splicemap_v_mapper[absplice_main_conf['genome']],
-        dirname = splicemap_dir_name(config_download['splicemap']['psi3'])
+        dirname = splicemap_dir_name(Path(absplice_download_dir) / config_download['splicemap']['psi3'])
     output:
         splicemap_psi3 = Path(absplice_download_dir) / config_download['splicemap']['psi3'],
         splicemap_psi5 = Path(absplice_download_dir) / config_download['splicemap']['psi5'],
