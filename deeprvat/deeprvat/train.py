@@ -877,12 +877,7 @@ def train(
         )
         study.optimize(
             lambda trial: run_bagging(
-                config,
-                data,
-                log_dir,
-                trial=trial,
-                trial_id=trial_id,
-                debug=debug,
+                config, data, log_dir, trial=trial, trial_id=trial_id, debug=debug,
             ),
             n_trials=n_trials,
             timeout=hparam_optim.get("timeout", None),
@@ -913,10 +908,10 @@ def best_training_run(
     )
 
     trials = study.trials_dataframe().query('state == "COMPLETE"')
-    #TODO ascending TRUE/FALSE this has to be adjusted based on the objective function!
+    # TODO ascending TRUE/FALSE this has to be adjusted based on the objective function!
     # Currently it should actually be ascending=TRUE since we use MSE and want to model with the
     # smallest MSE
-    best_trial = trials.sort_values("value", ascending=True).iloc[0] 
+    best_trial = trials.sort_values("value", ascending=True).iloc[0]
     best_trial_id = best_trial["user_attrs_user_id"]
 
     logger.info(f"Best trial:\n{best_trial}")

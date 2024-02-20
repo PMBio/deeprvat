@@ -132,11 +132,7 @@ class DenseGTDataset(Dataset):
             f"Using phenotype file {phenotype_file} and genotype file {self.gt_filename}"
         )
         self.setup_phenotypes(
-            phenotype_file,
-            sim_phenotype_file,
-            skip_y_na,
-            skip_x_na,
-            sample_file
+            phenotype_file, sim_phenotype_file, skip_y_na, skip_x_na, sample_file
         )
 
         self.max_rare_af = max_rare_af
@@ -222,7 +218,7 @@ class DenseGTDataset(Dataset):
 
         rare_variant_annotations = self.get_rare_variants(
             idx, all_sparse_variants, sparse_genotype
-        ) #idx is not used by get_rare_variants
+        )  # idx is not used by get_rare_variants
 
         phenotypes = self.phenotype_df.iloc[idx, :]
         # put this to loc
@@ -264,12 +260,16 @@ class DenseGTDataset(Dataset):
     ):
         logger.debug("Reading phenotype dataframe")
         self.phenotype_df = pd.read_parquet(phenotype_file, engine="pyarrow")
-        gt_file = h5py.File(self.gt_filename, "r") #TODO change this to using with open
-        samples_gt = gt_file['samples'][:]
-        samples_gt = np.array([item.decode('utf-8') for item in samples_gt]).astype(int)
+        gt_file = h5py.File(
+            self.gt_filename, "r"
+        )  # TODO change this to using with open
+        samples_gt = gt_file["samples"][:]
+        samples_gt = np.array([item.decode("utf-8") for item in samples_gt]).astype(int)
         samples_phenotype_df = np.array(self.phenotype_df.index.astype(int))
-        assert all(samples_phenotype_df == samples_gt) #TODO allow this to be different, 
-        #in principle done by introducing self.index_map_geno and self.index_map_pheno  but needs sanity check
+        assert all(
+            samples_phenotype_df == samples_gt
+        )  # TODO allow this to be different,
+        # in principle done by introducing self.index_map_geno and self.index_map_pheno  but needs sanity check
         # but phenotypes_df has first to be sorted in the same order as samples_gt
         if sim_phenotype_file is not None:
             logger.info(
@@ -280,24 +280,33 @@ class DenseGTDataset(Dataset):
                 sim_phenotype
             )  # TODO on = , validate = "1:1"
         if sample_file is not None:
-            logger.info(f'Using samples from sample file {sample_file}')
-            with open(sample_file, 'rb') as f:
+            logger.info(f"Using samples from sample file {sample_file}")
+            with open(sample_file, "rb") as f:
                 samples_to_keep = pickle.load(f)
             samples_to_keep = np.array([int(i) for i in samples_to_keep])
-            logger.info(f'Number of samples in sample file: {len(samples_to_keep)}')
-            samples_to_keep = np.array(list(set(samples_to_keep).intersection(set(samples_phenotype_df))))
-            logger.info(f'Number of samples in sample file and in phenotype_df: {len(samples_to_keep)}')
+            logger.info(f"Number of samples in sample file: {len(samples_to_keep)}")
+            samples_to_keep = np.array(
+                list(set(samples_to_keep).intersection(set(samples_phenotype_df)))
+            )
+            logger.info(
+                f"Number of samples in sample file and in phenotype_df: {len(samples_to_keep)}"
+            )
         else:
-            logger.info('Using all samples in phenotyp df')
+            logger.info("Using all samples in phenotyp df")
             samples_to_keep = copy.deepcopy(samples_phenotype_df)
 
-        logger.info('Removing samples that are not in genotype file')
+        logger.info("Removing samples that are not in genotype file")
 
-        samples_to_keep = np.array(list(set(samples_to_keep).intersection(set(samples_gt))))
+        samples_to_keep = np.array(
+            list(set(samples_to_keep).intersection(set(samples_gt)))
+        )
         binary_cols = [
             c for c in self.y_phenotypes if self.phenotype_df[c].dtype == bool
         ]
-        samples_to_keep_mask = [True if i in samples_to_keep else False for i in self.phenotype_df.index.astype(int)]
+        samples_to_keep_mask = [
+            True if i in samples_to_keep else False
+            for i in self.phenotype_df.index.astype(int)
+        ]
         assert sum(samples_to_keep_mask) == len(samples_to_keep)
         mask_cols = copy.deepcopy(self.x_phenotypes)
         if skip_y_na:
@@ -308,14 +317,14 @@ class DenseGTDataset(Dataset):
         mask &= samples_to_keep_mask
         samples_to_keep = self.phenotype_df.index[mask].astype(int)
         self.n_samples = mask.sum()
-        logger.info(
-            f"Final number of kept samples: {self.n_samples}"
-        )
+        logger.info(f"Final number of kept samples: {self.n_samples}")
         self.phenotype_df = self.phenotype_df[mask]
-        self.samples = self.phenotype_df.index.to_numpy() #self.samples from sample file
+        self.samples = (
+            self.phenotype_df.index.to_numpy()
+        )  # self.samples from sample file
 
         geno_mask = [True if i in samples_to_keep else False for i in samples_gt]
-        self.index_map_geno  = np.arange(len(samples_gt))[geno_mask]
+        self.index_map_geno = np.arange(len(samples_gt))[geno_mask]
 
     def get_variant_ids(self, matrix_indices: np.ndarray) -> np.ndarray:
         return self.variant_id_map.loc[matrix_indices, "id"].to_numpy()
@@ -450,7 +459,7 @@ class DenseGTDataset(Dataset):
         if n_unique_y_val == 2:
             logger.warning(
                 "Not applying y transformation because y only has two values and seems to be binary"
-            )           
+            )
             self.y_transformation = None
         if self.y_transformation is not None:
             if self.y_transformation == "standardize":

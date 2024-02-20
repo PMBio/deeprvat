@@ -151,7 +151,7 @@ class PaddedAnnotations:
         gene_file: Optional[str],
         genes_to_keep: Optional[Set[str]] = None,
     ):
-        self.variant_map = -(2**24) * np.ones(
+        self.variant_map = -(2 ** 24) * np.ones(
             rare_variant_ids.max() + 1, dtype=np.int32
         )
 
@@ -268,7 +268,7 @@ class PaddedAnnotations:
         )
 
     def remap_group_ids(self):
-        self.gene_map = -(2**24) * np.ones(
+        self.gene_map = -(2 ** 24) * np.ones(
             self.exploded_annotations[self.grouping_column].max() + 1, dtype=np.int32
         )
         self.genes = np.sort(self.exploded_annotations[self.grouping_column].unique())
@@ -388,7 +388,7 @@ class SparseGenotype:
         gene_file: Optional[str],
         genes_to_keep: Optional[Set[str]] = None,
     ):
-        self.variant_map = -(2**24) * np.ones(self.max_variant_id + 1, dtype=np.int32)
+        self.variant_map = -(2 ** 24) * np.ones(self.max_variant_id + 1, dtype=np.int32)
 
         logger.debug("  Filtering by rare variant IDs and by gene")
         annotation_df = self.base_dataset.annotation_df
@@ -491,7 +491,7 @@ class SparseGenotype:
         self.variant_map[self.kept_variants] = np.arange(len(self.annotation_df))
 
     def remap_group_ids(self):
-        self.gene_map = -(2**24) * np.ones(
+        self.gene_map = -(2 ** 24) * np.ones(
             self.exploded_annotations[self.grouping_column].max() + 1, dtype=np.int32
         )
         self.genes = np.sort(self.exploded_annotations[self.grouping_column].unique())

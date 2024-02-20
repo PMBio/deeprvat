@@ -44,8 +44,8 @@ PLOF_COLS = [
     "Consequence_splice_donor_variant",
 ]
 
-AGG_FCT = {'mean': np.mean,
-          'max': np.max}
+AGG_FCT = {"mean": np.mean, "max": np.max}
+
 
 def get_burden(
     batch: Dict,
@@ -270,14 +270,11 @@ def compute_burdens_(
 
 
 def load_one_model(
-    config: Dict,
-    checkpoint: str,
-    device: torch.device = torch.device("cpu"),
+    config: Dict, checkpoint: str, device: torch.device = torch.device("cpu"),
 ):
     model_class = getattr(deeprvat_models, config["model"]["type"])
     model = model_class.load_from_checkpoint(
-        checkpoint,
-        config=config["model"]["config"],
+        checkpoint, config=config["model"]["config"],
     )
     model = model.eval()
     model = model.to(device)
@@ -318,10 +315,13 @@ def reverse_models(
     #     .compute()
     # )
 
-    plof_df = pd.read_parquet(annotation_file, 
-            columns=data_config["data"]["dataset_config"]["rare_embedding"]["config"]["annotations"])
+    plof_df = pd.read_parquet(
+        annotation_file,
+        columns=data_config["data"]["dataset_config"]["rare_embedding"]["config"][
+            "annotations"
+        ],
+    )
     plof_df = plof_df[plof_df[PLOF_COLS].eq(1).any(axis=1)]
-
 
     plof_zero_df = plof_df.copy()
     plof_zero_df.loc[:, PLOF_COLS] = 0.0
@@ -487,7 +487,7 @@ def compute_burdens(
 
 def regress_on_gene_scoretest(gene: str, burdens: np.ndarray, model_score):
     burdens = burdens.reshape(burdens.shape[0], -1)
-    assert np.all(burdens != 0) # TODO check this!
+    assert np.all(burdens != 0)  # TODO check this!
     logger.info(f"Burdens shape: {burdens.shape}")
 
     if np.all(np.abs(burdens) < 1e-6):
@@ -655,7 +655,7 @@ def regress(
     #     burdens = zarr.open(burden_file)[:, :, repeat]
     # else:
     #     burdens = zarr.open(Path(burden_dir) / "burdens.zarr")[:, :, repeat]
-    logger.info(f'Loading x, y, genes from {burden_dir}')
+    logger.info(f"Loading x, y, genes from {burden_dir}")
     y = zarr.open(Path(burden_dir) / "y.zarr")[:]
     x_pheno = zarr.open(Path(burden_dir) / "x.zarr")[:]
     genes = pd.Series(np.load(Path(burden_dir) / "genes.npy"))
@@ -697,18 +697,20 @@ def regress(
 
     genes = genes.iloc[chunk_start:chunk_end]
     gene_indices = np.arange(len(genes))
-    logger.info(f'Only extracting genes in range {chunk_start, chunk_end}')
+    logger.info(f"Only extracting genes in range {chunk_start, chunk_end}")
     if burden_file is not None:
-        logger.info(f'Loading burdens from {burden_file}')
+        logger.info(f"Loading burdens from {burden_file}")
         burdens = zarr.open(burden_file)[:, chunk_start:chunk_end, repeat]
     else:
-        burdens = zarr.open(Path(burden_dir) / "burdens.zarr")[:,  chunk_start:chunk_end, repeat]
+        burdens = zarr.open(Path(burden_dir) / "burdens.zarr")[
+            :, chunk_start:chunk_end, repeat
+        ]
 
     if sample_file is not None:
         burdens = burdens[samples]
     burdens = burdens[nan_mask]
     assert len(genes) == burdens.shape[1]
-    
+
     associations = regress_(
         config,
         use_bias,
@@ -723,9 +725,9 @@ def regress(
     logger.info("Saving results")
     Path(out_dir).mkdir(parents=True, exist_ok=True)
     associations.to_parquet(
-        Path(out_dir) / f"burden_associations_{chunk}.parquet",
-        engine="pyarrow",
+        Path(out_dir) / f"burden_associations_{chunk}.parquet", engine="pyarrow",
     )
+
 
 @cli.command()
 @click.option("--model-name", type=str)
@@ -744,24 +746,25 @@ def combine_regression_results(
     logger.info(f"Writing to {out_file}")
     results.to_parquet(out_file, engine="pyarrow")
 
+
 @cli.command()
 @click.option("--n-chunks", type=int)
 @click.option("--chunk", type=int)
-@click.option("-r", "--repeats", multiple = True, type = int)
-@click.option("--agg-fct", type=str, default = 'mean')
+@click.option("-r", "--repeats", multiple=True, type=int)
+@click.option("--agg-fct", type=str, default="mean")
 @click.argument("burden-file", type=click.Path(exists=True))
 @click.argument("burden-out-file", type=click.Path())
 def average_burdens(
-    repeats: Tuple, 
-    burden_file: str, 
+    repeats: Tuple,
+    burden_file: str,
     burden_out_file: str,
-    agg_fct: Optional[str] = 'mean',
+    agg_fct: Optional[str] = "mean",
     n_chunks: Optional[int] = None,
     chunk: Optional[int] = None,
 ):
     compression_level = 1
-    logger.info(f'Analyzing repeats {repeats}')
-    logger.info(f'Reading burdens to aggregate from {burden_file}')
+    logger.info(f"Analyzing repeats {repeats}")
+    logger.info(f"Reading burdens to aggregate from {burden_file}")
     burdens = zarr.open(burden_file)
     n_total_samples = burdens.shape[0]
     if chunk is not None:
@@ -777,44 +780,50 @@ def average_burdens(
         n_samples = n_total_samples
         chunk_start = 0
         chunk_end = n_samples
-    
-    logger.info(f'Computing result for chunk {chunk} out of {n_chunks} in range {chunk_start}, {chunk_end}')
+
+    logger.info(
+        f"Computing result for chunk {chunk} out of {n_chunks} in range {chunk_start}, {chunk_end}"
+    )
 
     batch_size = 100
-    logger.info(f'Batch size: {batch_size}')
-    n_batches = (n_samples // batch_size +
-                                        (n_samples % batch_size != 0))
-    
-    logger.info(f'Using aggregation function {agg_fct}')
-    for i in tqdm(range(n_batches),
-                                file=sys.stdout,
-                                total=(n_samples // batch_size +
-                                        (n_samples % batch_size != 0))):
+    logger.info(f"Batch size: {batch_size}")
+    n_batches = n_samples // batch_size + (n_samples % batch_size != 0)
+
+    logger.info(f"Using aggregation function {agg_fct}")
+    for i in tqdm(
+        range(n_batches),
+        file=sys.stdout,
+        total=(n_samples // batch_size + (n_samples % batch_size != 0)),
+    ):
         if i == 0:
-            # if not os.path.exists(burden_out_file): 
+            # if not os.path.exists(burden_out_file):
             #     logger.info('Generting new zarr file')
             burdens_new = zarr.open(
                 burden_out_file,
-                mode='a',
+                mode="a",
                 shape=(burdens.shape[0], burdens.shape[1], 1),
                 chunks=(1000, 1000),
                 dtype=np.float32,
-                compressor=Blosc(clevel=compression_level))
-            # else: 
+                compressor=Blosc(clevel=compression_level),
+            )
+            # else:
             #     logger.info('Only opening zarr file')
             #     burdens_new =  zarr.open(burden_out_file)
-            
+
         start_idx = chunk_start + i * batch_size
         end_idx = min(start_idx + batch_size, chunk_end)
         print(start_idx, end_idx)
-        this_burdens = np.take(burdens[start_idx:end_idx, :,:], repeats, axis = 2)
-        this_burdens = AGG_FCT[agg_fct](this_burdens, axis = 2) 
+        this_burdens = np.take(burdens[start_idx:end_idx, :, :], repeats, axis=2)
+        this_burdens = AGG_FCT[agg_fct](this_burdens, axis=2)
 
         burdens_new[start_idx:end_idx, :, 0] = this_burdens
-    
-    logger.info(f'Writing aggregted burdens in range {chunk_start}, {chunk_end} to {burden_out_file}')
 
-#TODO merge these functions into regress(), regress_
+    logger.info(
+        f"Writing aggregted burdens in range {chunk_start}, {chunk_end} to {burden_out_file}"
+    )
+
+
+# TODO merge these functions into regress(), regress_
 @cli.command()
 @click.option("--debug", is_flag=True)
 @click.option("--chunk", type=int, default=0)
@@ -852,13 +861,13 @@ def regress_common(
     #     burdens = zarr.open(burden_file)[:, :, repeat]
     # else:
     #     burdens = zarr.open(Path(burden_dir) / "burdens.zarr")[:, :, repeat]
-    logger.info(f'Loading x, y, genes from {burden_dir}')
+    logger.info(f"Loading x, y, genes from {burden_dir}")
     y = zarr.open(Path(burden_dir) / "y.zarr")[:]
     x_pheno = zarr.open(Path(burden_dir) / "x.zarr")[:]
     genes = pd.Series(np.load(Path(burden_dir) / "genes.npy"))
-    
+
     if genes_to_keep is not None:
-        logger.info(f'Reading genes_to_keep file from {genes_to_keep}')
+        logger.info(f"Reading genes_to_keep file from {genes_to_keep}")
         genes_to_keep = np.load(genes_to_keep)
 
     if sample_file is not None:
@@ -875,7 +884,7 @@ def regress_common(
     assert x_pheno.shape[0] == n_samples
     # assert len(genes) == burdens.shape[1]
 
-    # TODO commented this out. is this a problem? 
+    # TODO commented this out. is this a problem?
     # nan_mask = ~np.isnan(y).squeeze()
     # y = y[nan_mask]
     # # burdens = burdens[nan_mask]
@@ -897,31 +906,35 @@ def regress_common(
         assert chunk_end == len(genes)
     # gene_indices = np.arange(chunk_start, chunk_end)
 
-       # gene_indices = np.arange(chunk_start, chunk_end)
-    logger.info(f'processing genes in range {chunk_start}, {chunk_end}')
+    # gene_indices = np.arange(chunk_start, chunk_end)
+    logger.info(f"processing genes in range {chunk_start}, {chunk_end}")
     all_genes = copy.deepcopy(genes)
     genes = genes.iloc[chunk_start:chunk_end]
     if genes_to_keep is not None:
         # genes_this_chunk = set(genes).intersection(set(genes_to_keep))
-        genes_this_chunk = [i for i in genes_to_keep if i in list(genes)] #having list is important, otherwise 'in' checks the indices, not the values in the pd.Series
-        gene_indices = np.array([np.where(all_genes == this_gene)[0][0] for this_gene in genes_this_chunk])
+        genes_this_chunk = [
+            i for i in genes_to_keep if i in list(genes)
+        ]  # having list is important, otherwise 'in' checks the indices, not the values in the pd.Series
+        gene_indices = np.array(
+            [np.where(all_genes == this_gene)[0][0] for this_gene in genes_this_chunk]
+        )
         genes = pd.Series(list(genes_this_chunk))
 
-    logger.info(f'Only extracting genes in range {chunk_start, chunk_end}')
-    
+    logger.info(f"Only extracting genes in range {chunk_start, chunk_end}")
+
     if burden_file is not None:
-        logger.info(f'Loading burdens from {burden_file}')
+        logger.info(f"Loading burdens from {burden_file}")
     else:
         burden_file = Path(burden_dir) / "burdens.zarr"
-    
+
     if genes_to_keep is not None:
-        logger.info(f'Loading burdens at position {gene_indices}')
+        logger.info(f"Loading burdens at position {gene_indices}")
         burdens = zarr.open(burden_file)
         burdens = burdens.oindex[:, gene_indices, repeat]
         gene_indices = np.arange(len(genes))
     else:
         burdens = zarr.open(burden_file)[:, chunk_start:chunk_end, repeat]
-    
+
     gene_indices = np.arange(len(genes))
 
     if sample_file is not None:
@@ -938,7 +951,7 @@ def regress_common(
         genes,
         x_pheno,
         common_genotype_prefix,
-        do_scoretest = do_scoretest,
+        do_scoretest=do_scoretest,
     )
 
     logger.info("Saving results")
@@ -965,7 +978,6 @@ def regress_common_(
     assert len(gene_indices) == len(genes)
     logger.info(common_genotype_prefix)
 
-
     logger.info(f"Computing associations")
     logger.info(f"Covariates shape: {x_pheno.shape}, y shape: {y.shape}")
 
@@ -979,12 +991,16 @@ def regress_common_(
     mask = ~np.isnan(y).reshape(-1)
     y = y[mask]
     for i, gene in zip(gene_indices, genes):
-        logger.info(f'rergressing on gene {gene}')
+        logger.info(f"rergressing on gene {gene}")
         if common_genotype_prefix is not None:
-            logger.info(f'Reading commong genotypes from {common_genotype_prefix}_{gene}.zarr')
-            common_genotypes = zarr.open(Path(f'{common_genotype_prefix}_{gene}.zarr'))[:]
+            logger.info(
+                f"Reading commong genotypes from {common_genotype_prefix}_{gene}.zarr"
+            )
+            common_genotypes = zarr.open(Path(f"{common_genotype_prefix}_{gene}.zarr"))[
+                :
+            ]
 
-            logger.info(f'common genotypes shape: {common_genotypes.shape}')
+            logger.info(f"common genotypes shape: {common_genotypes.shape}")
 
             assert common_genotypes.shape[0] == x_pheno.shape[0]
             X = np.hstack((x_pheno, common_genotypes))
@@ -996,7 +1012,9 @@ def regress_common_(
 
             # compute null_model for score test
             if len(np.unique(y)) == 2:
-                logger.info("Fitting binary model since only found two distinct y values")
+                logger.info(
+                    "Fitting binary model since only found two distinct y values"
+                )
                 model_score = scoretest.ScoretestLogit(y, X)
             else:
                 logger.info("Fitting linear model")
@@ -1004,7 +1022,9 @@ def regress_common_(
             gene_stats = regress_on_gene_scoretest(gene, burdens[mask, i], model_score)
         else:
             logger.info("Running regression on each gene using OLS")
-            gene_stats = regress_on_gene(gene, burdens[:, i], y, X, use_bias, use_x_pheno)
+            gene_stats = regress_on_gene(
+                gene, burdens[:, i], y, X, use_bias, use_x_pheno
+            )
 
         genes_betas_pvals.append(gene_stats)
     genes_betas_pvals = [x for x in genes_betas_pvals if x is not None]
@@ -1020,6 +1040,7 @@ def regress_common_(
         }
     )
     return result
+
 
 if __name__ == "__main__":
     cli()

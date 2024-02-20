@@ -85,7 +85,7 @@ def standardize_series(x: pd.Series) -> pd.Series:
     x = x.astype(np.float32)
     mean = x.mean()
     variance = ((x - mean) ** 2).mean()
-    std = variance**0.5
+    std = variance ** 0.5
     return (x - mean) / std
 
 
@@ -97,7 +97,7 @@ def my_quantile_transform(x, seed=1):
     x_transform = x.copy()
     if isinstance(x_transform, pd.Series):
         x_transform = x_transform.to_numpy()
-    
+
     is_nan = np.isnan(x_transform)
     n_quantiles = np.sum(~is_nan)
 
@@ -123,7 +123,7 @@ def calculate_mean_std(x: pd.Series, ignore_zero=True) -> pd.Series:
         x = x[x != float(0)]
     mean = x.mean()
     variance = ((x - mean) ** 2).mean()
-    std = variance**0.5
+    std = variance ** 0.5
     return std, mean
 
 

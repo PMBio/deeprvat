@@ -83,12 +83,12 @@ def update_config(
                 ]
             )
             if "EAC" in baseline_df:
-                #filter for genes with expected allele count > 50 (as done by Karcewski et al.)
+                # filter for genes with expected allele count > 50 (as done by Karcewski et al.)
                 baseline_df = baseline_df.query("EAC > 50")
             else:
                 logger.info("Not performing EAC filtering of baseline results")
             logger.info(f"  Correcting p-values using {correction_method} method")
-            alpha = config.get('alpha_seed_genes', config.get('alpha'))
+            alpha = config.get("alpha_seed_genes", config.get("alpha"))
             baseline_df = pval_correction(
                 baseline_df, alpha, correction_type=correction_method
             )
@@ -98,12 +98,17 @@ def update_config(
                 baseline_df.to_parquet(baseline_results_out, engine="pyarrow")
             if correction_method is not None:
 
-                logger.info(f'Using significant genes with corrected pval < {alpha}')
-                if len(baseline_df.query("significant")['gene'].unique()) < min_seed_genes:
+                logger.info(f"Using significant genes with corrected pval < {alpha}")
+                if (
+                    len(baseline_df.query("significant")["gene"].unique())
+                    < min_seed_genes
+                ):
                     logger.info(
                         f"Selecting top {min_seed_genes} genes from baseline because less than {min_seed_genes} genes are significant"
                     )
-                    baseline_df = baseline_df.drop_duplicates(subset="gene").head(min_seed_genes)  # TODO make this flexible
+                    baseline_df = baseline_df.drop_duplicates(subset="gene").head(
+                        min_seed_genes
+                    )  # TODO make this flexible
                 else:
                     baseline_df = baseline_df.query("significant")
             else:
@@ -125,7 +130,7 @@ def update_config(
 
             baseline_df = baseline_df.drop_duplicates(subset="gene")
             logger.info(f"  {len(baseline_df)} significant genes from baseline")
-            
+
             genes = pd.read_parquet(
                 config["data"]["dataset_config"]["gene_file"], engine="pyarrow"
             )

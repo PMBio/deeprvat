@@ -87,6 +87,7 @@ rule combine_regression_chunks_plof:
             ]
         )
 
+
 rule combine_regression_chunks_missense:
     input:
         train=expand(
@@ -118,6 +119,7 @@ rule all_regression_results_plof:
             chunk=range(n_chunks_plof),
         ),
 
+
 rule all_regression_results_missense:
     input:
         expand(
@@ -127,6 +129,7 @@ rule all_regression_results_missense:
             ttype=ttypes,
             chunk=range(n_chunks_missense),
         ),
+
 
 rule regress_plof:
     input:
@@ -140,7 +143,7 @@ rule regress_plof:
     threads: 1
     priority: 30
     resources:
-        mem_mb = lambda wildcards, attempt: 20000 + 2000 * attempt,
+        mem_mb=lambda wildcards, attempt: 20000 + 2000 * attempt,
         load=8000,
         # gpus = 1
     shell:
@@ -164,6 +167,7 @@ rule regress_plof:
             ]
         )
 
+
 rule regress_missense:
     input:
         data="{phenotype}/missense/association_dataset_full.pkl",
@@ -176,7 +180,7 @@ rule regress_missense:
     threads: 1
     priority: 30
     resources:
-        mem_mb = lambda wildcards, attempt: 30000 + 6000 * attempt,
+        mem_mb=lambda wildcards, attempt: 30000 + 6000 * attempt,
         load=8000,
         # gpus = 1
     shell:
@@ -249,7 +253,7 @@ rule config:
         "{phenotype}/{vtype}/config.yaml",
     params:
         rare_maf=str(rare_maf),
-        maf_column = "MAF"
+        maf_column="MAF",
     threads: 1
     resources:
         mem_mb=1024,
@@ -270,5 +274,3 @@ rule config:
                 ),
             ]
         )
-
-
