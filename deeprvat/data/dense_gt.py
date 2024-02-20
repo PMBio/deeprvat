@@ -283,10 +283,8 @@ class DenseGTDataset(Dataset):
             logger.info(f'Using samples from sample file {sample_file}')
             with open(sample_file, 'rb') as f:
                 samples_to_keep = pickle.load(f)
-            # samples_to_keep = np.array(samples_to_keep.astype(int))
             samples_to_keep = np.array([int(i) for i in samples_to_keep])
             logger.info(f'Number of samples in sample file: {len(samples_to_keep)}')
-            # samples_to_keep = [i for i in samples_to_keep if i in samples_phenotype_df]
             samples_to_keep = np.array(list(set(samples_to_keep).intersection(set(samples_phenotype_df))))
             logger.info(f'Number of samples in sample file and in phenotype_df: {len(samples_to_keep)}')
         else:
@@ -294,7 +292,7 @@ class DenseGTDataset(Dataset):
             samples_to_keep = copy.deepcopy(samples_phenotype_df)
 
         logger.info('Removing samples that are not in genotype file')
-        # samples_to_keep = [i for i in samples_to_keep if i in set(samples_gt)]
+
         samples_to_keep = np.array(list(set(samples_to_keep).intersection(set(samples_gt))))
         binary_cols = [
             c for c in self.y_phenotypes if self.phenotype_df[c].dtype == bool
@@ -315,7 +313,6 @@ class DenseGTDataset(Dataset):
         )
         self.phenotype_df = self.phenotype_df[mask]
         self.samples = self.phenotype_df.index.to_numpy() #self.samples from sample file
-        # self.index_map_pheno = np.arange(len(self.phenotype_df))[mask]
 
         geno_mask = [True if i in samples_to_keep else False for i in samples_gt]
         self.index_map_geno  = np.arange(len(samples_gt))[geno_mask]
