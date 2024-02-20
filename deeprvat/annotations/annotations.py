@@ -1686,20 +1686,6 @@ def chunks(lst, n):
 
     Yields:
     list: A chunk of the input list.
-
-    Example:
-    ```python
-    data = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    chunk_size = 3
-    for chunk in chunks(data, chunk_size):
-        print(chunk)
-    ```
-    Output:
-    ```
-    [1, 2, 3]
-    [4, 5, 6]
-    [7, 8, 9]
-    ```
     """
     for i in range(0, len(lst), n):
         yield lst[i : i + n]
