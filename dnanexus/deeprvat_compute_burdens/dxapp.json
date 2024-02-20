@@ -24,8 +24,18 @@
         "*"
     ],
     "help": ""
+    },
+    {
+        "name": "expdir",
+        "label": "expdir",
+        "class": "string",
+        "optional": false,
+    "patterns": [
+        "*"
+    ],
+    "help": ""
     }
-  ],
+],
   "outputSpec": [
     {
     "name": "results",

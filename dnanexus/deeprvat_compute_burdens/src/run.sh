@@ -1,6 +1,5 @@
 main() {
     BASE=/mnt/project/DeepRVAT/DeepRVAT
-    WORKDIR=workdir/pretrained_scoring # TODO: Change
 
     echo "Mounting via dxfuse"
     mkdir -pv /mnt/project
@@ -30,6 +29,7 @@ main() {
     # mv genotypes-head1000.h5 genotypes.h5
     echo "dx download DeepRVAT/data/variants_90pct10dp_qc.parquet"
     cp $BASE/data/variants_90pct10dp_qc.parquet .
+    ln -s variants_90pct10dp_qc.parquet variants.parquet
     echo "dx download DeepRVAT/data/phenotypes.parquet"
     cp $BASE/data/phenotypes.parquet .
     # cp $BASE/data/phenotypes-head1000.parquet .
@@ -44,15 +44,15 @@ main() {
     mkdir -p Calcium/deeprvat/burdens_chunk_$chunk
     python deeprvat/deeprvat/deeprvat/associate.py compute-burdens \
            --n-chunks $n_chunks --chunk $chunk \
-           --dataset-file $BASE/$WORKDIR/Calcium/deeprvat/association_dataset.pkl \
+           --dataset-file $BASE/$expdir/Calcium/deeprvat/association_dataset.pkl \
            $BASE/workdir/pretrained_scoring/Calcium/deeprvat/hpopt_config.yaml \
-           $BASE/workdir/pretrained_scoring/pretrained_models/config.yaml \
-           $BASE/workdir/pretrained_scoring/pretrained_models/repeat_0/best/bag_0.ckpt $BASE/workdir/pretrained_scoring/pretrained_models/repeat_1/best/bag_0.ckpt $BASE/workdir/pretrained_scoring/pretrained_models/repeat_2/best/bag_0.ckpt $BASE/workdir/pretrained_scoring/pretrained_models/repeat_3/best/bag_0.ckpt $BASE/workdir/pretrained_scoring/pretrained_models/repeat_4/best/bag_0.ckpt $BASE/workdir/pretrained_scoring/pretrained_models/repeat_5/best/bag_0.ckpt \
+           $BASE/$expdir/pretrained_models/config.yaml \
+           $BASE/$expdir/pretrained_models/repeat_0/best/bag_0.ckpt $BASE/$expdir/pretrained_models/repeat_1/best/bag_0.ckpt $BASE/$expdir/pretrained_models/repeat_2/best/bag_0.ckpt $BASE/$expdir/pretrained_models/repeat_3/best/bag_0.ckpt $BASE/$expdir/pretrained_models/repeat_4/best/bag_0.ckpt $BASE/$expdir/pretrained_models/repeat_5/best/bag_0.ckpt \
            Calcium/deeprvat/burdens_chunk_$chunk
 
     echo "Uploading outputs"
     echo "rm config.yaml"
-    rm -rf deeprvat config.yaml genotypes.h5 variants_90pct10dp_qc.parquet phenotypes.parquet annotations.parquet protein_coding_genes.parquet
+    rm -rf deeprvat config.yaml genotypes.h5 variants_90pct10dp_qc.parquet variants.parquet phenotypes.parquet annotations.parquet protein_coding_genes.parquet
     echo "dx-upload-all-outputs"
     dx-upload-all-outputs
 
