@@ -87,7 +87,7 @@ def deepripe_get_model_info(saved_models_dict, saved_deepripe_models_path):
     - saved_deepripe_models_path (str): The path to the directory where the deepRiPe models are saved.
 
     Returns:
-    tuple: A tuple containing two dictionaries. 
+    tuple: A tuple containing two dictionaries.
     The first dictionary contains paths for each type of model, with keys
     "parclip", "eclip_hg2", and "eclip_k5" and values as lists of paths corresponding to high,
     medium, and low sequence models.
@@ -2150,7 +2150,6 @@ def concat_annotations(
                 )
 
                 raise ValueError
-
 
 
 @cli.command()
