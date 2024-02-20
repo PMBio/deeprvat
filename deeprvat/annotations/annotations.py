@@ -1829,7 +1829,6 @@ def concatenate_deepsea(
             try:
                 current_file.to_parquet(out_file, engine="fastparquet", append=True)
             except ValueError:
-
                 out_df_columns = pd.read_parquet(out_file, engine="fastparquet").columns
 
                 logger.error(
@@ -2170,7 +2169,6 @@ def concat_annotations(
             try:
                 file.to_parquet(out_file, engine="fastparquet", append=True)
             except ValueError:
-
                 out_df_columns = pd.read_parquet(out_file, engine="fastparquet").columns
 
                 logger.error(
