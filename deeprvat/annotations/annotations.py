@@ -36,8 +36,7 @@ def precision(y_true, y_pred):
 
     Notes:
     - This function uses the Keras backend functions to perform calculations.
-    - Precision is calculated as `true_positives / (predicted_positives + epsilon)`,
-      where epsilon is a small constant to avoid division by zero.
+    - Precision is calculated as `true_positives / (predicted_positives + epsilon)`, where epsilon is a small constant to avoid division by zero.
 
 
     References:
@@ -62,12 +61,11 @@ def recall(y_true, y_pred):
     - y_pred (Tensor): The predicted labels.
 
     Returns:
-    float: Recall value.
+    - float: Recall value.
 
     Notes:
     - This function uses the Keras backend functions to perform calculations.
-    - Recall is calculated as `true_positives / (possible_positives + epsilon)`,
-      where epsilon is a small constant to avoid division by zero.
+    - Recall is calculated as `true_positives / (possible_positives + epsilon)`, where epsilon is a small constant to avoid division by zero.
 
 
     References:
@@ -85,19 +83,17 @@ def deepripe_get_model_info(saved_models_dict, saved_deepripe_models_path):
     Retrieve information about the paths and names of saved deepRiPe models.
 
     Parameters:
-    - saved_models_dict (dict): A dictionary containing keys for different types of models.
-        Keys include "parclip" for PAR-CLIP models, "eclip_hg2" for eCLIP models in HepG2,
-        and "eclip_k5" for eCLIP models in K562. Values are model identifiers.
+    - saved_models_dict (dict): A dictionary containing keys for different types of models. Keys include "parclip" for PAR-CLIP models, "eclip_hg2" for eCLIP models in HepG2, and "eclip_k5" for eCLIP models in K562. Values are model identifiers.
     - saved_deepripe_models_path (str): The path to the directory where the deepRiPe models are saved.
 
     Returns:
-    tuple: A tuple containing two dictionaries.
-        The first dictionary contains paths for each type of model, with keys
-        "parclip", "eclip_hg2", and "eclip_k5" and values as lists of paths corresponding to high,
-        medium, and low sequence models.
-        The second dictionary contains lists of RBP names for each type of model, with keys
-        "parclip", "eclip_hg2", and "eclip_k5" and values as lists of RBP names for high, medium, and
-        low sequence models.
+    tuple: A tuple containing two dictionaries. 
+    The first dictionary contains paths for each type of model, with keys
+    "parclip", "eclip_hg2", and "eclip_k5" and values as lists of paths corresponding to high,
+    medium, and low sequence models.
+    The second dictionary contains lists of RBP names for each type of model, with keys
+    "parclip", "eclip_hg2", and "eclip_k5" and values as lists of RBP names for high, medium, and
+    low sequence models.
 
     Notes:
     - The function constructs file paths based on the provided model identifiers.
@@ -433,12 +429,12 @@ def seq_to_1hot(seq, randomsel=True):
     Parameters:
     - seq (str): The input nucleotide sequence.
     - randomsel (bool): If True, treat ambiguous base as random base.
-        If False, return only zero rows for ambiguous case.
+    If False, return only zero rows for ambiguous case.
 
     Returns:
     numpy.ndarray: A 2D array representing the one-hot encoding of the input sequence.
-        Rows correspond to nucleotides 'A', 'C', 'G', 'T' in that order.
-        Columns correspond to positions in the input sequence.
+    Rows correspond to nucleotides 'A', 'C', 'G', 'T' in that order.
+    Columns correspond to positions in the input sequence.
 
     Notes:
     - Ambiguous bases are handled based on the 'randomsel' parameter.
@@ -514,8 +510,7 @@ def deepripe_encode_variant_bedline(bedline, genomefasta, flank_size=75):
     Encode a variant bedline into one-hot encoded sequences.
 
     Parameters:
-    - bedline (list): A list representing a variant bedline, containing elements for chromosome, start position,
-        end position, reference allele, alternate allele, and strand.
+    - bedline (list): A list representing a variant bedline, containing elements for chromosome, start position, end position, reference allele, alternate allele, and strand.
     - genomefasta (str): The path to the genome FASTA file for sequence retrieval.
     - flank_size (int): The size of flanking regions to include in the sequence around the variant position.
 
@@ -524,8 +519,7 @@ def deepripe_encode_variant_bedline(bedline, genomefasta, flank_size=75):
         The dimensions are (num_sequences, sequence_length, nucleotide_channels).
 
     Notes:
-    - The input bedline should follow the format: [chromosome, start position, end position,
-      reference allele, alternate allele, strand].
+    - The input bedline should follow the format: [chromosome, start position, end position, reference allele, alternate allele, strand].
     - The function retrieves the wild-type and mutant sequences flanked by the specified size.
     - The wild-type sequence is extracted from the genome FASTA file and mutated at the variant position.
     - The resulting sequences are one-hot encoded and returned as a numpy array.
@@ -578,9 +572,7 @@ def deepripe_score_variant_onlyseq_all(
     Compute variant scores using a deep learning model for each specified variant.
 
     Parameters:
-    - model_group (dict): A dictionary containing deep learning models for different choices.
-                         Each entry should be a key-value pair, where the key is the choice name
-                         and the value is a tuple containing the model and additional information.
+    - model_group (dict): A dictionary containing deep learning models for different choices. Each entry should be a key-value pair, where the key is the choice name and the value is a tuple containing the model and additional information.
     - variant_bed (list): A list of variant bedlines, where each bedline represents a variant.
     - genomefasta (str): Path to the reference genome in FASTA format.
     - seq_len (int, optional): The length of the sequence to use around each variant. Default is 200.
@@ -640,11 +632,8 @@ def filter_annotations_by_exon_distance(
     """Filters annotation based on distance to the nearest exon of gene it is associated with.
 
     Args:
-        anno_path (str): Annotation parquet file
-            containing variant annotations to filter
-        gtf_path (str): gtf file containing start and end positions of
-            all relevant exons of all relevant genes.
-            Df is filtered for protein coding exons.
+        anno_path (str): Annotation parquet file containing variant annotations to filter
+        gtf_path (str): gtf file containing start and end positions of all relevant exons of all relevant genes. Df is filtered for protein coding exons.
         genes_path (str): list of protein coding genes and their IDs in the annotation DF
         output_path (str): were to write the resulting parquet file
         max_dist (int): base pairs used to filter
@@ -746,8 +735,7 @@ def deepsea_pca(
     - n_components (int): Number of principal components to retain, default is 100.
     - deepsea_file (str): Path to the DeepSEA data in parquet format.
     - pca_object (str): Path to save or load the PCA object (components) in npy or pickle format.
-    - means_sd_df (str): Path to a DataFrame containing pre-calculated means and SDs for standardization.
-                        If path does not exist, standardization will be done using the calculated mean and SD, result will then be saved under this path
+    - means_sd_df (str): Path to a DataFrame containing pre-calculated means and SDs for standardization. If path does not exist, standardization will be done using the calculated mean and SD, result will then be saved under this path
     - out_dir (str): Path to the output directory where the PCA results will be saved.
 
     Returns:
@@ -757,10 +745,8 @@ def deepsea_pca(
     AssertionError: If there are NaN values in the PCA results DataFrame.
 
     Notes:
-    - If 'means_sd_df' is provided, the data will be standardized using the existing mean and SD.
-      Otherwise, the data will be standardized using the mean and SD calculated from the data.
-    - If 'pca_object' exists, it will be loaded as a PCA object. If it doesn't exist, a new PCA object
-      will be created, and its components will be saved to 'pca_object'.
+    - If 'means_sd_df' is provided, the data will be standardized using the existing mean and SD. Otherwise, the data will be standardized using the mean and SD calculated from the data.
+    - If 'pca_object' exists, it will be loaded as a PCA object. If it doesn't exist, a new PCA object will be created, and its components will be saved to 'pca_object'.
 
     Example:
     $ python annotations.py deepsea_pca --n-components 50 deepsea_data.parquet pca_components.npy means_sd.parquet results/
@@ -872,8 +858,7 @@ def scorevariants_deepripe(
     - pybedtools_tmp_dir (str): Path to the temporary directory for pybedtools.
     - saved_deepripe_models_path (str): Path to the directory containing saved deepRiPe models.
     - n_jobs (int): Number of parallel jobs for scoring variants.
-    - saved_model_type (str, optional): Type of the saved deepRiPe model to use (parclip, eclip_hg2, eclip_k5).
-                                      Default is "parclip".
+    - saved_model_type (str, optional): Type of the saved deepRiPe model to use (parclip, eclip_hg2, eclip_k5). Default is "parclip".
 
     Returns:
     None
@@ -1018,10 +1003,8 @@ def process_chunk(
     DataFrame: Merged DataFrame containing aggregated tissue-specific AbSplice scores and remaining annotation data.
 
     Notes:
-    - The function reads the absplice site results for a specific chromosome, excludes specified tissues,
-      and aggregates AbSplice scores using the specified tissue aggregation function.
-    - The resulting DataFrame is merged with the remaining annotation data based on the chromosome, position,
-      reference allele, alternative allele, and gene ID.
+    - The function reads the absplice site results for a specific chromosome, excludes specified tissues, and aggregates AbSplice scores using the specified tissue aggregation function.
+    - The resulting DataFrame is merged with the remaining annotation data based on the chromosome, position, reference allele, alternative allele, and gene ID.
 
     Example:
     merged_data = process_chunk("chr1_results.csv", Path("abs_splice_results/"), ["Brain", "Heart"], "max", ca_shortened_df)
@@ -1159,8 +1142,7 @@ def merge_abscores(
 
     Notes:
     - The function reads AbSplice scores and the current annotation file.
-    - It merges the AbSplice scores with the current annotation file based on chromosome, position,
-      reference allele, alternative allele, and gene ID.
+    - It merges the AbSplice scores with the current annotation file based on chromosome, position, reference allele, alternative allele, and gene ID.
     - The merged file is saved with AbSplice scores.
 
     Example:
@@ -1264,9 +1246,7 @@ def deepripe_score_variant_onlyseq_all(
     Compute variant scores using a deep learning model for each specified variant.
 
     Parameters:
-    - model_group (dict): A dictionary containing deep learning models for different choices.
-                         Each entry should be a key-value pair, where the key is the choice name
-                         and the value is a tuple containing the model and additional information.
+    - model_group (dict): A dictionary containing deep learning models for different choices. Each entry should be a key-value pair, where the key is the choice name and the value is a tuple containing the model and additional information.
     - variant_bed (list): A list of variant bedlines, where each bedline represents a variant.
     - genomefasta (str): Path to the reference genome in FASTA format.
     - seq_len (int, optional): The length of the sequence to use around each variant. Default is 200.
@@ -1351,8 +1331,7 @@ def merge_abscores(
 
     Notes:
     - The function reads AbSplice scores and the current annotation file.
-    - It merges the AbSplice scores with the current annotation file based on chromosome, position,
-      reference allele, alternative allele, and gene ID.
+    - It merges the AbSplice scores with the current annotation file based on chromosome, position, reference allele, alternative allele, and gene ID.
     - The merged file is saved with AbSplice scores.
 
     Example:
@@ -2178,144 +2157,20 @@ def concat_annotations(
                 raise ValueError
 
 
-@cli.command()
-@click.option("--n-jobs", type=int, default=24)
-@click.option("--max-dist", type=int, default=300)
-@click.option("--source", type=str, multiple=True, default=["HAVANA"])
-@click.argument("gtf-file", type=click.Path(exists=True))
-@click.argument("annotation-file", type=click.Path(exists=True))
-@click.argument("out-file", type=click.Path())
-def compute_exon_ids(
-    n_jobs: int,
-    max_dist: int,
-    source: List[str],
-    gtf_file: str,
-    annotation_file: str,
-    out_file: str,
-):
-    """
-    Compute nearest exons for each annotated region and save the results.
-
-    Parameters:
-    - n_jobs (int): Number of parallel jobs.
-    - max_dist (int): Maximum distance to search for nearest exons.
-    - source (List[str]): List of GTF sources to consider.
-    - gtf_file (str): Path to the GTF file.
-    - annotation_file (str): Path to the annotation file in parquet format.
-    - out_file (str): Path to save the results.
-
-    Returns:
-    None
-    """
-    import pyranges as pr
-    from parallel_pandas import ParallelPandas
-
-    ParallelPandas.initialize(n_cpu=n_jobs, split_factor=4, disable_pr_bar=False)
-
-    logger.info("Reading annotations")
-    annotations = dd.read_parquet(annotation_file, blocksize=25e9).compute()
-    annotations = annotations.drop(
-        columns=[
-            c
-            for c in [
-                "exon_id",
-                "gene_id",
-                "gene_type",
-                "exon_ids",
-                "gene_ids",
-                "gene_types",
-            ]
-            if c in annotations.columns
-        ]
-    )
-    annotations_by_chrom = annotations.groupby("chrom")
-
-    logger.info("Reading GTF")
-    gtf = pr.read_gtf(gtf_file)
-
-    exons_by_chrom = {k: gtf[k].as_df() for k, _ in gtf.keys()}
-    exons_by_chrom = {
-        k: df[df["Source"].isin(source) & (df["Feature"] == "exon")]
-        .sort_values(["Start", "End"])
-        .reset_index(drop=True)
-        for k, df in exons_by_chrom.items()
-    }
-
-    logger.info("Computing nearest exons...")
-    try:
-        chromosomes = annotations_by_chrom.groups.keys()
-        first = True
-        for chrom in tqdm(chromosomes):
-            logger.info(f"processing chromosome {chrom}")
-            annotations_with_exons_by_chrom = add_exons(
-                annotations_by_chrom.get_group(chrom), exons_by_chrom[chrom]
-            )
-
-            logger.info(f"writing results to {out_file}")
-            logger.info(f"Shape of Object is {annotations_with_exons_by_chrom.shape}")
-            if first:
-                annotations_with_exons_by_chrom.to_parquet(
-                    out_file, engine="fastparquet"
-                )
-            else:
-                annotations_with_exons_by_chrom.to_parquet(
-                    out_file, engine="fastparquet", append=True
-                )
-            first = False
-
-    except:
-        logger.info("something went wrong")
-        raise ValueError
-    logger.info("...done")
-
-
-def add_exons(annotations: pd.DataFrame, exons: pd.DataFrame) -> pd.DataFrame:
-    """
-    Add exon information to each annotation.
-
-    Parameters:
-    - annotations (pd.DataFrame): DataFrame containing annotation information.
-    - exons (pd.DataFrame): DataFrame containing exon information.
-
-    Returns:
-    pd.DataFrame: DataFrame with added exon information for each annotation.
-    """
-    return annotations.p_apply(lambda var: get_exons(var, exons), axis=1)
-
-
-def get_exons(variant: pd.Series, exons: pd.DataFrame, max_dist: int = 300) -> int:
-    """
-    Add exon information to a variant.
-
-    Parameters:
-    - variant (pd.Series): Series representing a variant.
-    - exons (pd.DataFrame): DataFrame containing exon information.
-    - max_dist (int): Maximum distance for considering a variant within an exon.
-
-    Returns:
-    pd.Series: Series with added exon information for the given variant.
-    """
-    start_differences = variant["pos"] - exons["Start"]
-    end_differences = variant["pos"] - exons["End"]
-    exon_matches = exons[
-        (
-            (start_differences >= 0) & (end_differences <= 0)
-            | (start_differences.abs() <= max_dist)
-            | (end_differences.abs() <= max_dist)
-        )
-    ]
-
-    variant["exon_ids"] = ",".join(exon_matches["exon_id"])
-    variant["gene_ids"] = ",".join(exon_matches["gene_id"])
-    variant["gene_types"] = ",".join(exon_matches["gene_type"])
-    return variant
-
 
 @cli.command()
 @click.argument("genotype_file", type=click.Path(exists=True))
 @click.argument("variants_filepath", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
 def get_af_from_gt(genotype_file: str, variants_filepath: str, out_file: str):
+    """
+    Compute allele frequencies from genotype data.
+
+    Parameters:
+    - genotype_file (str): Path to the genotype file.
+    - variants_filepath (str): Path to the variants file.
+    - out_file (str): Output file path for storing allele frequencies.
+    """
     import h5py
 
     variants = pd.read_table(variants_filepath)
@@ -2345,6 +2200,14 @@ def get_af_from_gt(genotype_file: str, variants_filepath: str, out_file: str):
 @click.argument("af_df_path", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
 def merge_af(annotations_path: str, af_df_path: str, out_file: str):
+    """
+    Merge allele frequency data into annotations and save to a file.
+
+    Parameters:
+    - annotations_path (str): Path to the annotations file.
+    - af_df_path (str): Path to the allele frequency DataFrame file.
+    - out_file (str): Path to the output file to save merged data.
+    """
     annotations_df = pd.read_parquet(annotations_path)
     af_df = pd.read_parquet(af_df_path)
     merged_df = annotations_df.merge(af_df, how="left", on="id")
@@ -2355,6 +2218,13 @@ def merge_af(annotations_path: str, af_df_path: str, out_file: str):
 @click.argument("annotations_path", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
 def calculate_maf(annotations_path: str, out_file: str):
+    """
+    Calculate minor allele frequency (MAF) from allele frequency data in annotations.
+
+    Parameters:
+    - annotations_path (str): Path to the annotations file containing allele frequency data.
+    - out_file (str): Path to the output file to save the calculated MAF data.
+    """
     annotation_file = pd.read_parquet(annotations_path)
     af = annotation_file["af"]
     annotation_file = annotation_file.drop(
@@ -2370,6 +2240,14 @@ def calculate_maf(annotations_path: str, out_file: str):
 @click.argument("annotations_path", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
 def add_protein_ids(protein_id_file: str, annotations_path: str, out_file: str):
+    """
+    Add protein IDs to the annotations based on protein ID mapping file.
+
+    Parameters:
+    - protein_id_file (str): Path to the protein ID mapping file.
+    - annotations_path (str): Path to the annotations file.
+    - out_file (str): Path to the output file to save the annotations with protein IDs.
+    """
     genes = pd.read_parquet(protein_id_file)
     genes[["gene_base", "feature"]] = genes["gene"].str.split(".", expand=True)
     genes.drop(columns=["feature", "gene", "gene_name", "gene_type"], inplace=True)
@@ -2386,6 +2264,13 @@ def add_protein_ids(protein_id_file: str, annotations_path: str, out_file: str):
 @click.argument("gtf_filepath", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
 def create_protein_id_file(gtf_filepath: str, out_file: str):
+    """
+    Create a protein ID mapping file from the GTF file.
+
+    Parameters:
+    - gtf_filepath (str): Path to the GTF file.
+    - out_file (str): Path to save the output protein ID mapping file.
+    """
     import pyranges as pr
 
     gtf = pr.read_gtf(gtf_filepath)
@@ -2409,6 +2294,14 @@ def create_protein_id_file(gtf_filepath: str, out_file: str):
 def select_rename_fill_annotations(
     annotation_columns_yaml_file: str, annotations_path: str, out_file: str
 ):
+    """
+    Select, rename, and fill missing values in annotation columns based on a YAML configuration file.
+
+    Parameters:
+    - annotation_columns_yaml_file (str): Path to the YAML file containing name and fill value mappings.
+    - annotations_path (str): Path to the annotations file.
+    - out_file (str): Path to save the modified annotations file.
+    """
     import yaml
 
     logger.info(
