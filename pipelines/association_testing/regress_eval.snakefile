@@ -1,3 +1,14 @@
+configfile: "config.yaml"
+
+debug_flag = config.get('debug', False)
+debug = '--debug ' if debug_flag else ''
+
+n_repeats = config['n_repeats']
+
+phenotypes = config['phenotypes']
+phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
+
+n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
 
 rule evaluate:
     input:
