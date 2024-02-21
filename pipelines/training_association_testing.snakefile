@@ -29,7 +29,7 @@ include: "training/training_dataset.snakefile"
 include: "training/train.snakefile"
 include: "association_testing/association_dataset.snakefile"
 include: "association_testing/burdens.snakefile"
-include: "association_testing/regress_eval.snakefile"
+include: "association_testing/regress_eval_avg.snakefile"
 
 rule all:
     input:

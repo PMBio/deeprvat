@@ -32,9 +32,9 @@ wildcard_constraints:
 
 cv_splits = config.get("n_folds", 5)
 cv_exp = True
-config_file_prefix = (
-    "cv_split0/deeprvat/" if cv_exp else ""
-)  # needed in case we analyse a CV experiment
+# config_file_prefix = (
+#     "cv_split0/deeprvat/" if cv_exp else ""
+# )  # needed in case we analyse a CV experiment
 
 
 include: "../association_testing/plot.snakefile"
