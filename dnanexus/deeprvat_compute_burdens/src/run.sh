@@ -45,7 +45,7 @@ main() {
     python deeprvat/deeprvat/deeprvat/associate.py compute-burdens \
            --n-chunks $n_chunks --chunk $chunk \
            --dataset-file $BASE/$expdir/Calcium/deeprvat/association_dataset.pkl \
-           $BASE/workdir/pretrained_scoring/Calcium/deeprvat/hpopt_config.yaml \
+           $BASE/$expdir/Calcium/deeprvat/hpopt_config.yaml \
            $BASE/$expdir/pretrained_models/config.yaml \
            $BASE/$expdir/pretrained_models/repeat_0/best/bag_0.ckpt $BASE/$expdir/pretrained_models/repeat_1/best/bag_0.ckpt $BASE/$expdir/pretrained_models/repeat_2/best/bag_0.ckpt $BASE/$expdir/pretrained_models/repeat_3/best/bag_0.ckpt $BASE/$expdir/pretrained_models/repeat_4/best/bag_0.ckpt $BASE/$expdir/pretrained_models/repeat_5/best/bag_0.ckpt \
            Calcium/deeprvat/burdens_chunk_$chunk
