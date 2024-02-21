@@ -229,15 +229,12 @@ class DenseGTDataset(Dataset):
             gt_file = h5py.File(self.gt_filename, "r")
             self.variant_matrix = gt_file["variant_matrix"]
             self.genotype_matrix = gt_file["genotype_matrix"]
-            if self.check_samples:
-                gt_samples = gt_file['samples'][:]
             if self.cache_matrices:
                 self.variant_matrix = self.variant_matrix[:]
                 self.genotype_matrix = self.genotype_matrix[:]
 
         # idx_pheno = self.index_map_pheno[idx] #samples and phenotype is already subset so can use idx
         idx_geno = self.index_map_geno[idx]
-
         sparse_variants = self.variant_matrix[idx_geno, :]
         sparse_genotype = self.genotype_matrix[idx_geno, :]
         (
@@ -260,7 +257,8 @@ class DenseGTDataset(Dataset):
             phenotypes[self.y_phenotypes].to_numpy(dtype=np.float32), dtype=torch.float
         )
         if self.check_samples:
-            assert(gt_samples[idx_geno] == self.samples[idx])
+            #sanity check, can be removed in future
+            assert(self.samples_gt[idx_geno] == self.samples[idx])
         return {
             "sample": self.samples[idx],
             "x_phenotypes": x_phenotype_tensor,
@@ -295,6 +293,8 @@ class DenseGTDataset(Dataset):
         )  # TODO change this to using with open
         samples_gt = gt_file["samples"][:]
         samples_gt = np.array([item.decode("utf-8") for item in samples_gt])
+        if self.check_samples:
+            self.samples_gt = samples_gt 
         samples_phenotype_df = np.array(self.phenotype_df.index)        
         #phenotypes_df has first to be sorted in the same order as samples_gt
         if sim_phenotype_file is not None:
