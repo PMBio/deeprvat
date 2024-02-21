@@ -39,8 +39,7 @@ main() {
     echo "dx download DeepRVAT/data/protein_coding_genes.parquet"
     cp $BASE/data/protein_coding_genes.parquet .
 
-    echo "Executing command: $command using config $config"
-    echo "dx download $config"
+    echo "Computing burdens"
     mkdir -p Calcium/deeprvat/burdens_chunk_$chunk
     python deeprvat/deeprvat/deeprvat/associate.py compute-burdens \
            --n-chunks $n_chunks --chunk $chunk \
@@ -51,8 +50,10 @@ main() {
            Calcium/deeprvat/burdens_chunk_$chunk
 
     echo "Uploading outputs"
-    echo "rm config.yaml"
-    rm -rf deeprvat config.yaml genotypes.h5 variants_90pct10dp_qc.parquet variants.parquet phenotypes.parquet annotations.parquet protein_coding_genes.parquet
+    echo "tar cf Calcium/deeprvat/burdens_chunk_$chunk.tar Calcium/deeprvat/burdens_chunk_$chunk"
+    tar cf Calcium/deeprvat/burdens_chunk_$chunk.tar Calcium/deeprvat/burdens_chunk_$chunk
+    echo "Removing files that should not be uploaded"
+    rm -rf Calcium/deeprvat/burdens_chunk_$chunk deeprvat config.yaml genotypes.h5 variants_90pct10dp_qc.parquet variants.parquet phenotypes.parquet annotations.parquet protein_coding_genes.parquet
     echo "dx-upload-all-outputs"
     dx-upload-all-outputs
 
