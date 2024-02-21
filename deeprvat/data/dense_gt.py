@@ -218,10 +218,9 @@ class DenseGTDataset(Dataset):
 
         rare_variant_annotations = self.get_rare_variants(
             idx, all_sparse_variants, sparse_genotype
-        )  # idx is not used by get_rare_variants
+        )
 
         phenotypes = self.phenotype_df.iloc[idx, :]
-        # put this to loc
 
         x_phenotype_tensor = torch.tensor(
             phenotypes[self.x_phenotypes].to_numpy(dtype=np.float32), dtype=torch.float
@@ -268,9 +267,8 @@ class DenseGTDataset(Dataset):
         samples_phenotype_df = np.array(self.phenotype_df.index.astype(int))
         assert all(
             samples_phenotype_df == samples_gt
-        )  # TODO allow this to be different,
-        # in principle done by introducing self.index_map_geno and self.index_map_pheno  but needs sanity check
-        # but phenotypes_df has first to be sorted in the same order as samples_gt
+        )  # TODO allow this to be of different orders,
+        #phenotypes_df has first to be sorted in the same order as samples_gt
         if sim_phenotype_file is not None:
             logger.info(
                 f"Using phenotypes and covariates from simulated phenotype file {sim_phenotype_file}"
@@ -515,6 +513,9 @@ class DenseGTDataset(Dataset):
                 annotation_file, columns=list(set(columns)), engine="pyarrow"
             ).compute()
             self.annotation_df = self.annotation_df.set_index("id")
+            self.gene_specific_anno = self.annotation_df["gene_id"].dtype != np.dtype(
+                "O"
+            )
 
             if type(annotation_aggregation) == str:
                 self.annotation_aggregation = AGGREGATIONS.get(
@@ -533,7 +534,6 @@ class DenseGTDataset(Dataset):
         min_common_af: Optional[Dict[str, float]],
         train_variants: Optional[pd.DataFrame],
     ):
-
         logger.debug("Setting up variants")
         if min_common_variant_count is None and min_common_af is None:
             raise ValueError(
@@ -558,9 +558,14 @@ class DenseGTDataset(Dataset):
             logger.debug(f'    {mask.sum()} variants "common" by count filter')
         elif min_common_af is not None:
             af_col, af_threshold = list(min_common_af.items())[0]
+            af_annotation = self.annotation_df[[af_col]].reset_index()
+            af_annotation = af_annotation.drop_duplicates()
+            if not len(af_annotation["id"]) == len(af_annotation["id"].unique()):
+                raise ValueError(
+                    "Annotation dataframe has inconsistent allele frequency values"
+                )
             variants_with_af = safe_merge(
-                variants[["id"]].reset_index(drop=True),
-                self.annotation_df[[af_col]].reset_index(),
+                variants[["id"]].reset_index(drop=True), af_annotation
             )
             assert np.all(
                 variants_with_af["id"].to_numpy() == variants["id"].to_numpy()
@@ -603,26 +608,22 @@ class DenseGTDataset(Dataset):
         if self.gene_file is not None:
             genes = set(pd.read_parquet(self.gene_file, columns=["id"])["id"])
             logger.debug(f"    Retaining {len(genes)} genes from {self.gene_file}")
-            variants_with_gene_ids = safe_merge(
-                variants[["id"]].reset_index(drop=True),
-                self.annotation_df[["gene_ids"]].reset_index(),
+            ids_to_keep = (
+                self.annotation_df.reset_index()[["id", "gene_id"]]
+                .explode("gene_id")
+                .query("gene_id in @genes")["id"]
+                .unique()
             )
-            assert np.all(
-                variants_with_gene_ids["id"].to_numpy() == variants["id"].to_numpy()
-            )
-            additional_mask &= (
-                variants_with_gene_ids["gene_ids"]
-                .apply(lambda x: len(set(x) & genes) != 0)
-                .to_numpy()
-            )
-            del variants_with_gene_ids
+            additional_mask &= variants["id"].isin(ids_to_keep).to_numpy()
         if self.gene_types_to_keep is not None:
+            raise NotImplementedError
             additional_mask &= (
                 variants["gene_types"]
                 .apply(lambda x: len(set(x) & self.gene_types_to_keep) != 0)
                 .to_numpy()
             )
         if self.ignore_by_annotation is not None:
+            raise NotImplementedError
             for col, val in self.ignore_by_annotation:
                 if self.annotation_df[col].dtype == np.dtype("object"):
                     additional_mask &= (
@@ -642,9 +643,12 @@ class DenseGTDataset(Dataset):
             and self.gene_file is None
             and self.gene_types_to_keep is None
         ):
-            rare_variant_mask &= (
-                variants["gene_ids"].apply(lambda x: len(x) > 0).to_numpy()
-            )
+            if self.gene_specific_anno:
+                rare_variant_mask &= variants["gene_id"].notna().to_numpy()
+            else:
+                rare_variant_mask &= (
+                    variants["gene_ids"].apply(lambda x: len(x) > 0).to_numpy()
+                )
 
         variants["rare_variant_mask"] = rare_variant_mask
 
@@ -654,6 +658,7 @@ class DenseGTDataset(Dataset):
                 common_variant_mask &= ~af_mask
             common_variant_mask &= additional_mask
             if self.group_common:
+                raise NotImplementedError
                 common_variant_mask &= (
                     variants["gene_ids"].apply(lambda x: len(x) > 0).to_numpy()
                 )
@@ -706,6 +711,8 @@ class DenseGTDataset(Dataset):
             self.setup_common_groups()
 
     def setup_common_groups(self):
+        raise NotImplementedError()
+
         logger.debug("Setting up groups for common variants")
         logger.debug("    Computing grouping")
         common_variant_groups = self.variants.loc[
