@@ -18,6 +18,8 @@ tensor_compression_level = config['training'].get('tensor_compression_level', 1)
 model_path = Path("models")
 n_parallel_training_jobs = config["training"].get("n_parallel_jobs", 1)
 
+phenotypes = training_phenotypes
+
 wildcard_constraints:
     repeat="\d+",
     trial="\d+",
@@ -50,6 +52,9 @@ rule all_association_dataset:
     input:
         expand('{phenotype}/deeprvat/association_dataset.pkl',
                phenotype=phenotypes)
+
+rule all_reversed:
+    input: "models/reverse_finished.tmp",
 
 rule all_training:
     input:
