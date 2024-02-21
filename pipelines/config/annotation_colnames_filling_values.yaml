@@ -10,9 +10,9 @@ annotation_column_names:
   'af' : 
     'combined_UKB_NFE_AF' : 0
   'maf_mb' : 
-    'combined_UKB_NFE_AF_MB' : 0
+    'combined_UKB_NFE_AF_MB' : 10000
   'maf' :
-    'combined_UKB_NFE_MAF' : 1000
+    'combined_UKB_NFE_MAF' : 0
   'Condel' : 
     'condel_score' : 0
   'PolyPhen' : 
