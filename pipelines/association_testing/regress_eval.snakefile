@@ -31,10 +31,10 @@ rule evaluate: #TODO needs to be simplified!
         '{params.out_path}'
 
 
-rule all_regression:
-    input:
-        expand('{phenotype}/deeprvat/repeat_{repeat}/results/burden_associations.parquet',
-               phenotype=phenotypes, type=['deeprvat'], repeat=range(n_repeats)),
+# rule all_regression:
+#     input:
+#         expand('{phenotype}/deeprvat/repeat_{repeat}/results/burden_associations.parquet',
+#                phenotype=phenotypes, type=['deeprvat'], repeat=range(n_repeats)),
 
 rule combine_regression_chunks:
     input:

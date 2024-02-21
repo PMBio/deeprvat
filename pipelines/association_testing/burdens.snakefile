@@ -1,6 +1,5 @@
-cv_exp = True #TODO try to remove/resolve this
-n_avg_chunks = 20 # somehow it doesn't get this from the main snakefile
-
+# cv_exp = False #TODO try to remove/resolve this
+# n_avg_chunks = 20 # somehow it doesn't get this from the main snakefile
 rule average_burdens:
     input:
         chunks = [
@@ -69,7 +68,7 @@ rule link_burdens:
 rule compute_burdens:
     priority: 10
     input:
-        reversed = "models/reverse_finished.tmp",
+        reversed = model_path / "reverse_finished.tmp",
         checkpoints = lambda wildcards: [
             f'{model_path}/repeat_{repeat}/best/bag_{bag}.ckpt'
             for repeat in range(n_repeats) for bag in range(n_bags)
