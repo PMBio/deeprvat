@@ -1,5 +1,0 @@
-Platelet_distribution_width
-Cholesterol
-Platelet_crit
-Mean_platelet_thrombocyte_volume
-HDL_cholesterol
