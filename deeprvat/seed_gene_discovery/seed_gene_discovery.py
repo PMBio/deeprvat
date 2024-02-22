@@ -277,7 +277,10 @@ def test_gene(
 
     logger.info(f"Using function {var_weight_function} for variant weighting")
 
-    (weights, _,) = get_anno(
+    (
+        weights,
+        _,
+    ) = get_anno(
         G, variant_ids, annotation_df, weight_cols, var_weight_function, maf_col
     )
     variant_weight_th = (

@@ -31,7 +31,8 @@ DEFAULT_CHROMOSOMES = [f"chr{x}" for x in range(1, 23)]
 
 AGGREGATIONS = {"max": np.max, "sum": np.sum}
 
-## Move this to utils? 
+
+## Move this to utils?
 def get_matched_sample_indices(x, y):
     """
     # this function is supposed to do the same as
@@ -54,6 +55,7 @@ def get_matched_sample_indices(x, y):
     x_mask[x_indices] = True
 
     return x_indices, x_mask
+
 
 class DenseGTDataset(Dataset):
     def __init__(
@@ -105,13 +107,13 @@ class DenseGTDataset(Dataset):
         cache_matrices: bool = False,
         verbose: bool = False,
     ):
-        sample_file = None #TODO delete this!
+        sample_file = None  # TODO delete this!
         if verbose:
             logger.setLevel(logging.DEBUG)
         else:
             logger.setLevel(logging.INFO)
 
-        self.check_samples = True #TODO undo
+        self.check_samples = True  # TODO undo
         self.split = split
         self.train_dataset = train_dataset
         self.chromosomes = (
@@ -157,11 +159,7 @@ class DenseGTDataset(Dataset):
             f"Using phenotype file {phenotype_file} and genotype file {self.gt_filename}"
         )
         self.setup_phenotypes(
-            phenotype_file,
-            sim_phenotype_file,
-            skip_y_na,
-            skip_x_na,
-            sample_file
+            phenotype_file, sim_phenotype_file, skip_y_na, skip_x_na, sample_file
         )
 
         self.max_rare_af = max_rare_af
@@ -247,7 +245,9 @@ class DenseGTDataset(Dataset):
             idx, all_sparse_variants, sparse_genotype
         )
 
-        phenotypes = self.phenotype_df.iloc[idx, :] #TODO use loc here self.phenotype_df.loc[self.samples[idx]]
+        phenotypes = self.phenotype_df.iloc[
+            idx, :
+        ]  # TODO use loc here self.phenotype_df.loc[self.samples[idx]]
 
         x_phenotype_tensor = torch.tensor(
             phenotypes[self.x_phenotypes].to_numpy(dtype=np.float32), dtype=torch.float
@@ -257,8 +257,8 @@ class DenseGTDataset(Dataset):
             phenotypes[self.y_phenotypes].to_numpy(dtype=np.float32), dtype=torch.float
         )
         if self.check_samples:
-            #sanity check, can be removed in future
-            assert(self.samples_gt[idx_geno] == self.samples[idx])
+            # sanity check, can be removed in future
+            assert self.samples_gt[idx_geno] == self.samples[idx]
         return {
             "sample": self.samples[idx],
             "x_phenotypes": x_phenotype_tensor,
@@ -294,9 +294,9 @@ class DenseGTDataset(Dataset):
         samples_gt = gt_file["samples"][:]
         samples_gt = np.array([item.decode("utf-8") for item in samples_gt])
         if self.check_samples:
-            self.samples_gt = samples_gt 
-        samples_phenotype_df = np.array(self.phenotype_df.index)        
-        #phenotypes_df has first to be sorted in the same order as samples_gt
+            self.samples_gt = samples_gt
+        samples_phenotype_df = np.array(self.phenotype_df.index)
+        # phenotypes_df has first to be sorted in the same order as samples_gt
         if sim_phenotype_file is not None:
             logger.info(
                 f"Using phenotypes and covariates from simulated phenotype file {sim_phenotype_file}"
@@ -333,11 +333,16 @@ class DenseGTDataset(Dataset):
         #     True if i in samples_to_keep else False
         #     for i in self.phenotype_df.index
         # ]
-        #much faster retrieval of the mask compared to commented out list operation above
-        samples_to_keep_df = pd.Series(samples_to_keep, name = 'sample').to_frame().assign(mask = True)
-        merged_mask = pd.Series(self.phenotype_df.index, name = 'sample').to_frame()\
-            .merge(samples_to_keep_df, how = 'left', validate = '1:1', on = 'sample')
-        samples_to_keep_mask = list(merged_mask['mask'].fillna(False))
+        # much faster retrieval of the mask compared to commented out list operation above
+        samples_to_keep_df = (
+            pd.Series(samples_to_keep, name="sample").to_frame().assign(mask=True)
+        )
+        merged_mask = (
+            pd.Series(self.phenotype_df.index, name="sample")
+            .to_frame()
+            .merge(samples_to_keep_df, how="left", validate="1:1", on="sample")
+        )
+        samples_to_keep_mask = list(merged_mask["mask"].fillna(False))
         assert sum(samples_to_keep_mask) == len(samples_to_keep)
         mask_cols = copy.deepcopy(self.x_phenotypes)
         if skip_y_na:
@@ -350,13 +355,13 @@ class DenseGTDataset(Dataset):
         self.n_samples = mask.sum()
         logger.info(f"Final number of kept samples: {self.n_samples}")
         self.phenotype_df = self.phenotype_df[mask]
-        self.samples = (
-            self.phenotype_df.index.to_numpy()
-        )  
+        self.samples = self.phenotype_df.index.to_numpy()
 
-        # account for the fact that genotypes.h5 and phenotype_df can have different 
+        # account for the fact that genotypes.h5 and phenotype_df can have different
         # orders of their samples
-        self.index_map_geno, _ = get_matched_sample_indices(samples_gt.astype(int), self.samples.astype(int))
+        self.index_map_geno, _ = get_matched_sample_indices(
+            samples_gt.astype(int), self.samples.astype(int)
+        )
         # get_matched_sample_indices is a much, much faster implementation of the code below
         # self.index_map_geno = [np.where(samples_gt.astype(int) == i) for i in self.samples.astype(int)]
 
@@ -364,7 +369,7 @@ class DenseGTDataset(Dataset):
             # just a sanity check for get_matched_sample_indices, can be removed in future
             for i in np.random.choice(len(self.samples), 100):
                 # print(i)
-                assert(self.samples[i] == samples_gt[self.index_map_geno[i]])
+                assert self.samples[i] == samples_gt[self.index_map_geno[i]]
 
     def get_variant_ids(self, matrix_indices: np.ndarray) -> np.ndarray:
         return self.variant_id_map.loc[matrix_indices, "id"].to_numpy()

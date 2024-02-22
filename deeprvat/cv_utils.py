@@ -103,7 +103,10 @@ def generate_test_config(input_config, out_file, fold, n_folds):
 @click.argument("out_dir", type=click.Path(), default="./")
 @click.argument("config_file", type=click.Path(exists=True))
 def combine_test_set_burdens(
-    out_dir, link_burdens, burden_dirs, config_file,
+    out_dir,
+    link_burdens,
+    burden_dirs,
+    config_file,
 ):
     with open(config_file) as f:
         config = yaml.safe_load(f)
