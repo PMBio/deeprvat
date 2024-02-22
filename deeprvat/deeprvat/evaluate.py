@@ -196,7 +196,11 @@ def get_pvals(results, method_mapping=None, phenotype_mapping={}):
         ]
     ]
 
-    pvals = pvals.rename(columns={"experiment_group": "Method",})
+    pvals = pvals.rename(
+        columns={
+            "experiment_group": "Method",
+        }
+    )
     if method_mapping is not None:
         pvals["Method"] = pvals["Method"].apply(
             lambda x: method_mapping[x] if x in method_mapping else x

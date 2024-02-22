@@ -297,7 +297,6 @@ def compute_burdens_(
                 chunk_x = np.zeros(shape=(n_samples,) + this_x.shape[1:])
                 chunk_sampleid = np.zeros(shape=(n_samples))
 
-
                 logger.info(f"Batch size: {batch['rare_variant_annotations'].shape}")
 
                 if not skip_burdens:
@@ -368,6 +367,7 @@ def compute_burdens_(
         )
 
     return ds_full.rare_embedding.genes, burdens, y, x, sample_ids
+
 
 def make_regenie_input_(
     debug: bool,
@@ -649,7 +649,9 @@ def convert_regenie_output(
 
 
 def load_one_model(
-    config: Dict, checkpoint: str, device: torch.device = torch.device("cpu"),
+    config: Dict,
+    checkpoint: str,
+    device: torch.device = torch.device("cpu"),
 ):
     """
     Load a single burden score computation model from a checkpoint file.
@@ -665,7 +667,8 @@ def load_one_model(
     """
     model_class = getattr(deeprvat_models, config["model"]["type"])
     model = model_class.load_from_checkpoint(
-        checkpoint, config=config["model"]["config"],
+        checkpoint,
+        config=config["model"]["config"],
     )
     model = model.eval()
     model = model.to(device)
@@ -1260,7 +1263,8 @@ def regress(
     logger.info("Saving results")
     Path(out_dir).mkdir(parents=True, exist_ok=True)
     associations.to_parquet(
-        Path(out_dir) / f"burden_associations_{chunk}.parquet", engine="pyarrow",
+        Path(out_dir) / f"burden_associations_{chunk}.parquet",
+        engine="pyarrow",
     )
 
 
