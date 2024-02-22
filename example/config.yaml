@@ -26,6 +26,7 @@ alpha: 0.05
 
 n_burden_chunks: 2
 n_regression_chunks: 2
+n_avg_chunks: 2
 
 n_repeats: 2
 
