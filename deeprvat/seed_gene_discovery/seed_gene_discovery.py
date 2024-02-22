@@ -492,9 +492,9 @@ def update_config(
     if variant_type is not None:
         logger.info(f"Variant type is {variant_type}")
         if variant_type == "missense":
-            rare_threshold_config[
-                "Consequence_missense_variant"
-            ] = "Consequence_missense_variant == 1"
+            rare_threshold_config["Consequence_missense_variant"] = (
+                "Consequence_missense_variant == 1"
+            )
         elif variant_type == "plof":
             rare_threshold_config["is_plof"] = "is_plof == 1"
         elif variant_type == "all":
@@ -514,9 +514,9 @@ def update_config(
     if rare_maf is not None:
         logger.info(f"setting association testing maf to {rare_maf}")
         config["data"]["dataset_config"]["min_common_af"][maf_column] = rare_maf
-        rare_threshold_config[
-            maf_column
-        ] = f"{maf_column} < {rare_maf} and {maf_column} > 0"
+        rare_threshold_config[maf_column] = (
+            f"{maf_column} < {rare_maf} and {maf_column} > 0"
+        )
 
     logger.info(f"Rare variant thresholds: {rare_threshold_config}")
     with open(new_config_file, "w") as f:

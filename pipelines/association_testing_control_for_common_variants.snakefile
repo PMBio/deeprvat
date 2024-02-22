@@ -81,8 +81,8 @@ phecode_dict = {'Apolipoprotein_A': 30630,
 
 
 
-gtf_file = '/home/e400p/ukbb/experiments/revision_2/control_for_common_variants/genotypes_clumped_variants/gencode.v34lift37.annotation.gtf.gz'
-genotype_base_dir = '/home/e400p/ukbb/prs/clumped_genotypes/genotypes_44975_ids'
+gtf_file = 'gencode.v34lift37.annotation.gtf.gz'
+genotype_base_dir = 'genotypes/'
 padding = 500
 
 burden_phenotype = phenotypes[0]

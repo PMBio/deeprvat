@@ -1,5 +1,9 @@
+configfile: "config.yaml"
 
-rule association_dataset: 
+debug_flag = config.get('debug', False)
+debug = '--debug ' if debug_flag else ''
+
+rule association_dataset:
     input:
         config = '{phenotype}/deeprvat/hpopt_config.yaml'
     output:

@@ -17,70 +17,16 @@ do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
 tensor_compression_level = config['training'].get('tensor_compression_level', 1)
 n_parallel_training_jobs = config["training"].get("n_parallel_jobs", 1)
 
-DEEPRVAT_ANALYSIS_DIR=os.environ['DEEPRVAT_ANALYSIS_DIR']
-py_deeprvat_analysis= f'python {DEEPRVAT_ANALYSIS_DIR}'
-
 wildcard_constraints:
     repeat="\d+",
     trial="\d+",
-# rule all:
-#     input:
-#         expand("{phenotype}/deeprvat/eval/significant.parquet",
-#                phenotype=phenotypes),
-#         expand("{phenotype}/deeprvat/eval/all_results.parquet",
-#                phenotype=phenotypes)
 
-# not: Running rules plot and compute replication requires to have deeprvat-ananlysis
 rule all:
     input:
-        significant = expand("{phenotype}/deeprvat/eval/significant.parquet",
+        expand("{phenotype}/deeprvat/eval/significant.parquet",
                phenotype=phenotypes),
-        results = expand("{phenotype}/deeprvat/eval/all_results.parquet",
-               phenotype=phenotypes),
-        replication = "replication.parquet",
-        plots = "dicovery_replication_plot.png"
-
-rule plot:
-    conda:
-        "r-env"
-    input:
-        significant = expand("{phenotype}/deeprvat/eval/significant.parquet",
-               phenotype=phenotypes),
-        results = expand("{phenotype}/deeprvat/eval/all_results.parquet",
-               phenotype=phenotypes),
-        replication = "replication.parquet"
-    output:
-        "dicovery_replication_plot.png"
-    params:
-        results_dir = './',
-        code_dir = f'{DEEPRVAT_ANALYSIS_DIR}/association_testing'
-    resources:
-        mem_mb=20480,
-        load=16000,
-    script:
-        f'{DEEPRVAT_ANALYSIS_DIR}/association_testing/figure_3_main.R'
-
-#requires that comparison_results.pkl is linked to the experiment directory
-rule compute_replication:
-    input:
-        results = expand("{phenotype}/deeprvat/eval/all_results.parquet",
-            phenotype = training_phenotypes)
-    output:
-        'replication.parquet'
-    params:
-        result_files = lambda wildcards, input: ''.join([
-            f'--result-files {f} '
-            for f in input.results
-        ])
-    resources:
-        mem_mb = 4098
-    shell:
-        py_deeprvat_analysis + '/association_testing/compute_replication.py '
-        '--out-file {output} '
-        '{params.result_files} '
-        './ '
-
-# deeprvat_evaluate --n-repeats 6 --correction-method FDR LDL_direct/deeprvat/repeat_0/results/burden_associations.parquet LDL_direct/deeprvat/repeat_1/results/burden_associations.parquet  LDL_direct/deeprvat/repeat_2/results/burden_associations.parquet LDL_direct/deeprvat/repeat_3/results/burden_associations.parquet LDL_direct/deeprvat/repeat_4/results/burden_associations.parquet LDL_direct/deeprvat/repeat_5/results/burden_associations.parquet LDL_direct/deeprvat/hpopt_config.yaml ./
+        expand("{phenotype}/deeprvat/eval/all_results.parquet",
+               phenotype=phenotypes)
 
 rule evaluate:
     input:
@@ -364,7 +310,7 @@ rule training_dataset:
         y = directory('{phenotype}/deeprvat/y.zarr')
     threads: 8
     resources:
-        mem_mb = lambda wildcards, attempt: 80000 + 12000 * attempt
+        mem_mb = lambda wildcards, attempt: 64000 * (attempt + 1),
         load = 16000
     priority: 50
     shell:

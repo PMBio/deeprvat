@@ -1,5 +1,3 @@
-# cv_exp = False #TODO try to remove/resolve this
-# n_avg_chunks = 20 # somehow it doesn't get this from the main snakefile
 rule average_burdens:
     input:
         chunks = [
@@ -48,7 +46,6 @@ rule link_burdens:
     threads: 8
     resources:
         mem_mb = lambda wildcards, attempt: 20480 + (attempt - 1) * 4098,
-        # mem_mb = 16000,
         load = lambda wildcards, attempt: 16000 + (attempt - 1) * 4000
     shell:
         ' && '.join([
@@ -70,7 +67,7 @@ rule compute_burdens:
     input:
         reversed = model_path / "reverse_finished.tmp",
         checkpoints = lambda wildcards: [
-            f'{model_path}/repeat_{repeat}/best/bag_{bag}.ckpt'
+            model_path / f'repeat_{repeat}/best/bag_{bag}.ckpt'
             for repeat in range(n_repeats) for bag in range(n_bags)
         ],
         dataset = '{phenotype}/deeprvat/association_dataset.pkl',
@@ -85,6 +82,7 @@ rule compute_burdens:
         mem_mb = 2000000,        # Using this value will tell our modified lsf.profile not to set a memory resource
         load = 8000,
         gpus = 1
+
     shell:
         ' && '.join([
             ('deeprvat_associate compute-burdens '

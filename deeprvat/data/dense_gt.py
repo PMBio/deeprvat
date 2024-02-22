@@ -559,6 +559,10 @@ class DenseGTDataset(Dataset):
                 "O"
             )
 
+            self.gene_specific_anno = self.annotation_df["gene_id"].dtype != np.dtype(
+                "O"
+            )
+
             if type(annotation_aggregation) == str:
                 self.annotation_aggregation = AGGREGATIONS.get(
                     annotation_aggregation, annotation_aggregation

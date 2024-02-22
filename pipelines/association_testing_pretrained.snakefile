@@ -22,6 +22,7 @@ wildcard_constraints:
     repeat="\d+",
     trial="\d+",
 
+<<<<<<< HEAD
 cv_exp = False
 config_file_prefix = (
     "cv_split0/deeprvat/" if cv_exp else ""
@@ -31,8 +32,7 @@ config_file_prefix = (
 include: "training/config.snakefile"
 include: "association_testing/association_dataset.snakefile"
 include: "association_testing/burdens.snakefile"
-# include: "association_testing/regress_eval.snakefile"
-include: "association_testing/regress_eval_avg.snakefile"
+include: "association_testing/regress_eval.snakefile"
 
 
 
@@ -47,7 +47,7 @@ rule all_evaluate:  #plot.snakefile
         ),
 
 
-rule all_regression:  #regress_eval_avg.snakefile
+rule all_regression:  #regress_eval.snakefile
     input:
         expand(
             "{phenotype}/deeprvat/average_regression_results/burden_associations.parquet",

@@ -41,7 +41,7 @@ include: "../association_testing/plot.snakefile"
 include: "cv_training.snakefile"
 include: "cv_burdens.snakefile"
 include: "../association_testing/burdens.snakefile"
-include: "../association_testing/regress_eval_avg.snakefile"
+include: "../association_testing/regress_eval.snakefile"
 
 
 

@@ -13,15 +13,17 @@ import click
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
+import pyranges as pr
 import torch
 import torch.nn as nn
 import statsmodels.api as sm
 import yaml
+from bgen import BgenWriter
 from numcodecs import Blosc
 from seak import scoretest
 from statsmodels.tools.tools import add_constant
 from torch.utils.data import DataLoader, Dataset, Subset
-from tqdm import tqdm
+from tqdm import tqdm, trange
 import zarr
 import re
 
@@ -30,7 +32,7 @@ from deeprvat.data import DenseGTDataset
 
 logging.basicConfig(
     format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
-    level="INFO",
+    level=logging.INFO,
     stream=sys.stdout,
 )
 logger = logging.getLogger(__name__)
@@ -52,7 +54,25 @@ def get_burden(
     agg_models: Dict[str, List[nn.Module]],
     device: torch.device = torch.device("cpu"),
     skip_burdens=False,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    """
+    Compute burden scores for rare variants.
+
+    :param batch: A dictionary containing batched data from the DataLoader.
+    :type batch: Dict
+    :param agg_models: Loaded PyTorch model(s) for each repeat used for burden computation.
+                       Each key in the dictionary corresponds to a respective repeat.
+    :type agg_models: Dict[str, List[nn.Module]]
+    :param device: Device to perform computations on, defaults to "cpu".
+    :type device: torch.device
+    :param skip_burdens: Flag to skip burden computation, defaults to False.
+    :type skip_burdens: bool
+    :return: Tuple containing burden scores, target y phenotype values, x phenotypes and sample ids.
+    :rtype: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+
+    .. note::
+        Checkpoint models all corresponding to the same repeat are averaged for that repeat.
+    """
     with torch.no_grad():
         X = batch["rare_variant_annotations"].to(device)
         burden = []
@@ -77,6 +97,14 @@ def get_burden(
 
 
 def separate_parallel_results(results: List) -> Tuple[List, ...]:
+    """
+    Separate results from running regression on each gene.
+
+    :param results: List of results obtained from regression analysis.
+    :type results: List
+    :return: Tuple of lists containing separated results of regressed_genes, betas, and pvals.
+    :rtype: Tuple[List, ...]
+    """
     return tuple(map(list, zip(*results)))
 
 
@@ -91,6 +119,20 @@ def make_dataset_(
     data_key="data",
     samples: Optional[List[int]] = None,
 ) -> Dataset:
+    """
+    Create a dataset based on the configuration.
+
+    :param config: Configuration dictionary.
+    :type config: Dict
+    :param debug: Flag for debugging, defaults to False.
+    :type debug: bool
+    :param data_key: Key for dataset configuration in the config dictionary, defaults to "data".
+    :type data_key: str
+    :param samples: List of sample indices to include in the dataset, defaults to None.
+    :type samples: List[int]
+    :return: Loaded instance of the created dataset.
+    :rtype: Dataset
+    """
     data_config = config[data_key]
 
     ds_pickled = data_config.get("pickled", None)
@@ -125,6 +167,19 @@ def make_dataset_(
 @click.argument("config-file", type=click.Path(exists=True))
 @click.argument("out-file", type=click.Path())
 def make_dataset(debug: bool, data_key: str, config_file: str, out_file: str):
+    """
+    Create a dataset based on the provided configuration and save to a pickle file.
+
+    :param debug: Flag for debugging.
+    :type debug: bool
+    :param data_key: Key for dataset configuration in the config dictionary, defaults to "data".
+    :type data_key: str
+    :param config_file: Path to the configuration file.
+    :type config_file: str
+    :param out_file: Path to the output file.
+    :type out_file: str
+    :return: Created dataset saved to out_file.pkl
+    """
     with open(config_file) as f:
         config = yaml.safe_load(f)
 
@@ -146,7 +201,41 @@ def compute_burdens_(
     bottleneck: bool = False,
     compression_level: int = 1,
     skip_burdens: bool = False,
-) -> Tuple[np.ndarray, zarr.core.Array, zarr.core.Array, zarr.core.Array]:
+) -> Tuple[
+    np.ndarray, zarr.core.Array, zarr.core.Array, zarr.core.Array, zarr.core.Array
+]:
+    """
+    Compute burdens using the PyTorch model for each repeat.
+
+    :param debug: Flag for debugging.
+    :type debug: bool
+    :param config: Configuration dictionary.
+    :type config: Dict
+    :param ds: Torch dataset.
+    :type ds: torch.utils.data.Dataset
+    :param cache_dir: Directory to cache zarr files of computed burdens, x phenotypes, and y phenotypes.
+    :type cache_dir: str
+    :param agg_models: Loaded PyTorch model(s) for each repeat used for burden computation.
+        Each key in the dictionary corresponds to a respective repeat.
+    :type agg_models: Dict[str, List[nn.Module]]
+    :param n_chunks: Number of chunks to split data for processing, defaults to None.
+    :type n_chunks: Optional[int]
+    :param chunk: Index of the chunk of data, defaults to None.
+    :type chunk: Optional[int]
+    :param device: Device to perform computations on, defaults to "cpu".
+    :type device: torch.device
+    :param bottleneck: Flag to enable bottlenecking number of batches, defaults to False.
+    :type bottleneck: bool
+    :param compression_level: Blosc compressor compression level for zarr files, defaults to 1.
+    :type compression_level: int
+    :param skip_burdens: Flag to skip burden computation, defaults to False.
+    :type skip_burdens: bool
+    :return: Tuple containing genes, burdens, target y phenotypes, x phenotypes and sample ids.
+    :rtype: Tuple[np.ndarray, zarr.core.Array, zarr.core.Array, zarr.core.Array, zarr.core.Array]
+
+    .. note::
+        Checkpoint models all corresponding to the same repeat are averaged for that repeat.
+    """
     if not skip_burdens:
         logger.info("agg_models[*][*].reverse:")
         pprint(
@@ -280,10 +369,300 @@ def compute_burdens_(
 
     return ds_full.rare_embedding.genes, burdens, y, x, sample_ids
 
+def make_regenie_input_(
+    debug: bool,
+    skip_samples: bool,
+    skip_covariates: bool,
+    skip_phenotypes: bool,
+    skip_burdens: bool,
+    repeat: int,
+    average_repeats: bool,
+    phenotype: Tuple[Tuple[str, Path, Path]],
+    sample_file: Optional[Path],
+    covariate_file: Optional[Path],
+    phenotype_file: Optional[Path],
+    bgen: Optional[Path],
+    gene_file: Path,
+    gtf: Path,
+):
+    ## Check options
+    if (repeat >= 0) + average_repeats + skip_burdens != 1:
+        raise ValueError(
+            "Exactly one of --repeat or --average-repeats or --skip-burdens must be specified"
+        )
+    if not skip_samples and sample_file is None:
+        raise ValueError("Either sample_file or skip_samples must be specified")
+    if not skip_covariates and covariate_file is None:
+        raise ValueError("Either covariate_file or skip_covariates must be specified")
+    if not skip_phenotypes and phenotype_file is None:
+        raise ValueError("Either phenotype_file or skip_phenotypes must be specified")
+    if not skip_burdens and bgen is None:
+        raise ValueError("Either bgen or skip_burdens must be specified")
+
+    ## Make BGEN
+
+    # Load data
+    logger.info("Loading computed burdens, covariates, phenotypes and metadata")
+
+    phenotype_names = [p[0] for p in phenotype]
+    dataset_files = [p[1] for p in phenotype]
+    burden_dirs = [p[2] for p in phenotype]
+
+    sample_ids = zarr.load(burden_dirs[0] / "sample_ids.zarr")
+    covariates = zarr.load(burden_dirs[0] / "x.zarr")
+    ys = [zarr.load(b / "y.zarr") for b in burden_dirs]
+    genes = np.load(burden_dirs[0] / "genes.npy")
+
+    if debug:
+        sample_ids = sample_ids[:1000]
+        covariates = covariates[:1000]
+        ys = [y[:1000] for y in ys]
+
+    n_samples = sample_ids.shape[0]
+    n_genes = genes.shape[0]
+    assert covariates.shape[0] == n_samples
+    assert all([y.shape[0] == n_samples for y in ys])
+
+    # Sanity check: sample_ids, covariates, and genes should be consistent for all phenotypes
+    # TODO: Check burdens as well (though this will be slow)
+    if not debug:
+        for i in range(1, len(phenotype)):
+            assert np.array_equal(
+                sample_ids, zarr.load(burden_dirs[i] / "sample_ids.zarr")
+            )
+            assert np.array_equal(
+                covariates, zarr.load(burden_dirs[i] / "x.zarr")
+            )  # TODO: Phenotype-specific covariates
+            assert np.array_equal(genes, np.load(burden_dirs[i] / "genes.npy"))
+
+    sample_df = pd.DataFrame({"FID": sample_ids, "IID": sample_ids})
+
+    if not skip_samples:
+        ## Make sample file
+        logger.info(f"Creating sample file {sample_file}")
+        samples_out = pd.concat(
+            [
+                pd.DataFrame({"ID_1": 0, "ID_2": 0}, index=[0]),
+                sample_df.rename(
+                    columns={
+                        "FID": "ID_1",
+                        "IID": "ID_2",
+                    }
+                ),
+            ]
+        )
+        samples_out.to_csv(sample_file, sep=" ", index=False)
+
+    if not skip_covariates:
+        ## Make covariate file
+        logger.info(f"Creating covariate file {covariate_file}")
+        with open(dataset_files[0], "rb") as f:
+            dataset = pickle.load(f)
+
+        covariate_names = dataset.x_phenotypes
+        cov_df = pd.DataFrame(covariates, columns=covariate_names)
+        cov_df = pd.concat([sample_df, cov_df], axis=1)
+        cov_df.to_csv(covariate_file, sep=" ", index=False, na_rep="NA")
+
+    if not skip_phenotypes:
+        ## Make phenotype file
+        logger.info(f"Creating phenotype file {phenotype_file}")
+        pheno_df_list = []
+        for p, y in zip(phenotype_names, ys):
+            pheno_df_list.append(pd.DataFrame({p: y.squeeze()}))
+
+        pheno_df = pd.concat([sample_df] + pheno_df_list, axis=1)
+        pheno_df.to_csv(phenotype_file, sep=" ", index=False, na_rep="NA")
+
+    if not skip_burdens:
+        logger.warning(
+            "Using burdens from first phenotype passed. "
+            "Burdens from other phenotypes will be ignored."
+        )
+        burdens_zarr = zarr.open(burden_dirs[0] / "burdens.zarr")
+        if not debug:
+            assert burdens_zarr.shape[0] == n_samples
+            assert burdens_zarr.shape[1] == n_genes
+
+        if average_repeats:
+            logger.info("Averaging burdens across all repeats")
+            burdens = np.zeros((n_samples, n_genes))
+            for repeat in trange(burdens_zarr.shape[2]):
+                burdens += burdens_zarr[:n_samples, :, repeat]
+            burdens = burdens / burdens_zarr.shape[2]
+        else:
+            logger.info(f"Using burdens from repeat {repeat}")
+            assert repeat < burdens_zarr.shape[2]
+            burdens = burdens_zarr[:n_samples, :, repeat]
+
+        # Read GTF file and get positions for pseudovariants (center of interval [Start, End])
+        logger.info(
+            f"Assigning positions to pseudovariants based on provided GTF file {gtf}"
+        )
+        gene_pos = pr.read_gtf(gtf)
+        gene_pos = gene_pos[
+            (gene_pos.Feature == "gene") & (gene_pos.gene_type == "protein_coding")
+        ][["Chromosome", "Start", "End", "gene_id"]].as_df()
+        gene_pos = gene_pos.set_index("gene_id")
+        gene_metadata = pd.read_parquet(gene_file).set_index("id")
+        this_gene_pos = gene_pos.loc[gene_metadata.loc[genes, "gene"]]
+        pseudovar_pos = (this_gene_pos.End - this_gene_pos.Start).to_numpy().astype(int)
+        ensgids = this_gene_pos.index.to_numpy()
+
+        logger.info(f"Writing pseudovariants to {bgen}")
+        with BgenWriter(
+            bgen,
+            n_samples,
+            samples=list(sample_ids),
+            metadata="Pseudovariants containing DeepRVAT gene impairment scores. One pseudovariant per gene.",
+        ) as f:
+            for i in trange(n_genes):
+                varid = f"pseudovariant_gene_{ensgids[i]}"
+                this_burdens = burdens[:, i]  # Rescale scores to be in range (0, 2)
+                genotypes = np.stack(
+                    (this_burdens, np.zeros(this_burdens.shape), 1 - this_burdens),
+                    axis=1,
+                )
+
+                f.add_variant(
+                    varid=varid,
+                    rsid=varid,
+                    chrom=this_gene_pos.iloc[i].Chromosome,
+                    pos=pseudovar_pos[i],
+                    alleles=[
+                        "A",
+                        "C",
+                    ],  # TODO: This is completely arbitrary, however, we might want to match it to a reference FASTA at some point
+                    genotypes=genotypes,
+                    ploidy=2,
+                    bit_depth=16,
+                )
+
+
+@cli.command()
+@click.option("--debug", is_flag=True)
+@click.option("--skip-samples", is_flag=True)
+@click.option("--skip-covariates", is_flag=True)
+@click.option("--skip-phenotypes", is_flag=True)
+@click.option("--skip-burdens", is_flag=True)
+@click.option("--repeat", type=int, default=-1)
+@click.option("--average-repeats", is_flag=True)
+@click.option(
+    "--phenotype",
+    type=(
+        str,
+        click.Path(exists=True, path_type=Path),
+        click.Path(exists=True, path_type=Path),
+    ),
+    multiple=True,
+)  # phenotype_name, dataset_file, burden_dir
+@click.option("--sample-file", type=click.Path(path_type=Path))
+@click.option("--bgen", type=click.Path(path_type=Path))
+@click.option("--covariate-file", type=click.Path(path_type=Path))
+@click.option("--phenotype-file", type=click.Path(path_type=Path))
+# @click.argument("dataset-file", type=click.Path(exists=True, path_type=Path))
+# @click.argument("burden-dir", type=click.Path(exists=True, path_type=Path))
+@click.argument("gene-file", type=click.Path(exists=True, path_type=Path))
+@click.argument("gtf", type=click.Path(exists=True, path_type=Path))
+def make_regenie_input(
+    debug: bool,
+    skip_samples: bool,
+    skip_covariates: bool,
+    skip_phenotypes: bool,
+    skip_burdens: bool,
+    repeat: int,
+    average_repeats: bool,
+    phenotype: Tuple[Tuple[str, Path, Path]],
+    sample_file: Optional[Path],
+    covariate_file: Optional[Path],
+    phenotype_file: Optional[Path],
+    bgen: Optional[Path],
+    gene_file: Path,
+    gtf: Path,
+):
+    make_regenie_input_(
+        debug=debug,
+        skip_samples=skip_samples,
+        skip_covariates=skip_covariates,
+        skip_phenotypes=skip_phenotypes,
+        skip_burdens=skip_burdens,
+        repeat=repeat,
+        average_repeats=average_repeats,
+        phenotype=phenotype,
+        sample_file=sample_file,
+        covariate_file=covariate_file,
+        phenotype_file=phenotype_file,
+        bgen=bgen,
+        gene_file=gene_file,
+        gtf=gtf,
+    )
+
+
+def convert_regenie_output_(
+    repeat: int, phenotype: Tuple[str, Tuple[Path, Path]], gene_file: Path
+):
+    genes = pd.read_parquet(gene_file)[["id", "gene"]]
+    for pheno_name, regenie_results, out_file in phenotype:
+        regenie_cols = ["TEST", "SE", "CHISQ"]
+        regenie_col_newnames = [f"regenie_{c}" for c in regenie_cols]
+        result_df = pd.read_csv(regenie_results, sep=" ")[
+            ["ID", "BETA", "LOG10P"] + regenie_cols
+        ]
+
+        result_df["gene"] = result_df["ID"].str.split("_", expand=True)[2]
+        old_len = len(result_df)
+        result_df = pd.merge(result_df, genes, validate="1:1")
+        assert len(result_df) == old_len
+        result_df = result_df.drop(columns="ID")
+        result_df = result_df.drop(columns="gene").rename(columns={"id": "gene"})
+
+        result_df["phenotype"] = pheno_name
+        result_df = result_df.rename(columns={"BETA": "beta"})
+        result_df["pval"] = np.power(10, -result_df["LOG10P"])
+        result_df = result_df.drop(columns="LOG10P")
+        result_df["model"] = f"repeat_{repeat}"
+        result_df = result_df.rename(
+            columns=dict(zip(regenie_cols, regenie_col_newnames))
+        )
+        result_df = result_df[
+            ["phenotype", "gene", "beta", "pval", "model"] + regenie_col_newnames
+        ]
+        result_df.to_parquet(out_file)
+
+
+@cli.command()
+@click.option("--repeat", type=int, default=0)
+@click.option(
+    "--phenotype",
+    type=(
+        str,
+        click.Path(exists=True, path_type=Path),  # REGENIE output file
+        click.Path(path_type=Path),  # Converted results
+    ),
+    multiple=True,
+)
+@click.argument("gene-file", type=click.Path(exists=True, path_type=Path))
+def convert_regenie_output(
+    repeat: int, phenotype: Tuple[str, Tuple[Path, Path]], gene_file: Path
+):
+    convert_regenie_output_(repeat, phenotype, gene_file)
+
 
 def load_one_model(
     config: Dict, checkpoint: str, device: torch.device = torch.device("cpu"),
 ):
+    """
+    Load a single burden score computation model from a checkpoint file.
+
+    :param config: Configuration dictionary.
+    :type config: Dict
+    :param checkpoint: Path to the model checkpoint file.
+    :type checkpoint: str
+    :param device: Device to load the model onto, defaults to "cpu".
+    :type device: torch.device
+    :return: Loaded PyTorch model for burden score computation.
+    :rtype: nn.Module
+    """
     model_class = getattr(deeprvat_models, config["model"]["type"])
     model = model_class.load_from_checkpoint(
         checkpoint, config=config["model"]["config"],
@@ -301,6 +680,17 @@ def load_one_model(
 def reverse_models(
     model_config_file: str, data_config_file: str, checkpoint_files: Tuple[str]
 ):
+    """
+    Determine if the burden score computation PyTorch model should reverse the output based on PLOF annotations.
+
+    :param model_config_file: Path to the model configuration file.
+    :type model_config_file: str
+    :param data_config_file: Path to the data configuration file.
+    :type data_config_file: str
+    :param checkpoint_files: Paths to checkpoint files.
+    :type checkpoint_files: Tuple[str]
+    :return: checkpoint.reverse file is created if the model should reverse the burden score output.
+    """
     with open(model_config_file) as f:
         model_config = yaml.safe_load(f)
 
@@ -369,6 +759,25 @@ def load_models(
     checkpoint_files: Tuple[str],
     device: torch.device = torch.device("cpu"),
 ) -> Dict[str, List[nn.Module]]:
+    """
+    Load models from multiple checkpoints for multiple repeats.
+
+    :param config: Configuration dictionary.
+    :type config: Dict
+    :param checkpoint_files: Paths to checkpoint files.
+    :type checkpoint_files: Tuple[str]
+    :param device: Device to load the models onto, defaults to "cpu".
+    :type device: torch.device
+    :return: Dictionary of loaded PyTorch models for burden score computation for each repeat.
+    :rtype: Dict[str, List[nn.Module]]
+
+    :Examples:
+
+    >>> config = {"model": {"type": "MyModel", "config": {"param": "value"}}}
+    >>> checkpoint_files = ("checkpoint1.pth", "checkpoint2.pth")
+    >>> load_models(config, checkpoint_files)
+    {'repeat_0': [MyModel(), MyModel()]}
+    """
     logger.info("Loading models and checkpoints")
 
     if all(
@@ -448,6 +857,35 @@ def compute_burdens(
     checkpoint_files: Tuple[str],
     out_dir: str,
 ):
+    """
+    Compute burdens based on the provided model and dataset.
+
+    :param debug: Flag for debugging.
+    :type debug: bool
+    :param bottleneck: Flag to enable bottlenecking number of batches.
+    :type bottleneck: bool
+    :param n_chunks: Number of chunks to split data for processing, defaults to None.
+    :type n_chunks: Optional[int]
+    :param chunk: Index of the chunk of data, defaults to None.
+    :type chunk: Optional[int]
+    :param dataset_file: Path to the dataset file, i.e., association_dataset.pkl.
+    :type dataset_file: Optional[str]
+    :param link_burdens: Path to burden.zarr file to link.
+    :type link_burdens: Optional[str]
+    :param data_config_file: Path to the data configuration file.
+    :type data_config_file: str
+    :param model_config_file: Path to the model configuration file.
+    :type model_config_file: str
+    :param checkpoint_files: Paths to model checkpoint files.
+    :type checkpoint_files: Tuple[str]
+    :param out_dir: Path to the output directory.
+    :type out_dir: str
+    :return: Corresonding genes, computed burdens, y phenotypes, x phenotypes and sample ids are saved in the out_dir.
+    :rtype: [np.ndarray], [zarr.core.Array], [zarr.core.Array], [zarr.core.Array], [zarr.core.Array]
+
+    .. note::
+        Checkpoint models all corresponding to the same repeat are averaged for that repeat.
+    """
     if len(checkpoint_files) == 0:
         raise ValueError("At least one checkpoint file must be supplied")
 
@@ -497,7 +935,23 @@ def compute_burdens(
         source_path.symlink_to(link_burdens)
 
 
-def regress_on_gene_scoretest(gene: str, burdens: np.ndarray, model_score):
+def regress_on_gene_scoretest(
+    gene: str,
+    burdens: np.ndarray,
+    model_score,
+) -> Tuple[List[str], List[float], List[float]]:
+    """
+    Perform regression on a gene using the score test.
+
+    :param gene: Gene name.
+    :type gene: str
+    :param burdens: Burden scores associated with the gene.
+    :type burdens: np.ndarray
+    :param model_score: Model for score test.
+    :type model_score: Any
+    :return: Tuple containing gene name, beta, and p-value.
+    :rtype: Tuple[List[str], List[float], List[float]]
+    """
     burdens = burdens.reshape(burdens.shape[0], -1)
     assert np.all(burdens != 0)  # TODO check this!
     logger.info(f"Burdens shape: {burdens.shape}")
@@ -536,7 +990,25 @@ def regress_on_gene(
     x_pheno: np.ndarray,
     use_bias: bool,
     use_x_pheno: bool,
-) -> Optional[Tuple[List[str], List[float], List[float]]]:
+) -> Tuple[List[str], List[float], List[float]]:
+    """
+    Perform regression on a gene using Ordinary Least Squares (OLS).
+
+    :param gene: Gene name.
+    :type gene: str
+    :param X: Burden score data.
+    :type X: np.ndarray
+    :param y: Y phenotype data.
+    :type y: np.ndarray
+    :param x_pheno: X phenotype data.
+    :type x_pheno: np.ndarray
+    :param use_bias: Flag to include bias term.
+    :type use_bias: bool
+    :param use_x_pheno: Flag to include x phenotype data in regression.
+    :type use_x_pheno: bool
+    :return: Tuple containing gene name, beta, and p-value.
+    :rtype: Tuple[List[str], List[float], List[float]]
+    """
     X = X.reshape(X.shape[0], -1)
     if np.all(np.abs(X) < 1e-6):
         logger.warning(f"Burden for gene {gene} is 0 for all samples; skipping")
@@ -580,6 +1052,30 @@ def regress_(
     use_x_pheno: bool = True,
     do_scoretest: bool = True,
 ) -> pd.DataFrame:
+    """
+    Perform regression on multiple genes.
+
+    :param config: Configuration dictionary.
+    :type config: Dict
+    :param use_bias: Flag to include bias term when performing OLS regression.
+    :type use_bias: bool
+    :param burdens: Burden score data.
+    :type burdens: np.ndarray
+    :param y: Y phenotype data.
+    :type y: np.ndarray
+    :param gene_indices: Indices of genes.
+    :type gene_indices: np.ndarray
+    :param genes: Gene names.
+    :type genes: pd.Series
+    :param x_pheno: X phenotype data.
+    :type x_pheno: np.ndarray
+    :param use_x_pheno: Flag to include x phenotype data when performing OLS regression, defaults to True.
+    :type use_x_pheno: bool
+    :param do_scoretest: Flag to use the scoretest from SEAK, defaults to True.
+    :type do_scoretest: bool
+    :return: DataFrame containing regression results on all genes.
+    :rtype: pd.DataFrame
+    """
     assert len(gene_indices) == len(genes)
 
     logger.info(f"Computing associations")
@@ -661,6 +1157,33 @@ def regress(
     sample_file: Optional[str],
     burden_file: Optional[str],
 ):
+    """
+    Perform regression analysis.
+
+    :param debug: Flag for debugging.
+    :type debug: bool
+    :param chunk: Index of the chunk of data, defaults to 0.
+    :type chunk: int
+    :param n_chunks: Number of chunks to split data for processing, defaults to 1.
+    :type n_chunks: int
+    :param use_bias: Flag to include bias term when performing OLS regression.
+    :type use_bias: bool
+    :param gene_file: Path to the gene file.
+    :type gene_file: str
+    :param repeat: Index of the repeat, defaults to 0.
+    :type repeat: int
+    :param config_file: Path to the configuration file.
+    :type config_file: str
+    :param burden_dir: Path to the directory containing burdens.zarr file.
+    :type burden_dir: str
+    :param out_dir: Path to the output directory.
+    :type out_dir: str
+    :param do_scoretest: Flag to use the scoretest from SEAK.
+    :type do_scoretest: bool
+    :param sample_file: Path to the sample file.
+    :type sample_file: Optional[str]
+    :return: Regression results saved to out_dir as "burden_associations_{chunk}.parquet"
+    """
     logger.info("Loading saved burdens")
     # if burden_file is not None:
     #     logger.info(f'Loading burdens from {burden_file}')
@@ -748,6 +1271,17 @@ def regress(
 def combine_regression_results(
     result_files: Tuple[str], out_file: str, model_name: Optional[str]
 ):
+    """
+    Combine multiple regression result files.
+
+    :param result_files: List of paths to regression result files.
+    :type result_files: Tuple[str]
+    :param out_file: Path to the output file.
+    :type out_file: str
+    :param model_name: Name of the regression model.
+    :type model_name: Optional[str]
+    :return: Concatenated regression results saved to a parquet file.
+    """
     logger.info(f"Concatenating results")
     results = pd.concat([pd.read_parquet(f, engine="pyarrow") for f in result_files])
 

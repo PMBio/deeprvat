@@ -1,5 +1,6 @@
 phenotypes:
     Apolipoprotein_A:
+<<<<<<< HEAD
         correction_method: Bonferroni
         n_training_genes: 40
         baseline_phenotype: Apolipoprotein_A
@@ -168,6 +169,9 @@ training:
         - HDL_cholesterol
         - IGF_1
         - LDL_direct_statin_corrected
+        - Red_blood_cell_erythrocyte_count
+        - HDL_cholesterol
+        - IGF_1
         - Lymphocyte_percentage
         - Mean_platelet_thrombocyte_volume
         - Mean_corpuscular_volume
@@ -302,7 +306,6 @@ training_data:
             - alphamissense
         use_common_variants: False
         use_rare_variants: True
-        sample_file: samples.pkl
         rare_embedding:
             type: PaddedAnnotations
             config:
@@ -425,7 +428,6 @@ data:
         gene_file: protein_coding_genes.parquet
         use_common_variants: False
         use_rare_variants: True
-        sample_file: samples.pkl
         rare_embedding:
             type: PaddedAnnotations
             config:

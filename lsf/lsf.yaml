@@ -16,8 +16,7 @@ delete_burden_cache:
 
 choose_training_genes:
     - "-q short"
-deeprvat_evaluate:
-    - "-q long"
+
 best_cv_run:
     - "-q short"
 link_avg_burdens:
@@ -52,6 +51,21 @@ regress:
 combine_regression_chunks:
     - "-q short"
 
+regenie_step1_splitl0:
+    - "-q short"
+
+regenie_step1_runl0:
+    - "-q medium"
+
+regenie_step1_runl1:
+    - "-q medium"
+
+regenie_step1:
+    - "-q verylong"
+
+regenie_step2:
+    - "-q medium"
+
 
 # For CV (phenotype prediction) pipeline
 
@@ -81,6 +95,11 @@ deeprvat_train:
 deeprvat_compute_burdens:
     - "-q gpu"
     - "-gpu num=1:j_exclusive=yes:mode=exclusive_process:gmem=15.7G"
+
+
+deeprvat_compute_burdens:
+    - "-q gpu-lowprio"
+    - "-gpu num=1:j_exclusive=yes:mode=exclusive_process:gmem=10.7G"
     - "-R \"select[(hname != 'e230-dgx2-1' && hname != 'e230-dgx2-2' && hname != 'e230-dgxa100-1'  && hname != 'e230-dgxa100-2' && hname != 'e230-dgxa100-3' && hname != 'e230-dgxa100-4' && hname != 'e071-gpu06')]\""
     - "-W 180"
     # - "-R tensorcore"
@@ -109,3 +128,9 @@ association_dataset:
     
 seed_gene_regress_plof:
     - "-q medium"
+
+deeprvat_compute_plof_burdens:
+    - "-q medium"
+
+deeprvat_regress:
+    - "-q long"
