@@ -71,8 +71,9 @@ def get_burden(
 
     y = batch["y"]
     x = batch["x_phenotypes"]
+    sample_ids = batch["sample"]
 
-    return burden, y, x
+    return burden, y, x, sample_ids
 
 
 def separate_parallel_results(results: List) -> Tuple[List, ...]:
@@ -197,7 +198,7 @@ def compute_burdens_(
             file=sys.stdout,
             total=(n_samples // batch_size + (n_samples % batch_size != 0)),
         ):
-            this_burdens, this_y, this_x = get_burden(
+            this_burdens, this_y, this_x, this_sampleid = get_burden(
                 batch, agg_models, device=device, skip_burdens=skip_burdens
             )
             if i == 0:
@@ -205,6 +206,8 @@ def compute_burdens_(
                     chunk_burden = np.zeros(shape=(n_samples,) + this_burdens.shape[1:])
                 chunk_y = np.zeros(shape=(n_samples,) + this_y.shape[1:])
                 chunk_x = np.zeros(shape=(n_samples,) + this_x.shape[1:])
+                chunk_sampleid = np.zeros(shape=(n_samples))
+
 
                 logger.info(f"Batch size: {batch['rare_variant_annotations'].shape}")
 
@@ -213,7 +216,7 @@ def compute_burdens_(
                         Path(cache_dir) / "burdens.zarr",
                         mode="a",
                         shape=(n_total_samples,) + this_burdens.shape[1:],
-                        chunks=(1000, 1000),
+                        chunks=(1000, 1000, 1),
                         dtype=np.float32,
                         compressor=Blosc(clevel=compression_level),
                     )
@@ -237,7 +240,14 @@ def compute_burdens_(
                     dtype=np.float32,
                     compressor=Blosc(clevel=compression_level),
                 )
-
+                sample_ids = zarr.open(
+                    Path(cache_dir) / "sample_ids.zarr",
+                    mode="a",
+                    shape=(n_total_samples),
+                    chunks=(None),
+                    dtype=np.float32,
+                    compressor=Blosc(clevel=compression_level),
+                )
             start_idx = i * batch_size
             end_idx = min(start_idx + batch_size, chunk_end)  # read from chunk shape
 
@@ -246,6 +256,7 @@ def compute_burdens_(
 
             chunk_y[start_idx:end_idx] = this_y
             chunk_x[start_idx:end_idx] = this_x
+            chunk_sampleid[start_idx:end_idx] = this_sampleid
 
             if debug:
                 logger.info(
@@ -260,13 +271,14 @@ def compute_burdens_(
 
         y[chunk_start:chunk_end] = chunk_y
         x[chunk_start:chunk_end] = chunk_x
+        sample_ids[chunk_start:chunk_end] = chunk_sampleid
 
     if torch.cuda.is_available():
         logger.info(
             "Max GPU memory allocated: " f"{torch.cuda.max_memory_allocated(0)} bytes"
         )
 
-    return ds_full.rare_embedding.genes, burdens, y, x
+    return ds_full.rare_embedding.genes, burdens, y, x, sample_ids
 
 
 def load_one_model(
@@ -464,7 +476,7 @@ def compute_burdens(
     else:
         agg_models = None
 
-    genes, _, _, _ = compute_burdens_(
+    genes, _, _, _, _ = compute_burdens_(
         debug,
         data_config,
         dataset,
