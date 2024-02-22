@@ -32,9 +32,7 @@ wildcard_constraints:
 
 cv_splits = config.get("n_folds", 5)
 cv_exp = True
-# config_file_prefix = (
-#     "cv_split0/deeprvat/" if cv_exp else ""
-# )  # needed in case we analyse a CV experiment
+
 
 
 include: "../association_testing/plot.snakefile"
@@ -51,7 +49,7 @@ rule all_plot:  #plot.snakefile
         "dicovery_replication_plot.png",
 
 
-rule all_evaluate_avg:  #plot.snakefile
+rule all_evaluate:  #plot.snakefile
     input:
         significant=expand(
             "{phenotype}/deeprvat/eval/significant.parquet", phenotype=phenotypes
@@ -61,7 +59,7 @@ rule all_evaluate_avg:  #plot.snakefile
         ),
 
 
-rule all_regression_avg:  #regress_eval_avg.snakefile
+rule all_regression:  #regress_eval.snakefile
     input:
         expand(
             "{phenotype}/deeprvat/average_regression_results/burden_associations.parquet",

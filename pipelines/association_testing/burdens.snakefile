@@ -67,7 +67,7 @@ rule compute_burdens:
     input:
         reversed = model_path / "reverse_finished.tmp",
         checkpoints = lambda wildcards: [
-            model_path / f'repeat_{repeat}/best/bag_{bag}.ckpt'
+            f'{model_path}/repeat_{repeat}/best/bag_{bag}.ckpt'
             for repeat in range(n_repeats) for bag in range(n_bags)
         ],
         dataset = '{phenotype}/deeprvat/association_dataset.pkl',
@@ -82,7 +82,6 @@ rule compute_burdens:
         mem_mb = 2000000,        # Using this value will tell our modified lsf.profile not to set a memory resource
         load = 8000,
         gpus = 1
-
     shell:
         ' && '.join([
             ('deeprvat_associate compute-burdens '

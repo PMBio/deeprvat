@@ -22,7 +22,6 @@ wildcard_constraints:
     repeat="\d+",
     trial="\d+",
 
-<<<<<<< HEAD
 cv_exp = False
 config_file_prefix = (
     "cv_split0/deeprvat/" if cv_exp else ""
