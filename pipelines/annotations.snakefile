@@ -21,9 +21,9 @@ annotation_columns_yaml_file = config.get('annotation_columns_yaml_file') or dee
 included_chromosomes = config.get(
     "included_chromosomes", [f"{c}" for c in range(1, 23)] + ["X", "Y"]
 )
-proprocess_dir = Path(config.get("preprocessing_workdir", ""))
-variant_file = config.get("variant_file_path") or proprocess_dir / 'norm' / 'variants' / 'variants.tsv.gz'
-genotype_file = config.get("genotype_file_path") or proprocess_dir / 'preprocesed' / 'genotypes.h5'
+preprocess_dir = Path(config.get("preprocessing_workdir", ""))
+variant_file = config.get("variant_file_path") or preprocess_dir / 'norm' / 'variants' / 'variants.tsv.gz'
+genotype_file = config.get("genotype_file_path") or preprocess_dir / 'preprocesed' / 'genotypes.h5'
 saved_deepripe_models_path = (
     Path(config["faatpipe_repo_dir"]) / "data" / "deepripe_models"
 )
