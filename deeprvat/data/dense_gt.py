@@ -313,7 +313,9 @@ class DenseGTDataset(Dataset):
                 list(set(samples_to_keep).intersection(set(samples_phenotype_df)))
             )
             if len(shared_samples) < len(samples_to_keep):
-                logger.warning('Some samples from the sample file were not found in the data')
+                logger.warning(
+                    "Some samples from the sample file were not found in the data"
+                )
             sample_to_keep = shared_samples
             logger.info(
                 f"Number of samples in sample file and in phenotype_df: {len(samples_to_keep)}"
@@ -564,7 +566,7 @@ class DenseGTDataset(Dataset):
             self.gene_specific_anno = self.annotation_df["gene_id"].dtype != np.dtype(
                 "O"
             )
-            
+
             if type(annotation_aggregation) == str:
                 self.annotation_aggregation = AGGREGATIONS.get(
                     annotation_aggregation, annotation_aggregation
