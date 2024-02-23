@@ -32,6 +32,7 @@ setup(
             "deeprvat_evaluate=deeprvat.deeprvat.evaluate:evaluate",
             "seed_gene_pipeline=deeprvat.seed_gene_discovery.seed_gene_discovery:cli",
             "seed_gene_evaluate=deeprvat.seed_gene_discovery.evaluate:cli",
+            "deeprvat_cv_utils=deeprvat.cv_utils:cli",
         ],
     },
     install_requires=requirements,
