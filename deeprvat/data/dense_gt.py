@@ -288,10 +288,8 @@ class DenseGTDataset(Dataset):
     ):
         logger.debug("Reading phenotype dataframe")
         self.phenotype_df = pd.read_parquet(phenotype_file, engine="pyarrow")
-        gt_file = h5py.File(
-            self.gt_filename, "r"
-        )  # TODO change this to using with open
-        samples_gt = gt_file["samples"][:]
+        with h5py.File(self.gt_filename, "r") as f:
+            samples_gt = f["samples"][:]
         samples_gt = np.array([item.decode("utf-8") for item in samples_gt])
         if self.check_samples:
             self.samples_gt = samples_gt
@@ -311,14 +309,17 @@ class DenseGTDataset(Dataset):
                 samples_to_keep = pickle.load(f)
             samples_to_keep = np.array(samples_to_keep)
             logger.info(f"Number of samples in sample file: {len(samples_to_keep)}")
-            samples_to_keep = np.array(
+            shared_samples = np.array(
                 list(set(samples_to_keep).intersection(set(samples_phenotype_df)))
             )
+            if len(shared_samples) < len(samples_to_keep):
+                logger.warning('Some samples from the sample file were not found in the data')
+            sample_to_keep = shared_samples
             logger.info(
                 f"Number of samples in sample file and in phenotype_df: {len(samples_to_keep)}"
             )
         else:
-            logger.info("Using all samples in phenotyp df")
+            logger.info("Using all samples in phenotype df")
             samples_to_keep = copy.deepcopy(samples_phenotype_df)
 
         logger.info("Removing samples that are not in genotype file")
@@ -563,11 +564,7 @@ class DenseGTDataset(Dataset):
             self.gene_specific_anno = self.annotation_df["gene_id"].dtype != np.dtype(
                 "O"
             )
-
-            self.gene_specific_anno = self.annotation_df["gene_id"].dtype != np.dtype(
-                "O"
-            )
-
+            
             if type(annotation_aggregation) == str:
                 self.annotation_aggregation = AGGREGATIONS.get(
                     annotation_aggregation, annotation_aggregation
