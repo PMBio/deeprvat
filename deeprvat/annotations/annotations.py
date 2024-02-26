@@ -1086,16 +1086,16 @@ def deepripe_score_variant_onlyseq_all(
     Compute variant scores using a deep learning model for each specified variant.
 
     Parameters:
-    - model_group (dict): A dictionary containing deep learning models for different choices. Each entry should be a key-value pair, where the key is the choice name and the value is a tuple containing the model and additional information.
-    - variant_bed (list): A list of variant bedlines, where each bedline represents a variant.
-    - genomefasta (str): Path to the reference genome in FASTA format.
-    - seq_len (int, optional): The length of the sequence to use around each variant. Default is 200.
-    - batch_size (int, optional): Batch size for parallelization. Default is 1024.
-    - n_jobs (int, optional): Number of parallel jobs for processing variant bedlines. Default is 32.
+        - model_group (dict): A dictionary containing deep learning models for different choices. Each entry should be a key-value pair, where the key is the choice name and the value is a tuple containing the model and additional information.
+        - variant_bed (list): A list of variant bedlines, where each bedline represents a variant.
+        - genomefasta (str): Path to the reference genome in FASTA format.
+        - seq_len (int, optional): The length of the sequence to use around each variant. Default is 200.
+        - batch_size (int, optional): Batch size for parallelization. Default is 1024.
+        - n_jobs (int, optional): Number of parallel jobs for processing variant bedlines. Default is 32.
 
     Returns:
-    dict: A dictionary containing variant scores for each choice in the model_group.
-          Each entry has the choice name as the key and the corresponding scores as the value.
+        dict: A dictionary containing variant scores for each choice in the model_group.
+              Each entry has the choice name as the key and the corresponding scores as the value.
     """
     predictions = {}
 
