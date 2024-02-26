@@ -561,7 +561,6 @@ def deepripe_encode_variant_bedline(bedline, genomefasta, flank_size=75):
         return encoded_seqs
 
 
-
 @click.group()
 def cli():
     pass
@@ -1072,14 +1071,12 @@ def aggregate_abscores(
     all_absplice_scores.to_parquet(ab_splice_agg_score_file)
 
 
-
 logging.basicConfig(
     format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
     level="INFO",
     stream=sys.stdout,
 )
 logger = logging.getLogger(__name__)
-
 
 
 def deepripe_score_variant_onlyseq_all(
@@ -1224,6 +1221,7 @@ def merge_abscores(
 
 
 pd.options.mode.chained_assignment = None
+
 
 @cli.command()
 @click.argument("annotation_file", type=click.Path(exists=True))
