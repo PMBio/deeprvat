@@ -120,10 +120,10 @@ def add_variant_ids(variant_file: str, out_file: str, duplicates_file: str):
     duplicates = variants[variants.duplicated()]
 
     if Path(duplicates_file).suffix == ".parquet":
-        logging.info(f"Writing duplicates in parquet format")
+        logging.info("Writing duplicates in parquet format")
         duplicates.to_parquet(duplicates_file, index=False)
     else:
-        logging.info(f"Writing duplicates in tsv format")
+        logging.info("Writing duplicates in tsv format")
         duplicates.to_csv(duplicates_file, sep="\t", header=False, index=False)
 
     logging.info(f"Wrote {len(duplicates)} duplicates to {duplicates_file}")
@@ -133,10 +133,10 @@ def add_variant_ids(variant_file: str, out_file: str, duplicates_file: str):
     variants["id"] = range(len(variants))
 
     if Path(out_file).suffix == ".parquet":
-        logging.info(f"Writing duplicates in parquet format")
+        logging.info("Writing duplicates in parquet format")
         variants.to_parquet(out_file, index=False)
     else:
-        logging.info(f"Writing duplicates in tsv format")
+        logging.info("Writing duplicates in tsv format")
         variants.to_csv(out_file, sep="\t", index=False)
 
     logging.info(
@@ -265,12 +265,8 @@ def process_sparse_gt(
         )["id"]
         variants = variants[~variants["id"].isin(variant_ids_to_exclude)]
         if not skip_sanity_checks:
-            try:
-                assert total_variants - len(variants) == len(variants_to_exclude)
-            except:
-                import ipdb
+            assert total_variants - len(variants) == len(variants_to_exclude)
 
-                ipdb.set_trace()
     logging.info(f"Dropped {total_variants - len(variants)} variants")
     logging.info(f"...done ({time.time() - start_time} s)")
 
