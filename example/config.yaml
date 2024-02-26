@@ -26,6 +26,7 @@ alpha: 0.05
 
 n_burden_chunks: 2
 n_regression_chunks: 2
+n_avg_chunks: 1
 
 n_repeats: 2
 
@@ -98,6 +99,8 @@ training_data:
         x_phenotypes:
             - age
             - genetic_sex
+            - age2
+            - age_sex
             - genetic_PC_1
             - genetic_PC_2
             - genetic_PC_3
@@ -215,6 +218,8 @@ data:
         x_phenotypes:
             - age
             - genetic_sex
+            - age2
+            - age_sex
             - genetic_PC_1
             - genetic_PC_2
             - genetic_PC_3

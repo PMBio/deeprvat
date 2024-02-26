@@ -7,8 +7,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v3
-      - uses: mamba-org/setup-micromamba@v1.4.3
+        uses: actions/checkout@v4
+      - uses: mamba-org/setup-micromamba@v1.8.0
         with:
           environment-name: deeprvat-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
@@ -41,8 +41,8 @@ jobs:
     needs: DeepRVAT-Pipeline-Smoke-Tests
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v3
-      - uses: mamba-org/setup-micromamba@v1.4.3
+        uses: actions/checkout@v4
+      - uses: mamba-org/setup-micromamba@v1.8.0
         with:
           environment-name: deeprvat-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
@@ -81,8 +81,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v3
-      - uses: mamba-org/setup-micromamba@v1.4.3
+        uses: actions/checkout@v4
+      - uses: mamba-org/setup-micromamba@v1.8.0
         with:
           environment-name: deeprvat-preprocess-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
@@ -114,8 +114,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v3
-      - uses: mamba-org/setup-micromamba@v1.4.3
+        uses: actions/checkout@v4
+      - uses: mamba-org/setup-micromamba@v1.8.0
         with:
           environment-name: deeprvat-preprocess-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
@@ -134,8 +134,8 @@ jobs:
     needs: DeepRVAT-Preprocessing-Pipeline-Smoke-Tests
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v3
-      - uses: mamba-org/setup-micromamba@v1.4.3
+        uses: actions/checkout@v4
+      - uses: mamba-org/setup-micromamba@v1.8.0
         with:
           environment-name: deeprvat-preprocess-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
@@ -152,7 +152,7 @@ jobs:
 
       - name: Cache Fasta file
         id: cache-fasta
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: example/preprocess/workdir/reference
           key: ${{ runner.os }}-reference-fasta
@@ -191,8 +191,8 @@ jobs:
     needs: DeepRVAT-Preprocessing-Pipeline-Smoke-Tests
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v3
-      - uses: mamba-org/setup-micromamba@v1.4.3
+        uses: actions/checkout@v4
+      - uses: mamba-org/setup-micromamba@v1.8.0
         with:
           environment-name: deeprvat-preprocess-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
@@ -209,7 +209,7 @@ jobs:
 
       - name: Cache Fasta file
         id: cache-fasta
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: example/preprocess/workdir/reference
           key: ${{ runner.os }}-reference-fasta
