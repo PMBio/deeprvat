@@ -561,54 +561,6 @@ def deepripe_encode_variant_bedline(bedline, genomefasta, flank_size=75):
         return encoded_seqs
 
 
-def deepripe_score_variant_onlyseq_all(
-    model_group, variant_bed, genomefasta, seq_len=200, batch_size=1024, n_jobs=32
-):
-    """
-    Compute variant scores using a deep learning model for each specified variant.
-
-    Parameters:
-    - model_group (dict): A dictionary containing deep learning models for different choices. Each entry should be a key-value pair, where the key is the choice name and the value is a tuple containing the model and additional information.
-    - variant_bed (list): A list of variant bedlines, where each bedline represents a variant.
-    - genomefasta (str): Path to the reference genome in FASTA format.
-    - seq_len (int, optional): The length of the sequence to use around each variant. Default is 200.
-    - batch_size (int, optional): Batch size for parallelization. Default is 1024.
-    - n_jobs (int, optional): Number of parallel jobs for processing variant bedlines. Default is 32.
-
-    Returns:
-    dict: A dictionary containing variant scores for each choice in the model_group. Each entry has the choice name as the key and the corresponding scores as the value.
-    """
-    predictions = {}
-    encoded_seqs_list = Parallel(n_jobs=n_jobs, verbose=10)(
-        delayed(deepripe_encode_variant_bedline)(
-            bedline, genomefasta, flank_size=(seq_len // 2) + 2
-        )
-        for bedline in variant_bed
-    )
-    encoded_seqs_list = [
-        (x if x is not None else np.ones((2, seq_len + 4, 4)) * float("nan"))
-        for x in encoded_seqs_list
-    ]
-    encoded_seqs = tf.concat(encoded_seqs_list, 0)
-
-    logger.info("Computing predictions")
-    ## shifting around (seq_len+4) 4 bases
-    for choice in tqdm(model_group.keys(), desc="Model group"):
-        avg_score = 0.0
-        for i in range(4):
-            cropped_seqs = encoded_seqs[:, i : i + seq_len, :]
-            model, _ = model_group[choice]
-            pred = model.predict_on_batch(cropped_seqs)
-            wild_indices = tf.range(pred.shape[0], delta=2)
-            mut_indices = tf.range(1, pred.shape[0], delta=2)
-            pred_wild = pred[wild_indices, :]
-            pred_mut = pred[mut_indices, :]
-            score = pred_mut - pred_wild
-            avg_score += score
-        predictions[choice] = avg_score / 4
-
-    return predictions
-
 
 @click.group()
 def cli():
@@ -624,16 +576,21 @@ def cli():
 def filter_annotations_by_exon_distance(
     anno_path: str, gtf_path: str, genes_path: str, output_path: str, max_dist: int
 ) -> None:
-    """Filters annotation based on distance to the nearest exon of gene it is associated with.
+    """
+    Filters annotation based on distance to the nearest exon of gene it is associated with.
 
     Args:
-        anno_path (str): Annotation parquet file containing variant annotations to filter
-        gtf_path (str): gtf file containing start and end positions of all relevant exons of all relevant genes. Df is filtered for protein coding exons.
-        genes_path (str): list of protein coding genes and their IDs in the annotation DF
-        output_path (str): were to write the resulting parquet file
-        max_dist (int): base pairs used to filter
-    Returns: None
-    Writes: parquet file containing filtered annotations
+        anno_path (str): Annotation parquet file containing variant annotations to filter.
+        gtf_path (str): GTF file containing start and end positions of all relevant exons of all relevant genes. DataFrame is filtered for protein coding exons.
+        genes_path (str): List of protein coding genes and their IDs in the annotation DataFrame.
+        output_path (str): Where to write the resulting parquet file.
+        max_dist (int): Base pairs used to filter.
+
+    Returns:
+        None
+
+    Writes:
+        Parquet file containing filtered annotations.
     """
     import pyranges as pr
 
@@ -1115,77 +1072,6 @@ def aggregate_abscores(
     all_absplice_scores.to_parquet(ab_splice_agg_score_file)
 
 
-@cli.command()
-@click.argument("current_annotation_file", type=click.Path(exists=True))
-@click.argument("absplice_score_file", type=click.Path())
-@click.argument("out_file", type=click.Path())
-def merge_abscores(
-    current_annotation_file: str,
-    absplice_score_file: str,
-    out_file: str,
-):
-    """
-    Merge AbSplice scores with the current annotation file and save the result.
-
-    Parameters:
-    - current_annotation_file (str): Path to the current annotation file in parquet format.
-    - absplice_score_file (str): Path to the AbSplice scores file in parquet format.
-    - out_file (str): Path to save the merged annotation file with AbSplice scores.
-
-    Returns:
-    None
-
-    Notes:
-    - The function reads AbSplice scores and the current annotation file.
-    - It merges the AbSplice scores with the current annotation file based on chromosome, position, reference allele, alternative allele, and gene ID.
-    - The merged file is saved with AbSplice scores.
-
-    Example:
-    $ python annotations.py merge_abscores current_annotation.parquet absplice_scores.parquet merged_annotations.parquet
-    """
-
-    all_absplice_scores = pd.read_parquet(absplice_score_file)
-
-    all_absplice_scores = all_absplice_scores[
-        ["chrom", "pos", "ref", "alt", "gene_id", "AbSplice_DNA"]
-    ]
-
-    annotations = pd.read_parquet(current_annotation_file, engine="pyarrow").drop(
-        columns=["AbSplice_DNA"], errors="ignore"
-    )
-    annotations = annotations.rename(columns={"Gene": "gene_id"})
-    annotations.drop_duplicates(
-        inplace=True, subset=["chrom", "pos", "ref", "alt", "gene_id", "id"]
-    )
-    original_len = len(annotations)
-
-    logger.info("Merging")
-    merged = pd.merge(
-        annotations,
-        all_absplice_scores,
-        validate="1:1",
-        how="left",
-        on=["chrom", "pos", "ref", "alt", "gene_id"],
-    )
-
-    logger.info("Sanity checking merge")
-    assert len(merged) == original_len
-    assert len(merged.drop_duplicates(subset=["id", "gene_id"])) == len(merged)
-
-    logger.info(
-        f'Filling {merged["AbSplice_DNA"].isna().sum()} '
-        "missing AbSplice values with 0"
-    )
-    merged["AbSplice_DNA"] = merged["AbSplice_DNA"].fillna(0)
-
-    annotation_out_file = out_file
-
-    logger.info(f"Writing to {annotation_out_file}")
-    merged.to_parquet(annotation_out_file, engine="pyarrow")
-
-
-pd.options.mode.chained_assignment = None
-
 
 logging.basicConfig(
     format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
@@ -1194,44 +1080,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
-@cli.command()
-@click.argument("in_variants", type=click.Path(exists=True))
-@click.argument("out_variants", type=click.Path())
-def process_annotations(in_variants: str, out_variants: str):
-    """
-    Process variant annotations, filter for canonical variants, and aggregate consequences.
-
-    Parameters:
-    - in_variants (str): Path to the input variant annotation file in parquet format.
-    - out_variants (str): Path to save the processed variant annotation file in parquet format.
-
-    Returns:
-    None
-
-    Notes:
-    - The function reads the input variant annotation file.
-    - It filters for canonical variants.
-    - The 'Gene' column is renamed to 'gene_id'.
-    - Consequence_id is generated by combining variant id with gene id.
-    - The processed variant annotations are saved to the specified output file.
-
-    Example:
-    $ python annotations.py process_annotations input_variants.parquet output_variants.parquet
-    """
-    variant_path = Path(in_variants)
-    variants = pd.read_parquet(variant_path)
-
-    logger.info("filtering for canonical variants")
-
-    variants = variants.loc[variants.CANONICAL == "YES"]
-    variants.rename(columns={"Gene": "gene_id"}, inplace=True)
-
-    logger.info("aggregating consequences for different alleles")
-
-    # combining variant id with gene id
-    variants["censequence_id"] = variants["id"].astype(str) + variants["gene_id"]
-    variants.to_parquet(out_variants, compression="zstd")
 
 
 def deepripe_score_variant_onlyseq_all(
@@ -1376,14 +1224,6 @@ def merge_abscores(
 
 
 pd.options.mode.chained_assignment = None
-
-logging.basicConfig(
-    format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
-    level="INFO",
-    stream=sys.stdout,
-)
-logger = logging.getLogger(__name__)
-
 
 @cli.command()
 @click.argument("annotation_file", type=click.Path(exists=True))
