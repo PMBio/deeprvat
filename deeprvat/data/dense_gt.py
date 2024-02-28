@@ -107,7 +107,6 @@ class DenseGTDataset(Dataset):
         cache_matrices: bool = False,
         verbose: bool = False,
     ):
-        sample_file = None  # TODO delete this!
         if verbose:
             logger.setLevel(logging.DEBUG)
         else:
