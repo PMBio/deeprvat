@@ -13,7 +13,8 @@ Rare variant association testing using deep learning and data-driven burden scor
    :maxdepth: 2
    :caption: Contents:
 
-   usage.md
+   installation.md
+   quickstart.md
    preprocessing.md
    annotations.md
    seed_gene_discovery.md
