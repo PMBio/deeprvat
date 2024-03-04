@@ -8,7 +8,7 @@ debug = '--debug ' if debug_flag else ''
 phenotypes = config['phenotypes']
 phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
 
-n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
+burdens = config["burden_file"]
 
 regenie_config_step1 = config["regenie_options"]["step_1"]
 regenie_config_step2 = config["regenie_options"]["step_2"]
@@ -20,6 +20,7 @@ regenie_joblist = range(1, regenie_njobs)
 config_file_prefix = (
     "cv_split0/deeprvat/" if cv_exp else ""
 )
+
 
 
 wildcard_constraints:
@@ -91,7 +92,7 @@ rule regenie_step2:
                phenotype=phenotypes)
     threads: 16
     resources:
-        mem_mb = 4096
+        mem_mb = 16384
     shell:
         "regenie "
         "--step 2 "
@@ -234,10 +235,7 @@ rule make_regenie_burdens:
     input:
         gene_file = config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"],
         gtf_file = config["gtf_file"],
-        burdens = [f'{phenotype}/deeprvat/burdens/chunk{chunk}.' +
-                   ("finished" if phenotype == phenotypes[0] else "linked")
-                   for phenotype in phenotypes
-                   for chunk in range(n_burden_chunks)],
+        burdens = burdens,
         datasets = expand("{phenotype}/deeprvat/association_dataset.pkl",
                           phenotype=phenotypes),
     params:
@@ -259,6 +257,7 @@ rule make_regenie_burdens:
         # "{input.dataset} "
         # "{wildcards.phenotype}/deeprvat/burdens "
         "--bgen {output.bgen} "
+        "--burden_file {input.burdens} "
         "{input.gene_file} "
         "{input.gtf_file} "
 
@@ -266,14 +265,14 @@ rule make_regenie_metadata:
     input:
         gene_file = config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"],
         gtf_file = config["gtf_file"],
-        burdens = [f'{phenotype}/deeprvat/burdens/chunk{chunk}.' +
-                   ("finished" if phenotype == phenotypes[0] else "linked")
-                   for phenotype in phenotypes
-                   for chunk in range(n_burden_chunks)],
+        xy = expand("{phenotype}/deeprvat/xy/chunk{chunk}.finished",
+                    phenotype=phenotypes,
+                    chunk=range(n_burden_chunks))
         datasets = expand("{phenotype}/deeprvat/association_dataset.pkl",
                           phenotype=phenotypes),
     params:
-        phenotypes = " ".join([f"--phenotype {p} {p}/deeprvat/association_dataset.pkl {p}/deeprvat/burdens"
+        phenotypes = " ".join([f"--phenotype {p} {p}/deeprvat/association_dataset.pkl "
+                               f"{p}/deeprvat/xy"
                                for p in phenotypes]) + " "
     output:
         sample_file = "regenie_input/deeprvat_pseudovariants.sample",
