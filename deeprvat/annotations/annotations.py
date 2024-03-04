@@ -661,8 +661,8 @@ def filter_annotations_by_exon_distance(
     logger.info(
         f"filtered annotations based on filterd id, gene_id (dropped {len(anno_df) - len(filtered)} / {np.round(100*(len(anno_df)-len(filtered))/len(anno_df))}% of rows)."
     )
-    logger.info('performing sanity check')
-    assert(len(filtered == len_anno))
+    logger.info("performing sanity check")
+    assert len(filtered == len_anno)
     logger.info(f"writing result to {output_path}")
     filtered.to_parquet(output_path)
 
@@ -2075,7 +2075,7 @@ def add_protein_ids(protein_id_file: str, annotations_path: str, out_file: str):
     len_anno = len(annotations)
     annotations.rename(columns={"gene_id": "gene_base"}, inplace=True)
     merged = annotations.merge(genes, on=["gene_base"], how="left")
-    assert(len(merged)==len_anno)
+    assert len(merged) == len_anno
     merged.to_parquet(out_file)
 
 
