@@ -116,7 +116,8 @@ def cli():
 def make_dataset_(
     config: Dict,
     debug: bool = False,
-    data_key="data",
+    data_key: str = "data",
+    skip_burdens: bool = False,
     samples: Optional[List[int]] = None,
 ) -> Dataset:
     """
@@ -141,9 +142,13 @@ def make_dataset_(
         with open(ds_pickled, "rb") as f:
             ds = pickle.load(f)
     else:
+        gt_variant_args = (
+            (data_config["gt_file"], data_config["variant_file"])
+            if not skip_burdens
+            else tuple()
+        )
         ds = DenseGTDataset(
-            data_config["gt_file"],
-            variant_file=data_config["variant_file"],
+            *gt_variant_args,
             split="",
             skip_y_na=False,
             **copy.deepcopy(data_config["dataset_config"]),
@@ -164,9 +169,12 @@ def make_dataset_(
 @cli.command()
 @click.option("--debug", is_flag=True)
 @click.option("--data-key", type=str, default="data")
+@click.option("--skip-burdens", is_flag=True)
 @click.argument("config-file", type=click.Path(exists=True))
 @click.argument("out-file", type=click.Path())
-def make_dataset(debug: bool, data_key: str, config_file: str, out_file: str):
+def make_dataset(
+    debug: bool, data_key: str, skip_burdens: bool, config_file: str, out_file: str
+):
     """
     Create a dataset based on the provided configuration and save to a pickle file.
 
@@ -183,10 +191,135 @@ def make_dataset(debug: bool, data_key: str, config_file: str, out_file: str):
     with open(config_file) as f:
         config = yaml.safe_load(f)
 
-    ds = make_dataset_(config, debug=debug, data_key=data_key)
+    ds = make_dataset_(
+        config, debug=debug, data_key=data_key, skip_burdens=skip_burdens
+    )
 
     with open(out_file, "wb") as f:
         pickle.dump(ds, f)
+
+
+def compute_xy_(
+    debug: bool,
+    config: Dict,
+    ds: torch.utils.data.Dataset,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Compute burdens using the PyTorch model for each repeat.
+
+    :param debug: Flag for debugging.
+    :type debug: bool
+    :param config: Configuration dictionary.
+    :type config: Dict
+    :param ds: Torch dataset.
+    :type ds: torch.utils.data.Dataset
+    :return: Tuple containing sample IDs, covariates x, and target phenotypes y
+    :rtype: Tuple[np.ndarray, np.ndarray, np.ndarray]
+
+    .. note::
+        Checkpoint models all corresponding to the same repeat are averaged for that repeat.
+    """
+    data_config = config["data"]
+
+    ds_full = ds.dataset if isinstance(ds, Subset) else ds
+    collate_fn = getattr(ds_full, "collate_fn", None)
+    n_total_samples = len(ds)
+
+    dataloader_config = data_config["dataloader_config"]
+
+    dl = DataLoader(ds, collate_fn=collate_fn, **dataloader_config)
+
+    logger.info("Computing covariates and target phenotypes")
+    batch_size = data_config["dataloader_config"]["batch_size"]
+    sample_id_list = []
+    x_list = []
+    y_list = []
+    with torch.no_grad():
+        for i, batch in tqdm(
+            enumerate(dl),
+            file=sys.stdout,
+            total=(n_samples // batch_size + (n_samples % batch_size != 0)),
+        ):
+            this_burdens, this_y, this_x, this_sampleid = get_burden(
+                batch, agg_models, device=device, skip_burdens=skip_burdens
+            )
+            if i == 0:
+                if not skip_burdens:
+                    chunk_burden = np.zeros(shape=(n_samples,) + this_burdens.shape[1:])
+                chunk_y = np.zeros(shape=(n_samples,) + this_y.shape[1:])
+                chunk_x = np.zeros(shape=(n_samples,) + this_x.shape[1:])
+                chunk_sampleid = np.zeros(shape=(n_samples))
+
+                logger.info(f"Batch size: {batch['rare_variant_annotations'].shape}")
+
+                if not skip_burdens:
+                    burdens = zarr.open(
+                        Path(cache_dir) / "burdens.zarr",
+                        mode="a",
+                        shape=(n_total_samples,) + this_burdens.shape[1:],
+                        chunks=(1000, 1000, 1),
+                        dtype=np.float32,
+                        compressor=Blosc(clevel=compression_level),
+                    )
+                    logger.info(f"burdens shape: {burdens.shape}")
+                else:
+                    burdens = None
+
+                y = zarr.open(
+                    Path(cache_dir) / "y.zarr",
+                    mode="a",
+                    shape=(n_total_samples,) + this_y.shape[1:],
+                    chunks=(None, None),
+                    dtype=np.float32,
+                    compressor=Blosc(clevel=compression_level),
+                )
+                x = zarr.open(
+                    Path(cache_dir) / "x.zarr",
+                    mode="a",
+                    shape=(n_total_samples,) + this_x.shape[1:],
+                    chunks=(None, None),
+                    dtype=np.float32,
+                    compressor=Blosc(clevel=compression_level),
+                )
+                sample_ids = zarr.open(
+                    Path(cache_dir) / "sample_ids.zarr",
+                    mode="a",
+                    shape=(n_total_samples),
+                    chunks=(None),
+                    dtype=np.float32,
+                    compressor=Blosc(clevel=compression_level),
+                )
+            start_idx = i * batch_size
+            end_idx = min(start_idx + batch_size, chunk_end)  # read from chunk shape
+
+            if not skip_burdens:
+                chunk_burden[start_idx:end_idx] = this_burdens
+
+            chunk_y[start_idx:end_idx] = this_y
+            chunk_x[start_idx:end_idx] = this_x
+            chunk_sampleid[start_idx:end_idx] = this_sampleid
+
+            if debug:
+                logger.info(
+                    "Wrote results for batch indices " f"[{start_idx}, {end_idx - 1}]"
+                )
+
+            if bottleneck and i > 20:
+                break
+
+        if not skip_burdens:
+            burdens[chunk_start:chunk_end] = chunk_burden
+
+        y[chunk_start:chunk_end] = chunk_y
+        x[chunk_start:chunk_end] = chunk_x
+        sample_ids[chunk_start:chunk_end] = chunk_sampleid
+
+    if torch.cuda.is_available():
+        logger.info(
+            "Max GPU memory allocated: " f"{torch.cuda.max_memory_allocated(0)} bytes"
+        )
+
+    return ds_full.rare_embedding.genes, burdens, y, x, sample_ids
 
 
 def compute_burdens_(
@@ -475,11 +608,7 @@ def make_regenie_input_(
         pheno_df.to_csv(phenotype_file, sep=" ", index=False, na_rep="NA")
 
     if not skip_burdens:
-        logger.warning(
-            "Using burdens from first phenotype passed. "
-            "Burdens from other phenotypes will be ignored."
-        )
-        burdens_zarr = zarr.open(burden_dirs[0] / "burdens.zarr")
+        burdens_zarr = zarr.open(burden_file / "burdens.zarr")
         if not debug:
             assert burdens_zarr.shape[0] == n_samples
             assert burdens_zarr.shape[1] == n_genes
@@ -545,6 +674,7 @@ def make_regenie_input_(
 @click.option("--skip-covariates", is_flag=True)
 @click.option("--skip-phenotypes", is_flag=True)
 @click.option("--skip-burdens", is_flag=True)
+@click.option("--burden-file", type=click.Path(path_type=Path, exists=True))
 @click.option("--repeat", type=int, default=-1)
 @click.option("--average-repeats", is_flag=True)
 @click.option(
