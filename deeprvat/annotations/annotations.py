@@ -655,13 +655,14 @@ def filter_annotations_by_exon_distance(
 
     logger.info("Reading in annotations for filtering")
     anno_df = pd.read_parquet(anno_path)
-
-    filtered = anno_df.merge(filtered_merge, on=["id", "gene_id"], how="inner")
+    len_anno = len(anno_df)
+    filtered = anno_df.merge(filtered_merge, on=["id", "gene_id"], how="left")
 
     logger.info(
         f"filtered annotations based on filterd id, gene_id (dropped {len(anno_df) - len(filtered)} / {np.round(100*(len(anno_df)-len(filtered))/len(anno_df))}% of rows)."
     )
-
+    logger.info('performing sanity check')
+    assert(len(filtered == len_anno))
     logger.info(f"writing result to {output_path}")
     filtered.to_parquet(output_path)
 
@@ -2071,10 +2072,10 @@ def add_protein_ids(protein_id_file: str, annotations_path: str, out_file: str):
     genes.drop(columns=["feature", "gene", "gene_name", "gene_type"], inplace=True)
     genes.rename(columns={"id": "gene_id"}, inplace=True)
     annotations = pd.read_parquet(annotations_path)
-    annotations = annotations.query("BIOTYPE == 'protein_coding'")
+    len_anno = len(annotations)
     annotations.rename(columns={"gene_id": "gene_base"}, inplace=True)
     merged = annotations.merge(genes, on=["gene_base"], how="left")
-    merged.dropna(subset=["gene_id"], inplace=True)
+    assert(len(merged)==len_anno)
     merged.to_parquet(out_file)
 
 
