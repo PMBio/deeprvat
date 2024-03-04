@@ -74,8 +74,7 @@ rule compute_xy:
              '{input.data_config} '
              "{output.samples} "
              "{output.x} "
-             "{output.y}"),
-            'touch {output}'
+             "{output.y}")
         ])
 
 rule compute_burdens:
