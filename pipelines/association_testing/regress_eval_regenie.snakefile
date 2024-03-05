@@ -8,7 +8,9 @@ debug = '--debug ' if debug_flag else ''
 phenotypes = config['phenotypes']
 phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
 
-burdens = config["burden_file"]
+n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
+
+burdens = Path(config["burden_file"])
 
 regenie_config_step1 = config["regenie"]["step_1"]
 regenie_config_step2 = config["regenie"]["step_2"]
@@ -229,10 +231,12 @@ rule make_regenie_burdens:
         gene_file = config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"],
         gtf_file = config["gtf_file"],
         burdens = burdens,
+        genes = burdens.parent / "genes.npy",
+        samples = burdens.parent / "sample_ids.zarr",
         datasets = expand("{phenotype}/deeprvat/association_dataset.pkl",
                           phenotype=phenotypes),
     params:
-        phenotypes = " ".join([f"--phenotype {p} {p}/deeprvat/association_dataset.pkl {p}/deeprvat/burdens"
+        phenotypes = " ".join([f"--phenotype {p} {p}/deeprvat/association_dataset.pkl {p}/deeprvat/xy"
                                for p in phenotypes]) + " "
     output:
         bgen = "regenie_input/deeprvat_pseudovariants.bgen",
@@ -250,7 +254,7 @@ rule make_regenie_burdens:
         # "{input.dataset} "
         # "{wildcards.phenotype}/deeprvat/burdens "
         "--bgen {output.bgen} "
-        "--burden_file {input.burdens} "
+        "--burdens-genes-samples {input.burdens} {input.genes} {input.samples} "
         "{input.gene_file} "
         "{input.gtf_file} "
 
@@ -258,9 +262,9 @@ rule make_regenie_metadata:
     input:
         gene_file = config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"],
         gtf_file = config["gtf_file"],
-        xy = expand("{phenotype}/deeprvat/xy/chunk{chunk}.finished",
-                    phenotype=phenotypes,
-                    chunk=range(n_burden_chunks))
+        samples = expand('{phenotype}/deeprvat/xy/sample_ids.zarr', phenotype=phenotypes),
+        x = expand('{phenotype}/deeprvat/xy/x.zarr', phenotype=phenotypes),
+        y = expand('{phenotype}/deeprvat/xy/y.zarr', phenotype=phenotypes),
         datasets = expand("{phenotype}/deeprvat/association_dataset.pkl",
                           phenotype=phenotypes),
     params:
