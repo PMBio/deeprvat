@@ -53,20 +53,19 @@ rule average_burdens:
 
 rule all_xy:
     input:
-        expand("{phenotype}/deeprvat/xy/chunk{chunk}.finished",
-               phenotype=phenotypes,
-               chunk=range(n_burden_chunks))
+        samples = expand('{phenotype}/deeprvat/xy/sample_ids.zarr', phenotype=phenotypes),
+        x = expand('{phenotype}/deeprvat/xy/x.zarr', phenotype=phenotypes),
+        y = expand('{phenotype}/deeprvat/xy/y.zarr', phenotype=phenotypes)
 
 rule compute_xy:
     priority: 1
     input:
         dataset = '{phenotype}/deeprvat/association_dataset.pkl',
-        data_config = '{phenotype}/deeprvat/config.yaml',
-        model_config = model_path / 'model_config.yaml',
+        data_config = '{phenotype}/deeprvat/hpopt_config.yaml',
     output:
-        samples = '{phenotype}/deeprvat/xy/sample_ids.zarr',
-        x = '{phenotype}/deeprvat/xy/x.zarr',
-        y = '{phenotype}/deeprvat/xy/y.zarr',
+        samples = directory('{phenotype}/deeprvat/xy/sample_ids.zarr'),
+        x = directory('{phenotype}/deeprvat/xy/x.zarr'),
+        y = directory('{phenotype}/deeprvat/xy/y.zarr'),
     params:
         prefix = '.'
     threads: 8
@@ -74,16 +73,12 @@ rule compute_xy:
         mem_mb = lambda wildcards, attempt: 20480 + (attempt - 1) * 4098,
     shell:
         ' && '.join([
-            ('deeprvat_associate compute-xy'
-             + debug +
-             ' --n-chunks '+ str(n_burden_chunks) + ' '
-             f'--link-burdens ../../../{phenotypes[0]}/deeprvat/burdens/burdens.zarr '
-             '--chunk {wildcards.chunk} '
+            ('deeprvat_associate compute-xy '
              '--dataset-file {input.dataset} '
              '{input.data_config} '
-             "{input.samples} "
-             "{input.x} "
-             "{input.y}"),
+             "{output.samples} "
+             "{output.x} "
+             "{output.y}"),
             'touch {output}'
         ])
 
