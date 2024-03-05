@@ -384,6 +384,7 @@ class DenseGTDataset(Dataset):
                     assert self.samples[i] == samples_gt[self.index_map_geno[i]]
         else:
             self.samples = self.phenotype_df.index.to_numpy()
+            self.n_samples = len(self.phenotype_df)
 
     def get_variant_ids(self, matrix_indices: np.ndarray) -> np.ndarray:
         return self.variant_id_map.loc[matrix_indices, "id"].to_numpy()
