@@ -1,3 +1,11 @@
+configfile: 'config.yaml'
+
+phenotypes = config['phenotypes']
+phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
+training_phenotypes = config["training"].get("phenotypes", phenotypes)
+
+n_repeats = config['n_repeats']
+
 #requires that comparison_results.pkl is linked to the experiment directory
 #requires deeprvat-analyis to be installed
 DEEPRVAT_ANALYSIS_DIR = os.environ['DEEPRVAT_ANALYSIS_DIR']

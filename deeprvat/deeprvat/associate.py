@@ -474,11 +474,10 @@ def compute_burdens_(
 
 def make_regenie_input_(
     debug: bool,
-    skip_samples: bool,
     skip_covariates: bool,
     skip_phenotypes: bool,
     skip_burdens: bool,
-    burdens_genes_samples: Optional[Path],
+    burdens_genes_samples: Optional[Tuple[Path, Path, Path]],
     repeat: int,
     average_repeats: bool,
     phenotype: Tuple[Tuple[str, Path, Path, Path]],
@@ -494,8 +493,6 @@ def make_regenie_input_(
     ## Check options
     if not skip_burdens and burdens_genes_samples is None:
         raise ValueError("--burdens-genes must be specified if --skip-burdens is not")
-    if not skip_samples and sample_file is None:
-        raise ValueError("Either sample_file or skip_samples must be specified")
     if not skip_covariates and covariate_file is None:
         raise ValueError("Either covariate_file or skip_covariates must be specified")
     if not skip_phenotypes and phenotype_file is None:
@@ -547,22 +544,6 @@ def make_regenie_input_(
 
     sample_df = pd.DataFrame({"FID": sample_ids, "IID": sample_ids})
 
-    if not skip_samples:
-        ## Make sample file
-        logger.info(f"Creating sample file {sample_file}")
-        samples_out = pd.concat(
-            [
-                pd.DataFrame({"ID_1": 0, "ID_2": 0}, index=[0]),
-                sample_df.rename(
-                    columns={
-                        "FID": "ID_1",
-                        "IID": "ID_2",
-                    }
-                ),
-            ]
-        )
-        samples_out.to_csv(sample_file, sep=" ", index=False)
-
     if not skip_covariates:
         ## Make covariate file
         logger.info(f"Creating covariate file {covariate_file}")
@@ -595,9 +576,25 @@ def make_regenie_input_(
         )  # Might be different from those for the phenotypes
         n_samples = sample_ids.shape[0]
 
+        ## Make sample file
+        logger.info(f"Creating sample file {sample_file}")
+        sample_df = pd.DataFrame({"FID": sample_ids, "IID": sample_ids})
+        samples_out = pd.concat(
+            [
+                pd.DataFrame({"ID_1": 0, "ID_2": 0}, index=[0]),
+                sample_df.rename(
+                    columns={
+                        "FID": "ID_1",
+                        "IID": "ID_2",
+                    }
+                ),
+            ]
+        )
+        samples_out.to_csv(sample_file, sep=" ", index=False)
+
         burdens_zarr = zarr.open(burden_file)
         if not debug:
-            # assert burdens_zarr.shape[0] == n_samples
+            assert burdens_zarr.shape[0] == n_samples
             assert burdens_zarr.shape[1] == n_genes
 
         if average_repeats:
@@ -657,7 +654,6 @@ def make_regenie_input_(
 
 @cli.command()
 @click.option("--debug", is_flag=True)
-@click.option("--skip-samples", is_flag=True)
 @click.option("--skip-covariates", is_flag=True)
 @click.option("--skip-phenotypes", is_flag=True)
 @click.option("--skip-burdens", is_flag=True)
@@ -690,7 +686,6 @@ def make_regenie_input_(
 @click.argument("gtf", type=click.Path(exists=True, path_type=Path))
 def make_regenie_input(
     debug: bool,
-    skip_samples: bool,
     skip_covariates: bool,
     skip_phenotypes: bool,
     skip_burdens: bool,
@@ -707,7 +702,6 @@ def make_regenie_input(
 ):
     make_regenie_input_(
         debug=debug,
-        skip_samples=skip_samples,
         skip_covariates=skip_covariates,
         skip_phenotypes=skip_phenotypes,
         skip_burdens=skip_burdens,
