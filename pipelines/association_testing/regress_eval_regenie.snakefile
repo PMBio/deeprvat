@@ -246,6 +246,7 @@ rule make_regenie_burdens:
         phenotypes = " ".join([f"--phenotype {p} {p}/deeprvat/association_dataset.pkl {p}/deeprvat/xy"
                                for p in phenotypes]) + " "
     output:
+        sample_file = "regenie_input/deeprvat_pseudovariants.sample",
         bgen = "regenie_input/deeprvat_pseudovariants.bgen",
     threads: 8
     resources:
@@ -253,13 +254,13 @@ rule make_regenie_burdens:
     shell:
         "deeprvat_associate make-regenie-input "
         + debug +
-        "--skip-samples "
         "--skip-covariates "
         "--skip-phenotypes "
         "--average-repeats "
-        "{params.phenotypes}"
+        "{params.phenotypes} "
         # "{input.dataset} "
         # "{wildcards.phenotype}/deeprvat/burdens "
+        "--sample-file {output.sample_file} "
         "--bgen {output.bgen} "
         "--burdens-genes-samples {input.burdens} {input.genes} {input.samples} "
         "{input.gene_file} "
@@ -279,7 +280,6 @@ rule make_regenie_metadata:
                                f"{p}/deeprvat/xy"
                                for p in phenotypes]) + " "
     output:
-        sample_file = "regenie_input/deeprvat_pseudovariants.sample",
         covariate_file = "regenie_input/covariates.txt",
         phenotype_file = "regenie_input/phenotypes.txt",
     threads: 1
@@ -292,7 +292,6 @@ rule make_regenie_metadata:
         "{params.phenotypes}"
         # "{input.dataset} "
         # "{wildcards.phenotype}/deeprvat/burdens "
-        "--sample-file {output.sample_file} "
         "--covariate-file {output.covariate_file} "
         "--phenotype-file {output.phenotype_file} "
         "{input.gene_file} "
