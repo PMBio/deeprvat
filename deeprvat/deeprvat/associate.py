@@ -554,7 +554,7 @@ def make_regenie_input_(
 
         burdens_zarr = zarr.open(burden_file)
         if not debug:
-            # assert burdens_zarr.shape[0] == n_samples
+            assert burdens_zarr.shape[0] == n_samples
             assert burdens_zarr.shape[1] == n_genes
 
         if average_repeats:
