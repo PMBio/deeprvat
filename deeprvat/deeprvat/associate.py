@@ -506,6 +506,7 @@ def make_regenie_input_(
     dataset_files = [p[1] for p in phenotype]
     xy_dirs = [p[2] for p in phenotype]
 
+    # load only first sample_ids zarr here
     sample_ids = zarr.load(xy_dirs[0] / "sample_ids.zarr")
     covariates = zarr.load(xy_dirs[0] / "x.zarr")
     ys = [zarr.load(b / "y.zarr") for b in xy_dirs]
@@ -517,6 +518,7 @@ def make_regenie_input_(
 
     n_samples = sample_ids.shape[0]
     assert covariates.shape[0] == n_samples
+    # assert that ALL y.zarrs are the same lengths as the single sample_ids zarr loaded above
     assert all([y.shape[0] == n_samples for y in ys])
 
     # Sanity check: sample_ids and covariates should be consistent for all phenotypes
@@ -563,13 +565,13 @@ def make_regenie_input_(
         pheno_df.to_csv(phenotype_file, sep=" ", index=False, na_rep="NA")
 
     if not skip_burdens:
-        burden_file, gene_file, sample_file = burdens_genes_samples
+        burden_file, gene_file, b_sample_file = burdens_genes_samples
 
         genes = np.load(gene_file)
         n_genes = genes.shape[0]
 
         sample_ids = zarr.load(
-            sample_file
+            b_sample_file
         )  # Might be different from those for the phenotypes
         n_samples = sample_ids.shape[0]
 
