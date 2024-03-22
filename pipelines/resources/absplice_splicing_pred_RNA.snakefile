@@ -1,8 +1,6 @@
 import os
-import yaml
 from os import listdir
-from os.path import isfile, join
-import pathlib
+from pathlib import Path
 
 include: "../DNA/rare_variants/Snakefile"
 include: "./count_table/Snakefile"

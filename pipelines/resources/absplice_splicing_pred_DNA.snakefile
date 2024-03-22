@@ -1,14 +1,8 @@
-import os
-import yaml
-from os import listdir
-from os.path import isfile, join
 from pathlib import Path
 
 genome = absplice_main_conf['genome']
-#vcf_dir = os.path.dirname(absplice_main_conf['vcf'])
-#vcf_ids = [file for file in listdir(vcf_dir) if '.tbi' not in file]
 p = Path(vcf_dir)
-vcf_ids = [f.name for f in p.glob('*_variants_header.vcf.gz')] #replace this with file pattern 
+vcf_ids = [f.name for f in p.glob('*_variants_header.vcf.gz')] 
 
 
 def splicemap5(wildcards):
@@ -128,16 +122,12 @@ rule absplice_dna:
             "absplice"
     output:
         absplice_dna = absplice_output_dir / '{genome}' / 'dna' / '{vcf_id}_AbSplice_DNA.csv'
-        #absplice_dna = config_pred['splicing_pred']['absplice_dna']
     script:
         "./absplice_dna.py"
 
 rule all_predict_dna:
     input:
         expand([absplice_output_dir / absplice_main_conf['genome'] / 'dna' / source_variant_file_pattern],zip, chr=chromosomes, block=block)
-        # expand( config_pred['splicing_pred']['absplice_dna'],
-        #     genome = absplice_main_conf['genome'], 
-        #     vcf_id=vcf_ids),
 
 
 

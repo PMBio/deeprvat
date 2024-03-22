@@ -103,12 +103,11 @@ ncores_merge_absplice = int(config.get("n_cores_merge_absplice") or 8)
 ncores_agg_absplice = int(config.get("ncores_agg_absplice") or 4)
 
 
-SNAKEMAKE_WORKDIR = config.get('absplice_tmp_dir') or  absplice_repo_dir /'example'/ 'workflow'
+
 absplice_download_dir = config.get('absplice_download_dir') or  absplice_repo_dir /'example'/'data'/'resources'/'downloaded_files'
 absplice_output_dir = config.get('absplice_output_dir', anno_tmp_dir /'absplice')
 vcf_id = anno_tmp_dir / '{vcf_id}'
-vcf_dir = os.path.dirname(vcf_id)
-#vcf_dir = anno_tmp_dir / '{vcf_id}'
+vcf_dir = anno_tmp_dir
 
 config_download_path = deeprvat_parent_path/'pipelines'/'resources'/"absplice_config_download.yaml"
 with open(config_download_path, "r") as fd:
@@ -127,10 +126,10 @@ with open(absplice_main_conf_path, "r") as fd:
     absplice_main_conf = yaml.safe_load(fd)
 
 
-include: Path('resources')/"absplice_download_Snakefile"
-include: Path('resources')/"absplice_splicing_pred_DNA_Snakefile"
+include: Path('resources')/"absplice_download.snakefile"
+include: Path('resources')/"absplice_splicing_pred_DNA.snakefile"
 if absplice_main_conf['AbSplice_RNA'] == True:
-    include: deeprvat_parent_path / 'deeprvat' / 'pipelines'/'resources'/"absplice_splicing_pred_RNA_Snakefile"
+    include: deeprvat_parent_path / 'deeprvat' / 'pipelines'/'resources'/"absplice_splicing_pred_RNA.snakefile"
 
 all_absplice_output_files = list()
 all_absplice_output_files.append(rules.all_download.input)
