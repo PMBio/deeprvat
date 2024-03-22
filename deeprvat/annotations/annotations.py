@@ -1,4 +1,3 @@
-
 import logging
 import os
 import pickle
@@ -6,7 +5,7 @@ import random
 import sys
 import time
 from pathlib import Path
-from typing import  Optional
+from typing import Optional
 import dask.dataframe as dd
 import numpy as np
 import click
@@ -18,7 +17,6 @@ from joblib import Parallel, delayed
 from keras.models import load_model
 from sklearn.decomposition import PCA
 from tqdm import tqdm, trange
-
 
 
 def precision(y_true, y_pred):
