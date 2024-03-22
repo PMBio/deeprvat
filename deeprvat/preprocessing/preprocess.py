@@ -120,10 +120,10 @@ def add_variant_ids(variant_file: str, out_file: str, duplicates_file: str):
     duplicates = variants[variants.duplicated()]
 
     if Path(duplicates_file).suffix == ".parquet":
-        logging.info(f"Writing duplicates in parquet format")
+        logging.info("Writing duplicates in parquet format")
         duplicates.to_parquet(duplicates_file, index=False)
     else:
-        logging.info(f"Writing duplicates in tsv format")
+        logging.info("Writing duplicates in tsv format")
         duplicates.to_csv(duplicates_file, sep="\t", header=False, index=False)
 
     logging.info(f"Wrote {len(duplicates)} duplicates to {duplicates_file}")
@@ -133,10 +133,10 @@ def add_variant_ids(variant_file: str, out_file: str, duplicates_file: str):
     variants["id"] = range(len(variants))
 
     if Path(out_file).suffix == ".parquet":
-        logging.info(f"Writing duplicates in parquet format")
+        logging.info("Writing duplicates in parquet format")
         variants.to_parquet(out_file, index=False)
     else:
-        logging.info(f"Writing duplicates in tsv format")
+        logging.info("Writing duplicates in tsv format")
         variants.to_csv(out_file, sep="\t", index=False)
 
     logging.info(
@@ -157,6 +157,57 @@ def get_file_chromosome(file, col_names, chrom_field="chrom"):
     return chrom
 
 
+def parse_file_path_list(file_path_list_path: Path):
+    with open(file_path_list_path) as file:
+        vcf_files = [Path(line.rstrip()) for line in file]
+        vcf_stems = [vf.stem.replace(".vcf", "") for vf in vcf_files]
+
+        assert len(vcf_stems) == len(vcf_files)
+
+        vcf_look_up = {stem: file for stem, file in zip(vcf_stems, vcf_files)}
+
+        return vcf_stems, vcf_files, vcf_look_up
+
+
+@cli.command()
+@click.option("--threshold", type=float, default=0.1)
+@click.argument("file-paths-list", type=click.Path(exists=True))
+@click.argument("imiss-dir", type=click.Path(exists=True))
+@click.argument("out-file", type=click.Path())
+def process_individual_missingness(
+    threshold: float, file_paths_list: Path, imiss_dir: str, out_file: str
+):
+    vcf_stems, _, _ = parse_file_path_list(file_paths_list)
+
+    imiss_dir = Path(imiss_dir)
+
+    imiss_blocks = []
+    total_variants = 0
+    for vcf_stem in tqdm(vcf_stems, desc="VCFs"):
+        missing_counts = pd.read_csv(
+            imiss_dir / "samples" / f"{vcf_stem}.tsv",
+            sep="\t",
+            header=None,
+            usecols=[1, 11],
+        )
+        missing_counts.columns = ["sample", "n_missing"]
+        imiss_blocks.append(missing_counts)
+        total_variants += pd.read_csv(
+            imiss_dir / "sites" / f"{vcf_stem}.tsv",
+            header=None,
+            sep="\t",
+        ).iloc[0, 1]
+
+    imiss = pd.concat(imiss_blocks, ignore_index=True)
+    sample_groups = imiss.groupby("sample")
+    sample_counts = sample_groups.agg(np.sum).reset_index()
+    sample_counts["missingness"] = sample_counts["n_missing"] / total_variants
+    sample_counts = sample_counts.loc[
+        sample_counts["missingness"] >= threshold, ["sample", "missingness"]
+    ]
+    sample_counts[["sample"]].to_csv(out_file, index=False, header=None)
+
+
 @cli.command()
 @click.option("--exclude-variants", type=click.Path(exists=True), multiple=True)
 @click.option("--exclude-samples", type=click.Path(exists=True))
@@ -165,7 +216,7 @@ def get_file_chromosome(file, col_names, chrom_field="chrom"):
 @click.option("--threads", type=int, default=1)
 @click.option("--skip-sanity-checks", is_flag=True)
 @click.argument("variant-file", type=click.Path(exists=True))
-@click.argument("samples", type=click.Path(exists=True))
+@click.argument("samples-path", type=click.Path(exists=True))
 @click.argument("sparse-gt", type=click.Path(exists=True))
 @click.argument("out-file", type=click.Path())
 def process_sparse_gt(
@@ -176,7 +227,7 @@ def process_sparse_gt(
     threads: int,
     skip_sanity_checks: bool,
     variant_file: str,
-    samples: str,
+    samples_path: str,
     sparse_gt: str,
     out_file: str,
 ):
@@ -214,30 +265,36 @@ def process_sparse_gt(
         )["id"]
         variants = variants[~variants["id"].isin(variant_ids_to_exclude)]
         if not skip_sanity_checks:
-            try:
-                assert total_variants - len(variants) == len(variants_to_exclude)
-            except:
-                import ipdb
+            assert total_variants - len(variants) == len(variants_to_exclude)
 
-                ipdb.set_trace()
     logging.info(f"Dropped {total_variants - len(variants)} variants")
     logging.info(f"...done ({time.time() - start_time} s)")
 
     logging.info("Processing samples")
-    samples = set(pd.read_csv(samples, header=None).loc[:, 0])
+    samples = set(pd.read_csv(samples_path, header=None).loc[:, 0])
     if exclude_samples is not None:
         total_samples = len(samples)
 
         if sample_exclusion_files := list(Path(exclude_samples).rglob("*.csv")):
-            samples_to_exclude = set(
-                pd.concat(
-                    [
-                        pd.read_csv(s, header=None).loc[:, 0]
-                        for s in sample_exclusion_files
-                    ],
-                    ignore_index=True,
+
+            sample_exclusion_files = [
+                s for s in sample_exclusion_files if s.stat().st_size > 0
+            ]
+            if sample_exclusion_files:
+                logging.info(
+                    f"Found {len(sample_exclusion_files)} sample exclusion files"
                 )
-            )
+                samples_to_exclude = set(
+                    pd.concat(
+                        [
+                            pd.read_csv(s, header=None).loc[:, 0]
+                            for s in sample_exclusion_files
+                        ],
+                        ignore_index=True,
+                    )
+                )
+            else:
+                samples_to_exclude = set()
             samples -= samples_to_exclude
             logging.info(f"Dropped {total_samples - len(samples)} samples")
         else:

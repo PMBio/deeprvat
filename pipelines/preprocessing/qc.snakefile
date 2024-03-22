@@ -35,9 +35,25 @@ rule qc_read_depth:
     shell:
         f"""{load_bcftools} bcftools query --format '[%CHROM\\t%POS\\t%REF\\t%ALT\\t%SAMPLE\\n]' --include '(GT!="RR" & GT!="mis" & TYPE="snp" & FORMAT/DP < 7) | (GT!="RR" & GT!="mis" & TYPE="indel" & FORMAT/DP < 10)' {{input}} | gzip > {{output}}"""
 
-
-rule create_excluded_samples_dir:
+rule qc_indmiss:
+    input:
+        bcf_dir/ "{vcf_stem}.bcf",
     output:
-        directory(qc_filtered_samples_dir),
+        stats = qc_indmiss_stats_dir / "{vcf_stem}.stats",
+        samples = qc_indmiss_samples_dir / "{vcf_stem}.tsv",
+        sites = qc_indmiss_sites_dir / "{vcf_stem}.tsv"
+    resources:
+        mem_mb = lambda wildcards, attempt: 256 * attempt
     shell:
-        "mkdir -p {output}"
+        f'{load_bcftools} bcftools +smpl-stats --output {{output.stats}} {{input}} && grep "^FLT0" {{output.stats}} > {{output.samples}} && grep "^SITE0" {{output.stats}} > {{output.sites}}'
+
+
+rule process_individual_missingness:
+    input:
+        samples = expand(qc_indmiss_samples_dir / "{vcf_stem}.tsv", vcf_stem=vcf_stems),
+    output:
+        qc_filtered_samples_dir / "indmiss_samples.csv"
+    resources:
+        mem_mb = lambda wildcards, attempt: 256 * attempt
+    shell:
+        f"{preprocessing_cmd} process-individual-missingness {config['vcf_files_list']} {qc_indmiss_dir} {{output}}"

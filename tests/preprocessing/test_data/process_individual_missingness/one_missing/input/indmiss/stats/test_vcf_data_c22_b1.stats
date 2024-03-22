@@ -1,0 +1,40 @@
+# CMD line shows the command line used to generate this output
+# DEF lines define expressions for all tested thresholds
+# FLT* lines report numbers for every threshold and every sample:
+#   1) filter id
+#   2) sample
+#   3) number of genotypes which pass the filter
+#   4) number of non-reference genotypes
+#   5) number of homozygous ref genotypes (0/0 or 0)
+#   6) number of homozygous alt genotypes (1/1, 2/2, etc)
+#   7) number of heterozygous genotypes (0/1, 1/2, etc)
+#   8) number of hemizygous genotypes (0, 1, etc)
+#   9) number of SNVs
+#   10) number of indels
+#   11) number of singletons
+#   12) number of missing genotypes (./., ., ./0, etc)
+#   13) number of transitions (alt het genotypes such as "1/2" are counted twice)
+#   14) number of transversions (alt het genotypes such as "1/2" are counted twice)
+#   15) overall ts/tv
+# SITE* lines report numbers for every threshold:
+#   1) filter id
+#   2) number of sites which pass the filter
+#   3) number of SNVs
+#   4) number of indels
+#   5) number of singletons
+#   6) number of transitions (counted at most once at multiallelic sites)
+#   7) number of transversions (counted at most once at multiallelic sites)
+#   8) overall ts/tv
+CMD	smpl-stats --output workdir/qc/indmiss/stats/test_vcf_data_c22_b1.stats workdir/norm/bcf/test_vcf_data_c22_b1.bcf
+DEF	FLT0	all
+FLT0	10000001	7	0	7	0	0	0	0	0	0	0	0	0	inf
+FLT0	10000002	7	4	3	0	4	0	4	0	2	0	3	1	3.00
+FLT0	10000003	7	2	5	0	2	0	2	0	1	0	1	1	1.00
+FLT0	10000004	7	2	5	1	1	0	2	0	1	0	1	1	1.00
+FLT0	10000005	7	0	7	0	0	0	0	0	0	0	0	0	inf
+FLT0	10000006	7	1	6	0	1	0	1	0	0	0	1	0	inf
+FLT0	10000007	7	0	7	0	0	0	0	0	0	0	0	0	inf
+FLT0	10000008	7	0	7	0	0	0	0	0	0	0	0	0	inf
+FLT0	10000009	7	0	7	0	0	0	0	0	0	0	0	0	inf
+FLT0	10000010	7	0	7	0	0	0	0	0	0	0	0	0	inf
+SITE0	7	7	0	4	4	3	1.33
