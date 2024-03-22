@@ -28,7 +28,7 @@ sparse_dir_name : sparse
 reference_fasta_file : GRCh38.primary_assembly.genome.fa
 gtf_file : gencode.v44.annotation.gtf.gz
 
-# Mac memory used by convert2bed
+# Max memory used by convert2bed
 convert2bed_max_mem: 64G
 
 # Increase the BED entry by the same number base pairs in each direction
