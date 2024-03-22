@@ -1652,7 +1652,7 @@ def merge_annotations(
     deepripe_hg2_file: str,
     deepripe_k5_file: str,
     variant_file: str,
-    vcf_file:str,
+    vcf_file: str,
     out_file: str,
     vepcols_to_retain: Optional[str],
 ):
@@ -1680,7 +1680,9 @@ def merge_annotations(
     vep_df = pd.read_csv(vep_file, header=vep_header_line, sep="\t", na_values="-")
     if vepcols_to_retain is not None:
         vepcols_to_retain = [c for c in vepcols_to_retain.split(",")]
-    vep_df = process_vep(vep_file=vep_df, vcf_file = vcf_file,  vepcols_to_retain=vepcols_to_retain)
+    vep_df = process_vep(
+        vep_file=vep_df, vcf_file=vcf_file, vepcols_to_retain=vepcols_to_retain
+    )
     logger.info(f"vep_df shape is {vep_df.shape}")
     logger.info("load deepripe_parclip")
 
@@ -1719,7 +1721,6 @@ def merge_annotations(
     )
 
     ca.to_parquet(out_file, compression="zstd")
-
 
 
 def process_deepripe(deepripe_df: pd.DataFrame, column_prefix: str) -> pd.DataFrame:
