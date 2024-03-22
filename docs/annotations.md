@@ -2,7 +2,7 @@
 
 This pipeline is based on [snakemake](https://snakemake.readthedocs.io/en/stable/). It uses [bcftools + samstools](https://www.htslib.org/), as well as [perl](https://www.perl.org/), [deepRiPe](https://ohlerlab.mdc-berlin.de/software/DeepRiPe_140/) and [deepSEA](http://deepsea.princeton.edu/) as well as [VEP](http://www.ensembl.org/info/docs/tools/vep/index.html), including plugins for [primateAI](https://github.com/Illumina/PrimateAI) and  [spliceAI](https://github.com/Illumina/SpliceAI). DeepRiPe annotations were acquired using [faatpipe repository by HealthML](https://github.com/HealthML/faatpipe)[[1]](#reference-1-target) and DeepSea annotations were calculated using [kipoi-veff2](https://github.com/kipoi/kipoi-veff2)[[2]](#reference-2-target), abSplice scores were computet using [abSplice](https://github.com/gagneurlab/absplice/)[[3]](#reference-3-target)
 
-![dag](_static/annotation_pipeline_dag.png)
+![dag](_static/annotation_rulegraph.svg)
 *Figure 1: Example DAG of annoation pipeline using only two bcf files as input.*
 
 ## Input
