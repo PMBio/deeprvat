@@ -1642,6 +1642,7 @@ def concatenate_deepsea(
 @click.argument("deepripe_hg2_file", type=click.Path(exists=True))
 @click.argument("deepripe_k5_file", type=click.Path(exists=True))
 @click.argument("variant_file", type=click.Path(exists=True))
+@click.argument("vcf_file", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
 @click.option("--vepcols_to_retain", type=str)
 def merge_annotations(
@@ -1651,6 +1652,7 @@ def merge_annotations(
     deepripe_hg2_file: str,
     deepripe_k5_file: str,
     variant_file: str,
+    vcf_file:str,
     out_file: str,
     vepcols_to_retain: Optional[str],
 ):
@@ -1664,6 +1666,7 @@ def merge_annotations(
     - deepripe_hg2_file (str): Path to the DeepRipe hg2 file.
     - deepripe_k5_file (str): Path to the DeepRipe k5 file.
     - variant_file (str): Path to the variant file.
+    - vcf_file (str): vcf file containing chrom, pos, ref and alt information
     - out_file (str): Path to save the merged output file in Parquet format.
     - vepcols_to_retain (Optional[str]): Comma-separated list of additional VEP columns to retain.
 
@@ -1671,13 +1674,13 @@ def merge_annotations(
     None
 
     Example:
-    $ python annotations.py merge_annotations 1 vep_file.tsv deepripe_parclip.csv deepripe_hg2.csv deepripe_k5.csv variant_file.tsv merged_output.parquet --vepcols_to_retain="AlphaMissense,PolyPhen"
+    $ python annotations.py merge_annotations 1 vep_file.tsv deepripe_parclip.csv deepripe_hg2.csv deepripe_k5.csv variant_file.tsv input_variants.vcf merged_output.parquet --vepcols_to_retain="AlphaMissense,PolyPhen"
     """
     # load vep file
     vep_df = pd.read_csv(vep_file, header=vep_header_line, sep="\t", na_values="-")
     if vepcols_to_retain is not None:
         vepcols_to_retain = [c for c in vepcols_to_retain.split(",")]
-    vep_df = process_vep(vep_file=vep_df, vepcols_to_retain=vepcols_to_retain)
+    vep_df = process_vep(vep_file=vep_df, vcf_file = vcf_file,  vepcols_to_retain=vepcols_to_retain)
     logger.info(f"vep_df shape is {vep_df.shape}")
     logger.info("load deepripe_parclip")
 
@@ -1716,6 +1719,7 @@ def merge_annotations(
     )
 
     ca.to_parquet(out_file, compression="zstd")
+
 
 
 def process_deepripe(deepripe_df: pd.DataFrame, column_prefix: str) -> pd.DataFrame:
