@@ -52,13 +52,14 @@ rule train:
             [f"--phenotype {p} "
              f"{p}/deeprvat/input_tensor.zarr "
              f"{p}/deeprvat/covariates.zarr "
-             f"{p}/deeprvat/y.zarr"
+             f"{p}/deeprvat/y.zarr "
+             f"{p}/deeprvat/sample_ids.zarr "
              for p in training_phenotypes]),
         prefix = '.',
     priority: 1000
     resources:
         mem_mb = 2000000,        # Using this value will tell our modified lsf.profile not to set a memory resource
-        load = 8000,
+        load = 16000,
         gpus = 1
     shell:
         f"parallel --jobs {n_parallel_training_jobs} --halt now,fail=1 --results train_repeat{{{{1}}}}_trial{{{{2}}}}/ "
@@ -66,7 +67,8 @@ rule train:
         + debug +
         '--trial-id {{2}} '
         "{params.phenotypes} "
-        'config.yaml '
+        # 'config.yaml '
+        "{params.prefix}/config.yaml "
         '{params.prefix}/{model_path}/repeat_{{1}}/trial{{2}} '
         "{params.prefix}/{model_path}/repeat_{{1}}/hyperparameter_optimization.db '&&' "
         "touch {params.prefix}/{model_path}/repeat_{{1}}/trial{{2}}/finished.tmp "
