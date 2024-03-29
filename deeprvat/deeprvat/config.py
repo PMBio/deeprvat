@@ -501,6 +501,7 @@ def create_sg_discovery_config(
 @click.option("--baseline-results", type=click.Path(exists=True), multiple=True)
 @click.option("--baseline-results-out", type=click.Path())
 @click.option("--seed-genes-out", type=click.Path())
+@click.option("--regenie-options", type=str, multiple=True)
 @click.argument("old_config_file", type=click.Path(exists=True))
 @click.argument("new_config_file", type=click.Path())
 def update_config(
@@ -508,6 +509,7 @@ def update_config(
     phenotype: Optional[str],
     baseline_results: Tuple[str],
     baseline_results_out: Optional[str],
+        regenie_options: Optional[Tuple[str]],
     seed_genes_out: Optional[str],
     old_config_file: str,
     new_config_file: str,
@@ -541,6 +543,17 @@ def update_config(
 
     with open(old_config_file) as f:
         config = yaml.safe_load(f)
+
+    if regenie_options is not None:
+        try:
+            existing_regenie_options = config["regenie"]["step_2"]["options"]
+        except KeyError:
+            existing_regenie_options = []
+
+        config["regenie"] = config.get("regenie", {})
+        config["regenie"]["step2"] = config["regenie"].get("step_2", {})
+        config["regenie"]["step_2"]["options"] = existing_regenie_options + list(regenie_options)
+
 
     if phenotype is not None:
         logger.info(f"Updating config for phenotype {phenotype}")
