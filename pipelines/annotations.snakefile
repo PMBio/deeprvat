@@ -464,7 +464,7 @@ rule deepRiPe_parclip:
         fasta=fasta_dir / fasta_file_name,
     output:
         anno_dir / (source_variant_file_pattern + "_variants.parclip_deepripe.csv.gz"),
-        threads: n_jobs_deepripe
+    threads: n_jobs_deepripe
     shell:
         f"mkdir -p {pybedtools_tmp_path / 'parclip'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'parclip'} {saved_deepripe_models_path} {{threads}} 'parclip'"
 
