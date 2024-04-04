@@ -19,6 +19,7 @@ from sklearn.decomposition import PCA
 from tqdm import tqdm, trange
 from fastparquet import ParquetFile
 
+
 def precision(y_true, y_pred):
     """
     Calculate precision, a metric for the accuracy of the positive predictions.
@@ -558,6 +559,7 @@ def deepripe_encode_variant_bedline(bedline, genomefasta, flank_size=75):
 
         return encoded_seqs
 
+
 def readYamlColumns(annotation_columns_yaml_file):
     with open(annotation_columns_yaml_file, "r") as fd:
         config = yaml.safe_load(fd)
@@ -568,12 +570,13 @@ def readYamlColumns(annotation_columns_yaml_file):
     column_name_mapping = dict(zip(prior_names, post_names))
     fill_value_mapping = dict(zip(post_names, fill_vals))
     return prior_names, post_names, fill_vals, column_name_mapping, fill_value_mapping
-    
+
+
 def get_parquet_columns(parquet_file):
     pfile = ParquetFile(parquet_file)
     pcols = pfile.columns
     return pcols
-    
+
 
 @click.group()
 def cli():
@@ -1292,7 +1295,9 @@ def merge_deepripe(
 @click.argument("deepripe_pca_file", type=click.Path(exists=True))
 @click.argument("column_yaml_file", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
-def merge_deepsea_pcas(annotation_file: str, deepripe_pca_file: str, column_yaml_file:str, out_file: str):
+def merge_deepsea_pcas(
+    annotation_file: str, deepripe_pca_file: str, column_yaml_file: str, out_file: str
+):
     """
     Merge deepRiPe PCA scores with an annotation file and save the result.
 
@@ -1314,17 +1319,22 @@ def merge_deepsea_pcas(annotation_file: str, deepripe_pca_file: str, column_yaml
     Example:
     $ python annotations.py merge_deepsea_pcas annotations.parquet deepripe_pca_scores.parquet merged_deepsea_pcas.parquet
     """
-    
+
     pcols = get_parquet_columns(deepripe_pca_file)
     anno_cols = get_parquet_columns(annotation_file)
     logger.info("reading current annotations")
-    prior_names,*_ = readYamlColumns(column_yaml_file)
+    prior_names, *_ = readYamlColumns(column_yaml_file)
 
     DScommonCols = list(set(prior_names).intersection(set(pcols)))
     AnnoCommonCols = list(set(prior_names).intersection(set(anno_cols)))
-    annotations = pd.read_parquet(annotation_file, columns = AnnoCommonCols+['chrom','pos', 'ref','alt','id', 'gene_id'])
+    annotations = pd.read_parquet(
+        annotation_file,
+        columns=AnnoCommonCols + ["chrom", "pos", "ref", "alt", "id", "gene_id"],
+    )
     logger.info("reading PCAs")
-    deepripe_pcas = pd.read_parquet(deepripe_pca_file, columns=DScommonCols+['chrom','pos', 'ref','alt','id'])
+    deepripe_pcas = pd.read_parquet(
+        deepripe_pca_file, columns=DScommonCols + ["chrom", "pos", "ref", "alt", "id"]
+    )
     deepripe_pcas = deepripe_pcas.drop_duplicates(
         subset=["chrom", "pos", "ref", "alt", "id"]
     )
@@ -1347,7 +1357,6 @@ def merge_deepsea_pcas(annotation_file: str, deepripe_pca_file: str, column_yaml
     assert len(merged) == noduplicates_len
     logger.info(f"writing file to {out_file}")
     merged.to_parquet(out_file)
-
 
 
 @cli.command()
@@ -1598,7 +1607,7 @@ def concatenate_deepsea(
     $ python annotations.py concatenate_deepSEA chr1_block0.CLI.deepseapredict.diff.tsv,chr1_block1.CLI.deepseapredict.diff.tsv,chr1_block2.CLI.deepseapredict.diff.tsv concatenated_output.parquet 4
     """
 
-    file_paths = deepsea_files.split(',')
+    file_paths = deepsea_files.split(",")
     logger.info("check if out_file already exists")
     if os.path.exists(out_file):
         logger.info("file exists, removing existing file")
@@ -1747,7 +1756,9 @@ def process_deepripe(deepripe_df: pd.DataFrame, column_prefix: str) -> pd.DataFr
     return deepripe_df
 
 
-def process_vep(vep_file: pd.DataFrame,  vcf_file : str, vepcols_to_retain: list = []) -> pd.DataFrame:
+def process_vep(
+    vep_file: pd.DataFrame, vcf_file: str, vepcols_to_retain: list = []
+) -> pd.DataFrame:
     """
     Process the VEP DataFrame, extracting relevant columns and handling data types.
 
@@ -1761,9 +1772,11 @@ def process_vep(vep_file: pd.DataFrame,  vcf_file : str, vepcols_to_retain: list
     Example:
     vep_file = process_vep(vep_file, vepcols_to_retain=["additional_col1", "additional_col2"])
     """
-    vcf_df =  pd.read_table(vcf_file, names=['chrom', 'pos', '#Uploaded_variation', 'ref', 'alt'])
+    vcf_df = pd.read_table(
+        vcf_file, names=["chrom", "pos", "#Uploaded_variation", "ref", "alt"]
+    )
     if "#Uploaded_variation" in vep_file.columns:
-        vep_file = vep_file.merge(vcf_df, on = "#Uploaded_variation")
+        vep_file = vep_file.merge(vcf_df, on="#Uploaded_variation")
 
     if "pos" in vep_file.columns:
         vep_file["pos"] = vep_file["pos"].astype(int)
@@ -1901,7 +1914,6 @@ def process_vep(vep_file: pd.DataFrame,  vcf_file : str, vepcols_to_retain: list
     return vep_file
 
 
-
 @cli.command()
 @click.argument("filenames", type=str)
 @click.argument("out_file", type=click.Path())
@@ -1923,7 +1935,7 @@ def concat_annotations(
     concat_annotations "annotations/chr1_block0_merged.parquet,annotations/chr1_block1_merged.parquet,annotations/chr1_block2_merged.parquet " "output.parquet")
     """
     logger.info("reading pvcf block file")
-    file_paths = filenames.split(',')
+    file_paths = filenames.split(",")
     for f in tqdm(file_paths):
         logger.info(f"processing file {f}")
         file = pd.read_parquet(f)
@@ -2091,11 +2103,12 @@ def select_rename_fill_annotations(
     - out_file (str): Path to save the modified annotations file.
     """
 
-
     logger.info(
         f"reading  in yaml file containing name and fill value mappings from {annotation_columns_yaml_file}"
     )
-    prior_names, _, _, column_name_mapping, fill_value_mapping = readYamlColumns(annotation_columns_yaml_file)
+    prior_names, _, _, column_name_mapping, fill_value_mapping = readYamlColumns(
+        annotation_columns_yaml_file
+    )
     key_cols = ["id", "gene_id"]
     anno_df = pd.read_parquet(
         annotations_path, columns=list(set(prior_names + key_cols))
