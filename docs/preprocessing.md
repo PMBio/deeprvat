@@ -11,7 +11,7 @@ The important files that this pipeline produces that are needed in DeepRVAT are:
 
 - **preprocessed/genotypes.h5** *The main sparse hdf5 file*
 
-- **norm/variants/variants.parquet** *List of variants i parquet format*
+- **norm/variants/variants.parquet** *List of variants in parquet format*
 
 ## Setup environment
 
