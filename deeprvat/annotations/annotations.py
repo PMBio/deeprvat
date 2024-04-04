@@ -17,7 +17,7 @@ from joblib import Parallel, delayed
 from keras.models import load_model
 from sklearn.decomposition import PCA
 from tqdm import tqdm, trange
-
+from fastparquet import ParquetFile
 
 def precision(y_true, y_pred):
     """
@@ -558,6 +558,22 @@ def deepripe_encode_variant_bedline(bedline, genomefasta, flank_size=75):
 
         return encoded_seqs
 
+def readYamlColumns(annotation_columns_yaml_file):
+    with open(annotation_columns_yaml_file, "r") as fd:
+        config = yaml.safe_load(fd)
+    columns = config["annotation_column_names"]
+    prior_names = list(columns.keys())
+    post_names = [list(columns[k].keys())[0] for k in columns]
+    fill_vals = [list(columns[k].values())[0] for k in columns]
+    column_name_mapping = dict(zip(prior_names, post_names))
+    fill_value_mapping = dict(zip(post_names, fill_vals))
+    return prior_names, post_names, fill_vals, column_name_mapping, fill_value_mapping
+    
+def get_parquet_columns(parquet_file):
+    pfile = ParquetFile(parquet_file)
+    pcols = pfile.columns
+    return pcols
+    
 
 @click.group()
 def cli():
@@ -706,7 +722,7 @@ def deepsea_pca(
     logger.info("filling NAs")
     df = df.fillna(0)
     logger.info("Extracting matrix for PCA")
-    key_df = df[["chrom", "pos", "ref", "alt", "id"]].reset_index(drop=True)
+    key_df = df[["#CHROM", "POS", "REF", "ALT"]].reset_index(drop=True)
     logger.info("transforming values to numpy")
     deepSEAcols = [c for c in df.columns if c.startswith("DeepSEA")]
     X = df[deepSEAcols].to_numpy()
@@ -1274,14 +1290,16 @@ def merge_deepripe(
 @cli.command()
 @click.argument("annotation_file", type=click.Path(exists=True))
 @click.argument("deepripe_pca_file", type=click.Path(exists=True))
+@click.argument("column_yaml_file", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
-def merge_deepsea_pcas(annotation_file: str, deepripe_pca_file: str, out_file: str):
+def merge_deepsea_pcas(annotation_file: str, deepripe_pca_file: str, column_yaml_file:str, out_file: str):
     """
     Merge deepRiPe PCA scores with an annotation file and save the result.
 
     Parameters:
     - annotation_file (str): Path to the annotation file in parquet format.
     - deepripe_pca_file (str): Path to the deepRiPe PCA scores file in parquet format.
+    - column_yaml_file(str): Path to the yaml file containing all needed columns for the model, including their filling values.
     - out_file (str): Path to save the merged file with deepRiPe PCA scores.
 
     Returns:
@@ -1296,10 +1314,17 @@ def merge_deepsea_pcas(annotation_file: str, deepripe_pca_file: str, out_file: s
     Example:
     $ python annotations.py merge_deepsea_pcas annotations.parquet deepripe_pca_scores.parquet merged_deepsea_pcas.parquet
     """
+    
+    pcols = get_parquet_columns(deepripe_pca_file)
+    anno_cols = get_parquet_columns(annotation_file)
     logger.info("reading current annotations")
-    annotations = pd.read_parquet(annotation_file)
+    prior_names,*_ = readYamlColumns(column_yaml_file)
+
+    DScommonCols = list(set(prior_names).intersection(set(pcols)))
+    AnnoCommonCols = list(set(prior_names).intersection(set(anno_cols)))
+    annotations = pd.read_parquet(annotation_file, columns = AnnoCommonCols+['chrom','pos', 'ref','alt','id', 'gene_id'])
     logger.info("reading PCAs")
-    deepripe_pcas = pd.read_parquet(deepripe_pca_file)
+    deepripe_pcas = pd.read_parquet(deepripe_pca_file, columns=DScommonCols+['chrom','pos', 'ref','alt','id'])
     deepripe_pcas = deepripe_pcas.drop_duplicates(
         subset=["chrom", "pos", "ref", "alt", "id"]
     )
@@ -1322,6 +1347,7 @@ def merge_deepsea_pcas(annotation_file: str, deepripe_pca_file: str, out_file: s
     assert len(merged) == noduplicates_len
     logger.info(f"writing file to {out_file}")
     merged.to_parquet(out_file)
+
 
 
 @cli.command()
@@ -1549,17 +1575,11 @@ def read_deepripe_file(f: str):
 
 
 @cli.command()
-@click.option("--included-chromosomes", type=str)
-@click.argument("annotation_dir", type=click.Path(exists=True))
-@click.argument("deepsea_name_pattern", type=str)
-@click.argument("pvcf-blocks_file", type=click.Path(exists=True))
+@click.argument("deepsea_files", type=str)
 @click.argument("out_file", type=click.Path())
 @click.argument("njobs", type=int)
 def concatenate_deepsea(
-    included_chromosomes: Optional[str],
-    annotation_dir: str,
-    deepsea_name_pattern: str,
-    pvcf_blocks_file: str,
+    deepsea_files: str,
     out_file: str,
     njobs: int,
 ):
@@ -1567,10 +1587,7 @@ def concatenate_deepsea(
     Concatenate DeepSEA files based on the provided patterns and chromosome blocks.
 
     Parameters:
-    - included_chromosomes (Optional[str]): Comma-separated list of chromosome numbers to include.
-    - annotation_dir (str): Path to the directory containing DeepSEA files.
-    - deepSEA_name_pattern (str): Pattern for DeepSEA file names with placeholders (e.g., {chr}, {block}).
-    - pvcf_blocks_file (str): Path to the pvcf blocks file, in which all blocks from all chromosomes are listed in desired order.
+    - deepSEA_name_pattern (str): comma-separated list of deepsea files to concatenate
     - out_file (str): Path to save the concatenated output file in Parquet format.
     - njobs (int): Number of parallel jobs for processing.
 
@@ -1578,31 +1595,10 @@ def concatenate_deepsea(
     None
 
     Example:
-    $ python annotations.py concatenate_deepSEA --included-chromosomes="1,2,3" annotation_data/ deepSEA_chr{chr}_block{block}.parquet pvcf_blocks.txt concatenated_output.parquet 4
+    $ python annotations.py concatenate_deepSEA chr1_block0.CLI.deepseapredict.diff.tsv,chr1_block1.CLI.deepseapredict.diff.tsv,chr1_block2.CLI.deepseapredict.diff.tsv concatenated_output.parquet 4
     """
 
-    annotation_dir = Path(annotation_dir)
-
-    logger.info("Reading variant file")
-
-    logger.info("reading pvcf block file")
-    pvcf_blocks_df = pd.read_csv(
-        pvcf_blocks_file,
-        sep="\t",
-        header=None,
-        names=["Index", "Chromosome", "Block", "First position", "Last position"],
-        dtype={"Chromosome": str},
-    ).set_index("Index")
-    if included_chromosomes is not None:
-        included_chromosomes = [int(c) for c in included_chromosomes.split(",")]
-        pvcf_blocks_df = pvcf_blocks_df[
-            pvcf_blocks_df["Chromosome"].isin([str(c) for c in included_chromosomes])
-        ]
-    pvcf_blocks = zip(pvcf_blocks_df["Chromosome"], pvcf_blocks_df["Block"])
-    file_paths = [
-        annotation_dir / deepsea_name_pattern.format(chr=p[0], block=p[1])
-        for p in pvcf_blocks
-    ]
+    file_paths = deepsea_files.split(',')
     logger.info("check if out_file already exists")
     if os.path.exists(out_file):
         logger.info("file exists, removing existing file")
@@ -1674,7 +1670,7 @@ def merge_annotations(
     None
 
     Example:
-    $ python annotations.py merge_annotations 1 vep_file.tsv deepripe_parclip.csv deepripe_hg2.csv deepripe_k5.csv variant_file.tsv input_variants.vcf merged_output.parquet --vepcols_to_retain="AlphaMissense,PolyPhen"
+    $ python annotations.py merge_annotations 1 vep_file.tsv deepripe_parclip.csv deepripe_hg2.csv deepripe_k5.csv variant_file.tsv merged_output.parquet --vepcols_to_retain="AlphaMissense,PolyPhen"
     """
     # load vep file
     vep_df = pd.read_csv(vep_file, header=vep_header_line, sep="\t", na_values="-")
@@ -1751,7 +1747,7 @@ def process_deepripe(deepripe_df: pd.DataFrame, column_prefix: str) -> pd.DataFr
     return deepripe_df
 
 
-def process_vep(vep_file: pd.DataFrame, vepcols_to_retain: list = []) -> pd.DataFrame:
+def process_vep(vep_file: pd.DataFrame,  vcf_file : str, vepcols_to_retain: list = []) -> pd.DataFrame:
     """
     Process the VEP DataFrame, extracting relevant columns and handling data types.
 
@@ -1765,13 +1761,9 @@ def process_vep(vep_file: pd.DataFrame, vepcols_to_retain: list = []) -> pd.Data
     Example:
     vep_file = process_vep(vep_file, vepcols_to_retain=["additional_col1", "additional_col2"])
     """
+    vcf_df =  pd.read_table(vcf_file, names=['chrom', 'pos', '#Uploaded_variation', 'ref', 'alt'])
     if "#Uploaded_variation" in vep_file.columns:
-        vep_file[["chrom", "pos", "ref", "alt"]] = (
-            vep_file["#Uploaded_variation"]
-            .str.replace("_", ":")
-            .str.replace("/", ":")
-            .str.split(":", expand=True)
-        )
+        vep_file = vep_file.merge(vcf_df, on = "#Uploaded_variation")
 
     if "pos" in vep_file.columns:
         vep_file["pos"] = vep_file["pos"].astype(int)
@@ -1909,55 +1901,29 @@ def process_vep(vep_file: pd.DataFrame, vepcols_to_retain: list = []) -> pd.Data
     return vep_file
 
 
+
 @cli.command()
-@click.argument("pvcf_blocks_file", type=click.Path(exists=True))
-@click.argument("annotation_dir", type=click.Path(exists=True))
-@click.argument("filename_pattern", type=str)
+@click.argument("filenames", type=str)
 @click.argument("out_file", type=click.Path())
-@click.option("--included-chromosomes", type=str)
 def concat_annotations(
-    pvcf_blocks_file: str,
-    annotation_dir: str,
-    filename_pattern: str,
+    filenames: str,
     out_file: str,
-    included_chromosomes: Optional[str],
 ):
     """
     Concatenate multiple annotation files based on the specified pattern and create a single output file.
 
     Parameters:
-    - pvcf_blocks_file (str): Path to the PVCf blocks file, containing all blocks of all chromosomes in desired order.
-    - annotation_dir (str): Path to the directory containing annotation files.
-    - filename_pattern (str): Filename pattern for annotation files, including placeholders for chromosome and block.
+    - filenames (str): File paths for annotation files to concatenate
     - out_file (str): Output file path.
-    - included_chromosomes (str, optional): Comma-separated list of chromosomes to include.
 
     Returns:
     None
 
     Example:
-    concat_annotations("blocks.txt", "annotations/", "annotation_chr{chr}_block{block}.parquet", "output.parquet", "--included-chromosomes=1,2,3")
+    concat_annotations "annotations/chr1_block0_merged.parquet,annotations/chr1_block1_merged.parquet,annotations/chr1_block2_merged.parquet " "output.parquet")
     """
     logger.info("reading pvcf block file")
-    pvcf_blocks_df = pd.read_csv(
-        pvcf_blocks_file,
-        sep="\t",
-        header=None,
-        names=["Index", "Chromosome", "Block", "First position", "Last position"],
-        dtype={"Chromosome": str},
-    ).set_index("Index")
-    if included_chromosomes is not None:
-        included_chromosomes = [int(c) for c in included_chromosomes.split(",")]
-        pvcf_blocks_df = pvcf_blocks_df[
-            pvcf_blocks_df["Chromosome"].isin([str(c) for c in included_chromosomes])
-        ]
-
-    pvcf_blocks = zip(pvcf_blocks_df["Chromosome"], pvcf_blocks_df["Block"])
-    annotation_dir = Path(annotation_dir)
-    file_paths = [
-        annotation_dir / filename_pattern.format(chr=p[0], block=p[1])
-        for p in pvcf_blocks
-    ]
+    file_paths = filenames.split(',')
     for f in tqdm(file_paths):
         logger.info(f"processing file {f}")
         file = pd.read_parquet(f)
@@ -2124,21 +2090,12 @@ def select_rename_fill_annotations(
     - annotations_path (str): Path to the annotations file.
     - out_file (str): Path to save the modified annotations file.
     """
-    import yaml
+
 
     logger.info(
         f"reading  in yaml file containing name and fill value mappings from {annotation_columns_yaml_file}"
     )
-    with open(annotation_columns_yaml_file, "r") as fd:
-        config = yaml.safe_load(fd)
-    columns = config["annotation_column_names"]
-    prior_names = list(columns.keys())
-    post_names = [list(columns[k].keys())[0] for k in columns]
-    fill_vals = [list(columns[k].values())[0] for k in columns]
-    column_name_mapping = dict(zip(prior_names, post_names))
-    fill_value_mapping = dict(zip(post_names, fill_vals))
-    logger.info(f"loading annotations from {annotations_path}")
-
+    prior_names, _, _, column_name_mapping, fill_value_mapping = readYamlColumns(annotation_columns_yaml_file)
     key_cols = ["id", "gene_id"]
     anno_df = pd.read_parquet(
         annotations_path, columns=list(set(prior_names + key_cols))
