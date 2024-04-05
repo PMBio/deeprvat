@@ -15,7 +15,7 @@ Furthermore, the pipeline outputs one annotation file for VEP, CADD, DeepRiPe, D
 
 The pipeline uses left-normalized bcf files containing variant information, a reference fasta file as well as a text file that maps data blocks to chromosomes as input. It is expected that the bcf files contain the columns "CHROM" "POS" "ID" "REF" and "ALT". Any other columns, including genotype information are stripped from the data before annotation tools are used on the data. The variants may be split into several vcf files for each chromosome and each "block" of data. The filenames should then contain the corresponding chromosome and block number. The pattern of the file names, as well as file structure may be specified in the corresponding [config file](https://github.com/PMBio/deeprvat/blob/main/pipelines/config/deeprvat_annotation_config.yaml). The pipeline also requires input data and repositories descried in [requirements](#requirements).
 
-
+(requirements)=
 ## Requirements
 
 BCFtools as well as HTSlib should be installed on the machine, 
