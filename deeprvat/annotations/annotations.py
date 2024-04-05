@@ -20,6 +20,7 @@ from tqdm import tqdm, trange
 from fastparquet import ParquetFile
 import yaml
 
+
 def precision(y_true, y_pred):
     """
     Calculate precision, a metric for the accuracy of the positive predictions.
@@ -1327,7 +1328,10 @@ def merge_deepsea_pcas(
 
     DScommonCols = list(set(prior_names).intersection(set(pcols)))
     AnnoCommonCols = list(set(prior_names).intersection(set(anno_cols)))
-    annotations = pd.read_parquet(annotation_file, columns = AnnoCommonCols+['chrom','pos', 'ref','alt','id', 'Gene'])
+    annotations = pd.read_parquet(
+        annotation_file,
+        columns=AnnoCommonCols + ["chrom", "pos", "ref", "alt", "id", "Gene"],
+    )
     logger.info("reading PCAs")
     deepripe_pcas = pd.read_parquet(
         deepripe_pca_file, columns=DScommonCols + ["chrom", "pos", "ref", "alt", "id"]
