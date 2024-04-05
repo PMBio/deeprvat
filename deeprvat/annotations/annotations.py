@@ -18,6 +18,7 @@ from keras.models import load_model
 from sklearn.decomposition import PCA
 from tqdm import tqdm, trange
 from fastparquet import ParquetFile
+import yaml
 
 def precision(y_true, y_pred):
     """
@@ -1322,7 +1323,7 @@ def merge_deepsea_pcas(annotation_file: str, deepripe_pca_file: str, column_yaml
 
     DScommonCols = list(set(prior_names).intersection(set(pcols)))
     AnnoCommonCols = list(set(prior_names).intersection(set(anno_cols)))
-    annotations = pd.read_parquet(annotation_file, columns = AnnoCommonCols+['chrom','pos', 'ref','alt','id', 'gene_id'])
+    annotations = pd.read_parquet(annotation_file, columns = AnnoCommonCols+['chrom','pos', 'ref','alt','id', 'Gene'])
     logger.info("reading PCAs")
     deepripe_pcas = pd.read_parquet(deepripe_pca_file, columns=DScommonCols+['chrom','pos', 'ref','alt','id'])
     deepripe_pcas = deepripe_pcas.drop_duplicates(
