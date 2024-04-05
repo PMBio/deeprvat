@@ -115,7 +115,7 @@ file_paths = [
 
 file_paths = list(chain.from_iterable(file_paths))
 human_sort(file_paths)
-file_stems = [Path(p).stem for p in file_paths]
+file_stems = [Path(p).stem.split('.')[0] for p in file_paths]
 
 absplice_download_dir = config.get('absplice_download_dir') or  absplice_repo_dir /'example'/'data'/'resources'/'downloaded_files'
 absplice_output_dir = config.get('absplice_output_dir', anno_tmp_dir /'absplice')
