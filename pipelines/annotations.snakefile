@@ -173,7 +173,7 @@ rule select_rename_fill_columns:
         
         ])        
 
-if(gene_id_file==None):
+if not gene_id_file:
     gene_id_file = anno_tmp_dir / 'protein_coding_genes.parquet'
     rule create_gene_id_file:
         input: gtf_file
