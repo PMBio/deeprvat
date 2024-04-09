@@ -13,8 +13,6 @@ source_variant_file_type: 'vcf.gz'
 # comment out / remove to run on all chromosomes
 included_chromosomes : ['21','22']
 
-metadata_dir : input_dir/vcf/metadata
-pvcf_blocks_file : pvcf_blocks.txt
 source_variant_dir : input_dir/vcf
 anno_tmp_dir : output_dir/annotations/tmp
 anno_dir : output_dir/annotations

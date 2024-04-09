@@ -1797,7 +1797,6 @@ def process_vep(
         "Gene",
     ]
     str_cols_present = [i for i in str_cols if i in vep_file.columns]
-    str_cols_not_present = set(str_cols) - set(str_cols_present)
     vep_file[str_cols_present] = vep_file[str_cols_present].astype(str)
 
     float_vals = [
@@ -1819,7 +1818,6 @@ def process_vep(
         "Condel",
     ]
     float_vals_present = [i for i in float_vals if i in vep_file.columns]
-    float_vals_not_present = set(float_vals) - set(float_vals_present)
     vep_file[float_vals_present] = (
         vep_file[float_vals_present].replace("-", "NaN").astype(float)
     )
@@ -1854,9 +1852,7 @@ def process_vep(
         + (vepcols_to_retain or [])
     )
     necessary_columns_present = [i for i in necessary_columns if i in vep_file.columns]
-    necessary_columns_not_present = set(necessary_columns) - set(
-        necessary_columns_present
-    )
+    
 
     vep_file = vep_file[list(set(necessary_columns_present))]
 
@@ -1869,6 +1865,8 @@ def process_vep(
         dummies = (
             vep_file["Consequence"].str.get_dummies(",").add_prefix("Consequence_")
         )
+    else:
+        raise ValueError("'Consequence' column expected to be in VEP output")
     all_consequences = [
         "Consequence_splice_acceptor_variant",
         "Consequence_5_prime_UTR_variant",
@@ -1935,7 +1933,6 @@ def concat_annotations(
     Example:
     concat_annotations "annotations/chr1_block0_merged.parquet,annotations/chr1_block1_merged.parquet,annotations/chr1_block2_merged.parquet " "output.parquet")
     """
-    logger.info("reading pvcf block file")
     file_paths = filenames.split(",")
     for f in tqdm(file_paths):
         logger.info(f"processing file {f}")
