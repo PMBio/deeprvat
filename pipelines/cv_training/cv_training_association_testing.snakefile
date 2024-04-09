@@ -35,28 +35,11 @@ cv_exp = True
 
 
 
-include: "../association_testing/plot.snakefile"
 include: "cv_training.snakefile"
 include: "cv_burdens.snakefile"
 include: "../association_testing/burdens.snakefile"
 include: "../association_testing/regress_eval.snakefile"
 
-
-
-
-rule all_plot:  #plot.snakefile
-    input:
-        "dicovery_replication_plot.png",
-
-
-rule all_evaluate:  #plot.snakefile
-    input:
-        significant=expand(
-            "{phenotype}/deeprvat/eval/significant.parquet", phenotype=phenotypes
-        ),
-        results=expand(
-            "{phenotype}/deeprvat/eval/all_results.parquet", phenotype=phenotypes
-        ),
 
 
 rule all_regression:  #regress_eval.snakefile
