@@ -1852,7 +1852,6 @@ def process_vep(
         + (vepcols_to_retain or [])
     )
     necessary_columns_present = [i for i in necessary_columns if i in vep_file.columns]
-    
 
     vep_file = vep_file[list(set(necessary_columns_present))]
 
