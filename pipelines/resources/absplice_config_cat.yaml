@@ -1,0 +1,16 @@
+gene_map: ../../absplice/precomputed/GENE_MAP.tsv.gz
+
+# mapping of variants to individuals, result of variant filtering on provided vcfs
+variant_sample_map: ../data/resources/analysis_files/variant_sample_map/{vcf_id}_variant_sample_map.csv
+
+cat_count_table: 
+  raw: ../data/resources/analysis_files/absplice_rna_related_files/processed/cat_count_table/tissue_cat={tissue_cat}_count_table_raw.csv
+  updated: ../data/resources/analysis_files/absplice_rna_related_files/processed/cat_count_table/tissue_cat={tissue_cat}_count_table.csv
+cat_outliers:
+  qual_filtered:
+      junction_level: ../data/resources/analysis_files/absplice_rna_related_files/processed/cat_outliers/qual_filtered/tissue_cat={tissue_cat}_junction_level_signif.csv
+      gene_level: ../data/resources/analysis_files/absplice_rna_related_files/processed/cat_outliers/qual_filtered/tissue_cat={tissue_cat}_gene_level.csv
+  combine_gene_junction:
+      gene_junction_signif: ../data/resources/analysis_files/absplice_rna_related_files/processed/cat_outliers/combine_gene_junction/gene_junction_signif/tissue_cat={tissue_cat}_signif.csv
+      outlier_with_variant: ../data/resources/analysis_files/absplice_rna_related_files/processed/cat_outliers/combine_gene_junction/outlier_with_variant/{vcf_id}_tissue_cat={tissue_cat}_outlier_with_variant.csv
+      minus_log10_pval: ../data/resources/analysis_files/absplice_rna_related_files/processed/cat_outliers/combine_gene_junction/minus_log10_pval/{vcf_id}_tissue_cat={tissue_cat}_FRASER_pval.csv

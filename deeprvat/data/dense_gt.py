@@ -32,6 +32,31 @@ DEFAULT_CHROMOSOMES = [f"chr{x}" for x in range(1, 23)]
 AGGREGATIONS = {"max": np.max, "sum": np.sum}
 
 
+## Move this to utils?
+def get_matched_sample_indices(x, y):
+    """
+    # this function is supposed to do the same as
+    # indices= np.array([np.where(x==iy)[0][0] for iy in y]) but is much faster
+    #https://stackoverflow.com/questions/8251541/numpy-for-every-element-in-one-array-find-the-index-in-another-array
+
+    Args:
+        x : query array
+        y: query values. The function returns the index of each element of y in x
+    Returns:
+        np.array: Index of each element of y in x
+    """
+    assert np.in1d(y, x).sum() == len(y), "All values of y must be in x"
+
+    xsorted = np.argsort(x)
+    ypos = np.searchsorted(x[xsorted], y)
+    x_indices = xsorted[ypos]
+
+    x_mask = np.zeros(np.shape(x)).astype(bool)
+    x_mask[x_indices] = True
+
+    return x_indices, x_mask
+
+
 class DenseGTDataset(Dataset):
     def __init__(
         self,
@@ -61,6 +86,7 @@ class DenseGTDataset(Dataset):
         y_phenotypes: List[str] = [],
         skip_y_na: bool = True,
         skip_x_na: bool = False,
+        sample_file: str = None,
         sim_phenotype_file: Optional[str] = None,
         min_common_variant_count: Optional[int] = None,
         min_common_af: Optional[Dict[str, float]] = None,
@@ -86,6 +112,7 @@ class DenseGTDataset(Dataset):
         else:
             logger.setLevel(logging.INFO)
 
+        self.check_samples = True  # TODO undo
         self.split = split
         self.train_dataset = train_dataset
         self.chromosomes = (
@@ -131,10 +158,7 @@ class DenseGTDataset(Dataset):
             f"Using phenotype file {phenotype_file} and genotype file {self.gt_filename}"
         )
         self.setup_phenotypes(
-            phenotype_file,
-            sim_phenotype_file,
-            skip_y_na,
-            skip_x_na,
+            phenotype_file, sim_phenotype_file, skip_y_na, skip_x_na, sample_file
         )
 
         self.max_rare_af = max_rare_af
@@ -152,9 +176,9 @@ class DenseGTDataset(Dataset):
 
         if grouping_level is not None:
             if grouping_level == "gene":
-                self.grouping_column = "gene_ids"
+                self.grouping_column = "gene_id"
             elif grouping_level == "exon":
-                self.grouping_column = "exon_ids"
+                self.grouping_column = "exon_id"
             else:
                 raise ValueError(f"Unknown aggregation level {grouping_level}")
         else:
@@ -202,15 +226,14 @@ class DenseGTDataset(Dataset):
             gt_file = h5py.File(self.gt_filename, "r")
             self.variant_matrix = gt_file["variant_matrix"]
             self.genotype_matrix = gt_file["genotype_matrix"]
-
             if self.cache_matrices:
                 self.variant_matrix = self.variant_matrix[:]
                 self.genotype_matrix = self.genotype_matrix[:]
 
-        idx = self.index_map[idx]
-
-        sparse_variants = self.variant_matrix[idx, :]
-        sparse_genotype = self.genotype_matrix[idx, :]
+        # idx_pheno = self.index_map_pheno[idx] #samples and phenotype is already subset so can use idx
+        idx_geno = self.index_map_geno[idx]
+        sparse_variants = self.variant_matrix[idx_geno, :]
+        sparse_genotype = self.genotype_matrix[idx_geno, :]
         (
             common_variants,
             all_sparse_variants,
@@ -221,7 +244,9 @@ class DenseGTDataset(Dataset):
             idx, all_sparse_variants, sparse_genotype
         )
 
-        phenotypes = self.phenotype_df.iloc[idx, :]
+        phenotypes = self.phenotype_df.iloc[
+            idx, :
+        ]  # TODO use loc here self.phenotype_df.loc[self.samples[idx]]
 
         x_phenotype_tensor = torch.tensor(
             phenotypes[self.x_phenotypes].to_numpy(dtype=np.float32), dtype=torch.float
@@ -230,7 +255,9 @@ class DenseGTDataset(Dataset):
         y = torch.tensor(
             phenotypes[self.y_phenotypes].to_numpy(dtype=np.float32), dtype=torch.float
         )
-
+        if self.check_samples:
+            # sanity check, can be removed in future
+            assert self.samples_gt[idx_geno] == self.samples[idx]
         return {
             "sample": self.samples[idx],
             "x_phenotypes": x_phenotype_tensor,
@@ -256,9 +283,17 @@ class DenseGTDataset(Dataset):
         sim_phenotype_file: Optional[str],
         skip_y_na: bool,
         skip_x_na: bool,
+        sample_file: Optional[str],
     ):
         logger.debug("Reading phenotype dataframe")
         self.phenotype_df = pd.read_parquet(phenotype_file, engine="pyarrow")
+        with h5py.File(self.gt_filename, "r") as f:
+            samples_gt = f["samples"][:]
+        samples_gt = np.array([item.decode("utf-8") for item in samples_gt])
+        if self.check_samples:
+            self.samples_gt = samples_gt
+        samples_phenotype_df = np.array(self.phenotype_df.index)
+        # phenotypes_df has first to be sorted in the same order as samples_gt
         if sim_phenotype_file is not None:
             logger.info(
                 f"Using phenotypes and covariates from simulated phenotype file {sim_phenotype_file}"
@@ -267,24 +302,76 @@ class DenseGTDataset(Dataset):
             self.phenotype_df = self.phenotype_df.join(
                 sim_phenotype
             )  # TODO on = , validate = "1:1"
+        if sample_file is not None:
+            logger.info(f"Using samples from sample file {sample_file}")
+            with open(sample_file, "rb") as f:
+                samples_to_keep = pickle.load(f)
+            samples_to_keep = np.array(samples_to_keep)
+            logger.info(f"Number of samples in sample file: {len(samples_to_keep)}")
+            shared_samples = np.array(
+                list(set(samples_to_keep).intersection(set(samples_phenotype_df)))
+            )
+            if len(shared_samples) < len(samples_to_keep):
+                logger.warning(
+                    "Some samples from the sample file were not found in the data"
+                )
+            sample_to_keep = shared_samples
+            logger.info(
+                f"Number of samples in sample file and in phenotype_df: {len(samples_to_keep)}"
+            )
+        else:
+            logger.info("Using all samples in phenotype df")
+            samples_to_keep = copy.deepcopy(samples_phenotype_df)
 
+        logger.info("Removing samples that are not in genotype file")
+
+        samples_to_keep = np.array(
+            list(set(samples_to_keep).intersection(set(samples_gt)))
+        )
         binary_cols = [
             c for c in self.y_phenotypes if self.phenotype_df[c].dtype == bool
         ]
-
+        # samples_to_keep_mask = [
+        #     True if i in samples_to_keep else False
+        #     for i in self.phenotype_df.index
+        # ]
+        # much faster retrieval of the mask compared to commented out list operation above
+        samples_to_keep_df = (
+            pd.Series(samples_to_keep, name="sample").to_frame().assign(mask=True)
+        )
+        merged_mask = (
+            pd.Series(self.phenotype_df.index, name="sample")
+            .to_frame()
+            .merge(samples_to_keep_df, how="left", validate="1:1", on="sample")
+        )
+        samples_to_keep_mask = list(merged_mask["mask"].fillna(False))
+        assert sum(samples_to_keep_mask) == len(samples_to_keep)
         mask_cols = copy.deepcopy(self.x_phenotypes)
         if skip_y_na:
             mask_cols += self.y_phenotypes
         if skip_x_na:
             mask_cols += self.x_phenotypes
         mask = (self.phenotype_df[mask_cols].notna()).all(axis=1)
+        mask &= samples_to_keep_mask
+        samples_to_keep = self.phenotype_df.index[mask]
         self.n_samples = mask.sum()
-        logger.info(
-            f"Number of samples with phenotype and covariates: {self.n_samples}"
-        )
+        logger.info(f"Final number of kept samples: {self.n_samples}")
+        self.phenotype_df = self.phenotype_df[mask]
         self.samples = self.phenotype_df.index.to_numpy()
 
-        self.index_map = np.arange(len(self.phenotype_df))[mask]
+        # account for the fact that genotypes.h5 and phenotype_df can have different
+        # orders of their samples
+        self.index_map_geno, _ = get_matched_sample_indices(
+            samples_gt.astype(int), self.samples.astype(int)
+        )
+        # get_matched_sample_indices is a much, much faster implementation of the code below
+        # self.index_map_geno = [np.where(samples_gt.astype(int) == i) for i in self.samples.astype(int)]
+
+        if self.check_samples:
+            # just a sanity check for get_matched_sample_indices, can be removed in future
+            for i in np.random.choice(len(self.samples), 100):
+                # print(i)
+                assert self.samples[i] == samples_gt[self.index_map_geno[i]]
 
     def get_variant_ids(self, matrix_indices: np.ndarray) -> np.ndarray:
         return self.variant_id_map.loc[matrix_indices, "id"].to_numpy()
@@ -475,6 +562,9 @@ class DenseGTDataset(Dataset):
                 annotation_file, columns=list(set(columns)), engine="pyarrow"
             ).compute()
             self.annotation_df = self.annotation_df.set_index("id")
+            self.gene_specific_anno = self.annotation_df["gene_id"].dtype != np.dtype(
+                "O"
+            )
 
             if type(annotation_aggregation) == str:
                 self.annotation_aggregation = AGGREGATIONS.get(
@@ -517,9 +607,14 @@ class DenseGTDataset(Dataset):
             logger.debug(f'    {mask.sum()} variants "common" by count filter')
         elif min_common_af is not None:
             af_col, af_threshold = list(min_common_af.items())[0]
+            af_annotation = self.annotation_df[[af_col]].reset_index()
+            af_annotation = af_annotation.drop_duplicates()
+            if not len(af_annotation["id"]) == len(af_annotation["id"].unique()):
+                raise ValueError(
+                    "Annotation dataframe has inconsistent allele frequency values"
+                )
             variants_with_af = safe_merge(
-                variants[["id"]].reset_index(drop=True),
-                self.annotation_df[[af_col]].reset_index(),
+                variants[["id"]].reset_index(drop=True), af_annotation
             )
             assert np.all(
                 variants_with_af["id"].to_numpy() == variants["id"].to_numpy()
@@ -562,26 +657,22 @@ class DenseGTDataset(Dataset):
         if self.gene_file is not None:
             genes = set(pd.read_parquet(self.gene_file, columns=["id"])["id"])
             logger.debug(f"    Retaining {len(genes)} genes from {self.gene_file}")
-            variants_with_gene_ids = safe_merge(
-                variants[["id"]].reset_index(drop=True),
-                self.annotation_df[["gene_ids"]].reset_index(),
+            ids_to_keep = (
+                self.annotation_df.reset_index()[["id", "gene_id"]]
+                .explode("gene_id")
+                .query("gene_id in @genes")["id"]
+                .unique()
             )
-            assert np.all(
-                variants_with_gene_ids["id"].to_numpy() == variants["id"].to_numpy()
-            )
-            additional_mask &= (
-                variants_with_gene_ids["gene_ids"]
-                .apply(lambda x: len(set(x) & genes) != 0)
-                .to_numpy()
-            )
-            del variants_with_gene_ids
+            additional_mask &= variants["id"].isin(ids_to_keep).to_numpy()
         if self.gene_types_to_keep is not None:
+            raise NotImplementedError
             additional_mask &= (
                 variants["gene_types"]
                 .apply(lambda x: len(set(x) & self.gene_types_to_keep) != 0)
                 .to_numpy()
             )
         if self.ignore_by_annotation is not None:
+            raise NotImplementedError
             for col, val in self.ignore_by_annotation:
                 if self.annotation_df[col].dtype == np.dtype("object"):
                     additional_mask &= (
@@ -601,9 +692,12 @@ class DenseGTDataset(Dataset):
             and self.gene_file is None
             and self.gene_types_to_keep is None
         ):
-            rare_variant_mask &= (
-                variants["gene_ids"].apply(lambda x: len(x) > 0).to_numpy()
-            )
+            if self.gene_specific_anno:
+                rare_variant_mask &= variants["gene_id"].notna().to_numpy()
+            else:
+                rare_variant_mask &= (
+                    variants["gene_ids"].apply(lambda x: len(x) > 0).to_numpy()
+                )
 
         variants["rare_variant_mask"] = rare_variant_mask
 
@@ -613,6 +707,7 @@ class DenseGTDataset(Dataset):
                 common_variant_mask &= ~af_mask
             common_variant_mask &= additional_mask
             if self.group_common:
+                raise NotImplementedError
                 common_variant_mask &= (
                     variants["gene_ids"].apply(lambda x: len(x) > 0).to_numpy()
                 )
@@ -665,6 +760,8 @@ class DenseGTDataset(Dataset):
             self.setup_common_groups()
 
     def setup_common_groups(self):
+        raise NotImplementedError()
+
         logger.debug("Setting up groups for common variants")
         logger.debug("    Computing grouping")
         common_variant_groups = self.variants.loc[
