@@ -5,8 +5,7 @@ import math
 import shutil
 import sys
 import pickle
-from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Union
+from typing import Any, Callable, Dict, Iterable
 
 import optuna
 import numpy as np
@@ -167,10 +166,7 @@ def my_quantile_transform(x, seed=1):
         "nan" values are kept
     """
     np.random.seed(seed)
-    x_transform = x.copy()
-    if isinstance(x_transform, pd.Series):
-        x_transform = x_transform.to_numpy()
-
+    x_transform = x.copy().to_numpy()
     is_nan = np.isnan(x_transform)
     n_quantiles = np.sum(~is_nan)
 

@@ -2,10 +2,10 @@ phenotypes:
   - Apolipoprotein_A
 #   - Apolipoprotein_B
 #   - Calcium
-#   - Cholesterol_statin_corrected
+#   - Cholesterol
 #   - HDL_cholesterol
 #   - IGF_1
-#   - LDL_direct_statin_corrected
+#   - LDL_direct
 #   - SHBG
 #   - Total_bilirubin
 #   - Triglycerides
@@ -69,8 +69,6 @@ data:
             MAF: 0.001 #is updated automatically when updating the config with update_config
         x_phenotypes:
             - age
-            - age2
-            - age_sex
             - genetic_sex
             - genetic_PC_1
             - genetic_PC_2

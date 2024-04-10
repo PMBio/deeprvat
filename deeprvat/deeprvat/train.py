@@ -202,9 +202,11 @@ def make_dataset_(
 
     logger.info(f"Using {n_samples} samples for training and validation")
     ds = Subset(ds, range(n_samples))
+
     dl = DataLoader(
         ds, collate_fn=collate_fn, **config["training_data"]["dataloader_config"]
     )
+
     logger.info("  Generating dataset")
     batches = [
         batch

@@ -9,7 +9,6 @@ training_phenotypes = config["training"].get("phenotypes", phenotypes)
 
 n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
 n_regression_chunks = config.get('n_regression_chunks', 40) if not debug_flag else 2
-n_avg_chunks = config.get('n_avg_chunks', 40)
 n_trials = config['hyperparameter_optimization']['n_trials']
 n_bags = config['training']['n_bags'] if not debug_flag else 3
 n_repeats = config['n_repeats']
@@ -22,49 +21,37 @@ wildcard_constraints:
     repeat="\d+",
     trial="\d+",
 
-cv_exp = False
-config_file_prefix = (
-    "cv_split0/deeprvat/" if cv_exp else ""
-) 
-
-
 include: "training/config.snakefile"
 include: "association_testing/association_dataset.snakefile"
 include: "association_testing/burdens.snakefile"
 include: "association_testing/regress_eval.snakefile"
 
-
-
-
-rule all_evaluate:  #plot.snakefile
+rule all:
     input:
-        significant=expand(
-            "{phenotype}/deeprvat/eval/significant.parquet", phenotype=phenotypes
-        ),
-        results=expand(
-            "{phenotype}/deeprvat/eval/all_results.parquet", phenotype=phenotypes
-        ),
+        expand("{phenotype}/deeprvat/eval/significant.parquet",
+               phenotype=phenotypes),
+        expand("{phenotype}/deeprvat/eval/all_results.parquet",
+               phenotype=phenotypes)
 
-
-rule all_regression:  #regress_eval.snakefile
+rule all_burdens:
     input:
-        expand(
-            "{phenotype}/deeprvat/average_regression_results/burden_associations.parquet",
-            phenotype=phenotypes,
-        ),
+        [
+            (f'{p}/deeprvat/burdens/chunk{c}.' +
+             ("finished" if p == phenotypes[0] else "linked"))
+            for p in phenotypes
+            for c in range(n_burden_chunks)
+        ]
 
-
-rule all_average_burdens:  #burdens.snakefile
+rule all_association_dataset:
     input:
-        expand(
-            "{phenotype}/deeprvat/burdens/logs/burdens_averaging_{chunk}.finished",
-            chunk=range(n_avg_chunks),
-            phenotype=phenotypes[0],
-        ),
+        expand('{phenotype}/deeprvat/association_dataset.pkl',
+               phenotype=phenotypes)
 
-rule all_config:  #cv_training.snakefile
+rule all_config:
     input:
-        expand(
-            "{phenotype}/deeprvat/hpopt_config.yaml",
-            phenotype=phenotypes,
-        ),
+        seed_genes = expand('{phenotype}/deeprvat/seed_genes.parquet',
+                            phenotype=phenotypes),
+        config = expand('{phenotype}/deeprvat/hpopt_config.yaml',
+                        phenotype=phenotypes),
+        baseline = expand('{phenotype}/deeprvat/baseline_results.parquet',
+                          phenotype=phenotypes),
