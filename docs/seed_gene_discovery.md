@@ -6,7 +6,7 @@ To run the pipeline, an experiment directory with the `config.yaml` has to be cr
 
 ## Input data
 
-The experiment directory in addition requires to have the same input data as specified for [DeepRVAT](usage.md), including
+The experiment directory in addition requires to have the same input data as specified for [DeepRVAT](deeprvat.md), including
 - `annotations.parquet`
 - `protein_coding_genes.parquet`
 - `genotypes.h5`
