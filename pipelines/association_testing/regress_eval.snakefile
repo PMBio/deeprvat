@@ -1,7 +1,29 @@
+configfile: 'config.yaml'
+
+debug_flag = config.get('debug', False)
+debug = '--debug ' if debug_flag else ''
+
+phenotypes = config['phenotypes']
+phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
+
+n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
+n_regression_chunks = config.get('n_regression_chunks', 40) if not debug_flag else 2
+n_avg_chunks = config.get('n_avg_chunks', 40)
+
+do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
+
+cv_exp = config.get("cv_exp", False)
 config_file_prefix = (
     "cv_split0/deeprvat/" if cv_exp else ""
 )  
 ########### Average regression 
+rule all_evaluate:
+    input:
+        expand("{phenotype}/deeprvat/eval/significant.parquet",
+               phenotype=phenotypes),
+        expand("{phenotype}/deeprvat/eval/all_results.parquet",
+               phenotype=phenotypes),
+
 rule evaluate:
     input:
         associations ='{phenotype}/deeprvat/average_regression_results/burden_associations.parquet',
