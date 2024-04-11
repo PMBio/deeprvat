@@ -1907,7 +1907,7 @@ def process_vep(
         "Consequence_regulatory_region_amplification",
         "Consequence_sequence_variant",
         "Consequence_transcript_ablation",
-        "Consequence_transcript_amplification"
+        "Consequence_transcript_amplification",
     ]
     all_consequences = list(set(all_consequences))
     mask = pd.DataFrame(
