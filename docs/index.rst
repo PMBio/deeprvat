@@ -20,7 +20,6 @@ Rare variant association testing using deep learning and data-driven burden scor
    annotations.md
    seed_gene_discovery.md
    deeprvat.md
-   config.md
    ukbiobank.md
    apidocs/index
 
