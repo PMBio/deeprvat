@@ -77,8 +77,9 @@ def load_h5_archive(h5_path):
         ),
     ],
 )
-def test_process_sparse_gt_file(test_data_name_dir, extra_cli_params,
-                                genotype_file_name, tmp_path):
+def test_process_sparse_gt_file(
+    test_data_name_dir, extra_cli_params, genotype_file_name, tmp_path
+):
     cli_runner = CliRunner()
 
     current_test_data_dir = tests_data_dir / "process_sparse_gt" / test_data_name_dir
@@ -112,15 +113,13 @@ def test_process_sparse_gt_file(test_data_name_dir, extra_cli_params,
     h5_file = out_file_base.as_posix().replace("genotypes", genotype_file_name)
 
     written_samples, written_variant_matrix, written_genotype_matrix = load_h5_archive(
-        h5_path=h5_file)
+        h5_path=h5_file
+    )
 
-    expected_data = np.load(expected_array_archive.as_posix(),
-                            allow_pickle=True)
+    expected_data = np.load(expected_array_archive.as_posix(), allow_pickle=True)
 
-    assert np.array_equal(written_variant_matrix,
-                          expected_data["variant_matrix"])
-    assert np.array_equal(written_genotype_matrix,
-                          expected_data["genotype_matrix"])
+    assert np.array_equal(written_variant_matrix, expected_data["variant_matrix"])
+    assert np.array_equal(written_genotype_matrix, expected_data["genotype_matrix"])
     assert np.array_equal(written_samples, expected_data["samples"])
 
 
@@ -158,21 +157,17 @@ def test_combine_genotypes(test_data_name_dir, input_h5, result_h5, tmp_path):
         combined_output_h5.as_posix(),
     ]
 
-    result = cli_runner.invoke(preprocess_cli,
-                               cli_parameters,
-                               catch_exceptions=False)
+    result = cli_runner.invoke(preprocess_cli, cli_parameters, catch_exceptions=False)
     assert result.exit_code == 0
 
     written_samples, written_variant_matrix, written_genotype_matrix = load_h5_archive(
-        h5_path=combined_output_h5)
+        h5_path=combined_output_h5
+    )
 
-    expected_data = np.load(expected_array_archive.as_posix(),
-                            allow_pickle=True)
+    expected_data = np.load(expected_array_archive.as_posix(), allow_pickle=True)
 
-    assert np.array_equal(written_variant_matrix,
-                          expected_data["variant_matrix"])
-    assert np.array_equal(written_genotype_matrix,
-                          expected_data["genotype_matrix"])
+    assert np.array_equal(written_variant_matrix, expected_data["variant_matrix"])
+    assert np.array_equal(written_genotype_matrix, expected_data["genotype_matrix"])
     assert np.array_equal(written_samples, expected_data["samples"])
 
 
@@ -193,8 +188,9 @@ def test_combine_genotypes(test_data_name_dir, input_h5, result_h5, tmp_path):
         ),
     ],
 )
-def test_add_variant_ids(test_data_name_dir, input_variants, output_variants,
-                         output_duplicates, tmp_path):
+def test_add_variant_ids(
+    test_data_name_dir, input_variants, output_variants, output_duplicates, tmp_path
+):
     cli_runner = CliRunner()
 
     current_test_data_dir = tests_data_dir / "add_variant_ids" / test_data_name_dir
@@ -265,12 +261,14 @@ def test_add_variant_ids(test_data_name_dir, input_variants, output_variants,
         ),
     ],
 )
-def test_process_and_combine_sparse_gt(test_data_name_dir, extra_cli_params,
-                                       input_h5, result_h5, tmp_path):
+def test_process_and_combine_sparse_gt(
+    test_data_name_dir, extra_cli_params, input_h5, result_h5, tmp_path
+):
     cli_runner = CliRunner()
 
-    current_test_data_dir = (tests_data_dir / "process_and_combine_sparse_gt" /
-                             test_data_name_dir)
+    current_test_data_dir = (
+        tests_data_dir / "process_and_combine_sparse_gt" / test_data_name_dir
+    )
 
     test_data_input_dir = current_test_data_dir / "input"
 
@@ -296,9 +294,9 @@ def test_process_and_combine_sparse_gt(test_data_name_dir, extra_cli_params,
         out_file_base.as_posix(),
     ]
 
-    result_process = cli_runner.invoke(preprocess_cli,
-                                       cli_parameters_process,
-                                       catch_exceptions=False)
+    result_process = cli_runner.invoke(
+        preprocess_cli, cli_parameters_process, catch_exceptions=False
+    )
     assert result_process.exit_code == 0
 
     cli_parameters_combine = [
@@ -309,19 +307,17 @@ def test_process_and_combine_sparse_gt(test_data_name_dir, extra_cli_params,
         combined_output_h5.as_posix(),
     ]
 
-    result_combine = cli_runner.invoke(preprocess_cli,
-                                       cli_parameters_combine,
-                                       catch_exceptions=False)
+    result_combine = cli_runner.invoke(
+        preprocess_cli, cli_parameters_combine, catch_exceptions=False
+    )
     assert result_combine.exit_code == 0
 
     written_samples, written_variant_matrix, written_genotype_matrix = load_h5_archive(
-        h5_path=combined_output_h5)
+        h5_path=combined_output_h5
+    )
 
-    expected_data = np.load(expected_array_archive.as_posix(),
-                            allow_pickle=True)
+    expected_data = np.load(expected_array_archive.as_posix(), allow_pickle=True)
 
-    assert np.array_equal(written_variant_matrix,
-                          expected_data["variant_matrix"])
-    assert np.array_equal(written_genotype_matrix,
-                          expected_data["genotype_matrix"])
+    assert np.array_equal(written_variant_matrix, expected_data["variant_matrix"])
+    assert np.array_equal(written_genotype_matrix, expected_data["genotype_matrix"])
     assert np.array_equal(written_samples, expected_data["samples"])
