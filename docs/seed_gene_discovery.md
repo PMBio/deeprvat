@@ -21,17 +21,17 @@ The `annotations.parquet` data frame should have the following columns:
 - Consequence_missense_variant: 
 - MAF:  Maximum of the MAF in the UK Biobank cohort and in gnomAD release 3.0 (non-Finnish European population) can also be changed by using the --maf-column {maf_col_name} flag for the rule config and replacing MAF in the config.yaml with the {maf_col_name} but it must contain the string '_AF', '_MAF' OR '^MAF'
 
-### Run the seed gene discovery pipeline with example data  
+## Configuration file
 
-Create the conda environment and activate it, (instructions can be found here [DeepRVAT instructions](usage.md) )
+*TODO:* Describe `config.yaml`, give example
 
+
+## Running the seed gene discovery pipeline
+
+In a directory with all of the [input data](#input-data) required and your [configuration file](#configuration-file) set up, run: 
 
 ```
-mkdir example
-cd example
-ln -s [path_to_deeprvat]/example/* .
-cp [path_to_deeprvat]/deeprvat/seed_gene_discovery/config.yaml  .
-snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/seed_gene_discovery.snakefile
+[path_to_deeprvat]/pipelines/seed_gene_discovery.snakefile
 ```
 
 Replace `[path_to_deeprvat]` with the path to your clone of the repository.
