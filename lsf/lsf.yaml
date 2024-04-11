@@ -64,7 +64,7 @@ regenie_step1:
     - "-q verylong"
 
 regenie_step2:
-    - "-q medium"
+    - "-q long"
 
 
 # For CV (phenotype prediction) pipeline
