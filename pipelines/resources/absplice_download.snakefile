@@ -126,7 +126,7 @@ if absplice_main_conf['use_rocksdb'] == True:
         conda:
             f"./environment_spliceai_rocksdb.yaml"
         output:
-            spliceai_rocksdb = Path(absplice_download_dir) / directory(config_download['spliceai_rocksdb'][genome])
+            spliceai_rocksdb = directory(Path(absplice_download_dir) / config_download['spliceai_rocksdb'][genome])
         shell:
             "spliceai_rocksdb_download --version {params.version} --db_path {output.spliceai_rocksdb} --chromosome {wildcards.chromosome}"
     list_outputs.append(

@@ -1899,6 +1899,15 @@ def process_vep(
         "Consequence_inframe_deletion",
         "Consequence_missense_variant",
         "Consequence_non_coding_transcript_variant",
+        "Consequence_TFBS_amplification",
+        "Consequence_coding_transcript_variant",
+        "Consequence_feature_elongation",
+        "Consequence_feature_truncation",
+        "Consequence_regulatory_region_ablation",
+        "Consequence_regulatory_region_amplification",
+        "Consequence_sequence_variant",
+        "Consequence_transcript_ablation",
+        "Consequence_transcript_amplification"
     ]
     all_consequences = list(set(all_consequences))
     mask = pd.DataFrame(
