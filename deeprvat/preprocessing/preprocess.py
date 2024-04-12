@@ -127,10 +127,10 @@ def add_variant_ids(variant_file: str, out_file: str, duplicates_file: str):
     duplicates = variants[variants.duplicated()]
 
     if Path(duplicates_file).suffix == ".parquet":
-        logging.info(f"Writing duplicates in parquet format")
+        logging.info("Writing duplicates in parquet format")
         duplicates.to_parquet(duplicates_file, index=False)
     else:
-        logging.info(f"Writing duplicates in tsv format")
+        logging.info("Writing duplicates in tsv format")
         duplicates.to_csv(duplicates_file, sep="\t", header=False, index=False)
 
     logging.info(f"Wrote {len(duplicates)} duplicates to {duplicates_file}")
@@ -140,10 +140,10 @@ def add_variant_ids(variant_file: str, out_file: str, duplicates_file: str):
     variants["id"] = range(len(variants))
 
     if Path(out_file).suffix == ".parquet":
-        logging.info(f"Writing duplicates in parquet format")
+        logging.info("Writing duplicates in parquet format")
         variants.to_parquet(out_file, index=False)
     else:
-        logging.info(f"Writing duplicates in tsv format")
+        logging.info("Writing duplicates in tsv format")
         variants.to_csv(out_file, sep="\t", index=False)
 
     logging.info(
@@ -217,7 +217,8 @@ def process_sparse_gt(
         if not skip_sanity_checks:
             try:
                 assert total_variants - len(variants) == len(variants_to_exclude)
-            except:
+            except Exception as e:
+                logger.error(e)
                 import ipdb
 
                 ipdb.set_trace()
@@ -407,7 +408,6 @@ def combine_genotypes(
         f.create_dataset("variant_matrix", (n_samples, max_n_variants), dtype=np.int32)
         f.create_dataset("genotype_matrix", (n_samples, max_n_variants), dtype=np.int8)
 
-    running_count = np.zeros(n_samples, dtype=np.int32)
     with h5py.File(out_file, "r+") as g:
         for start_sample in trange(
             0, n_samples, chunksize, desc="Chunks", file=sys.stdout
