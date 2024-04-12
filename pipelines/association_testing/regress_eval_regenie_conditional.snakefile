@@ -76,8 +76,8 @@ rule regenie_step2:
         bgen = "regenie_input/deeprvat_pseudovariants.bgen",
         covariate_file = "{phenotype}/deeprvat/regenie_covariates.txt",
         phenotype_file = "{phenotype}/deeprvat/regenie_phenotypes.txt",
-        step1_loco = expand("regenie_output/step1/deeprvat_{pheno_num}.loco",
-                            pheno_num=range(1, len(phenotypes) + 1)),
+        # step1_loco = expand("regenie_output/step1/deeprvat_{pheno_num}.loco",
+        #                     pheno_num=range(1, len(phenotypes) + 1)),
         step1_predlist = "regenie_output/step1/deeprvat_pred.list"
         # step1_loco = expand("regenie_output/step1/deeprvat_l1_{pheno_number}.loco",
         #                     pheno_number=range(len(phenotypes))),
@@ -110,8 +110,8 @@ rule regenie_step1:
         covariate_file = "regenie_input/covariates.txt",
         phenotype_file = "regenie_input/phenotypes.txt",
     output:
-        expand("regenie_output/step1/deeprvat_{pheno_num}.loco",
-               pheno_num=range(1, len(phenotypes) + 1)),
+        # expand("regenie_output/step1/deeprvat_{pheno_num}.loco",
+        #        pheno_num=range(1, len(phenotypes) + 1)),
         "regenie_output/step1/deeprvat_pred.list"
     threads: 24
     resources:
