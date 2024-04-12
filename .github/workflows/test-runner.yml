@@ -40,5 +40,5 @@ jobs:
         shell: micromamba-shell {0}
 
       - name: Run pytest preprocessing
-        run: pytest -v ${{ github.workspace }}/tests/preprocessing --log-cli-level DEBUG 
+        run: pytest -v ${{ github.workspace }}/tests/preprocessing
         shell: micromamba-shell {0}
