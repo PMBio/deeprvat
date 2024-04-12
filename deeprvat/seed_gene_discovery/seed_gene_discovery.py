@@ -692,15 +692,15 @@ def run_association(
     logger.info("Grouping variants by gene")
     exploded_annotations = (
         dataset.annotation_df.query("id in @all_variants")
-        .explode("gene_ids")
+        .explode("gene_id")
         .reset_index()
         .drop_duplicates()
         .set_index("id")
     )
-    grouped_annotations = exploded_annotations.groupby("gene_ids")
+    grouped_annotations = exploded_annotations.groupby("gene_id")
     gene_ids = pd.read_parquet(dataset.gene_file, columns=["id"])["id"].to_list()
     gene_ids = list(
-        set(gene_ids).intersection(set(exploded_annotations["gene_ids"].unique()))
+        set(gene_ids).intersection(set(exploded_annotations["gene_id"].unique()))
     )
 
     logger.info(f"Number of genes to test: {len(gene_ids)}")

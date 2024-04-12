@@ -25,7 +25,7 @@ def cli():
 
 
 @cli.command()
-@click.option("--seed-gene-dir", type=click.Path(exists=True))
+@click.option("--association-only", is_flag=True)
 @click.option("--phenotype", type=str)
 @click.option("--baseline-results", type=click.Path(exists=True), multiple=True)
 @click.option("--baseline-results-out", type=click.Path())
@@ -33,23 +33,23 @@ def cli():
 @click.argument("old_config_file", type=click.Path(exists=True))
 @click.argument("new_config_file", type=click.Path())
 def update_config(
-    old_config_file: str,
+    association_only: bool,
     phenotype: Optional[str],
-    seed_gene_dir: Optional[str],
     baseline_results: Tuple[str],
     baseline_results_out: Optional[str],
     seed_genes_out: Optional[str],
+    old_config_file: str,
     new_config_file: str,
 ):
     """
     Select seed genes based on baseline results and update the configuration file.
 
+    :param association_only: Update config file only for association testing
+    :type association_only: bool
     :param old_config_file: Path to the old configuration file.
     :type old_config_file: str
     :param phenotype: Phenotype to update in the configuration.
     :type phenotype: Optional[str]
-    :param seed_gene_dir: Directory containing seed genes.
-    :type seed_gene_dir: Optional[str]
     :param baseline_results: Paths to baseline result files.
     :type baseline_results: Tuple[str]
     :param baseline_results_out: Path to save the updated baseline results.
@@ -63,9 +63,9 @@ def update_config(
              Selected seed genes saved to seed_genes_out.parquet.
              Optionally, save baseline results to a parquet file if baseline_results_out is specified.
     """
-    if seed_gene_dir is None and len(baseline_results) == 0:
+    if not association_only and len(baseline_results) == 0:
         raise ValueError(
-            "One of --seed-gene-dir and --baseline-results " "must be specified"
+            "One of --baseline-results or --association-only must be specified"
         )
 
     with open(old_config_file) as f:
@@ -74,7 +74,8 @@ def update_config(
     if phenotype is not None:
         logger.info(f"Updating config for phenotype {phenotype}")
         config["data"]["dataset_config"]["y_phenotypes"] = [phenotype]
-        config["training_data"]["dataset_config"]["y_phenotypes"] = [phenotype]
+        if not association_only:
+            config["training_data"]["dataset_config"]["y_phenotypes"] = [phenotype]
 
         # For using seed genes from results of baseline methods
         if len(baseline_results) > 0:
@@ -86,7 +87,7 @@ def update_config(
                 )
             seed_config = config["phenotypes"][phenotype]
             correction_method = seed_config.get("correction_method", None)
-            min_seed_genes = seed_config.get("min_seed_genes", None)
+            min_seed_genes = seed_config.get("min_seed_genes", 3)
             max_seed_genes = seed_config.get("max_seed_genes", None)
             threshold = seed_config.get("pvalue_threshold", None)
             assert (
@@ -105,28 +106,34 @@ def update_config(
                 ]
             )
             if "EAC" in baseline_df:
+                # filter for genes with expected allele count > 50 (as done by Karcewski et al.)
                 baseline_df = baseline_df.query("EAC > 50")
             else:
                 logger.info("Not performing EAC filtering of baseline results")
             logger.info(f"  Correcting p-values using {correction_method} method")
+            alpha = config.get("alpha_seed_genes", config.get("alpha"))
             baseline_df = pval_correction(
-                baseline_df, config["alpha"], correction_type=correction_method
+                baseline_df, alpha, correction_type=correction_method
             )
-
             baseline_df = baseline_df.sort_values("pval_corrected")
 
             if baseline_results_out is not None:
                 baseline_df.to_parquet(baseline_results_out, engine="pyarrow")
-
             if correction_method is not None:
-                if len(baseline_df.query("significant")) < 5:
+
+                logger.info(f"Using significant genes with corrected pval < {alpha}")
+                if (
+                    len(baseline_df.query("significant")["gene"].unique())
+                    < min_seed_genes
+                ):
                     logger.info(
-                        "Selecting top 5 genes from baseline because less than 5 genes are significant"
+                        f"Selecting top {min_seed_genes} genes from baseline because less than {min_seed_genes} genes are significant"
                     )
-                    baseline_df = baseline_df.head(5)  # TODO make this flexible
+                    baseline_df = baseline_df.drop_duplicates(subset="gene").head(
+                        min_seed_genes
+                    )  # TODO make this flexible
                 else:
                     baseline_df = baseline_df.query("significant")
-                logger.info(f"  {len(baseline_df)} significant genes from baseline")
             else:
                 if threshold is not None:
                     baseline_temp = baseline_df.query(f"pval_corrected < @threshold")
@@ -145,6 +152,7 @@ def update_config(
                         )
 
             baseline_df = baseline_df.drop_duplicates(subset="gene")
+            logger.info(f"  {len(baseline_df)} significant genes from baseline")
 
             genes = pd.read_parquet(
                 config["data"]["dataset_config"]["gene_file"], engine="pyarrow"
