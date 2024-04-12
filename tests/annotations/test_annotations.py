@@ -14,15 +14,15 @@ tests_data_dir = script_dir / "test_data"
     "test_data_name_dir, in_variants, out_variants, expected_out_variants",
     [
         (
-            "process_annotations_small",
-            "in_variants.parquet",
-            "out_variants.parquet",
-            "expected_variants.parquet",
+                "process_annotations_small",
+                "in_variants.parquet",
+                "out_variants.parquet",
+                "expected_variants.parquet",
         ),
     ],
 )
 def test_process_annotations(
-    test_data_name_dir, in_variants, out_variants, expected_out_variants, tmp_path
+        test_data_name_dir, in_variants, out_variants, expected_out_variants, tmp_path
 ):
     cli_runner = CliRunner()
 
@@ -31,11 +31,6 @@ def test_process_annotations(
     in_variants_file = current_test_data_dir / in_variants
     out_variants_file = tmp_path / out_variants
     expected_out_variants_file = current_test_data_dir / expected_out_variants
-
-    norm_variants_dir = tmp_path / "norm/variants"
-    qc_duplicate_vars_dir = tmp_path / "qc/duplicate_vars"
-    norm_variants_dir.mkdir(parents=True, exist_ok=True)
-    qc_duplicate_vars_dir.mkdir(parents=True, exist_ok=True)
 
     cli_parameters = [
         "process-annotations",
@@ -49,5 +44,4 @@ def test_process_annotations(
     written_results = pd.read_parquet(out_variants_file)
 
     expected_variants_data = pd.read_parquet(expected_out_variants_file)
-
-    assert expected_variants_data == written_results
+    assert pd.testing.assert_frame_equal(written_results, expected_variants_data)
