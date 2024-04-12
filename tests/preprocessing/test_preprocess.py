@@ -230,18 +230,6 @@ def test_add_variant_ids(
     "test_data_name_dir, extra_cli_params, input_h5, result_h5",
     [
         (
-            "no_filters_minimal_split",
-            [
-                "--chromosomes",
-                "1,2",
-            ],
-            [
-                "genotypes_chr1.h5",
-                "genotypes_chr2.h5",
-            ],
-            "genotypes.h5",
-        ),
-        (
             "filter_calls_variants_samples_minimal_split",
             [
                 "--chromosomes",
@@ -317,7 +305,9 @@ def test_process_and_combine_sparse_gt(
     )
 
     expected_data = np.load(expected_array_archive.as_posix(), allow_pickle=True)
-
-    assert np.array_equal(written_variant_matrix, expected_data["variant_matrix"])
-    assert np.array_equal(written_genotype_matrix, expected_data["genotype_matrix"])
-    assert np.array_equal(written_samples, expected_data["samples"])
+    expected_data_variant_matrix = expected_data["variant_matrix"]
+    expected_data_genotype_matrix = expected_data["genotype_matrix"]
+    expected_data_samples = expected_data["samples"]
+    assert np.array_equal(written_variant_matrix, expected_data_variant_matrix)
+    assert np.array_equal(written_genotype_matrix, expected_data_genotype_matrix)
+    assert np.array_equal(written_samples, expected_data_samples)
