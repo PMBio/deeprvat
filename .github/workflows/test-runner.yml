@@ -52,7 +52,7 @@ jobs:
       - uses: mamba-org/setup-micromamba@v1.8.0
         with:
           environment-name: deeprvat-annotation-gh-action
-          environment-file: ${{ github.workspace }}/deep_annotations.yml
+          environment-file: ${{ github.workspace }}/deeprvat_annotations.yml
           cache-environment: true
           cache-downloads: true
 
