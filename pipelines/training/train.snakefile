@@ -57,7 +57,7 @@ rule train:
         prefix = '.',
     priority: 1000
     resources:
-        mem_mb = 2000000,        # Using this value will tell our modified lsf.profile not to set a memory resource
+        mem_mb = 20000,
         load = 8000,
         gpus = 1
     shell:
