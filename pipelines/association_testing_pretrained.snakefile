@@ -35,17 +35,6 @@ include: "association_testing/regress_eval.snakefile"
 
 
 
-
-rule all_evaluate:  #plot.snakefile
-    input:
-        significant=expand(
-            "{phenotype}/deeprvat/eval/significant.parquet", phenotype=phenotypes
-        ),
-        results=expand(
-            "{phenotype}/deeprvat/eval/all_results.parquet", phenotype=phenotypes
-        ),
-
-
 rule all_regression:  #regress_eval.snakefile
     input:
         expand(
