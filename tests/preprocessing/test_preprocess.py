@@ -86,7 +86,7 @@ def test_process_sparse_gt_file(
 
     test_data_input_dir = current_test_data_dir / "input"
 
-    variant_file = test_data_input_dir / "variants.tsv.gz"
+    variant_file = test_data_input_dir / "variants.parquet"
     samples_file = test_data_input_dir / "samples_chr.csv"
     sparse_gt_dir = test_data_input_dir / "sparse_gt"
 
@@ -99,13 +99,15 @@ def test_process_sparse_gt_file(
     cli_parameters = [
         "process-sparse-gt",
         *extra_cli_params,
+        "--chunksize",
+        "3",
         variant_file.as_posix(),
         samples_file.as_posix(),
         sparse_gt_dir.as_posix(),
         out_file_base.as_posix(),
     ]
 
-    result = cli_runner.invoke(preprocess_cli, cli_parameters)
+    result = cli_runner.invoke(preprocess_cli, cli_parameters, catch_exceptions=False)
     assert result.exit_code == 0
 
     h5_file = out_file_base.as_posix().replace("genotypes", genotype_file_name)
@@ -149,11 +151,13 @@ def test_combine_genotypes(test_data_name_dir, input_h5, result_h5, tmp_path):
 
     cli_parameters = [
         "combine-genotypes",
+        "--chunksize",
+        3,
         *[(test_data_input_dir / h5f).as_posix() for h5f in input_h5],
         combined_output_h5.as_posix(),
     ]
 
-    result = cli_runner.invoke(preprocess_cli, cli_parameters)
+    result = cli_runner.invoke(preprocess_cli, cli_parameters, catch_exceptions=False)
     assert result.exit_code == 0
 
     written_samples, written_variant_matrix, written_genotype_matrix = load_h5_archive(
@@ -268,7 +272,7 @@ def test_process_and_combine_sparse_gt(
 
     test_data_input_dir = current_test_data_dir / "input"
 
-    variant_file = test_data_input_dir / "variants.tsv.gz"
+    variant_file = test_data_input_dir / "variants.parquet"
     samples_file = test_data_input_dir / "samples_chr.csv"
     sparse_gt_dir = test_data_input_dir / "sparse_gt"
 
@@ -282,22 +286,30 @@ def test_process_and_combine_sparse_gt(
     cli_parameters_process = [
         "process-sparse-gt",
         *extra_cli_params,
+        "--chunksize",
+        "3",
         variant_file.as_posix(),
         samples_file.as_posix(),
         sparse_gt_dir.as_posix(),
         out_file_base.as_posix(),
     ]
 
-    result_process = cli_runner.invoke(preprocess_cli, cli_parameters_process)
+    result_process = cli_runner.invoke(
+        preprocess_cli, cli_parameters_process, catch_exceptions=False
+    )
     assert result_process.exit_code == 0
 
     cli_parameters_combine = [
         "combine-genotypes",
+        "--chunksize",
+        3,
         *[(preprocessed_dir / h5f).as_posix() for h5f in input_h5],
         combined_output_h5.as_posix(),
     ]
 
-    result_combine = cli_runner.invoke(preprocess_cli, cli_parameters_combine)
+    result_combine = cli_runner.invoke(
+        preprocess_cli, cli_parameters_combine, catch_exceptions=False
+    )
     assert result_combine.exit_code == 0
 
     written_samples, written_variant_matrix, written_genotype_matrix = load_h5_archive(
@@ -309,3 +321,44 @@ def test_process_and_combine_sparse_gt(
     assert np.array_equal(written_variant_matrix, expected_data["variant_matrix"])
     assert np.array_equal(written_genotype_matrix, expected_data["genotype_matrix"])
     assert np.array_equal(written_samples, expected_data["samples"])
+
+
+@pytest.mark.parametrize(
+    "test_data_name_dir, expected_filtered_samples",
+    [
+        ("process_individual_missingness/two_missing", ["10000007", "10000001"]),
+        ("process_individual_missingness/one_missing", ["10000001"]),
+        ("process_individual_missingness/no_missing", []),
+    ],
+)
+def test_process_individual_missingness(
+    tmp_path, test_data_name_dir, expected_filtered_samples
+):
+    cli_runner = CliRunner()
+
+    current_test_data_dir = tests_data_dir / test_data_name_dir
+
+    test_data_input_dir = current_test_data_dir / "input"
+    test_data_indmiss_dir = test_data_input_dir / "indmiss"
+    vcf_file_list = test_data_input_dir / "vcf_files_list.txt"
+
+    filtered_samples_dir = tmp_path / "filtered_samples"
+    filtered_samples_dir.mkdir(parents=True, exist_ok=True)
+    filtered_samples_file = filtered_samples_dir / "indmiss_samples.csv"
+
+    cli_parameters = [
+        "process-individual-missingness",
+        vcf_file_list.as_posix(),
+        test_data_indmiss_dir.as_posix(),
+        filtered_samples_file.as_posix(),
+    ]
+
+    result = cli_runner.invoke(preprocess_cli, cli_parameters)
+    assert result.exit_code == 0
+    assert filtered_samples_file.exists()
+
+    written_samples = pd.read_csv(
+        filtered_samples_file, header=None, names=["sample"], dtype=str
+    )
+
+    assert sorted(written_samples["sample"].values) == sorted(expected_filtered_samples)
