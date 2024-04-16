@@ -47,7 +47,7 @@ jobs:
           environment-name: deeprvat-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
           cache-environment: true
-          cache-downloads: true    
+          cache-downloads: true
       - name: Install DeepRVAT
         run: pip install -e ${{ github.workspace }}
         shell: micromamba-shell {0}
