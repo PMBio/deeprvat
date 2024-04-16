@@ -1,4 +1,3 @@
-
 include: "preprocessing/preprocess.snakefile"
 include: "preprocessing/qc.snakefile"
 
@@ -15,18 +14,18 @@ rule preprocess_with_qc:
         variants=norm_variants_dir / "variants.tsv.gz",
         variants_parquet=norm_variants_dir / "variants.parquet",
         samples=norm_dir / "samples_chr.csv",
-        sparse_tg=expand(sparse_dir / "{vcf_stem}.tsv.gz", vcf_stem=vcf_stems),
-        qc_varmiss=expand(qc_varmiss_dir / "{vcf_stem}.tsv.gz", vcf_stem=vcf_stems),
-        qc_hwe=expand(qc_hwe_dir / "{vcf_stem}.tsv.gz", vcf_stem=vcf_stems),
+        sparse_tg=expand(sparse_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
+        qc_varmiss=expand(qc_varmiss_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
+        qc_hwe=expand(qc_hwe_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
         qc_read_depth=expand(
-            qc_read_depth_dir / "{vcf_stem}.tsv.gz", vcf_stem=vcf_stems
+            qc_read_depth_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems
         ),
         qc_allelic_imbalance=expand(
-            qc_allelic_imbalance_dir / "{vcf_stem}.tsv.gz", vcf_stem=vcf_stems
+            qc_allelic_imbalance_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems
         ),
-        qc_filtered_samples=qc_filtered_samples_dir,
+        qc_indmiss_samples=qc_filtered_samples_dir / "indmiss_samples.csv",
     output:
-        expand(preprocessed_dir / "genotypes_chr{chr}.h5", chr=chromosomes),
+        expand(preprocessed_dir / "genotypes_chr{chr}.h5",chr=chromosomes),
     shell:
         " ".join(
             [

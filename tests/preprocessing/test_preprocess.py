@@ -321,3 +321,44 @@ def test_process_and_combine_sparse_gt(
     assert np.array_equal(written_variant_matrix, expected_data["variant_matrix"])
     assert np.array_equal(written_genotype_matrix, expected_data["genotype_matrix"])
     assert np.array_equal(written_samples, expected_data["samples"])
+
+
+@pytest.mark.parametrize(
+    "test_data_name_dir, expected_filtered_samples",
+    [
+        ("process_individual_missingness/two_missing", ["10000007", "10000001"]),
+        ("process_individual_missingness/one_missing", ["10000001"]),
+        ("process_individual_missingness/no_missing", []),
+    ],
+)
+def test_process_individual_missingness(
+    tmp_path, test_data_name_dir, expected_filtered_samples
+):
+    cli_runner = CliRunner()
+
+    current_test_data_dir = tests_data_dir / test_data_name_dir
+
+    test_data_input_dir = current_test_data_dir / "input"
+    test_data_indmiss_dir = test_data_input_dir / "indmiss"
+    vcf_file_list = test_data_input_dir / "vcf_files_list.txt"
+
+    filtered_samples_dir = tmp_path / "filtered_samples"
+    filtered_samples_dir.mkdir(parents=True, exist_ok=True)
+    filtered_samples_file = filtered_samples_dir / "indmiss_samples.csv"
+
+    cli_parameters = [
+        "process-individual-missingness",
+        vcf_file_list.as_posix(),
+        test_data_indmiss_dir.as_posix(),
+        filtered_samples_file.as_posix(),
+    ]
+
+    result = cli_runner.invoke(preprocess_cli, cli_parameters)
+    assert result.exit_code == 0
+    assert filtered_samples_file.exists()
+
+    written_samples = pd.read_csv(
+        filtered_samples_file, header=None, names=["sample"], dtype=str
+    )
+
+    assert sorted(written_samples["sample"].values) == sorted(expected_filtered_samples)
