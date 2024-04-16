@@ -22,7 +22,7 @@
 <text text-anchor="middle" x="293" y="-86.12" font-family="sans" font-size="10.00">combine_genotypes</text>
 </g>
 <!-- 1&#45;&gt;0 -->
-<g id="edge2" class="edge">
+<g id="edge1" class="edge">
 <title>1&#45;&gt;0</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M328.69,-71.15C348.6,-61.2 373.43,-48.78 393.87,-38.57"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="395.24,-41.79 402.62,-34.19 392.11,-35.53 395.24,-41.79"/>
@@ -46,13 +46,13 @@
 <text text-anchor="middle" x="560" y="-230.12" font-family="sans" font-size="10.00">add_variant_ids</text>
 </g>
 <!-- 3&#45;&gt;0 -->
-<g id="edge3" class="edge">
+<g id="edge2" class="edge">
 <title>3&#45;&gt;0</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M549.39,-215.12C527.45,-178.14 476.89,-92.96 450.21,-48"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="453.33,-46.39 445.21,-39.58 447.31,-49.97 453.33,-46.39"/>
 </g>
 <!-- 3&#45;&gt;2 -->
-<g id="edge11" class="edge">
+<g id="edge6" class="edge">
 <title>3&#45;&gt;2</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M516.97,-218.29C514.28,-217.48 511.61,-216.71 509,-216 447.89,-199.31 377.12,-184.59 327.03,-174.92"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="327.9,-171.52 317.42,-173.08 326.58,-178.4 327.9,-171.52"/>
@@ -184,13 +184,13 @@
 <text text-anchor="middle" x="44" y="-518.12" font-family="sans" font-size="10.00">extract_samples</text>
 </g>
 <!-- 7&#45;&gt;2 -->
-<g id="edge8" class="edge">
+<g id="edge7" class="edge">
 <title>7&#45;&gt;2</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M36.15,-503.01C25.29,-476.43 7,-424.86 7,-379 7,-379 7,-379 7,-305 7,-264.36 -0.87,-244.61 28,-216 51.55,-192.66 136.28,-177.86 197.01,-169.99"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="197.08,-173.51 206.57,-168.8 196.21,-166.57 197.08,-173.51"/>
 </g>
 <!-- 7&#45;&gt;6 -->
-<g id="edge17" class="edge">
+<g id="edge19" class="edge">
 <title>7&#45;&gt;6</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M84.53,-503.15C108.04,-492.81 137.58,-479.8 161.28,-469.37"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="162.57,-472.62 170.31,-465.39 159.75,-466.22 162.57,-472.62"/>
@@ -202,7 +202,7 @@
 <text text-anchor="middle" x="168" y="-590.12" font-family="sans" font-size="10.00">index_fasta</text>
 </g>
 <!-- 8&#45;&gt;6 -->
-<g id="edge18" class="edge">
+<g id="edge17" class="edge">
 <title>8&#45;&gt;6</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M171.36,-575.17C174.86,-557.13 180.7,-528.48 187,-504 188.94,-496.46 191.25,-488.39 193.51,-480.87"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="196.81,-482.04 196.41,-471.46 190.12,-479.98 196.81,-482.04"/>
@@ -220,7 +220,7 @@
 <polygon fill="grey" stroke="grey" stroke-width="2" points="213.36,-552.59 217.96,-543.04 208.41,-547.64 213.36,-552.59"/>
 </g>
 <!-- 9&#45;&gt;6 -->
-<g id="edge19" class="edge">
+<g id="edge18" class="edge">
 <title>9&#45;&gt;6</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M229.17,-503.34C225.67,-496.34 221.56,-488.12 217.64,-480.28"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="220.91,-478.99 213.3,-471.61 214.65,-482.12 220.91,-478.99"/>
@@ -250,43 +250,43 @@
 <polygon fill="grey" stroke="grey" stroke-width="2" points="254.5,-625.93 251,-615.93 247.5,-625.93 254.5,-625.93"/>
 </g>
 <!-- 12&#45;&gt;0 -->
-<g id="edge1" class="edge">
+<g id="edge3" class="edge">
 <title>12&#45;&gt;0</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M433,-215.12C433,-178.62 433,-95.13 433,-49.74"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="436.5,-50 433,-40 429.5,-50 436.5,-50"/>
 </g>
 <!-- 12&#45;&gt;2 -->
-<g id="edge5" class="edge">
+<g id="edge9" class="edge">
 <title>12&#45;&gt;2</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M389.41,-215.15C367.58,-206.22 340.92,-195.31 317.63,-185.77"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="319.19,-182.63 308.61,-182.08 316.54,-189.11 319.19,-182.63"/>
 </g>
 <!-- 13&#45;&gt;2 -->
-<g id="edge10" class="edge">
+<g id="edge13" class="edge">
 <title>13&#45;&gt;2</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M91.7,-222.67C97.73,-220.45 104.07,-218.13 110,-216 138.74,-205.68 170.64,-194.51 197.76,-185.1"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="198.69,-188.49 207,-181.91 196.4,-181.87 198.69,-188.49"/>
 </g>
 <!-- 14&#45;&gt;2 -->
-<g id="edge13" class="edge">
+<g id="edge11" class="edge">
 <title>14&#45;&gt;2</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M116.14,-287.3C127.8,-268.06 148.4,-237.22 172,-216 184.23,-205 199.1,-195.14 213.2,-186.99"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="214.59,-190.22 221.63,-182.3 211.19,-184.1 214.59,-190.22"/>
 </g>
 <!-- 15&#45;&gt;2 -->
-<g id="edge7" class="edge">
+<g id="edge12" class="edge">
 <title>15&#45;&gt;2</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M179.01,-287.1C174.79,-268.23 171.15,-238.22 183,-216 189.06,-204.63 198.76,-195.27 209.32,-187.75"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="211.01,-190.83 217.52,-182.47 207.22,-184.94 211.01,-190.83"/>
 </g>
 <!-- 16&#45;&gt;2 -->
-<g id="edge9" class="edge">
+<g id="edge10" class="edge">
 <title>16&#45;&gt;2</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M239.57,-215.34C242.5,-208.51 245.93,-200.5 249.21,-192.83"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="252.41,-194.25 253.14,-183.68 245.98,-191.5 252.41,-194.25"/>
 </g>
 <!-- 17&#45;&gt;2 -->
-<g id="edge6" class="edge">
+<g id="edge5" class="edge">
 <title>17&#45;&gt;2</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M301.8,-359.38C299.5,-329.53 293.54,-267.24 281,-216 279.15,-208.43 276.61,-200.43 273.98,-193.01"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="277.29,-191.85 270.51,-183.7 270.73,-194.3 277.29,-191.85"/>
@@ -298,7 +298,7 @@
 <text text-anchor="middle" x="406" y="-302.12" font-family="sans" font-size="10.00">process_individual_missingness</text>
 </g>
 <!-- 18&#45;&gt;2 -->
-<g id="edge12" class="edge">
+<g id="edge8" class="edge">
 <title>18&#45;&gt;2</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M387.76,-287.02C362.88,-262.48 318.08,-218.3 289.22,-189.84"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="291.82,-187.49 282.25,-182.96 286.91,-192.48 291.82,-187.49"/>

@@ -22,7 +22,7 @@
 <text text-anchor="middle" x="127" y="-86.12" font-family="sans" font-size="10.00">combine_genotypes</text>
 </g>
 <!-- 1&#45;&gt;0 -->
-<g id="edge2" class="edge">
+<g id="edge1" class="edge">
 <title>1&#45;&gt;0</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M147.19,-71.34C156.21,-63.44 167.04,-53.96 176.99,-45.26"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="179.04,-48.11 184.26,-38.9 174.43,-42.85 179.04,-48.11"/>
@@ -46,13 +46,13 @@
 <text text-anchor="middle" x="312" y="-230.12" font-family="sans" font-size="10.00">add_variant_ids</text>
 </g>
 <!-- 3&#45;&gt;0 -->
-<g id="edge1" class="edge">
+<g id="edge2" class="edge">
 <title>3&#45;&gt;0</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M303.23,-215.12C285.16,-178.3 243.65,-93.69 221.51,-48.58"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="224.7,-47.13 217.15,-39.69 218.42,-50.21 224.7,-47.13"/>
 </g>
 <!-- 3&#45;&gt;2 -->
-<g id="edge5" class="edge">
+<g id="edge6" class="edge">
 <title>3&#45;&gt;2</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M269.09,-216.76C244.56,-207.48 213.43,-195.7 186.56,-185.54"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="187.97,-182.33 177.38,-182.06 185.5,-188.88 187.97,-182.33"/>
@@ -124,13 +124,13 @@
 <text text-anchor="middle" x="44" y="-518.12" font-family="sans" font-size="10.00">extract_samples</text>
 </g>
 <!-- 7&#45;&gt;2 -->
-<g id="edge6" class="edge">
+<g id="edge7" class="edge">
 <title>7&#45;&gt;2</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M44,-503.07C44,-476.13 44,-423.62 44,-379 44,-379 44,-379 44,-305 44,-260.18 75.2,-216.95 99.34,-190.2"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="101.81,-192.68 106.1,-182.99 96.7,-187.89 101.81,-192.68"/>
 </g>
 <!-- 7&#45;&gt;6 -->
-<g id="edge13" class="edge">
+<g id="edge12" class="edge">
 <title>7&#45;&gt;6</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M70.51,-503.15C82.74,-494.93 97.46,-485.02 110.77,-476.06"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="112.68,-478.99 119.02,-470.5 108.77,-473.18 112.68,-478.99"/>
@@ -142,7 +142,7 @@
 <text text-anchor="middle" x="218" y="-590.12" font-family="sans" font-size="10.00">index_fasta</text>
 </g>
 <!-- 8&#45;&gt;6 -->
-<g id="edge12" class="edge">
+<g id="edge13" class="edge">
 <title>8&#45;&gt;6</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M217.08,-575.3C215.48,-556.61 211.08,-526.74 199,-504 194.03,-494.64 186.92,-485.78 179.59,-478.08"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="182.07,-475.62 172.48,-471.12 177.17,-480.62 182.07,-475.62"/>
@@ -154,7 +154,7 @@
 <text text-anchor="middle" x="148" y="-518.12" font-family="sans" font-size="10.00">expand_regions</text>
 </g>
 <!-- 8&#45;&gt;9 -->
-<g id="edge16" class="edge">
+<g id="edge15" class="edge">
 <title>8&#45;&gt;9</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M200.34,-575.34C192.69,-567.69 183.56,-558.56 175.08,-550.08"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="177.59,-547.64 168.04,-543.04 172.64,-552.59 177.59,-547.64"/>
@@ -172,7 +172,7 @@
 <text text-anchor="middle" x="135" y="-590.12" font-family="sans" font-size="10.00">create_bed</text>
 </g>
 <!-- 10&#45;&gt;9 -->
-<g id="edge15" class="edge">
+<g id="edge16" class="edge">
 <title>10&#45;&gt;9</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M138.28,-575.34C139.5,-568.75 140.93,-561.08 142.3,-553.67"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="145.74,-554.35 144.12,-543.88 138.86,-553.07 145.74,-554.35"/>
@@ -196,13 +196,13 @@
 <polygon fill="grey" stroke="grey" stroke-width="2" points="207.3,-50.29 204.84,-39.99 200.34,-49.58 207.3,-50.29"/>
 </g>
 <!-- 12&#45;&gt;2 -->
-<g id="edge8" class="edge">
+<g id="edge5" class="edge">
 <title>12&#45;&gt;2</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M170.36,-215.34C164.23,-207.93 156.95,-199.14 150.12,-190.9"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="152.84,-188.7 143.76,-183.23 147.45,-193.17 152.84,-188.7"/>
 </g>
 <!-- 13&#45;&gt;2 -->
-<g id="edge7" class="edge">
+<g id="edge8" class="edge">
 <title>13&#45;&gt;2</title>
 <path fill="none" stroke="grey" stroke-width="2" d="M99.88,-287.08C101.03,-268.98 103.58,-240.28 109,-216 110.69,-208.44 113.07,-200.44 115.55,-193.02"/>
 <polygon fill="grey" stroke="grey" stroke-width="2" points="118.8,-194.32 118.84,-183.73 112.21,-191.99 118.8,-194.32"/>
