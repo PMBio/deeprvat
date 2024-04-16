@@ -8,6 +8,19 @@ WORK_DIR="$SCRIPT_PATH/../example"
 STATIC_DIR="$SCRIPT_PATH/_static"
 
 
+check_result_file(){
+  file_path="$1"
+  if [ -e "$file_path" ]; then
+      if [ -s "$file_path" ]; then
+          echo "Ok graph exists :)"
+      else
+          # Remove the file
+          rm "$file_path"
+          echo "Fail: Graph was empty, removed."
+      fi
+  fi
+}
+
 generate_rule_graph() {
   SNAKEFILE="$PIPELINE_DIR/$1"
   DIRECTORY="$2"
@@ -19,7 +32,7 @@ generate_rule_graph() {
   snakemake -n --snakefile "$SNAKEFILE" --directory "$DIRECTORY" --configfile "$CONFIG" --forceall --rulegraph \
     | sed -n '/digraph/,$p' | awk '!/color=/{gsub(/color = "[^"]+",/, "");} {gsub(/,$/, "");} 1' | awk '{$1=$1}1' \
     | dot -Tsvg > "$OUTPUT_FILE"
-
+  check_result_file "$OUTPUT_FILE"
   echo -e "---------\n"
 }
 
@@ -33,6 +46,7 @@ generate_dag_graph() {
   echo "Generating dag graph: $OUTPUT_FILE"
   snakemake -n --snakefile "$SNAKEFILE" --directory "$DIRECTORY" --configfile "$CONFIG" --forceall --dag \
     | sed -n '/digraph/,$p' | dot -Tsvg > "$OUTPUT_FILE"
+  check_result_file "$OUTPUT_FILE"
 }
 
 
