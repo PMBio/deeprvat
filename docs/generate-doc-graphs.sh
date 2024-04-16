@@ -7,6 +7,10 @@ CONFIG_DIR="$PIPELINE_DIR/config"
 WORK_DIR="$SCRIPT_PATH/../example"
 STATIC_DIR="$SCRIPT_PATH/_static"
 
+if ! command -v "snakemake" &> /dev/null; then
+    echo "Please install snakemake (did you forget to activate the conda env?)"
+    exit 1
+fi
 
 check_result_file(){
   file_path="$1"
