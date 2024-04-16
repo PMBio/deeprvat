@@ -15,8 +15,6 @@ working_dir = Path(config["working_dir"])
 preprocessed_dir = working_dir / config["preprocessed_dir_name"]
 reference_dir = working_dir / config["reference_dir_name"]
 
-preprocess_threads = config["preprocess_threads"]
-
 fasta_file = reference_dir / config["reference_fasta_file"]
 fasta_index_file = reference_dir / f"{config['reference_fasta_file']}.fai"
 
