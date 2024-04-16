@@ -73,5 +73,4 @@ generate_rule_graph "training_association_testing.snakefile" "$WORK_DIR" "$WORK_
 
 generate_rule_graph "training_association_testing_regenie.snakefile" "$WORK_DIR" "$WORK_DIR/config.yaml"
 
-
 echo "Done!"
