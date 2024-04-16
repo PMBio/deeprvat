@@ -167,7 +167,7 @@ jobs:
 
       - name: Cache GTF file
         id: cache-gtf
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: example/preprocess/workdir/reference
           key: ${{ runner.os }}-reference-gtf
@@ -224,7 +224,7 @@ jobs:
 
       - name: Cache GTF file
         id: cache-gtf
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: example/preprocess/workdir/reference
           key: ${{ runner.os }}-reference-gtf
