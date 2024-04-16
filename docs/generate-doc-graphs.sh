@@ -12,7 +12,7 @@ generate_rule_graph() {
   SNAKEFILE="$PIPELINE_DIR/$1"
   DIRECTORY="$2"
   CONFIG="$3"
-  OUTPUT_FILE="$STATIC_DIR/$(basename $SNAKEFILE |cut -f 1 -d'.')_rulegraph.svg"
+  OUTPUT_FILE="$STATIC_DIR/$(basename "$SNAKEFILE" |cut -f 1 -d'.')_rulegraph.svg"
 
   echo "Generating rule graph: $OUTPUT_FILE"
 
@@ -28,7 +28,7 @@ generate_dag_graph() {
   SNAKEFILE="$PIPELINE_DIR/$1"
   DIRECTORY="$2"
   CONFIG="$3"
-  OUTPUT_FILE="$STATIC_DIR/$(basename $SNAKEFILE |cut -f 1 -d'.')_dag.svg"
+  OUTPUT_FILE="$STATIC_DIR/$(basename "$SNAKEFILE" |cut -f 1 -d'.')_dag.svg"
 
   echo "Generating dag graph: $OUTPUT_FILE"
   snakemake -n --snakefile "$SNAKEFILE" --directory "$DIRECTORY" --configfile "$CONFIG" --forceall --dag \
