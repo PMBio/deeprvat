@@ -33,6 +33,7 @@ generate_rule_graph() {
 
   echo "Generating rule graph: $OUTPUT_FILE"
 
+  # The awk part makes sure that the nodes are all the same color
   snakemake -n --snakefile "$SNAKEFILE" --directory "$DIRECTORY" --configfile "$CONFIG" --forceall --rulegraph \
     | sed -n '/digraph/,$p' | awk '!/color=/{gsub(/color = "[^"]+",/, "");} {gsub(/,$/, "");} 1' | awk '{$1=$1}1' \
     | dot -Tsvg > "$OUTPUT_FILE"
