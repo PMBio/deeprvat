@@ -96,7 +96,7 @@ rule regenie_step2:
         "--phenoFile {input.phenotype_file} "
         "--covarFile {input.covariate_file} "
         "--pred {input.step1_predlist} "
-        "--condition-list {wildcards.phenotype}/deeprvat/condition_list.txt"
+        "--condition-list {wildcards.phenotype}/deeprvat/condition_list_rsid.txt "
         f"--bsize {regenie_step2_bsize} "
         "--threads 16 "
         + " ".join(regenie_config_step2.get("options", [])) + " " +
@@ -277,7 +277,7 @@ rule make_regenie_step2_metadata:
         "deeprvat_associate make-regenie-input "
         + debug +
         "--skip-burdens "
-        "--phenotype {p} {p}/deeprvat/association_dataset.pkl {p}/deeprvat/xy "
+        "--phenotype {wildcards.phenotype} {wildcards.phenotype}/deeprvat/association_dataset.pkl {wildcards.phenotype}/deeprvat/xy "
         # "{input.dataset} "
         # "{wildcards.phenotype}/deeprvat/burdens "
         "--covariate-file {output.covariate_file} "
