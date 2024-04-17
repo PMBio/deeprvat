@@ -58,8 +58,8 @@ rule train:
         prefix = '.',
     priority: 1000
     resources:
-        mem_mb = 2000000,        # Using this value will tell our modified lsf.profile not to set a memory resource
-        load = 16000,
+        mem_mb = 20000,
+        load = 8000,
         gpus = 1
     shell:
         f"parallel --jobs {n_parallel_training_jobs} --halt now,fail=1 --results train_repeat{{{{1}}}}_trial{{{{2}}}}/ "

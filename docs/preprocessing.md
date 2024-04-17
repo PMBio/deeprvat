@@ -11,7 +11,7 @@ The important files that this pipeline produces that are needed in DeepRVAT are:
 
 - **preprocessed/genotypes.h5** *The main sparse hdf5 file*
 
-- **norm/variants/variants.parquet** *List of variants i parquet format*
+- **norm/variants/variants.parquet** *List of variants in parquet format*
 
 ## Setup environment
 
@@ -52,9 +52,6 @@ included_chromosomes : [21,22]
 
 # The format of the name of the "raw" vcf files
 vcf_files_list: vcf_files_list.txt
-
-# Number of threads to use in the preprocessing script, separate from snakemake threads
-preprocess_threads: 16
 
 # If you need to run a cmd to load bcf and samtools specify it here, see example
 bcftools_load_cmd : # module load bcftools/1.10.2 &&

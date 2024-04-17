@@ -1,0 +1,7 @@
+name: fraser_test_run
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python==3.8
+  - drop
