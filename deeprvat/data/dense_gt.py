@@ -939,7 +939,7 @@ class DenseGTDataset(Dataset):
             "variant_metadata": self.variants[
                 ["id", "common_variant_mask", "rare_variant_mask", "matrix_index"]
             ],
-            "samples": self.samples
+            "samples": self.samples,
         }
         if self.use_rare_variants:
             if hasattr(self.rare_embedding, "get_metadata"):
