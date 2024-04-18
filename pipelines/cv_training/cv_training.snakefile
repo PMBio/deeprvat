@@ -18,7 +18,6 @@ rule spread_config:
     threads: 1
     resources:
         mem_mb = 1024,
-        load = 1000
     shell:
         ' && '.join([
             conda_check,

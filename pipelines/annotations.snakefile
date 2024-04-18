@@ -162,6 +162,7 @@ rule select_rename_fill_columns:
         annotations_path = anno_dir / "vep_deepripe_deepsea_absplice_maf_pIDs_filtered.parquet",
     output:
         anno_dir / "vep_deepripe_deepsea_absplice_maf_pIDs_filtered_filled.parquet",
+    resources: mem_mb = lambda wildcards, attempt: 15_000 * (attempt + 1),
     shell:
         " ".join([
             f"python {annotation_python_file}", 
@@ -178,6 +179,7 @@ if not gene_id_file:
     rule create_gene_id_file:
         input: gtf_file
         output: gene_id_file
+        resources: mem_mb = lambda wildcards, attempt: 15_000 * (attempt + 1),
         shell:
             " ".join([
                 f"python {annotation_python_file}", 
@@ -193,6 +195,7 @@ rule filter_by_exon_distance:
         protein_coding_genes = gene_id_file
     output:
         anno_dir / "vep_deepripe_deepsea_absplice_maf_pIDs_filtered.parquet",
+    resources: mem_mb = lambda wildcards, attempt: 25_000 * (attempt + 1),
     shell:
         " ".join([
             f"python {annotation_python_file}", 
@@ -208,6 +211,7 @@ rule add_gene_ids:
         gene_id_file = gene_id_file,
         annotations_path = anno_dir / "vep_deepripe_deepsea_absplice_maf.parquet",
     output: anno_dir / "vep_deepripe_deepsea_absplice_maf_pIDs.parquet",  
+    resources: mem_mb = lambda wildcards, attempt: 19_000 * (attempt + 1),
     shell:
         " ".join([
             f"python {annotation_python_file}", 
@@ -223,6 +227,7 @@ rule calculate_MAF:
         anno_dir / "vep_deepripe_deepsea_absplice_af.parquet"
     output:
         anno_dir / "vep_deepripe_deepsea_absplice_maf.parquet"
+    resources: mem_mb = lambda wildcards, attempt: 15_000 * (attempt + 1),
     shell:
         " ".join([
             f"python {annotation_python_file}", 
@@ -241,6 +246,7 @@ rule merge_allele_frequency:
         annotation_file = anno_dir / "vep_deepripe_deepsea_absplice.parquet"
     output:
         anno_dir / "vep_deepripe_deepsea_absplice_af.parquet"
+    resources: mem_mb = lambda wildcards, attempt: 15_000 * (attempt + 1),
     shell:
         " ".join([
             f"python {annotation_python_file}", 
@@ -261,6 +267,7 @@ rule calculate_allele_frequency:
         variants = variant_file
     output:
         allele_frequencies = anno_tmp_dir / "af_df.parquet"
+    resources: mem_mb = lambda wildcards, attempt: 15_000 * (attempt + 1),
     shell:
         " ".join([
             f"python {annotation_python_file}", 
@@ -282,6 +289,7 @@ rule merge_absplice_scores:
     output: 
         anno_dir / "vep_deepripe_deepsea_absplice.parquet"
     threads: ncores_merge_absplice
+    resources: mem_mb = lambda wildcards, attempt: 19_000 * (attempt + 1),
     shell: 
         " ".join(
             [
@@ -300,6 +308,7 @@ rule aggregate_absplice_scores:
     output:
         score_file = anno_tmp_dir / "abSplice_score_file.parquet",
     threads: ncores_agg_absplice
+    resources: mem_mb = lambda wildcards, attempt: 15_000 * (attempt + 1),
     shell:
         " ".join(
             [
@@ -318,6 +327,7 @@ rule merge_deepsea_pcas:
         col_yaml_file = annotation_columns_yaml_file
     output:
         anno_dir / "vep_deepripe_deepsea.parquet",
+    resources: mem_mb = lambda wildcards, attempt: 30_000 * (attempt + 1),
     shell:
         " ".join(
             [
@@ -341,6 +351,7 @@ rule concat_annotations:
     output:
         anno_dir / "vep_deepripe.parquet",
     params: joined=lambda w, input: ",".join(input.vcf_files)
+    resources: mem_mb = lambda wildcards, attempt: 15_000 * (attempt + 1),
     shell:
         " ".join(
             [
@@ -366,6 +377,7 @@ rule merge_annotations:
         vcf_file= anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
     output:
         anno_dir / f"{source_variant_file_pattern}_merged.parquet",
+    resources: mem_mb = lambda wildcards, attempt: 5_000 * (attempt + 1),
     shell:
         (
             "HEADER=$(grep  -n  '#Uploaded_variation' "
@@ -380,6 +392,7 @@ rule deepSea_PCA:
         deepsea_anno = str(anno_dir / "all_variants.deepSea.parquet")
     output:
         deepSEA_tmp_dir / "deepsea_pca.parquet",
+    resources: mem_mb = lambda wildcards, attempt: 50_000 * (attempt + 1),
     shell:
         " ".join(
             ["mkdir -p",
@@ -404,6 +417,7 @@ rule add_ids_deepSea:
     output:
         directory(anno_dir / "all_variants.wID.deepSea.parquet"),
     threads: ncores_addis
+    resources: mem_mb = lambda wildcards, attempt: 50_000 * (attempt + 1),
     shell:
         " ".join(
             [
@@ -429,6 +443,7 @@ rule concat_deepSea:
         ),
     params: joined=lambda w, input: ",".join(input.deepSEAscoreFiles)
     threads:8
+    resources: mem_mb = lambda wildcards, attempt: 50_000 * (attempt + 1),
     output:
         anno_dir / "all_variants.deepSea.parquet",
     shell:
@@ -452,6 +467,8 @@ rule deepSea:
     output:
         anno_dir / (source_variant_file_pattern + ".CLI.deepseapredict.diff.tsv"),
     threads: n_jobs_deepripe
+    resources: mem_mb = lambda wildcards, attempt: 5_000 * (attempt + 1),
+
     conda:
         "kipoi-veff2"
     shell:
@@ -465,6 +482,7 @@ rule deepRiPe_parclip:
     output:
         anno_dir / (source_variant_file_pattern + "_variants.parclip_deepripe.csv.gz"),
     threads: n_jobs_deepripe
+    resources: mem_mb = lambda wildcards, attempt: 5_000 * (attempt + 1),
     shell:
         f"mkdir -p {pybedtools_tmp_path / 'parclip'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'parclip'} {saved_deepripe_models_path} {{threads}} 'parclip'"
 
@@ -476,6 +494,7 @@ rule deepRiPe_eclip_hg2:
     output:
         anno_dir / (source_variant_file_pattern + "_variants.eclip_hg2_deepripe.csv.gz"),
     threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
+    resources: mem_mb = lambda wildcards, attempt: 5_000 * (attempt + 1),
     shell:
         f"mkdir -p {pybedtools_tmp_path / 'hg2'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'hg2'} {saved_deepripe_models_path} {{threads}} 'eclip_hg2'"
 
@@ -487,6 +506,7 @@ rule deepRiPe_eclip_k5:
     output:
         anno_dir / (source_variant_file_pattern + "_variants.eclip_k5_deepripe.csv.gz"),
     threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
+    resources: mem_mb = lambda wildcards, attempt: 5_000 * (attempt + 1),
     shell:
         f"mkdir -p {pybedtools_tmp_path / 'k5'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'k5'} {saved_deepripe_models_path} {{threads}} 'eclip_k5'"
 
@@ -498,6 +518,7 @@ rule vep:
     output:
         anno_dir / (source_variant_file_pattern + "_vep_anno.tsv"),
     threads: vep_nfork
+    resources: mem_mb = lambda wildcards, attempt: 5_000 * (attempt + 1),
     shell:
         " ".join(
             [
