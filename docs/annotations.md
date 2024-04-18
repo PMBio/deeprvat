@@ -88,6 +88,12 @@ Data for VEP plugins and the CADD cache are stored in `annotation data`.
 
 ## Running the annotation pipeline
 ### Preconfiguration
+- Install the annotation environment
+    ```shell
+    mamba env create -f path/to/deeprvat/deeprvat_annotations.yml
+    mamba activate deeprvat_annotations
+    pip install -e path/to/deeprvat
+    ```
 - Clone the repositories mentioned in [requirements](#requirements) into `repo_dir` and install the needed conda environments with  
     ```shell
     mamba env create -f repo_dir/absplice/environment.yaml

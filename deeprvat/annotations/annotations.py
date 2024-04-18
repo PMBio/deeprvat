@@ -1,5 +1,6 @@
 import logging
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1' 
 import pickle
 import random
 import sys
@@ -1358,45 +1359,6 @@ def merge_deepsea_pcas(
     assert len(merged) == noduplicates_len
     logger.info(f"writing file to {out_file}")
     merged.to_parquet(out_file)
-
-
-@cli.command()
-@click.argument("in_variants", type=click.Path(exists=True))
-@click.argument("out_variants", type=click.Path())
-def process_annotations(in_variants: str, out_variants: str):
-    """
-    Process variant annotations, filter for canonical variants, and aggregate consequences.
-
-    Parameters:
-    - in_variants (str): Path to the input variant annotation file in parquet format.
-    - out_variants (str): Path to save the processed variant annotation file in parquet format.
-
-    Returns:
-    None
-
-    Notes:
-    - The function reads the input variant annotation file.
-    - It filters for canonical variants where the 'CANONICAL' column is equal to 'YES'.
-    - The 'Gene' column is renamed to 'gene_id'.
-    - Consequences for different alleles are aggregated by combining the variant ID with the gene ID.
-    - The processed variant annotations are saved to the specified output file.
-
-    Example:
-    $ python annotations.py process_annotations input_variants.parquet output_variants.parquet
-    """
-    variant_path = Path(in_variants)
-    variants = pd.read_parquet(variant_path)
-
-    logger.info("filtering for canonical variants")
-
-    variants = variants.loc[variants.CANONICAL == "YES"]
-    variants.rename(columns={"Gene": "gene_id"}, inplace=True)
-
-    logger.info("aggregating consequences for different alleles")
-
-    # combining variant id with gene id
-    variants["censequence_id"] = variants["id"].astype(str) + variants["gene_id"]
-    variants.to_parquet(out_variants, compression="zstd")
 
 
 def process_chunk_addids(chunk: pd.DataFrame, variants: pd.DataFrame) -> pd.DataFrame:
