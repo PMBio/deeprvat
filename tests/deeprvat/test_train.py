@@ -4,7 +4,6 @@ import logging
 from deeprvat.data import DenseGTDataset
 import yaml
 from typing import Dict, Tuple
-import pandas as pd
 import itertools
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -151,7 +150,7 @@ def test_make_dataset(phenotype: str, min_variant_count: int, tmp_path: Path):
     covariates_out_file = str(tmp_path / "covariates.zarr")
     y_out_file = str(tmp_path / "y.zarr")
     logger.info("Constructing test dataset")
-    test_ds = make_dataset_(
+    _ = make_dataset_(
         False,
         False,
         1,
