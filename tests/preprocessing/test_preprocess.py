@@ -1,11 +1,13 @@
+from pathlib import Path
+
+import h5py
 import numpy as np
 import pandas as pd
-from pandas.testing import assert_frame_equal
-from deeprvat.preprocessing.preprocess import cli as preprocess_cli
-from click.testing import CliRunner
-from pathlib import Path
-import h5py
 import pytest
+from click.testing import CliRunner
+from pandas.testing import assert_frame_equal
+
+from deeprvat.preprocessing.preprocess import cli as preprocess_cli
 
 script_dir = Path(__file__).resolve().parent
 tests_data_dir = script_dir / "test_data"
@@ -25,6 +27,14 @@ def load_h5_archive(h5_path):
     [
         (
             "no_filters_minimal",
+            [
+                "--chromosomes",
+                "1",
+            ],
+            "genotypes_chr1.h5",
+        ),
+        (
+            "no_filters_minimal_str_samples",
             [
                 "--chromosomes",
                 "1",
