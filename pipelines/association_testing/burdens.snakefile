@@ -15,7 +15,6 @@ rule average_burdens:
     threads: 1
     resources:
         mem_mb = lambda wildcards, attempt: 4098 + (attempt - 1) * 4098,
-        load = 4000,
     priority: 10,
     shell:
         ' && '.join([
@@ -46,7 +45,6 @@ rule link_burdens:
     threads: 8
     resources:
         mem_mb = lambda wildcards, attempt: 20480 + (attempt - 1) * 4098,
-        load = lambda wildcards, attempt: 16000 + (attempt - 1) * 4000
     shell:
         ' && '.join([
             ('deeprvat_associate compute-burdens '
@@ -80,7 +78,6 @@ rule compute_burdens:
     threads: 8
     resources:
         mem_mb = 20000,
-        load = 8000,
         gpus = 1
     shell:
         ' && '.join([
@@ -107,7 +104,6 @@ rule reverse_models:
     threads: 4
     resources:
         mem_mb = 20480,
-        load = 20480
     shell:
         " && ".join([
             ("deeprvat_associate reverse-models "
