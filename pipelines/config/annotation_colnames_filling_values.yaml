@@ -1,18 +1,22 @@
 annotation_column_names: 
   'CADD_RAW' : 
     'CADD_raw':  0
+  'CADD_PHRED' : 
+    'CADD_PHRED':  0  
   'PrimateAI' : 
     'PrimateAI_score' : 0
   'SpliceAI_delta_score' : 
     'SpliceAI_delta_score' : 0
   'am_pathogenicity' : 
     'alphamissense' : 0
+  'AbSplice_DNA' :
+      'AbSplice_DNA' : 0
   'af' : 
     'combined_UKB_NFE_AF' : 0
   'maf_mb' : 
-    'combined_UKB_NFE_AF_MB' : 10000
+    'MAF_MB' : 10000
   'maf' :
-    'combined_UKB_NFE_MAF' : 0
+    'MAF' : 0
   'Condel' : 
     'condel_score' : 0
   'PolyPhen' : 
