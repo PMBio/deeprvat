@@ -362,7 +362,7 @@ class DenseGTDataset(Dataset):
         # account for the fact that genotypes.h5 and phenotype_df can have different
         # orders of their samples
         self.index_map_geno, _ = get_matched_sample_indices(
-            samples_gt.astype(int), self.samples.astype(int)
+            samples_gt.astype(str), self.samples.astype(str)
         )
         # get_matched_sample_indices is a much, much faster implementation of the code below
         # self.index_map_geno = [np.where(samples_gt.astype(int) == i) for i in self.samples.astype(int)]
@@ -614,13 +614,20 @@ class DenseGTDataset(Dataset):
                     "Annotation dataframe has inconsistent allele frequency values"
                 )
             variants_with_af = safe_merge(
-                variants[["id"]].reset_index(drop=True), af_annotation
+                variants[["id"]].reset_index(drop=True), af_annotation, how="left"
             )
             assert np.all(
                 variants_with_af["id"].to_numpy() == variants["id"].to_numpy()
             )
-            mask = (variants_with_af[af_col] >= af_threshold) & (
-                variants_with_af[af_col] <= 1 - af_threshold
+            af_isna = variants_with_af[af_col].isna()
+            if af_isna.sum() > 0:
+                logger.warning(
+                    f"Dropping {af_isna.sum()} variants missing from annotation dataframe"
+                )
+            mask = (
+                (~af_isna)
+                & (variants_with_af[af_col] >= af_threshold)
+                & (variants_with_af[af_col] <= 1 - af_threshold)
             )
             mask = mask.to_numpy()
             del variants_with_af
@@ -931,11 +938,10 @@ class DenseGTDataset(Dataset):
         result = {
             "variant_metadata": self.variants[
                 ["id", "common_variant_mask", "rare_variant_mask", "matrix_index"]
-            ]
+            ],
+            "samples": self.samples,
         }
         if self.use_rare_variants:
             if hasattr(self.rare_embedding, "get_metadata"):
-                result.update(
-                    {"rare_embedding_metadata": self.rare_embedding.get_metadata()}
-                )
+                result["rare_embedding_metadata"] = self.rare_embedding.get_metadata()
         return result

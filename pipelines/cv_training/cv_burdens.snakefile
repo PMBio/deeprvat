@@ -42,10 +42,6 @@ rule make_deeprvat_test_config:
 # pass the sample file here
 # then just use this data set nomrally for burden computation
 use rule association_dataset from deeprvat_associate as deeprvat_association_dataset with:
-    input:
-        config="cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/hpopt_config_test.yaml",
-    output:
-        "cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/association_dataset.pkl",
     threads: 4
 
 
@@ -93,14 +89,31 @@ rule combine_test_burdens:
         )
 
 
-use rule link_burdens from deeprvat_workflow as deeprvat_link_burdens with:
+use rule link_burdens from deeprvat_associate as deeprvat_link_burdens with:
+    input:
+        checkpoints = expand(
+            'cv_split{cv_split}/deeprvat' / model_path / "repeat_{repeat}/best/bag_{bag}.ckpt",
+            cv_split=range(cv_splits), repeat=range(n_repeats), bag=range(n_bags)
+        ),
+        dataset = 'cv_split0/deeprvat/{phenotype}/deeprvat/association_dataset.pkl',
+        data_config = 'cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/hpopt_config_test.yaml',
+        model_config = "cv_split{cv_split}/deeprvat" / model_path / 'config.yaml',
     params:
         prefix="cv_split{cv_split}/deeprvat",
 
 
-use rule compute_burdens from deeprvat_workflow as deeprvat_compute_burdens with:
+use rule compute_burdens from deeprvat_associate as deeprvat_compute_burdens with:
+    input:
+        reversed = "cv_split{cv_split}/deeprvat" / model_path / "reverse_finished.tmp",
+        checkpoints = expand(
+            'cv_split{cv_split}/deeprvat' / model_path / "repeat_{repeat}/best/bag_{bag}.ckpt",
+            cv_split=range(cv_splits), repeat=range(n_repeats), bag=range(n_bags)
+        ),
+        dataset = 'cv_split0/deeprvat/{phenotype}/deeprvat/association_dataset.pkl',
+        data_config = 'cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/hpopt_config_test.yaml',
+        model_config = "cv_split{cv_split}/deeprvat" / model_path / 'config.yaml',
     params:
         prefix="cv_split{cv_split}/deeprvat",
 
 
-use rule reverse_models from deeprvat_workflow as deeprvat_reverse_models
+use rule reverse_models from deeprvat_associate as deeprvat_reverse_models

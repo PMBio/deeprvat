@@ -51,7 +51,8 @@ rule train:
             [f"--phenotype {p} "
              f"{p}/deeprvat/input_tensor.zarr "
              f"{p}/deeprvat/covariates.zarr "
-             f"{p}/deeprvat/y.zarr"
+             f"{p}/deeprvat/y.zarr "
+             f"{p}/deeprvat/sample_ids.zarr "
              for p in training_phenotypes]),
         prefix = '.',
     priority: 1000
@@ -64,7 +65,8 @@ rule train:
         + debug +
         '--trial-id {{2}} '
         "{params.phenotypes} "
-        'config.yaml '
+        # 'config.yaml '
+        "{params.prefix}/config.yaml "
         '{params.prefix}/{model_path}/repeat_{{1}}/trial{{2}} '
         "{params.prefix}/{model_path}/repeat_{{1}}/hyperparameter_optimization.db '&&' "
         "touch {params.prefix}/{model_path}/repeat_{{1}}/trial{{2}}/finished.tmp "

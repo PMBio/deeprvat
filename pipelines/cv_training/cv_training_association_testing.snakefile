@@ -28,6 +28,8 @@ n_parallel_training_jobs = config["training"].get("n_parallel_jobs", 1)
 wildcard_constraints:
     repeat="\d+",
     trial="\d+",
+    cv_split="\d+",
+    phenotype="[A-z0-9_]+",
 
 
 cv_splits = config.get("n_folds", 5)
@@ -76,6 +78,25 @@ rule all_training:  #cv_training.snakefile
             "cv_split{cv_split}/deeprvat/models/repeat_{repeat}/config.yaml",
             repeat=range(n_repeats),
             cv_split=range(cv_splits),
+        ),
+
+rule all_training_dataset:  #cv_training.snakefile
+    input:
+        expand(
+            "cv_split0/deeprvat/{phenotype}/deeprvat/input_tensor.zarr",
+            phenotype=training_phenotypes,
+        ),
+        expand(
+            "cv_split0/deeprvat/{phenotype}/deeprvat/covariates.zarr",
+            phenotype=training_phenotypes,
+        ),
+        expand(
+            "cv_split0/deeprvat/{phenotype}/deeprvat/y.zarr",
+            phenotype=training_phenotypes,
+        ),
+        expand(
+            "cv_split0/deeprvat/{phenotype}/deeprvat/sample_ids.zarr",
+            phenotype=training_phenotypes,
         ),
 
 
