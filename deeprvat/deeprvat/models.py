@@ -524,7 +524,11 @@ class LinearAgg(pl.LightningModule):
     It still contains the gene impairment module used for burden computation.
     """
 
-    def __init__(self, n_annotations: int, pool: str, output_dim: int = 1):
+    def __init__(self, 
+        n_annotations: int, 
+        pool: str, 
+        output_dim: int = 1, 
+        reverse: bool = False):
         """
         Initialize the LinearAgg model.
 
@@ -542,6 +546,20 @@ class LinearAgg(pl.LightningModule):
 
         input_dim = n_annotations
         self.linear = nn.Linear(n_annotations, self.output_dim)
+        self.reverse = reverse
+
+    def set_reverse(self, reverse: bool = True):
+        """
+        Reverse burden score during association testing if the model predicts in negative space.
+
+        :param reverse: Indicates whether the 'reverse' attribute should be set to True or False.
+            Defaults to True.
+        :type reverse: bool
+
+        Note:
+        Compare associate.py, reverse_models() for further detail
+        """
+        self.reverse = reverse
 
     def forward(self, x):
         """
@@ -561,6 +579,8 @@ class LinearAgg(pl.LightningModule):
         else:
             x = torch.max(x, dim=2).values
         # Now x.shape = samples x genes x output_dim
+        if self.reverse:
+            x = -x
         return x
 
 
@@ -617,8 +637,14 @@ class TwoLayer(BaseModel):
             for param in self.agg_model.parameters():
                 param.requires_grad = True
 
-        self.gene_pheno = nn.Linear(self.hparams.n_covariates + self.hparams.n_genes, 1)
-
+        self.gene_pheno = nn.ModuleDict(
+            {
+                pheno: nn.Linear(
+                    self.hparams.n_covariates + self.hparams.n_genes[pheno], 1
+                )
+                for pheno in self.hparams.phenotypes
+            }
+        )
     def forward(self, batch):
         """
         Forward pass through the model.
@@ -633,9 +659,14 @@ class TwoLayer(BaseModel):
         :returns: Dictionary containing predicted phenotypes
         :rtype: dict
         """
-        # samples x genes x annotations x variants
-        x = batch["rare_variant_annotations"]
-        x = self.agg_model(x).squeeze(dim=2)  # samples x genes
-        x = torch.cat((batch["covariates"], x), dim=1)
-        x = self.gene_pheno(x).squeeze(dim=1)  # samples
-        return x
+        result = dict()
+        for pheno, this_batch in batch.items():
+            x = this_batch["rare_variant_annotations"]
+            # x.shape = samples x genes x annotations x variants
+            x = self.agg_model(x).squeeze(dim=2)
+            # x.shape = samples x genes
+            x = torch.cat((this_batch["covariates"], x), dim=1)
+            # x.shape = samples x (genes + covariates)
+            result[pheno] = self.gene_pheno[pheno](x).squeeze(dim=1)
+            # result[pheno].shape = samples
+        return result
