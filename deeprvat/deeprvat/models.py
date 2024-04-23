@@ -524,11 +524,9 @@ class LinearAgg(pl.LightningModule):
     It still contains the gene impairment module used for burden computation.
     """
 
-    def __init__(self, 
-        n_annotations: int, 
-        pool: str, 
-        output_dim: int = 1, 
-        reverse: bool = False):
+    def __init__(
+        self, n_annotations: int, pool: str, output_dim: int = 1, reverse: bool = False
+    ):
         """
         Initialize the LinearAgg model.
 
@@ -645,6 +643,7 @@ class TwoLayer(BaseModel):
                 for pheno in self.hparams.phenotypes
             }
         )
+
     def forward(self, batch):
         """
         Forward pass through the model.
