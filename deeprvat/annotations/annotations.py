@@ -1469,16 +1469,14 @@ def add_ids(annotation_file: str, variant_file: str, njobs: int, out_file: str):
 @cli.command()
 @click.argument("annotation_file", type=click.Path(exists=True))
 @click.argument("variant_file", type=click.Path(exists=True))
-@click.argument("njobs", type=int)
 @click.argument("out_file", type=click.Path())
-def add_ids_dask(annotation_file: str, variant_file: str, njobs: int, out_file: str):
+def add_ids_dask(annotation_file: str, variant_file: str,  out_file: str):
     """
     Add identifiers from a variant file to an annotation file using Dask and save the result.
 
     Parameters:
     - annotation_file (str): Path to the input annotation file in Parquet format.
     - variant_file (str): Path to the input variant file in Parquet format.
-    - njobs (int): Number of parallel jobs to process the data.
     - out_file (str): Path to save the processed data in Parquet format.
 
     Returns:
@@ -1494,7 +1492,7 @@ def add_ids_dask(annotation_file: str, variant_file: str, njobs: int, out_file: 
     $ python annotations.py add_ids_dask annotation_data.parquet variant_data.parquet 4 processed_data.parquet
     """
     data = dd.read_parquet(annotation_file, blocksize=25e9)
-    all_variants = pd.read_table(variant_file)
+    all_variants = pd.read_parquet(variant_file)
     data = data.rename(
         columns={
             "#CHROM": "chrom",
@@ -1667,7 +1665,7 @@ def merge_annotations(
     logger.info("load variant_file")
 
     logger.info(f"reading in {variant_file}")
-    variants = pd.read_csv(variant_file, sep="\t")
+    variants = pd.read_parquet(variant_file)
 
     logger.info("merge vep to variants M:1")
     ca = vep_df.merge(
@@ -1932,7 +1930,7 @@ def get_af_from_gt(genotype_file: str, variants_filepath: str, out_file: str):
     """
     import h5py
 
-    variants = pd.read_table(variants_filepath)
+    variants = pd.read_parquet(variants_filepath)
     max_variant_id = variants["id"].max()
 
     logger.info("Computing allele frequencies")

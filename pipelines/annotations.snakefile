@@ -52,7 +52,7 @@ included_chromosomes = config.get(
 )
 
 preprocess_dir = Path(config.get("preprocessing_workdir", ""))
-variant_file = config.get("variant_file_path") or preprocess_dir / 'norm' / 'variants' / 'variants.tsv.gz'
+variant_pq = config.get("variant_parquetfile_path") or preprocess_dir / 'norm' / 'variants' / 'variants.parquet'
 genotype_file = config.get("genotype_file_path") or preprocess_dir / 'preprocessed' / 'genotypes.h5'
 saved_deepripe_models_path = (
     Path(config["faatpipe_repo_dir"]) / "data" / "deepripe_models"
@@ -118,7 +118,8 @@ file_paths = [
 
 file_paths = list(chain.from_iterable(file_paths))
 human_sort(file_paths)
-file_stems = [Path(p).stem.split('.')[0] for p in file_paths]
+file_stems = [re.compile(source_variant_file_pattern.format(chr = "(\d+|X|Y)",block='\d+')).search(i).group() for i in file_paths]
+
 
 absplice_download_dir = config.get('absplice_download_dir') or  absplice_repo_dir /'example'/'data'/'resources'/'downloaded_files'
 absplice_output_dir = config.get('absplice_output_dir', anno_tmp_dir /'absplice')
@@ -261,7 +262,7 @@ rule merge_allele_frequency:
 rule calculate_allele_frequency:
     input: 
         genotype_file = genotype_file,
-        variants = variant_file
+        variants = variant_pq
     output:
         allele_frequencies = anno_tmp_dir / "af_df.parquet"
     shell:
@@ -361,7 +362,7 @@ rule merge_annotations:
         / (source_variant_file_pattern + "_variants.eclip_k5_deepripe.csv.gz"),
         deepripe_hg2=anno_dir
         / (source_variant_file_pattern + "_variants.eclip_hg2_deepripe.csv.gz"),
-        variant_file=variant_file,
+        variant_file=variant_pq,
         vcf_file= anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
     output:
         anno_dir / f"{source_variant_file_pattern}_merged.parquet",
@@ -396,7 +397,7 @@ rule deepSea_PCA:
 
 rule add_ids_deepSea:
     input:
-        variant_file=variant_file,
+        variant_file=variant_pq,
         annotation_file=deepSEA_tmp_dir / "deepsea_pca.parquet",
     output:
         directory(anno_dir / "all_variants.wID.deepSea.parquet"),
@@ -408,7 +409,6 @@ rule add_ids_deepSea:
                 "add-ids-dask",
                 "{input.annotation_file}",
                 "{input.variant_file}",
-                "{threads}",
                 "{output}",
             ]
         )
