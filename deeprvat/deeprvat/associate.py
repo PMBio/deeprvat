@@ -2,30 +2,29 @@ import copy
 import itertools
 import logging
 import math
-import pickle
 import os
+import pickle
+import re
 import sys
 from pathlib import Path
 from pprint import pprint
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import click
-import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-import pyranges as pr
+import statsmodels.api as sm
+
 import torch
 import torch.nn as nn
-import statsmodels.api as sm
 import yaml
-from bgen import BgenWriter
+import zarr
+
 from numcodecs import Blosc
-from seak import scoretest
+
 from statsmodels.tools.tools import add_constant
 from torch.utils.data import DataLoader, Dataset, Subset
 from tqdm import tqdm, trange
-import zarr
-import re
 
 import deeprvat.deeprvat.models as deeprvat_models
 from deeprvat.data import DenseGTDataset
@@ -303,11 +302,10 @@ def compute_burdens_(
         logger.info(f"Writing chunks to {burdens_chunk_path}")
 
         for i, batch in tqdm(
-                enumerate(dl),
-                file=sys.stdout,
-                total=(n_samples // batch_size + (n_samples % batch_size != 0)),
+            enumerate(dl),
+            file=sys.stdout,
+            total=(n_samples // batch_size + (n_samples % batch_size != 0)),
         ):
-
 
             this_burdens, this_y, this_x, this_sampleid = get_burden(
                 batch, agg_models, device=device, skip_burdens=skip_burdens
@@ -326,7 +324,7 @@ def compute_burdens_(
                     burdens = zarr.open(
                         burdens_chunk_path / f"burdens.zarr",
                         mode="a",
-                        shape=(n_total_samples,) + this_burdens.shape[1:],
+                        shape=this_burdens.shape,
                         chunks=(1000, 1000, 1),
                         dtype=np.float32,
                         compressor=Blosc(clevel=compression_level),
@@ -338,7 +336,7 @@ def compute_burdens_(
                 y = zarr.open(
                     burdens_chunk_path / f"y.zarr",
                     mode="a",
-                    shape=(n_total_samples,) + this_y.shape[1:],
+                    shape=this_y.shape,
                     chunks=(None, None),
                     dtype=np.float32,
                     compressor=Blosc(clevel=compression_level),
@@ -346,7 +344,7 @@ def compute_burdens_(
                 x = zarr.open(
                     burdens_chunk_path / f"x.zarr",
                     mode="a",
-                    shape=(n_total_samples,) + this_x.shape[1:],
+                    shape=this_x.shape,
                     chunks=(None, None),
                     dtype=np.float32,
                     compressor=Blosc(clevel=compression_level),
@@ -354,7 +352,7 @@ def compute_burdens_(
                 sample_ids = zarr.open(
                     burdens_chunk_path / f"sample_ids.zarr",
                     mode="a",
-                    shape=(n_total_samples),
+                    shape=this_sampleid.shape,
                     chunks=(None),
                     dtype=np.float32,
                     compressor=Blosc(clevel=compression_level),
@@ -381,9 +379,9 @@ def compute_burdens_(
         if not skip_burdens:
             burdens[chunk_start:chunk_end] = chunk_burden
 
-        y[chunk_start:chunk_end] = chunk_y
-        x[chunk_start:chunk_end] = chunk_x
-        sample_ids[chunk_start:chunk_end] = chunk_sampleid
+        y = chunk_y
+        x = chunk_x
+        sample_ids = chunk_sampleid
 
     if torch.cuda.is_available():
         logger.info(
