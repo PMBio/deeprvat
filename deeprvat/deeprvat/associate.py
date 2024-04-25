@@ -298,7 +298,7 @@ def compute_burdens_(
     batch_size = data_config["dataloader_config"]["batch_size"]
     with torch.no_grad():
         burdens_chunk_path = Path(cache_dir) / "chunks" / f"chunk_{chunk}"
-        burdens_chunk_path.mkdir(exist_ok=True)
+        burdens_chunk_path.mkdir(exist_ok=True, parents=True)
         logger.info(f"Writing chunks to {burdens_chunk_path}")
 
         for i, batch in tqdm(
