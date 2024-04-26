@@ -34,7 +34,7 @@ rule mmsplice_splicemap:
         mem_mb = 30_000,
         threads = 4
     conda: 
-        "absplice"
+        "./absplice.yaml"
     output:
         result = Path(absplice_output_dir)/ config_pred['splicing_pred']['mmsplice_splicemap']
     script:
@@ -71,7 +71,7 @@ if absplice_main_conf['use_rocksdb'] == True:
             lookup_only = False,
             genome = genome_mapper[absplice_main_conf['genome']]
         conda:
-            f"./environment_spliceai_rocksdb.yaml"
+            f"./environment_spliceai_rocksdb2.yaml"
         output:
             result = Path(absplice_output_dir)/config_pred['splicing_pred']['spliceai']
         script:
@@ -104,7 +104,7 @@ else:
         output:
             spliceai_csv = Path(absplice_output_dir) / config_pred['splicing_pred']['spliceai'],
         conda:
-            "absplice"
+            "./absplice.yaml"
         run:
             from absplice.utils import read_spliceai_vcf
             df = read_spliceai_vcf(input.spliceai_vcf)
@@ -119,7 +119,7 @@ rule absplice_dna:
     params:
         extra_info = absplice_main_conf['extra_info_dna']
     conda:
-            "absplice"
+        "./absplice.yaml"
     output:
         absplice_dna = absplice_output_dir / '{genome}' / 'dna' / '{vcf_id}_AbSplice_DNA.csv'
     script:
