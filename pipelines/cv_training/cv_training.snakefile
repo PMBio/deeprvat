@@ -52,36 +52,18 @@ use rule best_training_run from deeprvat_workflow as deeprvat_best_training_run 
 
 use rule train from deeprvat_workflow as deeprvat_train with:
     priority: 1000
-    input:
-        config = expand('cv_split{{cv_split}}/deeprvat/{phenotype}/deeprvat/hpopt_config.yaml',
-                        phenotype=training_phenotypes),
-        input_tensor = expand('cv_split0/deeprvat/{phenotype}/deeprvat/input_tensor.zarr',
-                              phenotype=training_phenotypes),
-        covariates = expand('cv_split0/deeprvat/{phenotype}/deeprvat/covariates.zarr',
-                            phenotype=training_phenotypes),
-        y = expand('cv_split0/deeprvat/{phenotype}/deeprvat/y.zarr',
-                   phenotype=training_phenotypes),
-        samples = expand('cv_split0/deeprvat/{phenotype}/deeprvat/sample_ids.zarr',
-                   phenotype=training_phenotypes),
     params:
         prefix = 'cv_split{cv_split}/deeprvat',
         phenotypes = " ".join( #TODO like need the prefix here as well
             [f"--phenotype {p} "
-             f"cv_split0/deeprvat/{p}/deeprvat/input_tensor.zarr "
-             f"cv_split0/deeprvat/{p}/deeprvat/covariates.zarr "
-             f"cv_split0/deeprvat/{p}/deeprvat/y.zarr "
-             f"cv_split0/deeprvat/{p}/deeprvat/sample_ids.zarr "
+             f"cv_split{{cv_split}}/deeprvat/{p}/deeprvat/input_tensor.zarr "
+             f"cv_split{{cv_split}}/deeprvat/{p}/deeprvat/covariates.zarr "
+             f"cv_split{{cv_split}}/deeprvat/{p}/deeprvat/y.zarr"
              for p in training_phenotypes])
 
 use rule training_dataset from deeprvat_workflow as deeprvat_training_dataset
-    # output:
-    #     input_tensor=directory("{phenotype}/deeprvat/input_tensor.zarr"),
-    #     covariates=directory("{phenotype}/deeprvat/covariates.zarr"),
-    #     y=directory("{phenotype}/deeprvat/y.zarr"),
-    #     sample_ids=directory("{phenotype}/deeprvat/sample_ids.zarr"),
 
-
-# use rule training_dataset_pickle from deeprvat_workflow as deeprvat_training_dataset_pickle
+use rule training_dataset_pickle from deeprvat_workflow as deeprvat_training_dataset_pickle
 
 use rule config from deeprvat_workflow as deeprvat_config with:
     input:
@@ -98,3 +80,11 @@ use rule config from deeprvat_workflow as deeprvat_config with:
         ])  if wildcards.phenotype in training_phenotypes else ' ',
         baseline_out = lambda wildcards: f'--baseline-results-out cv_split{wildcards.cv_split}/deeprvat/{wildcards.phenotype}/deeprvat/baseline_results.parquet' if wildcards.phenotype in training_phenotypes else ' ',
         seed_genes_out = lambda wildcards: f'--seed-genes-out cv_split{wildcards.cv_split}/deeprvat/{wildcards.phenotype}/deeprvat/seed_genes.parquet' if wildcards.phenotype in training_phenotypes else ' '
+
+
+
+
+
+
+
+
