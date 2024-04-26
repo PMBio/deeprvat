@@ -352,7 +352,7 @@ def compute_burdens_(
                 sample_ids = zarr.open(
                     burdens_chunk_path / f"sample_ids.zarr",
                     mode="a",
-                    shape=this_sampleid.shape,
+                    shape=len(this_sampleid),
                     chunks=(None),
                     dtype=np.float32,
                     compressor=Blosc(clevel=compression_level),
