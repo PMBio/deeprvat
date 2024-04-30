@@ -51,23 +51,17 @@ rule all_regenie:
 
 rule convert_regenie_output:
     input:
-        expand("regenie_output/step2/deeprvat_{phenotype}.regenie",
-               phenotype=phenotypes)
+        "regenie_output/step2/deeprvat_{phenotype}.regenie",
     output:
-        expand('{phenotype}/deeprvat/average_regression_results/burden_associations.parquet',
-               phenotype=phenotypes)
+        '{phenotype}/deeprvat/average_regression_results/burden_associations.parquet',
     params:
-        pheno_options = " ".join([
-            f"--phenotype {phenotype} regenie_output/step2/deeprvat_{phenotype}.regenie "
-            f"{phenotype}/deeprvat/average_regression_results/burden_associations.parquet"
-        for phenotype in phenotypes]),
         gene_file = config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"]
     threads: 1
     resources:
         mem_mb = 2048
     shell:
         "deeprvat_associate convert-regenie-output "
-        "{params.pheno_options} "
+        "--phenotype {wildcards.phenotype} {input} {output} "
         "{params.gene_file}"
 
 rule regenie_step2:
@@ -86,7 +80,7 @@ rule regenie_step2:
         "regenie_output/step2/deeprvat_{phenotype}.regenie"
     threads: 16
     resources:
-        mem_mb = 16384
+        mem_mb = lambda wildcards, attempt: 32768 * attempt
     shell:
         "regenie "
         "--step 2 "
