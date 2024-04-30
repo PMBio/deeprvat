@@ -91,6 +91,25 @@ rule compute_burdens:
              '{input.checkpoints} '
              '{params.prefix}/{wildcards.phenotype}/deeprvat/burdens'),
             'touch {output}'
+rule combine_burdens:
+    input:
+        burdens='{phenotype}/deeprvat/burdens/chunks/chunk{chunk}/burdens.zarr',
+        x='{phenotype}/deeprvat/burdens/chunks/chunk{chunk}/x.zarr',
+        y='{phenotype}/deeprvat/burdens/chunks/chunk{chunk}/y.zarr',
+        sample_ids='{phenotype}/deeprvat/burdens/chunks/chunk{chunk}/sample_ids.zarr',
+    output:
+        burdens='{phenotype}/deeprvat/burdens/burdens.zarr',
+        x='{phenotype}/deeprvat/burdens/x.zarr',
+        y='{phenotype}/deeprvat/burdens/y.zarr',
+        sample_ids='{phenotype}/deeprvat/burdens/sample_ids.zarr',
+    params:
+        prefix='.'
+    shell:
+        ' '.join([
+            "'{phenotype}/deeprvat/burdens/chunks/",
+            'deeprvat_associate combine-burden-chunks',
+            ' --n-chunks ' + str(n_burden_chunks),
+            '{params.prefix}/{wildcards.phenotype}/deeprvat/burdens',
         ])
 
 rule reverse_models:
