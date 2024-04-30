@@ -959,7 +959,9 @@ def compute_burdens(
     burden_files = ["burdens.zarr", "x.zarr", "y.zarr", "sample_ids.zarr"]
 
     for burden_file in burden_files:
-        assert (Path(out_dir) / f"chunk_{chunk}" / burden_file).exists()
+        burden_file_path = Path(out_dir) / "chunks" / f"chunk_{chunk}" / burden_file
+        logger.debug(f"Checking if {burden_file_path} exists")
+        assert burden_file_path.exists()
     else:
         logger.info(f"All zarr files exists for chunk {chunk}")
 
