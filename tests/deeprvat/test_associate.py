@@ -42,11 +42,10 @@ def expected_array(request, tmp_path) -> Path:
 
 
 @pytest.mark.parametrize(
-    "n_chunks, total_samples, skip_burdens, overwrite, chunks_data, expected_array",
+    "n_chunks, skip_burdens, overwrite, chunks_data, expected_array",
     [
         (
             2,
-            1000,
             False,
             False,
             tests_data_dir / "combine_burden_chunks/input/chunks.zip",
@@ -54,7 +53,6 @@ def expected_array(request, tmp_path) -> Path:
         ),
         (
             2,
-            1000,
             True,
             False,
             tests_data_dir / "combine_burden_chunks/input/chunks.zip",
@@ -62,7 +60,6 @@ def expected_array(request, tmp_path) -> Path:
         ),
         (
             2,
-            1000,
             False,
             True,
             tests_data_dir / "combine_burden_chunks/input/chunks.zip",
@@ -70,7 +67,6 @@ def expected_array(request, tmp_path) -> Path:
         ),
         (
             2,
-            1000,
             True,
             True,
             tests_data_dir / "combine_burden_chunks/input/chunks.zip",
@@ -81,7 +77,6 @@ def expected_array(request, tmp_path) -> Path:
 )
 def test_combine_burden_chunks_data_same(
     n_chunks,
-    total_samples,
     skip_burdens,
     overwrite,
     tmp_path,
@@ -92,7 +87,6 @@ def test_combine_burden_chunks_data_same(
     combine_burden_chunks_(
         n_chunks=n_chunks,
         burdens_chunks_dir=chunks_data,
-        total_samples=total_samples,
         skip_burdens=skip_burdens,
         overwrite=overwrite,
         result_dir=tmp_path,
@@ -111,32 +105,28 @@ def test_combine_burden_chunks_data_same(
 
 
 @pytest.mark.parametrize(
-    "n_chunks, total_samples, skip_burdens, overwrite, chunks_data",
+    "n_chunks, skip_burdens, overwrite, chunks_data",
     [
         (
             2,
-            1000,
             False,
             False,
             tests_data_dir / "combine_burden_chunks/input/chunks.zip",
         ),
         (
             2,
-            1000,
             True,
             False,
             tests_data_dir / "combine_burden_chunks/input/chunks.zip",
         ),
         (
             2,
-            1000,
             False,
             True,
             tests_data_dir / "combine_burden_chunks/input/chunks.zip",
         ),
         (
             2,
-            1000,
             True,
             True,
             tests_data_dir / "combine_burden_chunks/input/chunks.zip",
@@ -145,13 +135,12 @@ def test_combine_burden_chunks_data_same(
     indirect=["chunks_data"],
 )
 def test_combine_burden_chunks_file_exists(
-    n_chunks, total_samples, skip_burdens, overwrite, tmp_path, chunks_data
+    n_chunks, skip_burdens, overwrite, tmp_path, chunks_data
 ):
 
     combine_burden_chunks_(
         n_chunks=n_chunks,
         burdens_chunks_dir=chunks_data,
-        total_samples=total_samples,
         skip_burdens=skip_burdens,
         overwrite=overwrite,
         result_dir=tmp_path,
