@@ -959,8 +959,8 @@ def compute_burdens(
     burden_files = ["burdens.zarr", "x.zarr", "y.zarr", "sample_ids.zarr"]
 
     for burden_file in burden_files:
-        burden_file_path = Path(out_dir) / "chunks" / f"chunk_{chunk}" / burden_file
-        logger.debug(f"Checking if {burden_file_path} exists")
+        burden_file_path = (Path(out_dir) / f"chunks/chunk_{chunk}" / burden_file)
+        logger.debug(f"Checking that {burden_file_path} exists")
         assert burden_file_path.exists()
     else:
         logger.info(f"All zarr files exists for chunk {chunk}")
@@ -968,12 +968,18 @@ def compute_burdens(
     logger.info("Saving computed burdens, corresponding genes, and targets")
     np.save(Path(out_dir) / "genes.npy", genes)
 
-    # TODO Remove this...
+    # TODO Remove this?...
     if link_burdens is not None:
         source_path = Path(out_dir) / "burdens.zarr"
         source_path.unlink(missing_ok=True)
         source_path.symlink_to(link_burdens)
 
+
+def combine_burden_chunks(
+    n_chunks: int,
+    burdens_dir: str,
+):
+    pass
 
 def regress_on_gene_scoretest(
     gene: str,
