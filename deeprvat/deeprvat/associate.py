@@ -975,11 +975,115 @@ def compute_burdens(
         source_path.symlink_to(link_burdens)
 
 
+@cli.command()
+@click.option("--n-chunks", type=int, required=True)
+@click.option("--total-samples", type=int, required=True)
+@click.option("--skip-burdens", is_flag=True, default=False)
+@click.option("--overwrite", is_flag=True, default=False)
+@click.argument("burdens-chunks-dir", type=click.Path(exists=True))
+@click.argument("result-dir", type=click.Path(exists=True))
 def combine_burden_chunks(
     n_chunks: int,
-    burdens_dir: str,
+    total_samples: int,
+    skip_burdens: bool,
+    overwrite: bool,
+    burdens_chunks_dir: Path,
+    result_dir: Path,
 ):
-    pass
+    combine_burden_chunks_(
+        n_chunks=n_chunks,
+        total_samples=total_samples,
+        skip_burdens=skip_burdens,
+        overwrite=overwrite,
+        burdens_chunks_dir=Path(burdens_chunks_dir),
+        result_dir=Path(result_dir),
+    )
+
+
+def combine_burden_chunks_(
+    n_chunks: int,
+    burdens_chunks_dir: Path,
+    total_samples: int,
+    skip_burdens: bool,
+    overwrite: bool,
+    result_dir: Path,
+):
+    compression_level = 1
+    burdens_chunks_dir = Path(burdens_chunks_dir)
+
+    burdens, x, y, sample_ids = None, None, None, None
+    start_id = 0
+    end_id = 0
+
+    for i, chunk in enumerate(range(0, n_chunks)):
+        chunk_dir = burdens_chunks_dir / f"chunk_{chunk}"
+        burdens_chunk = zarr.open((chunk_dir / "burdens.zarr").as_posix())
+        y_chunk = zarr.open((chunk_dir / "y.zarr").as_posix())
+        x_chunk = zarr.open((chunk_dir / "x.zarr").as_posix())
+        sample_ids_chunk = zarr.open((chunk_dir / "sample_ids.zarr").as_posix())
+
+        burdens_path = result_dir / f"burdens.zarr"
+        x_path = result_dir / "x.zarr"
+        y_path = result_dir / "y.zarr"
+        sample_ids_path = result_dir / "sample_ids.zarr"
+
+        if i == 0:
+            if not skip_burdens:
+                burdens_shape = (total_samples,) + burdens_chunk.shape[1:]
+
+                if not overwrite:
+                    assert not burdens_path.exists()
+                else:
+                    logger.debug(f"Overwriting existing files")
+
+                logger.info(f"Opening {burdens_path} in append mode")
+                burdens = zarr.open(
+                    burdens_path.as_posix(),
+                    mode="a",
+                    shape=burdens_shape,
+                    chunks=(1000, 1000, 1),
+                    dtype=np.float32,
+                    compressor=Blosc(clevel=compression_level),
+                )
+                assert burdens_path.exists()
+
+            y = zarr.open(
+                y_path,
+                mode="a",
+                shape=(total_samples,) + y_chunk.shape[1:],
+                chunks=(None, None),
+                dtype=np.float32,
+                compressor=Blosc(clevel=compression_level),
+            )
+            x = zarr.open(
+                x_path,
+                mode="a",
+                shape=(total_samples,) + x_chunk.shape[1:],
+                chunks=(None, None),
+                dtype=np.float32,
+                compressor=Blosc(clevel=compression_level),
+            )
+            sample_ids = zarr.open(
+                sample_ids_path,
+                mode="a",
+                shape=(total_samples),
+                chunks=(None),
+                dtype=np.float32,
+                compressor=Blosc(clevel=compression_level),
+            )
+
+            assert x_path.exists()
+            assert y_path.exists()
+            assert sample_ids_path.exists()
+            end_id += len(sample_ids_chunk)
+
+        y[start_id:end_id] = y_chunk
+        x[start_id:end_id] = x_chunk
+        sample_ids[start_id:end_id] = sample_ids_chunk
+
+        if not skip_burdens:
+            burdens[start_id:end_id] = burdens_chunk[:]
+
 
 def regress_on_gene_scoretest(
     gene: str,
