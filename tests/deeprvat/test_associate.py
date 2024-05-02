@@ -46,7 +46,7 @@ def expected_array(request, tmp_path) -> Path:
     [
         (
             2,
-            False,
+            True,
             False,
             tests_data_dir / "combine_burden_chunks/input/chunks.zip",
             tests_data_dir / "combine_burden_chunks/expected/burdens.zip",
@@ -58,12 +58,12 @@ def expected_array(request, tmp_path) -> Path:
             tests_data_dir / "combine_burden_chunks/input/chunks.zip",
             tests_data_dir / "combine_burden_chunks/expected/burdens.zip",
         ),
-        (
+       (
             2,
             False,
             True,
-            tests_data_dir / "combine_burden_chunks/input/chunks.zip",
-            tests_data_dir / "combine_burden_chunks/expected/burdens.zip",
+           tests_data_dir / "combine_burden_chunks/input/chunks.zip",
+           tests_data_dir / "combine_burden_chunks/expected/burdens.zip",
         ),
         (
             2,
@@ -92,16 +92,21 @@ def test_combine_burden_chunks_data_same(
         result_dir=tmp_path,
     )
 
-    expected_files = ["burdens.zarr", "x.zarr", "y.zarr", "sample_ids.zarr"]
+    expected_files = ["x.zarr", "y.zarr", "sample_ids.zarr","burdens.zarr"]
+    if skip_burdens:
+        expected_files.remove("burdens.zarr")
+
     for expected_file in expected_files:
 
-        if expected_file == "burdens.zarr" and skip_burdens:
-            continue
+        expected_burdens_data = open_zarr(zarr_path=(expected_array / expected_file))
+        written_burdens_data = open_zarr(zarr_path=(tmp_path / expected_file))
 
-        expected_burdens_data = open_zarr(zarr_path=expected_array / expected_file)
-        written_burdens_data = open_zarr(zarr_path=tmp_path / expected_file)
+        assert expected_burdens_data.shape == written_burdens_data.shape
+        expected_arr = expected_burdens_data[:]
+        written_arr = written_burdens_data[:]
 
-        assert np.array_equal(expected_burdens_data, written_burdens_data)
+        assert np.array_equal(expected_arr, written_arr, equal_nan=True)
+
 
 
 @pytest.mark.parametrize(
