@@ -45,47 +45,13 @@ def expected_array(request, tmp_path) -> Path:
     "n_chunks, skip_burdens, overwrite, chunks_data, expected_array",
     [
         (
-            2,
+            n_chunks,
             False,
             False,
-            tests_data_dir / "combine_burden_chunks/input/chunks_2.zip",
-            tests_data_dir / "combine_burden_chunks/expected/burdens_2.zip",
-        ),
-        (
-            2,
-            False,
-            True,
-            tests_data_dir / "combine_burden_chunks/input/chunks_2.zip",
-            tests_data_dir / "combine_burden_chunks/expected/burdens_2.zip",
-        ),
-        (
-            2,
-            True,
-            False,
-            tests_data_dir / "combine_burden_chunks/input/chunks_2.zip",
-            tests_data_dir / "combine_burden_chunks/expected/burdens_2.zip",
-        ),
-        (
-            2,
-            True,
-            True,
-            tests_data_dir / "combine_burden_chunks/input/chunks_2.zip",
-            tests_data_dir / "combine_burden_chunks/expected/burdens_2.zip",
-        ),
-        (
-            3,
-            False,
-            False,
-            tests_data_dir / "combine_burden_chunks/input/chunks_3.zip",
-            tests_data_dir / "combine_burden_chunks/expected/burdens_3.zip",
-        ),
-        (
-            4,
-            False,
-            False,
-            tests_data_dir / "combine_burden_chunks/input/chunks_4.zip",
-            tests_data_dir / "combine_burden_chunks/expected/burdens_4.zip",
-        ),
+            tests_data_dir / f"combine_burden_chunks/input/chunks_{n_chunks}.zip",
+            tests_data_dir / f"combine_burden_chunks/expected/burdens_{n_chunks}.zip",
+        )
+        for n_chunks in range(2, 5)
     ],
     indirect=["chunks_data", "expected_array"],
 )
@@ -124,54 +90,12 @@ def test_combine_burden_chunks_data_same(
     "n_chunks, skip_burdens, overwrite, chunks_data",
     [
         (
-            2,
+            n_chunks,
             False,
             False,
-            tests_data_dir / "combine_burden_chunks/input/chunks.zip",
-        ),
-        (
-            2,
-            True,
-            False,
-            tests_data_dir / "combine_burden_chunks/input/chunks.zip",
-        ),
-        (
-            2,
-            False,
-            True,
-            tests_data_dir / "combine_burden_chunks/input/chunks.zip",
-        ),
-        (
-            2,
-            True,
-            True,
-            tests_data_dir / "combine_burden_chunks/input/chunks.zip",
-        ),
-        # 3 chunks
-        (
-            3,
-            False,
-            False,
-            tests_data_dir / "combine_burden_chunks/input/chunks_3.zip",
-        ),
-        (
-            3,
-            True,
-            False,
-            tests_data_dir / "combine_burden_chunks/input/chunks_3.zip",
-        ),
-        (
-            3,
-            False,
-            True,
-            tests_data_dir / "combine_burden_chunks/input/chunks_3.zip",
-        ),
-        (
-            3,
-            True,
-            True,
-            tests_data_dir / "combine_burden_chunks/input/chunks_3.zip",
-        ),
+            tests_data_dir / f"combine_burden_chunks/input/chunks_{n_chunks}.zip",
+        )
+        for n_chunks in range(2, 5)
     ],
     indirect=["chunks_data"],
 )
