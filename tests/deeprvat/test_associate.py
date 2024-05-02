@@ -26,7 +26,7 @@ def unzip_data(zip_path, out_path):
 @pytest.fixture
 def chunks_data(request, tmp_path) -> Path:
     zipped_chunks_path = Path(request.param)
-    chunks_unpacked_path = tmp_path / "burdens"
+    chunks_unpacked_path = tmp_path / "chunks"
     unzip_data(zip_path=zipped_chunks_path, out_path=chunks_unpacked_path)
 
     yield chunks_unpacked_path
@@ -46,8 +46,15 @@ def expected_array(request, tmp_path) -> Path:
     [
         (
             2,
-            True,
             False,
+            False,
+            tests_data_dir / "combine_burden_chunks/input/chunks.zip",
+            tests_data_dir / "combine_burden_chunks/expected/burdens.zip",
+        ),
+        (
+            2,
+            False,
+            True,
             tests_data_dir / "combine_burden_chunks/input/chunks.zip",
             tests_data_dir / "combine_burden_chunks/expected/burdens.zip",
         ),
@@ -58,18 +65,40 @@ def expected_array(request, tmp_path) -> Path:
             tests_data_dir / "combine_burden_chunks/input/chunks.zip",
             tests_data_dir / "combine_burden_chunks/expected/burdens.zip",
         ),
-       (
-            2,
-            False,
-            True,
-           tests_data_dir / "combine_burden_chunks/input/chunks.zip",
-           tests_data_dir / "combine_burden_chunks/expected/burdens.zip",
-        ),
         (
             2,
             True,
             True,
             tests_data_dir / "combine_burden_chunks/input/chunks.zip",
+            tests_data_dir / "combine_burden_chunks/expected/burdens.zip",
+        ),
+        # 3 chunks
+        (
+            3,
+            False,
+            False,
+            tests_data_dir / "combine_burden_chunks/input/chunks_3.zip",
+            tests_data_dir / "combine_burden_chunks/expected/burdens.zip",
+        ),
+        (
+            3,
+            False,
+            True,
+            tests_data_dir / "combine_burden_chunks/input/chunks_3.zip",
+            tests_data_dir / "combine_burden_chunks/expected/burdens.zip",
+        ),
+        (
+            3,
+            True,
+            False,
+            tests_data_dir / "combine_burden_chunks/input/chunks_3.zip",
+            tests_data_dir / "combine_burden_chunks/expected/burdens.zip",
+        ),
+        (
+            3,
+            True,
+            True,
+            tests_data_dir / "combine_burden_chunks/input/chunks_3.zip",
             tests_data_dir / "combine_burden_chunks/expected/burdens.zip",
         ),
     ],
@@ -92,21 +121,18 @@ def test_combine_burden_chunks_data_same(
         result_dir=tmp_path,
     )
 
-    expected_files = ["x.zarr", "y.zarr", "sample_ids.zarr","burdens.zarr"]
+    expected_files = ["x.zarr", "y.zarr", "sample_ids.zarr", "burdens.zarr"]
     if skip_burdens:
         expected_files.remove("burdens.zarr")
 
     for expected_file in expected_files:
 
-        expected_burdens_data = open_zarr(zarr_path=(expected_array / expected_file))
-        written_burdens_data = open_zarr(zarr_path=(tmp_path / expected_file))
+        expected_data = open_zarr(zarr_path=(expected_array / expected_file))
+        written_data = open_zarr(zarr_path=(tmp_path / expected_file))
 
-        assert expected_burdens_data.shape == written_burdens_data.shape
-        expected_arr = expected_burdens_data[:]
-        written_arr = written_burdens_data[:]
-
-        assert np.array_equal(expected_arr, written_arr, equal_nan=True)
-
+        assert written_data.dtype == expected_data.dtype
+        assert expected_data.shape == written_data.shape
+        assert np.array_equal(expected_data[:], written_data[:], equal_nan=True)
 
 
 @pytest.mark.parametrize(
@@ -135,6 +161,31 @@ def test_combine_burden_chunks_data_same(
             True,
             True,
             tests_data_dir / "combine_burden_chunks/input/chunks.zip",
+        ),
+        # 3 chunks
+        (
+            3,
+            False,
+            False,
+            tests_data_dir / "combine_burden_chunks/input/chunks_3.zip",
+        ),
+        (
+            3,
+            True,
+            False,
+            tests_data_dir / "combine_burden_chunks/input/chunks_3.zip",
+        ),
+        (
+            3,
+            False,
+            True,
+            tests_data_dir / "combine_burden_chunks/input/chunks_3.zip",
+        ),
+        (
+            3,
+            True,
+            True,
+            tests_data_dir / "combine_burden_chunks/input/chunks_3.zip",
         ),
     ],
     indirect=["chunks_data"],
