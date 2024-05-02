@@ -52,6 +52,36 @@ def expected_array(request, tmp_path) -> Path:
             tests_data_dir / f"combine_burden_chunks/expected/burdens_{n_chunks}.zip",
         )
         for n_chunks in range(2, 5)
+    ]
+    + [
+        (
+            n_chunks,
+            True,
+            True,
+            tests_data_dir / f"combine_burden_chunks/input/chunks_{n_chunks}.zip",
+            tests_data_dir / f"combine_burden_chunks/expected/burdens_{n_chunks}.zip",
+        )
+        for n_chunks in range(2, 5)
+    ]
+    + [
+        (
+            n_chunks,
+            True,
+            False,
+            tests_data_dir / f"combine_burden_chunks/input/chunks_{n_chunks}.zip",
+            tests_data_dir / f"combine_burden_chunks/expected/burdens_{n_chunks}.zip",
+        )
+        for n_chunks in range(2, 5)
+    ]
+    + [
+        (
+            n_chunks,
+            False,
+            True,
+            tests_data_dir / f"combine_burden_chunks/input/chunks_{n_chunks}.zip",
+            tests_data_dir / f"combine_burden_chunks/expected/burdens_{n_chunks}.zip",
+        )
+        for n_chunks in range(2, 5)
     ],
     indirect=["chunks_data", "expected_array"],
 )
@@ -93,6 +123,33 @@ def test_combine_burden_chunks_data_same(
             n_chunks,
             False,
             False,
+            tests_data_dir / f"combine_burden_chunks/input/chunks_{n_chunks}.zip",
+        )
+        for n_chunks in range(2, 5)
+    ]
+    + [
+        (
+            n_chunks,
+            True,
+            True,
+            tests_data_dir / f"combine_burden_chunks/input/chunks_{n_chunks}.zip",
+        )
+        for n_chunks in range(2, 5)
+    ]
+    + [
+        (
+            n_chunks,
+            True,
+            False,
+            tests_data_dir / f"combine_burden_chunks/input/chunks_{n_chunks}.zip",
+        )
+        for n_chunks in range(2, 5)
+    ]
+    + [
+        (
+            n_chunks,
+            False,
+            True,
             tests_data_dir / f"combine_burden_chunks/input/chunks_{n_chunks}.zip",
         )
         for n_chunks in range(2, 5)
