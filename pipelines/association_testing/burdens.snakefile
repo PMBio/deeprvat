@@ -90,7 +90,8 @@ rule compute_burdens:
              '{input.model_config} '
              '{input.checkpoints} '
              '{params.prefix}/{wildcards.phenotype}/deeprvat/burdens'),
-            'touch {output}'
+            'touch {output}'])
+
 rule combine_burdens:
     input:
         burdens='{phenotype}/deeprvat/burdens/chunks/chunk{chunk}/burdens.zarr',
