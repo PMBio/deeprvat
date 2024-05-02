@@ -333,6 +333,8 @@ def compute_burdens_(
                         dtype=np.float32,
                         compressor=Blosc(clevel=compression_level),
                     )
+                    burdens.attrs["chunk"] = chunk
+
                     logger.info(f"burdens shape: {burdens.shape}")
                 else:
                     burdens = None
@@ -345,6 +347,8 @@ def compute_burdens_(
                     dtype=np.float32,
                     compressor=Blosc(clevel=compression_level),
                 )
+                y.attrs["chunk"] = chunk
+
                 x = zarr.open(
                     burdens_chunk_path / f"x.zarr",
                     mode="a",
@@ -353,6 +357,8 @@ def compute_burdens_(
                     dtype=np.float32,
                     compressor=Blosc(clevel=compression_level),
                 )
+                x.attrs["chunk"] = chunk
+
                 sample_ids = zarr.open(
                     burdens_chunk_path / f"sample_ids.zarr",
                     mode="a",
@@ -361,6 +367,8 @@ def compute_burdens_(
                     dtype=np.float32,
                     compressor=Blosc(clevel=compression_level),
                 )
+                sample_ids.attrs["n_total_samples"] = n_total_samples
+                sample_ids.attrs["chunk"] = chunk
 
             start_idx = i * batch_size
             end_idx = min(start_idx + batch_size, chunk_end)  # read from chunk shape
@@ -968,23 +976,21 @@ def compute_burdens(
     logger.info("Saving computed burdens, corresponding genes, and targets")
     np.save(Path(out_dir) / "genes.npy", genes)
 
-    # TODO Remove this?...
-    if link_burdens is not None:
-        source_path = Path(out_dir) / "burdens.zarr"
-        source_path.unlink(missing_ok=True)
-        source_path.symlink_to(link_burdens)
+
+
+
+
+
 
 
 @cli.command()
 @click.option("--n-chunks", type=int, required=True)
-@click.option("--total-samples", type=int, required=True)
 @click.option("--skip-burdens", is_flag=True, default=False)
 @click.option("--overwrite", is_flag=True, default=False)
 @click.argument("burdens-chunks-dir", type=click.Path(exists=True))
 @click.argument("result-dir", type=click.Path(exists=True))
 def combine_burden_chunks(
     n_chunks: int,
-    total_samples: int,
     skip_burdens: bool,
     overwrite: bool,
     burdens_chunks_dir: Path,
@@ -992,7 +998,6 @@ def combine_burden_chunks(
 ):
     combine_burden_chunks_(
         n_chunks=n_chunks,
-        total_samples=total_samples,
         skip_burdens=skip_burdens,
         overwrite=overwrite,
         burdens_chunks_dir=Path(burdens_chunks_dir),
@@ -1003,7 +1008,6 @@ def combine_burden_chunks(
 def combine_burden_chunks_(
     n_chunks: int,
     burdens_chunks_dir: Path,
-    total_samples: int,
     skip_burdens: bool,
     overwrite: bool,
     result_dir: Path,
@@ -1015,12 +1019,24 @@ def combine_burden_chunks_(
     start_id = 0
     end_id = 0
 
-    for i, chunk in enumerate(range(0, n_chunks)):
+    for i, chunk in tqdm(
+        enumerate(range(0, n_chunks)), desc=f"Merging {n_chunks} chunks"
+    ):
         chunk_dir = burdens_chunks_dir / f"chunk_{chunk}"
-        burdens_chunk = zarr.open((chunk_dir / "burdens.zarr").as_posix())
+
+        if not skip_burdens:
+            burdens_chunk = zarr.open((chunk_dir / "burdens.zarr").as_posix())
+            assert burdens_chunk.attrs["chunk"] == chunk
+
         y_chunk = zarr.open((chunk_dir / "y.zarr").as_posix())
         x_chunk = zarr.open((chunk_dir / "x.zarr").as_posix())
         sample_ids_chunk = zarr.open((chunk_dir / "sample_ids.zarr").as_posix())
+
+        total_samples = sample_ids_chunk.attrs["n_total_samples"]
+
+        assert y_chunk.attrs["chunk"] == chunk
+        assert x_chunk.attrs["chunk"] == chunk
+        assert sample_ids_chunk.attrs["chunk"] == chunk
 
         burdens_path = result_dir / f"burdens.zarr"
         x_path = result_dir / "x.zarr"
@@ -1047,6 +1063,7 @@ def combine_burden_chunks_(
                 )
                 assert burdens_path.exists()
 
+            logger.info(f"Opening {y_path} in append mode")
             y = zarr.open(
                 y_path,
                 mode="a",
@@ -1055,6 +1072,7 @@ def combine_burden_chunks_(
                 dtype=np.float32,
                 compressor=Blosc(clevel=compression_level),
             )
+            logger.info(f"Opening {x_path} in append mode")
             x = zarr.open(
                 x_path,
                 mode="a",
@@ -1063,6 +1081,7 @@ def combine_burden_chunks_(
                 dtype=np.float32,
                 compressor=Blosc(clevel=compression_level),
             )
+            logger.info(f"Opening {sample_ids_path} in append mode")
             sample_ids = zarr.open(
                 sample_ids_path,
                 mode="a",
