@@ -33,13 +33,20 @@ wildcard_constraints:
 cv_splits = config.get("n_folds", 5)
 cv_exp = True
 
-
-
 include: "cv_training.snakefile"
 include: "cv_burdens.snakefile"
 include: "../association_testing/burdens.snakefile"
 include: "../association_testing/regress_eval.snakefile"
 
+
+rule all_evaluate:  #regress_eval.snakefile
+    input:
+        significant=expand(
+            "{phenotype}/deeprvat/eval/significant.parquet", phenotype=phenotypes
+        ),
+        results=expand(
+            "{phenotype}/deeprvat/eval/all_results.parquet", phenotype=phenotypes
+        ),
 
 
 rule all_regression:  #regress_eval.snakefile

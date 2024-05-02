@@ -79,8 +79,8 @@ use rule config from deeprvat_workflow as deeprvat_config with:
             for b in input.baseline
         ])  if wildcards.phenotype in training_phenotypes else ' ',
         baseline_out = lambda wildcards: f'--baseline-results-out cv_split{wildcards.cv_split}/deeprvat/{wildcards.phenotype}/deeprvat/baseline_results.parquet' if wildcards.phenotype in training_phenotypes else ' ',
-        seed_genes_out = lambda wildcards: f'--seed-genes-out cv_split{wildcards.cv_split}/deeprvat/{wildcards.phenotype}/deeprvat/seed_genes.parquet' if wildcards.phenotype in training_phenotypes else ' '
-
+        seed_genes_out = lambda wildcards: f'--seed-genes-out cv_split{wildcards.cv_split}/deeprvat/{wildcards.phenotype}/deeprvat/seed_genes.parquet' if wildcards.phenotype in training_phenotypes else ' ',
+        association_only = lambda wildcards: f'--association-only' if wildcards.phenotype not in training_phenotypes else ' '
 
 
 
