@@ -114,7 +114,7 @@ def test_combine_burden_chunks_data_same(
         assert written_data.dtype == expected_data.dtype
         assert expected_data.shape == written_data.shape
         assert np.array_equal(expected_data[:], written_data[:], equal_nan=True)
-
+        assert np.all(written_data[:])
 
 @pytest.mark.parametrize(
     "n_chunks, skip_burdens, overwrite, chunks_data",
