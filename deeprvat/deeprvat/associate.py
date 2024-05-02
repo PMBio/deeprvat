@@ -977,12 +977,6 @@ def compute_burdens(
     np.save(Path(out_dir) / "genes.npy", genes)
 
 
-
-
-
-
-
-
 @cli.command()
 @click.option("--n-chunks", type=int, required=True)
 @click.option("--skip-burdens", is_flag=True, default=False)
@@ -1016,7 +1010,7 @@ def combine_burden_chunks_(
     burdens_chunks_dir = Path(burdens_chunks_dir)
 
     burdens, x, y, sample_ids = None, None, None, None
-    start_id = 0
+    start_id = None
     end_id = 0
 
     for i, chunk in tqdm(
@@ -1025,12 +1019,15 @@ def combine_burden_chunks_(
         chunk_dir = burdens_chunks_dir / f"chunk_{chunk}"
 
         if not skip_burdens:
-            burdens_chunk = zarr.open((chunk_dir / "burdens.zarr").as_posix())
+            burdens_chunk = zarr.open((chunk_dir / "burdens.zarr").as_posix(), mode="r")
             assert burdens_chunk.attrs["chunk"] == chunk
 
-        y_chunk = zarr.open((chunk_dir / "y.zarr").as_posix())
-        x_chunk = zarr.open((chunk_dir / "x.zarr").as_posix())
-        sample_ids_chunk = zarr.open((chunk_dir / "sample_ids.zarr").as_posix())
+        y_chunk = zarr.open((chunk_dir / "y.zarr").as_posix(), mode="r")
+
+        x_chunk = zarr.open((chunk_dir / "x.zarr").as_posix(), mode="r")
+        sample_ids_chunk = zarr.open(
+            (chunk_dir / "sample_ids.zarr").as_posix(), mode="r"
+        )
 
         total_samples = sample_ids_chunk.attrs["n_total_samples"]
 
@@ -1052,7 +1049,7 @@ def combine_burden_chunks_(
                 else:
                     logger.debug(f"Overwriting existing files")
 
-                logger.info(f"Opening {burdens_path} in append mode")
+                logger.debug(f"Opening {burdens_path} in append mode")
                 burdens = zarr.open(
                     burdens_path.as_posix(),
                     mode="a",
@@ -1063,7 +1060,7 @@ def combine_burden_chunks_(
                 )
                 assert burdens_path.exists()
 
-            logger.info(f"Opening {y_path} in append mode")
+            logger.debug(f"Opening {y_path} in append mode")
             y = zarr.open(
                 y_path,
                 mode="a",
@@ -1072,7 +1069,7 @@ def combine_burden_chunks_(
                 dtype=np.float32,
                 compressor=Blosc(clevel=compression_level),
             )
-            logger.info(f"Opening {x_path} in append mode")
+            logger.debug(f"Opening {x_path} in append mode")
             x = zarr.open(
                 x_path,
                 mode="a",
@@ -1081,7 +1078,7 @@ def combine_burden_chunks_(
                 dtype=np.float32,
                 compressor=Blosc(clevel=compression_level),
             )
-            logger.info(f"Opening {sample_ids_path} in append mode")
+            logger.debug(f"Opening {sample_ids_path} in append mode")
             sample_ids = zarr.open(
                 sample_ids_path,
                 mode="a",
@@ -1094,14 +1091,18 @@ def combine_burden_chunks_(
             assert x_path.exists()
             assert y_path.exists()
             assert sample_ids_path.exists()
-            end_id += len(sample_ids_chunk)
 
-        y[start_id:end_id] = y_chunk
-        x[start_id:end_id] = x_chunk
-        sample_ids[start_id:end_id] = sample_ids_chunk
+        start_id = end_id
+        end_id += len(sample_ids_chunk)
+
+        y[start_id:end_id] = y_chunk[:]
+        x[start_id:end_id] = x_chunk[:]
+        sample_ids[start_id:end_id] = sample_ids_chunk[:]
 
         if not skip_burdens:
             burdens[start_id:end_id] = burdens_chunk[:]
+
+    logger.info(f"Done merging {n_chunks} chunks.")
 
 
 def regress_on_gene_scoretest(
