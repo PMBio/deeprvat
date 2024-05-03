@@ -38,10 +38,10 @@ rule compute_burdens:
         data_config='{phenotype}/deeprvat/hpopt_config.yaml',
         model_config=model_path / 'config.yaml',
     output:
-        burdens='{phenotype}/deeprvat/burdens/chunks/chunk{chunk}/burdens.zarr',
-        x='{phenotype}/deeprvat/burdens/chunks/chunk{chunk}/x.zarr',
-        y='{phenotype}/deeprvat/burdens/chunks/chunk{chunk}/y.zarr',
-        sample_ids='{phenotype}/deeprvat/burdens/chunks/chunk{chunk}/sample_ids.zarr',
+        burdens='{phenotype}/deeprvat/burdens/chunks/chunk_{chunk}/burdens.zarr',
+        x='{phenotype}/deeprvat/burdens/chunks/chunk_{chunk}/x.zarr',
+        y='{phenotype}/deeprvat/burdens/chunks/chunk_{chunk}/y.zarr',
+        sample_ids='{phenotype}/deeprvat/burdens/chunks/chunk_{chunk}/sample_ids.zarr',
     params:
         prefix='.'
     threads: 8
