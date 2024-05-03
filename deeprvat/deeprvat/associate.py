@@ -283,7 +283,7 @@ def compute_burdens_(
 
         logger.info(f"Processing samples in {samples} from {n_total_samples} in total")
     else:
-        logger.info(f"Processing all samples as one chunk.")
+        logger.info("Processing all samples as one chunk.")
         n_samples_chunk = n_total_samples
         chunk_start = 0
         chunk_end = n_samples_chunk
@@ -329,7 +329,7 @@ def compute_burdens_(
 
                 if not skip_burdens:
                     burdens = zarr.open(
-                        burdens_chunk_path / f"burdens.zarr",
+                        burdens_chunk_path / "burdens.zarr",
                         mode="a",
                         shape=chunk_burden.shape,
                         chunks=(1000, 1000, 1),
@@ -343,7 +343,7 @@ def compute_burdens_(
                     burdens = None
 
                 y = zarr.open(
-                    burdens_chunk_path / f"y.zarr",
+                    burdens_chunk_path / "y.zarr",
                     mode="a",
                     shape=chunk_y.shape,
                     chunks=(None, None),
@@ -353,7 +353,7 @@ def compute_burdens_(
                 y.attrs["chunk"] = chunk
 
                 x = zarr.open(
-                    burdens_chunk_path / f"x.zarr",
+                    burdens_chunk_path / "x.zarr",
                     mode="a",
                     shape=chunk_x.shape,
                     chunks=(None, None),
@@ -363,7 +363,7 @@ def compute_burdens_(
                 x.attrs["chunk"] = chunk
 
                 sample_ids = zarr.open(
-                    burdens_chunk_path / f"sample_ids.zarr",
+                    burdens_chunk_path / "sample_ids.zarr",
                     mode="a",
                     shape=(n_samples_chunk),
                     chunks=(None),
@@ -1031,7 +1031,7 @@ def combine_burden_chunks_(
         assert x_chunk.attrs["chunk"] == chunk
         assert sample_ids_chunk.attrs["chunk"] == chunk
 
-        burdens_path = result_dir / f"burdens.zarr"
+        burdens_path = result_dir / "burdens.zarr"
         x_path = result_dir / "x.zarr"
         y_path = result_dir / "y.zarr"
         sample_ids_path = result_dir / "sample_ids.zarr"
@@ -1043,7 +1043,7 @@ def combine_burden_chunks_(
                 if not overwrite:
                     assert not burdens_path.exists()
                 else:
-                    logger.debug(f"Overwriting existing files")
+                    logger.debug("Overwriting existing files")
 
                 logger.debug(f"Opening {burdens_path} in append mode")
                 burdens = zarr.open(
@@ -1244,7 +1244,7 @@ def regress_(
     """
     assert len(gene_indices) == len(genes)
 
-    logger.info(f"Computing associations")
+    logger.info("Computing associations")
     logger.info(f"Covariates shape: {x_pheno.shape}, y shape: {y.shape}")
 
     regressed_genes = []
@@ -1449,7 +1449,7 @@ def combine_regression_results(
     :type model_name: Optional[str]
     :return: Concatenated regression results saved to a parquet file.
     """
-    logger.info(f"Concatenating results")
+    logger.info("Concatenating results")
     results = pd.concat([pd.read_parquet(f, engine="pyarrow") for f in result_files])
 
     if model_name is not None:
@@ -1691,7 +1691,7 @@ def regress_common_(
     assert len(gene_indices) == len(genes)
     logger.info(common_genotype_prefix)
 
-    logger.info(f"Computing associations")
+    logger.info("Computing associations")
     logger.info(f"Covariates shape: {x_pheno.shape}, y shape: {y.shape}")
 
     regressed_genes = []
