@@ -38,10 +38,10 @@ rule compute_burdens:
         data_config='{phenotype}/deeprvat/hpopt_config.yaml',
         model_config=model_path / 'config.yaml',
     output:
-        burdens='{phenotype}/deeprvat/burdens/chunks/chunk_{chunk}/burdens.zarr',
-        x='{phenotype}/deeprvat/burdens/chunks/chunk_{chunk}/x.zarr',
-        y='{phenotype}/deeprvat/burdens/chunks/chunk_{chunk}/y.zarr',
-        sample_ids='{phenotype}/deeprvat/burdens/chunks/chunk_{chunk}/sample_ids.zarr',
+        burdens=directory('{phenotype}/deeprvat/burdens/chunks/chunk_{chunk}/burdens.zarr'),
+        x=directory('{phenotype}/deeprvat/burdens/chunks/chunk_{chunk}/x.zarr'),
+        y=directory('{phenotype}/deeprvat/burdens/chunks/chunk_{chunk}/y.zarr'),
+        sample_ids=directory('{phenotype}/deeprvat/burdens/chunks/chunk_{chunk}/sample_ids.zarr'),
     params:
         prefix='.'
     threads: 8
@@ -80,10 +80,10 @@ rule combine_burdens:
             chunk=[c for c in range(n_burden_chunks)],
             phenotype=phenotypes)
     output:
-        burdens='{phenotype}/deeprvat/burdens/burdens.zarr',
-        x='{phenotype}/deeprvat/burdens/x.zarr',
-        y='{phenotype}/deeprvat/burdens/y.zarr',
-        sample_ids='{phenotype}/deeprvat/burdens/sample_ids.zarr',
+        burdens=directory('{phenotype}/deeprvat/burdens/burdens.zarr'),
+        x=directory('{phenotype}/deeprvat/burdens/x.zarr'),
+        y=directory('{phenotype}/deeprvat/burdens/y.zarr'),
+        sample_ids=directory('{phenotype}/deeprvat/burdens/sample_ids.zarr'),
     params:
         prefix='.'
     shell:
