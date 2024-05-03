@@ -26,38 +26,6 @@ rule average_burdens:
             'touch {output}'
         ])
 
-rule link_burdens:
-    priority: 1
-    input:
-        checkpoints=lambda wildcards: [
-            f'{model_path}/repeat_{repeat}/best/bag_{bag}.ckpt'
-            for repeat in range(n_repeats) for bag in range(n_bags)
-        ],
-        dataset='{phenotype}/deeprvat/association_dataset.pkl',
-        data_config='{phenotype}/deeprvat/hpopt_config.yaml',
-        model_config=model_path / 'config.yaml',
-    output:
-        '{phenotype}/deeprvat/burdens/chunk{chunk}.linked'
-    params:
-        prefix='.'
-    threads: 8
-    resources:
-        mem_mb=lambda wildcards, attempt: 20480 + (attempt - 1) * 4098,
-    shell:
-        ' && '.join([
-            ('deeprvat_associate compute-burdens '
-             + debug +
-             ' --n-chunks ' + str(n_burden_chunks) + ' '
-                                                     f'--link-burdens ../../../{phenotypes[0]}/deeprvat/burdens/burdens.zarr '
-                                                     '--chunk {wildcards.chunk} '
-                                                     '--dataset-file {input.dataset} '
-                                                     '{input.data_config} '
-                                                     '{input.model_config} '
-                                                     '{input.checkpoints} '
-                                                     '{params.prefix}/{wildcards.phenotype}/deeprvat/burdens'),
-            'touch {output}'
-        ])
-
 rule compute_burdens:
     priority: 10
     input:
