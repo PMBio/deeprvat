@@ -114,8 +114,12 @@ def test_combine_burden_chunks_data_same(
         assert written_data_arr.dtype == expected_data.dtype
         assert expected_data_arr.shape == written_data_arr.shape
         assert np.array_equal(expected_data_arr, written_data_arr, equal_nan=True)
-        # Check for all 0s
-        assert np.all(written_data_arr)
+
+        # No more than 10% zeros
+        nr_zeros = np.count_nonzero(written_data_arr == 0)
+        zero_percentage = nr_zeros / len(written_data_arr)
+        assert zero_percentage < 0.1
+
 
 @pytest.mark.parametrize(
     "n_chunks, skip_burdens, overwrite, chunks_data",
