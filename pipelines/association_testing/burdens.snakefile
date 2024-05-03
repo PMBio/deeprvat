@@ -64,19 +64,19 @@ rule compute_burdens:
 rule combine_burdens:
     input:
         expand(
-            '{phenotype}/deeprvat/burdens/chunks/chunk{chunk}/burdens.zarr',
+            '{phenotype}/deeprvat/burdens/chunks/chunk_{chunk}/burdens.zarr',
             chunk=[c for c in range(n_burden_chunks)],
             phenotype=phenotypes),
         expand(
-            '{phenotype}/deeprvat/burdens/chunks/chunk{chunk}/x.zarr',
+            '{phenotype}/deeprvat/burdens/chunks/chunk_{chunk}/x.zarr',
             chunk=[c for c in range(n_burden_chunks)],
             phenotype=phenotypes),
         expand(
-            '{phenotype}/deeprvat/burdens/chunks/chunk{chunk}/y.zarr',
+            '{phenotype}/deeprvat/burdens/chunks/chunk_{chunk}/y.zarr',
             chunk=[c for c in range(n_burden_chunks)],
             phenotype=phenotypes),
         expand(
-            '{phenotype}/deeprvat/burdens/chunks/chunk{chunk}/sample_ids.zarr',
+            '{phenotype}/deeprvat/burdens/chunks/chunk_{chunk}/sample_ids.zarr',
             chunk=[c for c in range(n_burden_chunks)],
             phenotype=phenotypes)
     output:
