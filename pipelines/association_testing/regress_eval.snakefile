@@ -44,11 +44,7 @@ rule combine_regression_chunks:
 rule regress:
     input:
         config = f"{config_file_prefix}{{phenotype}}/deeprvat/hpopt_config.yaml",
-        chunks = lambda wildcards: (
-            [] if wildcards.phenotype == phenotypes[0]
-            else expand('{{phenotype}}/deeprvat/burdens/chunk{chunk}.linked',
-                        chunk=range(n_burden_chunks))
-        ) if not cv_exp  else '{phenotype}/deeprvat/burdens/merging.finished',
+        chunks = '{phenotype}/deeprvat/burdens/burdens.zarr' if not cv_exp  else '{phenotype}/deeprvat/burdens/merging.finished',
         phenotype_0_chunks =  expand(
             phenotypes[0] + '/deeprvat/burdens/logs/burdens_averaging_{chunk}.finished',
             chunk=range(n_avg_chunks)
