@@ -102,19 +102,20 @@ def test_combine_burden_chunks_data_same(
         result_dir=tmp_path,
     )
 
-    expected_files = ["x.zarr", "y.zarr", "sample_ids.zarr", "burdens.zarr"]
+    zarr_files = ["x.zarr", "y.zarr", "sample_ids.zarr", "burdens.zarr"]
     if skip_burdens:
-        expected_files.remove("burdens.zarr")
+        zarr_files.remove("burdens.zarr")
 
-    for expected_file in expected_files:
+    for zarr_file in zarr_files:
 
-        expected_data = open_zarr(zarr_path=(expected_array / expected_file))
-        written_data = open_zarr(zarr_path=(tmp_path / expected_file))
-
-        assert written_data.dtype == expected_data.dtype
-        assert expected_data.shape == written_data.shape
-        assert np.array_equal(expected_data[:], written_data[:], equal_nan=True)
-        assert np.all(written_data[:])
+        expected_data = open_zarr(zarr_path=(expected_array / zarr_file))
+        written_data = open_zarr(zarr_path=(tmp_path / zarr_file))
+        expected_data_arr, written_data_arr = expected_data[:], written_data[:]
+        assert written_data_arr.dtype == expected_data.dtype
+        assert expected_data_arr.shape == written_data_arr.shape
+        assert np.array_equal(expected_data_arr, written_data_arr, equal_nan=True)
+        # Check for all 0s
+        assert np.all(written_data_arr)
 
 @pytest.mark.parametrize(
     "n_chunks, skip_burdens, overwrite, chunks_data",
