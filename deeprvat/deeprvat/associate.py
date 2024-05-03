@@ -878,7 +878,6 @@ def load_models(
 @click.option("--n-chunks", type=int)
 @click.option("--chunk", type=int)
 @click.option("--dataset-file", type=click.Path(exists=True))
-@click.option("--link-burdens", type=click.Path())
 @click.argument("data-config-file", type=click.Path(exists=True))
 @click.argument("model-config-file", type=click.Path(exists=True))
 @click.argument("checkpoint-files", type=click.Path(exists=True), nargs=-1)
@@ -889,7 +888,6 @@ def compute_burdens(
     n_chunks: Optional[int],
     chunk: Optional[int],
     dataset_file: Optional[str],
-    link_burdens: Optional[str],
     data_config_file: str,
     model_config_file: str,
     checkpoint_files: Tuple[str],
@@ -908,8 +906,6 @@ def compute_burdens(
     :type chunk: Optional[int]
     :param dataset_file: Path to the dataset file, i.e., association_dataset.pkl.
     :type dataset_file: Optional[str]
-    :param link_burdens: Path to burden.zarr file to link.
-    :type link_burdens: Optional[str]
     :param data_config_file: Path to the data configuration file.
     :type data_config_file: str
     :param model_config_file: Path to the model configuration file.
@@ -947,10 +943,7 @@ def compute_burdens(
         logger.info("Using CPU")
         device = torch.device("cpu")
 
-    if link_burdens is None:
-        agg_models = load_models(model_config, checkpoint_files, device=device)
-    else:
-        agg_models = None
+    agg_models = load_models(model_config, checkpoint_files, device=device)
 
     genes, _, _, _, _ = compute_burdens_(
         debug,
@@ -962,7 +955,7 @@ def compute_burdens(
         chunk=chunk,
         device=device,
         bottleneck=bottleneck,
-        skip_burdens=(link_burdens is not None),
+        skip_burdens=False,
     )
 
     burden_files = ["burdens.zarr", "x.zarr", "y.zarr", "sample_ids.zarr"]
