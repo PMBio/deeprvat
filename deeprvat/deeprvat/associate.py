@@ -389,11 +389,11 @@ def compute_burdens_(
                 break
 
         if not skip_burdens:
-            burdens = chunk_burden
+            burdens[:] = chunk_burden[:]
 
-        y = chunk_y
-        x = chunk_x
-        sample_ids = chunk_sampleid
+        y[:] = chunk_y[:]
+        x[:] = chunk_x[:]
+        sample_ids[:] = chunk_sampleid[:]
 
     if torch.cuda.is_available():
         logger.info(
