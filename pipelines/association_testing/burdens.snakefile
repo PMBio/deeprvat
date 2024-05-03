@@ -88,8 +88,8 @@ rule combine_burdens:
         prefix='.'
     shell:
         ' '.join([
-            "'{wildcards.phenotype}/deeprvat/burdens/chunks/'",
             'deeprvat_associate combine-burden-chunks',
+            '{params.prefix}/{wildcards.phenotype}/deeprvat/burdens/chunks/',
             ' --n-chunks ' + str(n_burden_chunks),
             '{params.prefix}/{wildcards.phenotype}/deeprvat/burdens',
         ])
