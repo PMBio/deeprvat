@@ -253,3 +253,39 @@ def test_concatenate_annotations(
     expected_results = pd.read_parquet(expected_path)
     assert written_results.shape == expected_results.shape
     assert_frame_equal(written_results[expected_results.columns], expected_results, check_exact = False)
+
+
+@pytest.mark.parametrize(
+    "test_data_name_dir, annotations, deepSEA_scores, annotation_columns_yaml_file, expected",
+    [
+        (
+            "merge_deepsea_pcas_small",
+            "vep_deepripe.parquet",
+            "all_variants.wID.deepSea.parquet",
+            "annotation_colnames_filling_values.yaml",
+            "expected.parquet"
+        ),
+    ]
+)
+def test_merge_deepsea_pcas(
+     test_data_name_dir, annotations, deepSEA_scores, annotation_columns_yaml_file, expected, tmp_path
+):
+    current_test_data_dir = tests_data_dir / 'merge_deepsea_pcas' / test_data_name_dir
+    expected_path = current_test_data_dir / 'expected' / expected
+    annotations_path = current_test_data_dir / 'input' / annotations
+    deepSEA_scores_path = current_test_data_dir / 'input' / deepSEA_scores
+    annotation_columns_yaml_path = current_test_data_dir / 'input' / annotation_columns_yaml_file
+    output_path = tmp_path / 'out.parquet'
+    cli_runner = CliRunner()
+    cli_parameters = ['merge-deepsea-pcas',
+                      annotations_path.as_posix(),
+                      deepSEA_scores_path.as_posix(),
+                      annotation_columns_yaml_path.as_posix(),
+                      output_path.as_posix()
+                      ]
+    result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
+    assert result.exit_code == 0
+    written_results = pd.read_parquet(output_path)
+    expected_results = pd.read_parquet(expected_path)
+    assert written_results.shape == expected_results.shape
+    assert_frame_equal(written_results, expected_results[written_results.columns], check_exact = False)
