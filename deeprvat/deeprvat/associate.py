@@ -13,11 +13,13 @@ from typing import Dict, List, Optional, Tuple
 import click
 import numpy as np
 import pandas as pd
+import pyranges as pr
 import statsmodels.api as sm
 
 import torch
 import torch.nn as nn
 import yaml
+from bgen import BgenWriter
 import zarr
 
 from numcodecs import Blosc
