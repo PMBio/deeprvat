@@ -289,3 +289,39 @@ def test_merge_deepsea_pcas(
     expected_results = pd.read_parquet(expected_path)
     assert written_results.shape == expected_results.shape
     assert_frame_equal(written_results, expected_results[written_results.columns], check_exact = False)
+
+
+@pytest.mark.parametrize(
+    "test_data_name_dir, annotations, abSplice_score_dir, njobs, expected",
+    [
+        (
+            "aggregate_absplice_scores_small",
+            "vep_deepripe_deepsea.parquet",
+            "absplice_res_dir",
+            "8",
+            "abSplice_score_file.parquet",
+        ),
+    ]
+)
+def test_aggregate_abscores(
+     test_data_name_dir, annotations, abSplice_score_dir, njobs, expected, tmp_path
+):
+    current_test_data_dir = tests_data_dir / 'aggregate_absplice_scores' / test_data_name_dir
+    annotations_path = current_test_data_dir / 'input' /  annotations
+    abscore_path = current_test_data_dir / 'input' /abSplice_score_dir
+    expected_path = current_test_data_dir / 'expected' / expected
+    output_path = tmp_path / 'out.parquet'
+    cli_runner = CliRunner()
+    cli_parameters = [
+        'aggregate-abscores',
+        annotations_path.as_posix(),
+        abscore_path.as_posix(),
+        output_path.as_posix(),
+        njobs
+        ]
+    result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
+    assert result.exit_code == 0
+    written_results = pd.read_parquet(output_path)
+    expected_results = pd.read_parquet(expected_path)
+    assert written_results.shape == expected_results.shape
+    assert_frame_equal(written_results, expected_results[written_results.columns], check_exact = False)
