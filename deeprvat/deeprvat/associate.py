@@ -21,6 +21,7 @@ import yaml
 import zarr
 
 from numcodecs import Blosc
+from seak import scoretest
 
 from statsmodels.tools.tools import add_constant
 from torch.utils.data import DataLoader, Dataset, Subset
