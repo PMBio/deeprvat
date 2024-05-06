@@ -374,7 +374,6 @@ rule merge_annotations:
         deepripe_hg2=anno_dir
         / (source_variant_file_pattern + "_variants.eclip_hg2_deepripe.csv.gz"),
         variant_file=variant_file,
-        vcf_file= anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
     output:
         anno_dir / f"{source_variant_file_pattern}_merged.parquet",
     resources: mem_mb = lambda wildcards, attempt: 5_000 * (attempt + 1),
@@ -384,7 +383,7 @@ rule merge_annotations:
             + "{input.vep}"
             + "| head | cut -f 1 -d ':') && python "
             + f"{annotation_python_file} "
-            + "merge-annotations $(($HEADER-1)) {input.vep} {input.deepripe_parclip} {input.deepripe_hg2} {input.deepripe_k5} {input.variant_file} {input.vcf_file} {output}"
+            + "merge-annotations $(($HEADER-1)) {input.vep} {input.deepripe_parclip} {input.deepripe_hg2} {input.deepripe_k5} {input.variant_file} {output}"
         )
 
 rule deepSea_PCA:
