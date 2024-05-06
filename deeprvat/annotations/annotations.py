@@ -1683,9 +1683,7 @@ def merge_annotations(
     vep_df = pd.read_csv(vep_file, header=vep_header_line, sep="\t", na_values="-")
     if vepcols_to_retain is not None:
         vepcols_to_retain = [c for c in vepcols_to_retain.split(",")]
-    vep_df = process_vep(
-        vep_file=vep_df, vepcols_to_retain=vepcols_to_retain
-    )
+    vep_df = process_vep(vep_file=vep_df, vepcols_to_retain=vepcols_to_retain)
     logger.info(f"vep_df shape is {vep_df.shape}")
     logger.info("load deepripe_parclip")
 
@@ -1754,9 +1752,7 @@ def process_deepripe(deepripe_df: pd.DataFrame, column_prefix: str) -> pd.DataFr
     return deepripe_df
 
 
-def process_vep(
-    vep_file: pd.DataFrame, vepcols_to_retain: list = []
-) -> pd.DataFrame:
+def process_vep(vep_file: pd.DataFrame, vepcols_to_retain: list = []) -> pd.DataFrame:
     """
     Process the VEP DataFrame, extracting relevant columns and handling data types.
 
