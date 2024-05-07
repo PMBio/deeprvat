@@ -1060,6 +1060,136 @@ def compute_burdens(
         source_path.symlink_to(link_burdens)
 
 
+
+@cli.command()
+@click.option("--n-chunks", type=int, required=True)
+@click.option("--skip-burdens", is_flag=True, default=False)
+@click.option("--overwrite", is_flag=True, default=False)
+@click.argument("burdens-chunks-dir", type=click.Path(exists=True))
+@click.argument("result-dir", type=click.Path(exists=True))
+def combine_burden_chunks(
+    n_chunks: int,
+    skip_burdens: bool,
+    overwrite: bool,
+    burdens_chunks_dir: Path,
+    result_dir: Path,
+):
+    combine_burden_chunks_(
+        n_chunks=n_chunks,
+        skip_burdens=skip_burdens,
+        overwrite=overwrite,
+        burdens_chunks_dir=Path(burdens_chunks_dir),
+        result_dir=Path(result_dir),
+    )
+
+
+def combine_burden_chunks_(
+    n_chunks: int,
+    burdens_chunks_dir: Path,
+    skip_burdens: bool,
+    overwrite: bool,
+    result_dir: Path,
+):
+    compression_level = 1
+    burdens_chunks_dir = Path(burdens_chunks_dir)
+
+    burdens, x, y, sample_ids = None, None, None, None
+    start_id = None
+    end_id = 0
+
+    for i, chunk in tqdm(
+        enumerate(range(0, n_chunks)), desc=f"Merging {n_chunks} chunks"
+    ):
+        chunk_dir = burdens_chunks_dir / f"chunk_{chunk}"
+
+        if not skip_burdens:
+            burdens_chunk = zarr.open((chunk_dir / "burdens.zarr").as_posix(), mode="r")
+            assert burdens_chunk.attrs["chunk"] == chunk
+
+        y_chunk = zarr.open((chunk_dir / "y.zarr").as_posix(), mode="r")
+
+        x_chunk = zarr.open((chunk_dir / "x.zarr").as_posix(), mode="r")
+        sample_ids_chunk = zarr.open(
+            (chunk_dir / "sample_ids.zarr").as_posix(), mode="r"
+        )
+
+        total_samples = sample_ids_chunk.attrs["n_total_samples"]
+
+        assert y_chunk.attrs["chunk"] == chunk
+        assert x_chunk.attrs["chunk"] == chunk
+        assert sample_ids_chunk.attrs["chunk"] == chunk
+
+        burdens_path = result_dir / "burdens.zarr"
+        x_path = result_dir / "x.zarr"
+        y_path = result_dir / "y.zarr"
+        sample_ids_path = result_dir / "sample_ids.zarr"
+
+        if i == 0:
+            if not skip_burdens:
+                burdens_shape = (total_samples,) + burdens_chunk.shape[1:]
+
+                if not overwrite:
+                    assert not burdens_path.exists()
+                else:
+                    logger.debug("Overwriting existing files")
+
+                logger.debug(f"Opening {burdens_path} in append mode")
+                burdens = zarr.open(
+                    burdens_path.as_posix(),
+                    mode="a",
+                    shape=burdens_shape,
+                    chunks=(1000, 1000, 1),
+                    dtype=np.float32,
+                    compressor=Blosc(clevel=compression_level),
+                )
+                assert burdens_path.exists()
+
+            logger.debug(f"Opening {y_path} in append mode")
+            y = zarr.open(
+                y_path,
+                mode="a",
+                shape=(total_samples,) + y_chunk.shape[1:],
+                chunks=(None, None),
+                dtype=np.float32,
+                compressor=Blosc(clevel=compression_level),
+            )
+            logger.debug(f"Opening {x_path} in append mode")
+            x = zarr.open(
+                x_path,
+                mode="a",
+                shape=(total_samples,) + x_chunk.shape[1:],
+                chunks=(None, None),
+                dtype=np.float32,
+                compressor=Blosc(clevel=compression_level),
+            )
+            logger.debug(f"Opening {sample_ids_path} in append mode")
+            sample_ids = zarr.open(
+                sample_ids_path,
+                mode="a",
+                shape=(total_samples),
+                chunks=(None),
+                dtype=np.float32,
+                compressor=Blosc(clevel=compression_level),
+            )
+
+            assert x_path.exists()
+            assert y_path.exists()
+            assert sample_ids_path.exists()
+
+        start_id = end_id
+        end_id += len(sample_ids_chunk)
+
+        y[start_id:end_id] = y_chunk[:]
+        x[start_id:end_id] = x_chunk[:]
+        sample_ids[start_id:end_id] = sample_ids_chunk[:]
+
+        if not skip_burdens:
+            burdens[start_id:end_id] = burdens_chunk[:]
+
+    logger.info(f"Done merging {n_chunks} chunks.")
+
+
+
 def regress_on_gene_scoretest(
     gene: str,
     burdens: np.ndarray,
