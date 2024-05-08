@@ -1738,7 +1738,14 @@ def process_vep(
     )
     if "#Uploaded_variation" in vep_file.columns:
         vep_file = vep_file.merge(vcf_df, on="#Uploaded_variation", how = 'left')
-        vep_file.loc[vep_file.chrom.isna(),['chrom','pos','ref','alt']]=vep_file[vep_file['chrom'].isna()]['#Uploaded_variation'].str.replace("_", ":").str.replace("/", ":").str.split(':', expand=True).values
+        if vep_file.chrom.isna().sum()>0:
+            vep_file.loc[vep_file.chrom.isna(),['chrom','pos','ref','alt']]=vep_file[vep_file['chrom'].isna()]['#Uploaded_variation'].str.replace("_", ":").str.replace("/", ":").str.split(':', expand=True).values
+    assert vep_file.chrom.isna().sum() == 0
+    assert vep_file.pos.isna().sum() == 0
+    assert vep_file.ref.isna().sum() == 0
+    assert vep_file.alt.isna().sum() == 0
+    
+    
     if "pos" in vep_file.columns:
         vep_file["pos"] = vep_file["pos"].astype(int)
 

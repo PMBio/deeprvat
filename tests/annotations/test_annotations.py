@@ -372,6 +372,74 @@ def test_merge_absplice_scores(
     assert written_results.shape == expected_results.shape
     assert_frame_equal(written_results, expected_results, check_exact = False)
 
+@pytest.mark.parametrize(
+    "test_data_name_dir, genotype_file, variant_file, expected",
+    [
+        (   "calculate_allele_frequency_small",
+            "genotypes.h5",
+            "variants.parquet",
+            "af_df.parquet",
+        ),
+    ]
+)
+def test_calculate_allele_frequencies(
+     test_data_name_dir, genotype_file, variant_file, expected, tmp_path
+):
+    current_test_data_dir = tests_data_dir / 'calculate_allele_frequency' / test_data_name_dir
+    genotype_filepath = current_test_data_dir / 'input' /  genotype_file
+    variant_filepath = current_test_data_dir / 'input' /variant_file
+    expected_path = current_test_data_dir / 'expected' / expected
+    output_path = tmp_path / 'out.parquet'
+    cli_runner = CliRunner()
+    cli_parameters = [
+        'get-af-from-gt',
+        genotype_filepath.as_posix(),
+        variant_filepath.as_posix(),
+        output_path.as_posix(),
+        ]
+    result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
+    assert result.exit_code == 0
+    written_results = pd.read_parquet(output_path)
+    expected_results = pd.read_parquet(expected_path)
+    assert written_results.shape == expected_results.shape
+    assert_frame_equal(written_results, expected_results[written_results.columns], check_exact = False)
+
+
+
+
+# @pytest.mark.parametrize(
+#     "test_data_name_dir, input_file_1, input_file_2, parameter1, expected",
+#     [
+#         (   "test_name_dir",
+#             "input_file1.parquet",
+#             "input_file2.parquet",
+#             "8",
+#             "expected.parquet",
+#         ),
+#     ]
+# )
+# def template(
+#      test_data_name_dir, input_file_1, input_file_2, parameter1, expected, tmp_path
+# ):
+#     current_test_data_dir = tests_data_dir / 'test_name' / test_data_name_dir
+#     input_path1 = current_test_data_dir / 'input' /  input_file_1
+#     input_path2 = current_test_data_dir / 'input' /input_file_2
+#     expected_path = current_test_data_dir / 'expected' / expected
+#     output_path = tmp_path / 'out.parquet'
+#     cli_runner = CliRunner()
+#     cli_parameters = [
+#         'function-name',
+#         input_path1.as_posix(),
+#         input_path2.as_posix(),
+#         output_path.as_posix(),
+#         parameter1,
+#         ]
+#     result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
+#     assert result.exit_code == 0
+#     written_results = pd.read_parquet(output_path)
+#     expected_results = pd.read_parquet(expected_path)
+#     assert written_results.shape == expected_results.shape
+#     assert_frame_equal(written_results, expected_results[written_results.columns], check_exact = False)
 
 # @pytest.mark.parametrize(
 #     "test_name_dir, input_file_1, input_file_2, parameter1, expected",
