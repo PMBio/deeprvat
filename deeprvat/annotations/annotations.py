@@ -2000,19 +2000,19 @@ def calculate_maf(annotations_path: str, out_file: str):
 
 
 @cli.command()
-@click.argument("protein_id_file", type=click.Path(exists=True))
+@click.argument("gene_id_file", type=click.Path(exists=True))
 @click.argument("annotations_path", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
-def add_protein_ids(protein_id_file: str, annotations_path: str, out_file: str):
+def add_gene_ids(gene_id_file: str, annotations_path: str, out_file: str):
     """
-    Add protein IDs to the annotations based on protein ID mapping file.
+    Add gene IDs to the annotations based on gene ID mapping file.
 
     Parameters:
-    - protein_id_file (str): Path to the protein ID mapping file.
+    - gene_id_file (str): Path to the gene ID mapping file.
     - annotations_path (str): Path to the annotations file.
     - out_file (str): Path to the output file to save the annotations with protein IDs.
     """
-    genes = pd.read_parquet(protein_id_file)
+    genes = pd.read_parquet(gene_id_file)
     genes[["gene_base", "feature"]] = genes["gene"].str.split(".", expand=True)
     genes.drop(columns=["feature", "gene", "gene_name", "gene_type"], inplace=True)
     genes.rename(columns={"id": "gene_id"}, inplace=True)
@@ -2027,7 +2027,7 @@ def add_protein_ids(protein_id_file: str, annotations_path: str, out_file: str):
 @cli.command()
 @click.argument("gtf_filepath", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
-def create_protein_id_file(gtf_filepath: str, out_file: str):
+def create_gene_id_file(gtf_filepath: str, out_file: str):
     """
     Create a protein ID mapping file from the GTF file.
 

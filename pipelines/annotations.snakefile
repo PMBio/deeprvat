@@ -185,7 +185,7 @@ if not gene_id_file:
         shell:
             " ".join([
                 f"deeprvat_annotations", 
-                "create-protein-id-file",
+                "create-gene-id-file",
                 "{input}",
                 "{output}"
             ])
@@ -215,7 +215,7 @@ rule add_gene_ids:
     shell:
         " ".join([
             f"deeprvat_annotations", 
-            "add-protein-ids",
+            "add-gene-ids",
             "{input.gene_id_file}",
             "{input.annotations_path}",
             "{output}"

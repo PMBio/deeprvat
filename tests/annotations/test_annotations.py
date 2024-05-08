@@ -372,6 +372,8 @@ def test_merge_absplice_scores(
     assert written_results.shape == expected_results.shape
     assert_frame_equal(written_results, expected_results, check_exact = False)
 
+
+
 @pytest.mark.parametrize(
     "test_data_name_dir, genotype_file, variant_file, expected",
     [
@@ -402,8 +404,206 @@ def test_calculate_allele_frequencies(
     written_results = pd.read_parquet(output_path)
     expected_results = pd.read_parquet(expected_path)
     assert written_results.shape == expected_results.shape
+    assert_frame_equal(written_results, expected_results, check_exact = False)
+
+
+
+@pytest.mark.parametrize(
+    "test_data_name_dir, af_df, annotaton_df, expected",
+    [
+        (   "merge_af_small",
+            "af_df.parquet",
+            "vep_deepripe_deepsea_absplice.parquet",
+            "vep_deepripe_deepsea_absplice_af.parquet",
+        ),
+    ]
+)
+def test_merge_af(
+     test_data_name_dir, af_df, annotaton_df, expected, tmp_path
+):
+    current_test_data_dir = tests_data_dir / 'merge_af' / test_data_name_dir
+    af_path = current_test_data_dir / 'input' /  af_df
+    annotaions_path = current_test_data_dir / 'input' /annotaton_df
+    expected_path = current_test_data_dir / 'expected' / expected
+    output_path = tmp_path / 'out.parquet'
+    cli_runner = CliRunner()
+    cli_parameters = [
+        'merge-af',
+        af_path.as_posix(),
+        annotaions_path.as_posix(),
+        output_path.as_posix()
+        ]
+    result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
+    assert result.exit_code == 0
+    written_results = pd.read_parquet(output_path)
+    expected_results = pd.read_parquet(expected_path)
+    assert written_results.shape == expected_results.shape
     assert_frame_equal(written_results, expected_results[written_results.columns], check_exact = False)
 
+
+
+@pytest.mark.parametrize(
+    "test_data_name_dir, annotations, expected",
+    [
+        (   "calculate_MAF_small",
+            "annotations.parquet",
+            "expected.parquet",
+        ),
+    ]
+)
+def test_calculate_maf(
+     test_data_name_dir, annotations, expected, tmp_path
+):
+    current_test_data_dir = tests_data_dir / 'calculate_MAF' / test_data_name_dir
+    annotations_path = current_test_data_dir / 'input' /  annotations
+    expected_path = current_test_data_dir / 'expected' / expected
+    output_path = tmp_path / 'out.parquet'
+    cli_runner = CliRunner()
+    cli_parameters = [
+        'calculate-maf',
+        annotations_path.as_posix(),
+        output_path.as_posix()
+        ]
+    result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
+    assert result.exit_code == 0
+    written_results = pd.read_parquet(output_path)
+    expected_results = pd.read_parquet(expected_path)
+    assert written_results.shape == expected_results.shape
+    assert_frame_equal(written_results, expected_results, check_exact = False)
+
+
+
+@pytest.mark.parametrize(
+    "test_data_name_dir, gtf_file, expected",
+    [
+        (   "create_gene_id_file_small",
+            "gencode.v44.annotation.gtf.gz",
+            "protein_coding_genes.parquet",
+        ),
+    ]
+)
+def test_create_gene_id_file(
+     test_data_name_dir, gtf_file, expected, tmp_path
+):
+    current_test_data_dir = tests_data_dir / 'create_gene_id_file' / test_data_name_dir
+    input_path1 = current_test_data_dir / 'input' /  gtf_file
+    expected_path = current_test_data_dir / 'expected' / expected
+    output_path = tmp_path / 'out.parquet'
+    cli_runner = CliRunner()
+    cli_parameters = [
+        'create-gene-id-file',
+        input_path1.as_posix(),
+        output_path.as_posix(),
+        ]
+    result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
+    assert result.exit_code == 0
+    written_results = pd.read_parquet(output_path)
+    expected_results = pd.read_parquet(expected_path)
+    assert written_results.shape == expected_results.shape
+    assert_frame_equal(written_results, expected_results[written_results.columns], check_exact = False)
+
+
+@pytest.mark.parametrize(
+    "test_data_name_dir, annotations, gene_id_file , expected",
+    [
+        (   "add_gene_ids_small",
+            "annotations.parquet",
+            "protein_coding_genes.parquet",
+            "expected.parquet",
+        ),
+    ]
+)
+def test_add_gene_ids(
+     test_data_name_dir, annotations, gene_id_file , expected, tmp_path
+):
+    current_test_data_dir = tests_data_dir / 'add_gene_ids' / test_data_name_dir
+    annotations_path = current_test_data_dir / 'input' /  annotations
+    gene_id_path = current_test_data_dir / 'input' /gene_id_file 
+    expected_path = current_test_data_dir / 'expected' / expected
+    output_path = tmp_path / 'out.parquet'
+    cli_runner = CliRunner()
+    cli_parameters = [
+        'add-gene-ids',
+        gene_id_path.as_posix(),
+        annotations_path.as_posix(),
+        output_path.as_posix(),
+        ]
+    result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
+    assert result.exit_code == 0
+    written_results = pd.read_parquet(output_path)
+    expected_results = pd.read_parquet(expected_path)
+    assert written_results.shape == expected_results.shape
+    assert_frame_equal(written_results, expected_results, check_exact = False)
+
+
+@pytest.mark.parametrize(
+    "test_data_name_dir, gtf_file, annotations, gene_id_file, expected",
+    [
+        (   "filter_by_exon_distance_small",
+            "gencode.v44.annotation.gtf.gz",
+            "annotations.parquet",
+            "protein_coding_genes.parquet",
+            "expected.parquet",
+        ),
+    ]
+)
+def test_filter_by_exon_distance(
+     test_data_name_dir, gtf_file, annotations, gene_id_file, expected, tmp_path
+):
+    current_test_data_dir = tests_data_dir / 'filter_by_exon_distance' / test_data_name_dir
+    gtf_file_path = current_test_data_dir / 'input' /  gtf_file
+    annotations_path = current_test_data_dir / 'input' / annotations
+    gene_id_path = current_test_data_dir / 'input' / gene_id_file
+
+    expected_path = current_test_data_dir / 'expected' / expected
+    output_path = tmp_path / 'out.parquet'
+    cli_runner = CliRunner()
+    cli_parameters = [
+        'filter-annotations-by-exon-distance',
+        annotations_path.as_posix(),
+        gtf_file_path.as_posix(),
+        gene_id_path.as_posix(),
+        output_path.as_posix(),
+        ]
+    result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
+    assert result.exit_code == 0
+    written_results = pd.read_parquet(output_path)
+    expected_results = pd.read_parquet(expected_path)
+    assert written_results.shape == expected_results.shape
+    assert_frame_equal(written_results, expected_results, check_exact = False)
+
+
+@pytest.mark.parametrize(
+    "test_data_name_dir, yaml_file, annotations, expected",
+    [
+        (   "select_rename_fill_columns_small",
+            "annotation_colnames_filling_values.yaml",
+            "annotations.parquet",
+            "expected.parquet",
+        ),
+    ]
+)
+def test_select_rename_fill_annotations(
+     test_data_name_dir, yaml_file, annotations, expected, tmp_path
+):
+    current_test_data_dir = tests_data_dir / 'select_rename_fill_columns' / test_data_name_dir
+    yaml_file_path = current_test_data_dir / 'input' /  yaml_file
+    annotations_path = current_test_data_dir / 'input' /annotations
+    expected_path = current_test_data_dir / 'expected' / expected
+    output_path = tmp_path / 'out.parquet'
+    cli_runner = CliRunner()
+    cli_parameters = [
+        'select-rename-fill-annotations',
+        yaml_file_path.as_posix(),
+        annotations_path.as_posix(),
+        output_path.as_posix(),
+        ]
+    result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
+    assert result.exit_code == 0
+    written_results = pd.read_parquet(output_path)
+    expected_results = pd.read_parquet(expected_path)
+    assert written_results.shape == expected_results.shape
+    assert_frame_equal(written_results, expected_results[written_results.columns], check_exact = False)
 
 
 
@@ -422,49 +622,15 @@ def test_calculate_allele_frequencies(
 #      test_data_name_dir, input_file_1, input_file_2, parameter1, expected, tmp_path
 # ):
 #     current_test_data_dir = tests_data_dir / 'test_name' / test_data_name_dir
-#     input_path1 = current_test_data_dir / 'input' /  input_file_1
-#     input_path2 = current_test_data_dir / 'input' /input_file_2
+#     input_file_1_path = current_test_data_dir / 'input' /  input_file_1
+#     input_file_2_path = current_test_data_dir / 'input' /input_file_2
 #     expected_path = current_test_data_dir / 'expected' / expected
 #     output_path = tmp_path / 'out.parquet'
 #     cli_runner = CliRunner()
 #     cli_parameters = [
 #         'function-name',
-#         input_path1.as_posix(),
-#         input_path2.as_posix(),
-#         output_path.as_posix(),
-#         parameter1,
-#         ]
-#     result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
-#     assert result.exit_code == 0
-#     written_results = pd.read_parquet(output_path)
-#     expected_results = pd.read_parquet(expected_path)
-#     assert written_results.shape == expected_results.shape
-#     assert_frame_equal(written_results, expected_results[written_results.columns], check_exact = False)
-
-# @pytest.mark.parametrize(
-#     "test_name_dir, input_file_1, input_file_2, parameter1, expected",
-#     [
-#         (   "test_name_dir",
-#             "input_file1.parquet",
-#             "input_file2.parquet",
-#             "8",
-#             "expected.parquet",
-#         ),
-#     ]
-# )
-# def template(
-#      test_data_name_dir, input_file_1, input_file_2, parameter1, expected, tmp_path
-# ):
-#     current_test_data_dir = tests_data_dir / 'test_name' / test_data_name_dir
-#     input_path1 = current_test_data_dir / 'input' /  input_file_1
-#     input_path2 = current_test_data_dir / 'input' /input_file_2
-#     expected_path = current_test_data_dir / 'expected' / expected
-#     output_path = tmp_path / 'out.parquet'
-#     cli_runner = CliRunner()
-#     cli_parameters = [
-#         'function-name',
-#         input_path1.as_posix(),
-#         input_path2.as_posix(),
+#         input_file_1_path.as_posix(),
+#         input_file_2_path.as_posix(),
 #         output_path.as_posix(),
 #         parameter1,
 #         ]
