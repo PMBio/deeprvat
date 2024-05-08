@@ -4,26 +4,27 @@ include: "preprocessing/qc.snakefile"
 
 rule all:
     input:
-        preprocessed_dir / "genotypes.h5",
-        norm_variants_dir / "variants.tsv.gz",
-        variants=norm_variants_dir / "variants.parquet",
+        combined_genotypes=rules.combine_genotypes.output,
+        variants_tsv=rules.add_variant_ids.output.variants,
+        variants_parquet=rules.create_parquet_variant_ids.output.variants
 
 
-rule preprocess_with_qc:
+rule preprocess:
     input:
-        variants=norm_variants_dir / "variants.tsv.gz",
-        variants_parquet=norm_variants_dir / "variants.parquet",
-        samples=norm_dir / "samples_chr.csv",
-        sparse_tg=expand(sparse_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
-        qc_varmiss=expand(qc_varmiss_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
-        qc_hwe=expand(qc_hwe_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
+        variants=rules.add_variant_ids.output.variants,
+        variants_parquet=rules.create_parquet_variant_ids.output.variants,
+        samples=rules.extract_samples.output,
+        sparse_tg=expand(rules.sparsify.output.tsv,vcf_stem=vcf_stems),
+
+        qc_varmiss=expand(rules.qc_varmiss.output,vcf_stem=vcf_stems),
+        qc_hwe=expand(rules.qc_hwe.output,vcf_stem=vcf_stems),
         qc_read_depth=expand(
-            qc_read_depth_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems
+            rules.qc_read_depth.output,vcf_stem=vcf_stems
         ),
         qc_allelic_imbalance=expand(
-            qc_allelic_imbalance_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems
+            rules.qc_allelic_imbalance.output,vcf_stem=vcf_stems
         ),
-        qc_indmiss_samples=qc_filtered_samples_dir / "indmiss_samples.csv",
+        qc_indmiss_samples=rules.process_individual_missingness.output
     output:
         expand(preprocessed_dir / "genotypes_chr{chr}.h5",chr=chromosomes),
     shell:
