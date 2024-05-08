@@ -6,7 +6,7 @@ rule all:
     input:
         combined_genotypes=rules.combine_genotypes.output,
         variants_tsv=rules.add_variant_ids.output.variants,
-        variants_parquet=rules.create_parquet_variant_ids.output.variants
+        variants_parquet=rules.create_parquet_variant_ids.output.variants,
 
 
 rule preprocess:
@@ -14,19 +14,16 @@ rule preprocess:
         variants=rules.add_variant_ids.output.variants,
         variants_parquet=rules.create_parquet_variant_ids.output.variants,
         samples=rules.extract_samples.output,
-        sparse_tg=expand(rules.sparsify.output.tsv,vcf_stem=vcf_stems),
-
-        qc_varmiss=expand(rules.qc_varmiss.output,vcf_stem=vcf_stems),
-        qc_hwe=expand(rules.qc_hwe.output,vcf_stem=vcf_stems),
-        qc_read_depth=expand(
-            rules.qc_read_depth.output,vcf_stem=vcf_stems
-        ),
+        sparse_tg=expand(rules.sparsify.output.tsv, vcf_stem=vcf_stems),
+        qc_varmiss=expand(rules.qc_varmiss.output, vcf_stem=vcf_stems),
+        qc_hwe=expand(rules.qc_hwe.output, vcf_stem=vcf_stems),
+        qc_read_depth=expand(rules.qc_read_depth.output, vcf_stem=vcf_stems),
         qc_allelic_imbalance=expand(
-            rules.qc_allelic_imbalance.output,vcf_stem=vcf_stems
+            rules.qc_allelic_imbalance.output, vcf_stem=vcf_stems
         ),
-        qc_indmiss_samples=rules.process_individual_missingness.output
+        qc_indmiss_samples=rules.process_individual_missingness.output,
     output:
-        expand(preprocessed_dir / "genotypes_chr{chr}.h5",chr=chromosomes),
+        expand(preprocessed_dir / "genotypes_chr{chr}.h5", chr=chromosomes),
     shell:
         " ".join(
             [
@@ -43,6 +40,6 @@ rule preprocess:
                 "{input.variants_parquet}",
                 "{input.samples}",
                 f"{sparse_dir}",
-                f"{preprocessed_dir / 'genotypes'}",
+                f"{preprocessed_dir/ 'genotypes'}",
             ]
         )
