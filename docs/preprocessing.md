@@ -3,7 +3,7 @@
 The DeepRVAT preprocessing pipeline is based on [snakemake](https://snakemake.readthedocs.io/en/stable/) it uses
 [bcftools+samstools](https://www.htslib.org/) and a [python script](https://github.com/PMBio/deeprvat/blob/main/deeprvat/preprocessing/preprocess.py) preprocessing.py.
 
-![DeepRVAT preprocessing pipeline](_static/preprocess_rulegraph_no_qc.svg)
+![DeepRVAT preprocessing pipeline](_static/preprocess_no_qc_rulegraph.svg)
 
 ## Output
 
@@ -126,7 +126,7 @@ we used when we wrote the paper. The qc is specific to the UKBB data, so if you 
 pipeline without qc.
 
 ### Run the preprocess pipeline with example data and qc
-![DeepRVAT preprocessing pipeline](_static/preprocess_rulegraph_with_qc.svg)
+![DeepRVAT preprocessing pipeline](_static/preprocess_with_qc_rulegraph.svg)
 
 *The vcf files in the example data folder was generated using [fake-vcf](https://github.com/endast/fake-vcf) (with some
 manual editing).
