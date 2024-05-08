@@ -170,7 +170,7 @@ total 48
 
 ### Run the preprocess pipeline with example data and no qc
 
-![DeepRVAT preprocessing pipeline](_static/preprocess_rulegraph_no_qc.svg)
+![DeepRVAT preprocessing pipeline](_static/preprocess_no_qc_rulegraph.svg)
 
 *The vcf files in the example data folder was generated using [fake-vcf](https://github.com/endast/fake-vcf) (with some
 manual editing).
