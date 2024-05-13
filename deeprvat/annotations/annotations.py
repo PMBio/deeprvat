@@ -1082,7 +1082,7 @@ def aggregate_abscores(
         delayed(process_chunk)(
             i, abs_splice_res_dir, tissues_to_exclude, tissue_agg_function, ca_shortened
         )
-        for i in tqdm(os.listdir(abs_splice_res_dir))
+        for i in tqdm(sorted(os.listdir(abs_splice_res_dir)))
     )
     all_absplice_scores = list(output_generator)
 
