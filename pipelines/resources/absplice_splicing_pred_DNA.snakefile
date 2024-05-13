@@ -71,7 +71,7 @@ if absplice_main_conf['use_rocksdb'] == True:
             lookup_only = False,
             genome = genome_mapper[absplice_main_conf['genome']]
         conda:
-            f"./environment_spliceai_rocksdb2.yaml"
+            f"./environment_spliceai_rocksdb.yaml"
         output:
             result = Path(absplice_output_dir)/config_pred['splicing_pred']['spliceai']
         script:
