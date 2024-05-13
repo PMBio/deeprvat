@@ -650,38 +650,3 @@ def test_select_rename_fill_annotations(
     assert_frame_equal(
         written_results, expected_results[written_results.columns], check_exact=False
     )
-
-
-# @pytest.mark.parametrize(
-#     "test_data_name_dir, input_file_1, input_file_2, parameter1, expected",
-#     [
-#         (   "test_name_dir",
-#             "input_file1.parquet",
-#             "input_file2.parquet",
-#             "8",
-#             "expected.parquet",
-#         ),
-#     ]
-# )
-# def template(
-#      test_data_name_dir, input_file_1, input_file_2, parameter1, expected, tmp_path
-# ):
-#     current_test_data_dir = tests_data_dir / 'test_name' / test_data_name_dir
-#     input_file_1_path = current_test_data_dir / 'input' /  input_file_1
-#     input_file_2_path = current_test_data_dir / 'input' /input_file_2
-#     expected_path = current_test_data_dir / 'expected' / expected
-#     output_path = tmp_path / 'out.parquet'
-#     cli_runner = CliRunner()
-#     cli_parameters = [
-#         'function-name',
-#         input_file_1_path.as_posix(),
-#         input_file_2_path.as_posix(),
-#         output_path.as_posix(),
-#         parameter1,
-#         ]
-#     result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
-#     assert result.exit_code == 0
-#     written_results = pd.read_parquet(output_path)
-#     expected_results = pd.read_parquet(expected_path)
-#     assert written_results.shape == expected_results.shape
-#     assert_frame_equal(written_results, expected_results[written_results.columns], check_exact = False)
