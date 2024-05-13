@@ -127,7 +127,6 @@ rule absplice_dna:
 
 rule all_predict_dna:
     input:
-        
         expand([absplice_output_dir / absplice_main_conf['genome'] / 'dna' / '{file_stem}_AbSplice_DNA.csv'],file_stem=file_stems)
 
 del splicemap5
