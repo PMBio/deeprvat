@@ -1751,8 +1751,11 @@ def process_vep(
     assert vep_file.pos.isna().sum() == 0
     assert vep_file.ref.isna().sum() == 0
     assert vep_file.alt.isna().sum() == 0
-    assert vep_file[["chrom", "pos", "ref", "alt"]].drop_duplicates().shape == vcf_df[["chrom", "pos", "ref", "alt"]].drop_duplicates().shape
-    
+    assert (
+        vep_file[["chrom", "pos", "ref", "alt"]].drop_duplicates().shape
+        == vcf_df[["chrom", "pos", "ref", "alt"]].drop_duplicates().shape
+    )
+
     if "pos" in vep_file.columns:
         vep_file["pos"] = vep_file["pos"].astype(int)
 
