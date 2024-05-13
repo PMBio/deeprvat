@@ -52,7 +52,7 @@ included_chromosomes = config.get(
 )
 
 preprocess_dir = Path(config.get("preprocessing_workdir", ""))
-variant_file = config.get("variant_file_path") or preprocess_dir / 'norm' / 'variants' / 'variants.tsv.gz'
+variant_pq = config.get("variant_parquetfile_path") or preprocess_dir / 'norm' / 'variants' / 'variants.parquet'
 genotype_file = config.get("genotype_file_path") or preprocess_dir / 'preprocessed' / 'genotypes.h5'
 saved_deepripe_models_path = (
     Path(config["faatpipe_repo_dir"]) / "data" / "deepripe_models"
@@ -84,7 +84,10 @@ vep_input_format = config.get("vep_input_format") or "vcf"
 vep_nfork = int(config.get("vep_nfork") or 5)
 af_mode = config.get("af_mode") or "af"
 condel_config_path = vep_plugin_dir / "config" / "Condel" / "config"
-
+if config.get('additional_vep_plugin_cmds'):
+    VEP_plugin_cmds = config['additional_vep_plugin_cmds'].values()
+else:
+    VEP_plugin_cmds = []
 
 #init deepSEA
 deepSEA_tmp_dir = config.get('deepSEA_tmp_dir')or anno_tmp_dir / 'deepSEA_PCA'
@@ -115,7 +118,8 @@ file_paths = [
 
 file_paths = list(chain.from_iterable(file_paths))
 human_sort(file_paths)
-file_stems = [Path(p).stem.split('.')[0] for p in file_paths]
+file_stems = [re.compile(source_variant_file_pattern.format(chr = "(\d+|X|Y)",block='\d+')).search(i).group() for i in file_paths]
+
 
 absplice_download_dir = config.get('absplice_download_dir') or  absplice_repo_dir /'example'/'data'/'resources'/'downloaded_files'
 absplice_output_dir = config.get('absplice_output_dir', anno_tmp_dir /'absplice')
@@ -165,7 +169,7 @@ rule select_rename_fill_columns:
     resources: mem_mb = lambda wildcards, attempt: 15_000 * (attempt + 1),
     shell:
         " ".join([
-            f"python {annotation_python_file}", 
+            f"deeprvat_annotations", 
             "select-rename-fill-annotations",
             "{input.yaml_file}",
             "{input.annotations_path}",
@@ -182,8 +186,8 @@ if not gene_id_file:
         resources: mem_mb = lambda wildcards, attempt: 15_000 * (attempt + 1),
         shell:
             " ".join([
-                f"python {annotation_python_file}", 
-                "create-protein-id-file",
+                f"deeprvat_annotations", 
+                "create-gene-id-file",
                 "{input}",
                 "{output}"
             ])
@@ -198,7 +202,7 @@ rule filter_by_exon_distance:
     resources: mem_mb = lambda wildcards, attempt: 25_000 * (attempt + 1),
     shell:
         " ".join([
-            f"python {annotation_python_file}", 
+            f"deeprvat_annotations", 
             "filter-annotations-by-exon-distance",
             "{input.annotations_path}",
             "{input.gtf_file}",
@@ -214,8 +218,8 @@ rule add_gene_ids:
     resources: mem_mb = lambda wildcards, attempt: 19_000 * (attempt + 1),
     shell:
         " ".join([
-            f"python {annotation_python_file}", 
-            "add-protein-ids",
+            f"deeprvat_annotations", 
+            "add-gene-ids",
             "{input.gene_id_file}",
             "{input.annotations_path}",
             "{output}"
@@ -230,7 +234,7 @@ rule calculate_MAF:
     resources: mem_mb = lambda wildcards, attempt: 15_000 * (attempt + 1),
     shell:
         " ".join([
-            f"python {annotation_python_file}", 
+            f"deeprvat_annotations", 
             "calculate-maf",
             "{input}",
             "{output}"
@@ -249,7 +253,7 @@ rule merge_allele_frequency:
     resources: mem_mb = lambda wildcards, attempt: 15_000 * (attempt + 1),
     shell:
         " ".join([
-            f"python {annotation_python_file}", 
+            f"deeprvat_annotations", 
             "merge-af",
             "{input.annotation_file}",
             "{input.allele_frequencies}",
@@ -264,13 +268,13 @@ rule merge_allele_frequency:
 rule calculate_allele_frequency:
     input: 
         genotype_file = genotype_file,
-        variants = variant_file
+        variants = variant_pq
     output:
         allele_frequencies = anno_tmp_dir / "af_df.parquet"
     resources: mem_mb = lambda wildcards, attempt: 15_000 * (attempt + 1),
     shell:
         " ".join([
-            f"python {annotation_python_file}", 
+            f"deeprvat_annotations", 
             "get-af-from-gt",
             "{input.genotype_file}",
             "{input.variants}",
@@ -293,8 +297,7 @@ rule merge_absplice_scores:
     shell: 
         " ".join(
             [
-                "python",
-                f"{annotation_python_file}",
+                "deeprvat_annotations",
                 "merge-abscores",
                 "{input.current_annotation_file}",
                 "{input.absplice_scores}",
@@ -312,8 +315,7 @@ rule aggregate_absplice_scores:
     shell:
         " ".join(
             [
-                "python",
-                f"{annotation_python_file}",
+                "deeprvat_annotations",
                 "aggregate-abscores {input.current_annotation_file}",
                 str(absplice_output_dir / absplice_main_conf['genome'] / 'dna' ),
                 "{output.score_file} {threads}"
@@ -331,8 +333,7 @@ rule merge_deepsea_pcas:
     shell:
         " ".join(
             [
-                "python",
-                f"{annotation_python_file}",
+                "deeprvat_annotations",
                 "merge-deepsea-pcas",
                 "{input.annotations}",
                 "{input.deepsea_pcas}",
@@ -355,8 +356,7 @@ rule concat_annotations:
     shell:
         " ".join(
             [
-                "python",
-                str(annotation_python_file),
+                "deeprvat_annotations",
                 "concat-annotations",
                 '{params.joined}',
                 "{output}"
@@ -373,7 +373,7 @@ rule merge_annotations:
         / (source_variant_file_pattern + "_variants.eclip_k5_deepripe.csv.gz"),
         deepripe_hg2=anno_dir
         / (source_variant_file_pattern + "_variants.eclip_hg2_deepripe.csv.gz"),
-        variant_file=variant_file,
+        variant_file=variant_pq,
         vcf_file= anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
     output:
         anno_dir / f"{source_variant_file_pattern}_merged.parquet",
@@ -382,8 +382,7 @@ rule merge_annotations:
         (
             "HEADER=$(grep  -n  '#Uploaded_variation' "
             + "{input.vep}"
-            + "| head | cut -f 1 -d ':') && python "
-            + f"{annotation_python_file} "
+            + "| head | cut -f 1 -d ':') && deeprvat_annotations "
             + "merge-annotations $(($HEADER-1)) {input.vep} {input.deepripe_parclip} {input.deepripe_hg2} {input.deepripe_k5} {input.variant_file} {input.vcf_file} {output}"
         )
 
@@ -398,8 +397,7 @@ rule deepSea_PCA:
             ["mkdir -p",
               str(deepSEA_tmp_dir),
               "&&",
-              "python",
-              f"{annotation_python_file}",
+              "deeprvat_annotations",
               "deepsea-pca",
               "{input.deepsea_anno}",
               f"{str(deepSEA_pca_obj)}",
@@ -412,7 +410,7 @@ rule deepSea_PCA:
 
 rule add_ids_deepSea:
     input:
-        variant_file=variant_file,
+        variant_file=variant_pq,
         annotation_file=deepSEA_tmp_dir / "deepsea_pca.parquet",
     output:
         directory(anno_dir / "all_variants.wID.deepSea.parquet"),
@@ -421,12 +419,10 @@ rule add_ids_deepSea:
     shell:
         " ".join(
             [
-                "python",
-                f"{annotation_python_file}",
+                "deeprvat_annotations",
                 "add-ids-dask",
                 "{input.annotation_file}",
                 "{input.variant_file}",
-                "{threads}",
                 "{output}",
             ]
         )
@@ -449,8 +445,7 @@ rule concat_deepSea:
     shell:
         " ".join(
         [
-            "python",
-            f"{annotation_python_file}",
+            "deeprvat_annotations",
             "concatenate-deepsea",
             "{params.joined}",
             "{output}",
@@ -484,7 +479,7 @@ rule deepRiPe_parclip:
     threads: n_jobs_deepripe
     resources: mem_mb = lambda wildcards, attempt: 5_000 * (attempt + 1),
     shell:
-        f"mkdir -p {pybedtools_tmp_path / 'parclip'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'parclip'} {saved_deepripe_models_path} {{threads}} 'parclip'"
+        f"mkdir -p {pybedtools_tmp_path / 'parclip'} && deeprvat_annotations scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'parclip'} {saved_deepripe_models_path} {{threads}} 'parclip'"
 
 
 rule deepRiPe_eclip_hg2:
@@ -496,7 +491,7 @@ rule deepRiPe_eclip_hg2:
     threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
     resources: mem_mb = lambda wildcards, attempt: 5_000 * (attempt + 1),
     shell:
-        f"mkdir -p {pybedtools_tmp_path / 'hg2'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'hg2'} {saved_deepripe_models_path} {{threads}} 'eclip_hg2'"
+        f"mkdir -p {pybedtools_tmp_path / 'hg2'} && deeprvat_annotations scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'hg2'} {saved_deepripe_models_path} {{threads}} 'eclip_hg2'"
 
 
 rule deepRiPe_eclip_k5:
@@ -508,7 +503,7 @@ rule deepRiPe_eclip_k5:
     threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
     resources: mem_mb = lambda wildcards, attempt: 5_000 * (attempt + 1),
     shell:
-        f"mkdir -p {pybedtools_tmp_path / 'k5'} && python {annotation_python_file} scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'k5'} {saved_deepripe_models_path} {{threads}} 'eclip_k5'"
+        f"mkdir -p {pybedtools_tmp_path / 'k5'} && deeprvat_annotations scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'k5'} {saved_deepripe_models_path} {{threads}} 'eclip_k5'"
 
 
 rule vep:
@@ -562,7 +557,7 @@ rule vep:
                 "--no_stats",
                 "--per_gene",
                 "--pick_order biotype,mane_select,mane_plus_clinical,canonical,appris,tsl,ccds,rank,length,ensembl,refseq"
-            ]+['--plugin '+i for i in config['additional_vep_plugin_cmds'].values()]
+            ]+['--plugin '+i for i in VEP_plugin_cmds]
         )
 
 

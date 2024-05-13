@@ -1,5 +1,7 @@
 import logging
 import os
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
 import pickle
 import random
 import sys
@@ -1360,45 +1362,6 @@ def merge_deepsea_pcas(
     merged.to_parquet(out_file)
 
 
-@cli.command()
-@click.argument("in_variants", type=click.Path(exists=True))
-@click.argument("out_variants", type=click.Path())
-def process_annotations(in_variants: str, out_variants: str):
-    """
-    Process variant annotations, filter for canonical variants, and aggregate consequences.
-
-    Parameters:
-    - in_variants (str): Path to the input variant annotation file in parquet format.
-    - out_variants (str): Path to save the processed variant annotation file in parquet format.
-
-    Returns:
-    None
-
-    Notes:
-    - The function reads the input variant annotation file.
-    - It filters for canonical variants where the 'CANONICAL' column is equal to 'YES'.
-    - The 'Gene' column is renamed to 'gene_id'.
-    - Consequences for different alleles are aggregated by combining the variant ID with the gene ID.
-    - The processed variant annotations are saved to the specified output file.
-
-    Example:
-    $ python annotations.py process_annotations input_variants.parquet output_variants.parquet
-    """
-    variant_path = Path(in_variants)
-    variants = pd.read_parquet(variant_path)
-
-    logger.info("filtering for canonical variants")
-
-    variants = variants.loc[variants.CANONICAL == "YES"]
-    variants.rename(columns={"Gene": "gene_id"}, inplace=True)
-
-    logger.info("aggregating consequences for different alleles")
-
-    # combining variant id with gene id
-    variants["censequence_id"] = variants["id"].astype(str) + variants["gene_id"]
-    variants.to_parquet(out_variants, compression="zstd")
-
-
 def process_chunk_addids(chunk: pd.DataFrame, variants: pd.DataFrame) -> pd.DataFrame:
     """
     Process a chunk of data by adding identifiers from a variants dataframe.
@@ -1507,16 +1470,14 @@ def add_ids(annotation_file: str, variant_file: str, njobs: int, out_file: str):
 @cli.command()
 @click.argument("annotation_file", type=click.Path(exists=True))
 @click.argument("variant_file", type=click.Path(exists=True))
-@click.argument("njobs", type=int)
 @click.argument("out_file", type=click.Path())
-def add_ids_dask(annotation_file: str, variant_file: str, njobs: int, out_file: str):
+def add_ids_dask(annotation_file: str, variant_file: str, out_file: str):
     """
     Add identifiers from a variant file to an annotation file using Dask and save the result.
 
     Parameters:
     - annotation_file (str): Path to the input annotation file in Parquet format.
     - variant_file (str): Path to the input variant file in Parquet format.
-    - njobs (int): Number of parallel jobs to process the data.
     - out_file (str): Path to save the processed data in Parquet format.
 
     Returns:
@@ -1532,7 +1493,7 @@ def add_ids_dask(annotation_file: str, variant_file: str, njobs: int, out_file: 
     $ python annotations.py add_ids_dask annotation_data.parquet variant_data.parquet 4 processed_data.parquet
     """
     data = dd.read_parquet(annotation_file, blocksize=25e9)
-    all_variants = pd.read_table(variant_file)
+    all_variants = pd.read_parquet(variant_file)
     data = data.rename(
         columns={
             "#CHROM": "chrom",
@@ -1705,7 +1666,7 @@ def merge_annotations(
     logger.info("load variant_file")
 
     logger.info(f"reading in {variant_file}")
-    variants = pd.read_csv(variant_file, sep="\t")
+    variants = pd.read_parquet(variant_file)
 
     logger.info("merge vep to variants M:1")
     ca = vep_df.merge(
@@ -1777,7 +1738,19 @@ def process_vep(
         vcf_file, names=["chrom", "pos", "#Uploaded_variation", "ref", "alt"]
     )
     if "#Uploaded_variation" in vep_file.columns:
-        vep_file = vep_file.merge(vcf_df, on="#Uploaded_variation")
+        vep_file = vep_file.merge(vcf_df, on="#Uploaded_variation", how="left")
+        if vep_file.chrom.isna().sum() > 0:
+            vep_file.loc[vep_file.chrom.isna(), ["chrom", "pos", "ref", "alt"]] = (
+                vep_file[vep_file["chrom"].isna()]["#Uploaded_variation"]
+                .str.replace("_", ":")
+                .str.replace("/", ":")
+                .str.split(":", expand=True)
+                .values
+            )
+    assert vep_file.chrom.isna().sum() == 0
+    assert vep_file.pos.isna().sum() == 0
+    assert vep_file.ref.isna().sum() == 0
+    assert vep_file.alt.isna().sum() == 0
 
     if "pos" in vep_file.columns:
         vep_file["pos"] = vep_file["pos"].astype(int)
@@ -1979,7 +1952,7 @@ def get_af_from_gt(genotype_file: str, variants_filepath: str, out_file: str):
     """
     import h5py
 
-    variants = pd.read_table(variants_filepath)
+    variants = pd.read_parquet(variants_filepath)
     max_variant_id = variants["id"].max()
 
     logger.info("Computing allele frequencies")
@@ -2042,19 +2015,19 @@ def calculate_maf(annotations_path: str, out_file: str):
 
 
 @cli.command()
-@click.argument("protein_id_file", type=click.Path(exists=True))
+@click.argument("gene_id_file", type=click.Path(exists=True))
 @click.argument("annotations_path", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
-def add_protein_ids(protein_id_file: str, annotations_path: str, out_file: str):
+def add_gene_ids(gene_id_file: str, annotations_path: str, out_file: str):
     """
-    Add protein IDs to the annotations based on protein ID mapping file.
+    Add gene IDs to the annotations based on gene ID mapping file.
 
     Parameters:
-    - protein_id_file (str): Path to the protein ID mapping file.
+    - gene_id_file (str): Path to the gene ID mapping file.
     - annotations_path (str): Path to the annotations file.
     - out_file (str): Path to the output file to save the annotations with protein IDs.
     """
-    genes = pd.read_parquet(protein_id_file)
+    genes = pd.read_parquet(gene_id_file)
     genes[["gene_base", "feature"]] = genes["gene"].str.split(".", expand=True)
     genes.drop(columns=["feature", "gene", "gene_name", "gene_type"], inplace=True)
     genes.rename(columns={"id": "gene_id"}, inplace=True)
@@ -2069,7 +2042,7 @@ def add_protein_ids(protein_id_file: str, annotations_path: str, out_file: str):
 @cli.command()
 @click.argument("gtf_filepath", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
-def create_protein_id_file(gtf_filepath: str, out_file: str):
+def create_gene_id_file(gtf_filepath: str, out_file: str):
     """
     Create a protein ID mapping file from the GTF file.
 

@@ -1,0 +1,122 @@
+## ENSEMBL VARIANT EFFECT PREDICTOR v110.1
+## Output produced at 2024-04-24 15:05:38
+## Using cache in repo_dir/ensembl-vep/cache/homo_sapiens/110_GRCh38
+## Using API version 110, DB version ?
+## ensembl-variation version 110.d34d25e
+## ensembl-io version 110.b1a0d57
+## ensembl version 110.584a8f3
+## ensembl-funcgen version 110.24e6da6
+## dbSNP version 154
+## 1000genomes version phase3
+## gencode version GENCODE 44
+## polyphen version 2.2.3
+## sift version 6.2.1
+## gnomADe version r2.1.1
+## ClinVar version 202301
+## HGMD-PUBLIC version 20204
+## assembly version GRCh38.p14
+## COSMIC version 97
+## regbuild version 1.0
+## gnomADg version v3.1.2
+## genebuild version 2014-07
+## Column descriptions:
+## Uploaded_variation : Identifier of uploaded variant
+## Location : Location of variant in standard coordinate format (chr:start or chr:start-end)
+## Allele : The variant allele used to calculate the consequence
+## Gene : Stable ID of affected gene
+## Feature : Stable ID of feature
+## Feature_type : Type of feature - Transcript, RegulatoryFeature or MotifFeature
+## Consequence : Consequence type
+## cDNA_position : Relative position of base pair in cDNA sequence
+## CDS_position : Relative position of base pair in coding sequence
+## Protein_position : Relative position of amino acid in protein
+## Amino_acids : Reference and variant amino acids
+## Codons : Reference and variant codon sequence
+## Existing_variation : Identifier(s) of co-located known variants
+## IMPACT : Subjective impact classification of consequence type
+## DISTANCE : Shortest distance from variant to transcript
+## STRAND : Strand of the feature (1/-1)
+## FLAGS : Transcript quality flags
+## BIOTYPE : Biotype of transcript or regulatory feature
+## CANONICAL : Indicates if transcript is canonical for this gene
+## ENSP : Protein identifer
+## SIFT : SIFT prediction and/or score
+## PolyPhen : PolyPhen prediction and/or score
+## AF : Frequency of existing variant in 1000 Genomes combined population
+## CLIN_SIG : ClinVar clinical significance of the dbSNP variant
+## SOMATIC : Somatic status of existing variant
+## PHENO : Indicates if existing variant(s) is associated with a phenotype, disease or trait; multiple values correspond to multiple variants
+## VEP command-line: vep --af --assembly GRCh38 --biotype --cache --canonical --database 0 --dir_cache [PATH]/cache --dir_plugins [PATH]/Plugins --fasta [PATH]/GRCh38.primary_assembly.genome.fa --force_overwrite --fork 5 --format vcf --input_file [PATH]/chr3test_stripped.vcf.gz --no_escape --no_stats --offline --output_file [PATH]/chr3test_vep_anno.tsv --per_gene --pick_order biotype,mane_select,mane_plus_clinical,canonical,appris,tsl,ccds,rank,length,ensembl,refseq --polyphen s --protein --sift s --tab --total_length
+#Uploaded_variation	Location	Allele	Gene	Feature	Feature_type	Consequence	cDNA_position	CDS_position	Protein_position	Amino_acids	Codons	Existing_variation	IMPACT	DISTANCE	STRAND	FLAGS	BIOTYPE	CANONICAL	ENSP	SIFT	PolyPhen	AF	CLIN_SIG	SOMATIC	PHENO
+3_3474106_C/T	3:3474106	T	ENSG00000223727	ENST00000420000	Transcript	intron_variant,non_coding_transcript_variant	-	-	-	-	-	-	MODIFIER	-	-1	-	lncRNA	YES	-	-	-	-	-	-	-
+rs881	3:6134790	G	-	-	-	intergenic_variant	-	-	-	-	-	rs1007430246	MODIFIER	-	-	-	-	-	-	-	-	-	-	-	-
+3_6492413_A/G	3:6492413	G	ENSG00000189229	ENST00000655754	Transcript	intron_variant,non_coding_transcript_variant	-	-	-	-	-	-	MODIFIER	-	1	-	lncRNA	YES	-	-	-	-	-	-	-
+3_7479092_T/A	3:7479092	A	ENSG00000196277	ENST00000357716	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	1	-	protein_coding	YES	ENSP00000350348	-	-	-	-	-	-
+3_10151779_G/T	3:10151779	T	ENSG00000287086	ENST00000660063	Transcript	intron_variant,non_coding_transcript_variant	-	-	-	-	-	COSV56556349	MODIFIER	-	-1	-	lncRNA	YES	-	-	-	-	-	1	1
+3_10151779_G/T	3:10151779	T	ENSG00000134086	ENST00000256474	Transcript	3_prime_UTR_variant	2526/4414	-	-	-	-	COSV56556349	MODIFIER	-	1	-	protein_coding	YES	ENSP00000256474	-	-	-	-	1	1
+3_10963200_C/A	3:10963200	A	ENSG00000286962	ENST00000656787	Transcript	intron_variant,non_coding_transcript_variant	-	-	-	-	-	-	MODIFIER	-	-1	-	lncRNA	YES	-	-	-	-	-	-	-
+rs178	3:13336897	A	ENSG00000132182	ENST00000254508	Transcript	missense_variant	3670/7206	3574/5664	1192/1887	I/F	Atc/Ttc	-	MODERATE	-	-1	-	protein_coding	YES	ENSP00000254508	0.01	0.712	-	-	-	-
+rs37	3:25565017	G	ENSG00000077092	ENST00000330688	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	1	-	protein_coding	YES	ENSP00000332296	-	-	-	-	-	-
+rs721	3:28027872	C	ENSG00000235493	ENST00000356047	Transcript	intron_variant,non_coding_transcript_variant	-	-	-	-	-	-	MODIFIER	-	-1	-	lncRNA	-	-	-	-	-	-	-	-
+rs135	3:30429305	C	ENSG00000289450	ENST00000691186	Transcript	intron_variant,non_coding_transcript_variant	-	-	-	-	-	-	MODIFIER	-	1	-	lncRNA	YES	-	-	-	-	-	-	-
+rs23	3:39059372	C	ENSG00000114742	ENST00000302313	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	1	-	protein_coding	YES	ENSP00000307491	-	-	-	-	-	-
+rs727	3:47378509	A	ENSG00000260236	ENST00000568593	Transcript	downstream_gene_variant	-	-	-	-	-	-	MODIFIER	580	-1	-	lncRNA	YES	-	-	-	-	-	-	-
+rs727	3:47378509	A	ENSG00000076201	ENST00000265562	Transcript	upstream_gene_variant	-	-	-	-	-	-	MODIFIER	2512	1	-	protein_coding	YES	ENSP00000265562	-	-	-	-	-	-
+rs268	3:47839379	T	ENSG00000132153	ENST00000445061	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	1	-	protein_coding	YES	ENSP00000405620	-	-	-	-	-	-
+rs873	3:55062103	G	ENSG00000157445	ENST00000474759	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	1	-	protein_coding	YES	ENSP00000419101	-	-	-	-	-	-
+rs664	3:56288165	C	ENSG00000187672	ENST00000288221	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	-1	-	protein_coding	YES	ENSP00000288221	-	-	-	-	-	-
+rs815	3:64813843	G	ENSG00000241684	ENST00000650103	Transcript	intron_variant,non_coding_transcript_variant	-	-	-	-	-	-	MODIFIER	-	1	-	lncRNA	YES	-	-	-	-	-	-	-
+rs107	3:70306576	G	ENSG00000240405	ENST00000642114	Transcript	intron_variant,non_coding_transcript_variant	-	-	-	-	-	rs536908099	MODIFIER	-	1	-	lncRNA	YES	-	-	-	0.0002	-	-	-
+rs107	3:70306576	G	ENSG00000242120	ENST00000567252	Transcript	intron_variant	-	-	-	-	-	rs536908099	MODIFIER	-	-1	-	protein_coding	YES	ENSP00000490638	-	-	0.0002	-	-	-
+rs492	3:72140079	T	ENSG00000241163	ENST00000626474	Transcript	intron_variant,non_coding_transcript_variant	-	-	-	-	-	-	MODIFIER	-	-1	-	lncRNA	YES	-	-	-	-	-	-	-
+rs930	3:72906610	G	ENSG00000172986	ENST00000389617	Transcript	intron_variant	-	-	-	-	-	COSV67474846	MODIFIER	-	1	-	protein_coding	YES	ENSP00000374268	-	-	-	-	1	1
+rs523	3:74562325	T	ENSG00000113805	ENST00000263665	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	-1	-	protein_coding	YES	ENSP00000263665	-	-	-	-	-	-
+rs583	3:78839934	A	ENSG00000169855	ENST00000464233	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	-1	-	protein_coding	YES	ENSP00000420321	-	-	-	-	-	-
+rs170	3:81414874	T	-	-	-	intergenic_variant	-	-	-	-	-	-	MODIFIER	-	-	-	-	-	-	-	-	-	-	-	-
+rs548	3:97458263	T	ENSG00000080224	ENST00000389672	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	1	-	protein_coding	YES	ENSP00000374323	-	-	-	-	-	-
+rs546	3:97649369	G	ENSG00000080224	ENST00000389672	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	1	-	protein_coding	YES	ENSP00000374323	-	-	-	-	-	-
+rs543	3:97949211	A	ENSG00000080200	ENST00000389622	Transcript	downstream_gene_variant	-	-	-	-	-	-	MODIFIER	4227	1	-	protein_coding	YES	ENSP00000374273	-	-	-	-	-	-
+rs543	3:97949211	A	ENSG00000170854	ENST00000394198	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	-1	-	protein_coding	YES	ENSP00000377748	-	-	-	-	-	-
+rs838	3:99075824	C	-	-	-	intergenic_variant	-	-	-	-	-	-	MODIFIER	-	-	-	-	-	-	-	-	-	-	-	-
+rs311	3:101580812	C	ENSG00000081154	ENST00000265260	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	1	-	protein_coding	YES	ENSP00000265260	-	-	-	-	-	-
+rs311	3:101580812	C	ENSG00000242299	ENST00000496294	Transcript	upstream_gene_variant	-	-	-	-	-	-	MODIFIER	3865	-1	-	processed_pseudogene	YES	-	-	-	-	-	-	-
+rs382	3:103151123	A	-	-	-	intergenic_variant	-	-	-	-	-	-	MODIFIER	-	-	-	-	-	-	-	-	-	-	-	-
+rs179	3:103329532	C	-	-	-	intergenic_variant	-	-	-	-	-	-	MODIFIER	-	-	-	-	-	-	-	-	-	-	-	-
+rs19	3:103928516	T	-	-	-	intergenic_variant	-	-	-	-	-	-	MODIFIER	-	-	-	-	-	-	-	-	-	-	-	-
+rs341	3:105180981	G	-	-	-	intergenic_variant	-	-	-	-	-	-	MODIFIER	-	-	-	-	-	-	-	-	-	-	-	-
+rs470	3:111113126	G	ENSG00000177707	ENST00000485303	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	1	-	protein_coding	YES	ENSP00000418070	-	-	-	-	-	-
+rs467	3:111866541	A	ENSG00000144824	ENST00000431670	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	1	-	protein_coding	YES	ENSP00000405405	-	-	-	-	-	-
+rs718	3:117455785	A	-	-	-	intergenic_variant	-	-	-	-	-	-	MODIFIER	-	-	-	-	-	-	-	-	-	-	-	-
+rs506	3:120258434	C	ENSG00000175697	ENST00000464295	Transcript	intron_variant	-	-	-	-	-	rs1470110063	MODIFIER	-	-1	-	protein_coding	YES	ENSP00000417261	-	-	-	-	-	-
+rs367	3:120364684	G	ENSG00000240661	ENST00000634410	Transcript	intron_variant,non_coding_transcript_variant	-	-	-	-	-	-	MODIFIER	-	1	-	transcribed_unitary_pseudogene	YES	-	-	-	-	-	-	-
+rs367	3:120364684	G	ENSG00000282950	ENST00000634744	Transcript	downstream_gene_variant	-	-	-	-	-	-	MODIFIER	1309	-1	-	lncRNA	YES	-	-	-	-	-	-	-
+rs488	3:122803142	C	ENSG00000138463	ENST00000261038	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	1	-	protein_coding	YES	ENSP00000261038	-	-	-	-	-	-
+rs146	3:125013245	G	ENSG00000173706	ENST00000311127	Transcript	synonymous_variant	2441/9195	2334/4146	778/1381	L	ctT/ctC	-	LOW	-	-1	-	protein_coding	YES	ENSP00000311502	-	-	-	-	-	-
+rs318	3:127342540	T	ENSG00000244215	ENST00000488425	Transcript	intron_variant,non_coding_transcript_variant	-	-	-	-	-	-	MODIFIER	-	-1	-	lncRNA	YES	-	-	-	-	-	-	-
+rs104	3:133734681	A	ENSG00000291042	ENST00000460564	Transcript	intron_variant,non_coding_transcript_variant	-	-	-	-	-	-	MODIFIER	-	1	-	lncRNA	YES	-	-	-	-	-	-	-
+rs665	3:139349025	C	ENSG00000272656	ENST00000608472	Transcript	non_coding_transcript_exon_variant	347/348	-	-	-	-	-	MODIFIER	-	-1	-	lncRNA	YES	-	-	-	-	-	-	-
+rs665	3:139349025	C	ENSG00000184432	ENST00000503326	Transcript	downstream_gene_variant	-	-	-	-	-	-	MODIFIER	4921	-1	-	protein_coding	-	ENSP00000426682	-	-	-	-	-	-
+rs665	3:139349025	C	ENSG00000175110	ENST00000680020	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	1	-	protein_coding	YES	ENSP00000505414	-	-	-	-	-	-
+rs791	3:140275153	C	ENSG00000158258	ENST00000458420	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	1	-	protein_coding	YES	ENSP00000402460	-	-	-	-	-	-
+rs102	3:145304395	G	-	-	-	intergenic_variant	-	-	-	-	-	-	MODIFIER	-	-	-	-	-	-	-	-	-	-	-	-
+rs274	3:147901161	T	-	-	-	intergenic_variant	-	-	-	-	-	rs1305018800	MODIFIER	-	-	-	-	-	-	-	-	-	-	-	-
+rs123	3:150051584	A	ENSG00000243944	ENST00000487840	Transcript	intron_variant,non_coding_transcript_variant	-	-	-	-	-	-	MODIFIER	-	1	-	lncRNA	YES	-	-	-	-	-	-	-
+rs123	3:150051584	A	ENSG00000070087	ENST00000497148	Transcript	upstream_gene_variant	-	-	-	-	-	-	MODIFIER	796	-1	-	protein_coding	-	ENSP00000417817	-	-	-	-	-	-
+rs123	3:150051584	A	ENSG00000240477	ENST00000466044	Transcript	downstream_gene_variant	-	-	-	-	-	-	MODIFIER	128	1	-	processed_pseudogene	YES	-	-	-	-	-	-	-
+rs648	3:150399452	A	-	-	-	intergenic_variant	-	-	-	-	-	-	MODIFIER	-	-	-	-	-	-	-	-	-	-	-	-
+rs748	3:158349305	A	ENSG00000174891	ENST00000611884	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	1	-	protein_coding	YES	ENSP00000481697	-	-	-	-	-	-
+rs408	3:158851780	T	-	-	-	intergenic_variant	-	-	-	-	-	-	MODIFIER	-	-	-	-	-	-	-	-	-	-	-	-
+rs963	3:160382108	C	ENSG00000068885	ENST00000326448	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	-1	-	protein_coding	YES	ENSP00000312778	-	-	-	-	-	-
+rs751	3:168465216	C	ENSG00000206120	ENST00000431685	Transcript	intron_variant,non_coding_transcript_variant	-	-	-	-	-	-	MODIFIER	-	1	-	transcribed_unitary_pseudogene	YES	-	-	-	-	-	-	-
+rs197	3:171089322	T	ENSG00000154310	ENST00000436636	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	-1	-	protein_coding	YES	ENSP00000399511	-	-	-	-	-	-
+rs376	3:177499702	C	ENSG00000252028	ENST00000516219	Transcript	downstream_gene_variant	-	-	-	-	-	-	MODIFIER	3601	-1	-	misc_RNA	YES	-	-	-	-	-	-	-
+rs376	3:177499702	C	ENSG00000228221	ENST00000656037	Transcript	intron_variant,non_coding_transcript_variant	-	-	-	-	-	-	MODIFIER	-	1	-	lncRNA	YES	-	-	-	-	-	-	-
+rs581	3:185836100	T	-	-	-	intergenic_variant	-	-	-	-	-	-	MODIFIER	-	-	-	-	-	-	-	-	-	-	-	-
+rs596	3:191856146	C	-	-	-	intergenic_variant	-	-	-	-	-	-	MODIFIER	-	-	-	-	-	-	-	-	-	-	-	-
+rs701	3:192824921	G	ENSG00000180611	ENST00000392452	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	-1	-	protein_coding	YES	ENSP00000376246	-	-	-	-	-	-
+rs434	3:193390684	C	-	-	-	intergenic_variant	-	-	-	-	-	-	MODIFIER	-	-	-	-	-	-	-	-	-	-	-	-
+rs70	3:194577309	G	-	-	-	intergenic_variant	-	-	-	-	-	-	MODIFIER	-	-	-	-	-	-	-	-	-	-	-	-
+rs598	3:194762766	A	ENSG00000237222	ENST00000667646	Transcript	intron_variant,non_coding_transcript_variant	-	-	-	-	-	-	MODIFIER	-	1	-	lncRNA	YES	-	-	-	-	-	-	-
+rs598	3:194762766	A	ENSG00000230401	ENST00000422271	Transcript	downstream_gene_variant	-	-	-	-	-	-	MODIFIER	2472	-1	-	lncRNA	YES	-	-	-	-	-	-	-
+rs356	3:197345633	A	ENSG00000286870	ENST00000669801	Transcript	downstream_gene_variant	-	-	-	-	-	-	MODIFIER	4927	1	-	lncRNA	YES	-	-	-	-	-	-	-
+rs693	3:197732094	T	ENSG00000145016	ENST00000296343	Transcript	intron_variant	-	-	-	-	-	-	MODIFIER	-	-1	-	protein_coding	YES	ENSP00000296343	-	-	-	-	-	-
