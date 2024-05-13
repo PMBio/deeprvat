@@ -119,7 +119,7 @@ rule absplice_dna:
     params:
         extra_info = absplice_main_conf['extra_info_dna']
     conda:
-        "absplice"
+            "absplice"
     output:
         absplice_dna = absplice_output_dir / '{genome}' / 'dna' / '{vcf_id}_AbSplice_DNA.csv'
     script:
@@ -127,6 +127,7 @@ rule absplice_dna:
 
 rule all_predict_dna:
     input:
+        #expand([absplice_output_dir / absplice_main_conf['genome'] / 'dna' / source_variant_file_pattern],zip, chr=chromosomes, block=block)
         expand([absplice_output_dir / absplice_main_conf['genome'] / 'dna' / '{file_stem}_AbSplice_DNA.csv'],file_stem=file_stems)
 
 del splicemap5
