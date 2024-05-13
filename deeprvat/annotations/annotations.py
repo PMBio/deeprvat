@@ -1,6 +1,7 @@
 import logging
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1' 
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
 import pickle
 import random
 import sys
@@ -1470,7 +1471,7 @@ def add_ids(annotation_file: str, variant_file: str, njobs: int, out_file: str):
 @click.argument("annotation_file", type=click.Path(exists=True))
 @click.argument("variant_file", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
-def add_ids_dask(annotation_file: str, variant_file: str,  out_file: str):
+def add_ids_dask(annotation_file: str, variant_file: str, out_file: str):
     """
     Add identifiers from a variant file to an annotation file using Dask and save the result.
 
@@ -1737,15 +1738,20 @@ def process_vep(
         vcf_file, names=["chrom", "pos", "#Uploaded_variation", "ref", "alt"]
     )
     if "#Uploaded_variation" in vep_file.columns:
-        vep_file = vep_file.merge(vcf_df, on="#Uploaded_variation", how = 'left')
-        if vep_file.chrom.isna().sum()>0:
-            vep_file.loc[vep_file.chrom.isna(),['chrom','pos','ref','alt']]=vep_file[vep_file['chrom'].isna()]['#Uploaded_variation'].str.replace("_", ":").str.replace("/", ":").str.split(':', expand=True).values
+        vep_file = vep_file.merge(vcf_df, on="#Uploaded_variation", how="left")
+        if vep_file.chrom.isna().sum() > 0:
+            vep_file.loc[vep_file.chrom.isna(), ["chrom", "pos", "ref", "alt"]] = (
+                vep_file[vep_file["chrom"].isna()]["#Uploaded_variation"]
+                .str.replace("_", ":")
+                .str.replace("/", ":")
+                .str.split(":", expand=True)
+                .values
+            )
     assert vep_file.chrom.isna().sum() == 0
     assert vep_file.pos.isna().sum() == 0
     assert vep_file.ref.isna().sum() == 0
     assert vep_file.alt.isna().sum() == 0
-    
-    
+
     if "pos" in vep_file.columns:
         vep_file["pos"] = vep_file["pos"].astype(int)
 
