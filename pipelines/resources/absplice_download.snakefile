@@ -124,8 +124,7 @@ if absplice_main_conf['use_rocksdb'] == True:
         params:
             version = genome_mapper[absplice_main_conf['genome']]
         conda:
-            f"./environment_spliceai_rocksdb2.yaml"
-            #f"./environment_spliceai_rocksdb.yaml"
+            f"./environment_spliceai_rocksdb.yaml"
         output:
             spliceai_rocksdb = directory(Path(absplice_download_dir) / config_download['spliceai_rocksdb'][genome])
         shell:
