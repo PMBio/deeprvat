@@ -9,7 +9,7 @@ training_phenotypes = config["training"].get("phenotypes", phenotypes)
 
 n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
 n_regression_chunks = config.get('n_regression_chunks', 40) if not debug_flag else 2
-n_avg_chunks = config.get('n_avg_chunks', 1)
+n_avg_chunks = config.get('n_avg_chunks', 40)
 n_trials = config['hyperparameter_optimization']['n_trials']
 n_bags = config['training']['n_bags'] if not debug_flag else 3
 n_repeats = config['n_repeats']

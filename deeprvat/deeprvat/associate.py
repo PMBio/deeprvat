@@ -7,7 +7,7 @@ import os
 import sys
 from pathlib import Path
 from pprint import pprint
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import click
 import dask.dataframe as dd
@@ -115,9 +115,7 @@ def cli():
 
 def make_dataset_(
     config: Dict,
-    debug: bool = False,
     data_key="data",
-    samples: Optional[List[int]] = None,
 ) -> Dataset:
     """
     Create a dataset based on the configuration.
@@ -149,29 +147,17 @@ def make_dataset_(
             **copy.deepcopy(data_config["dataset_config"]),
         )
 
-        restrict_samples = config.get("restrict_samples", None)
-        if debug:
-            logger.info("Debug flag set; Using only 1000 samples")
-            ds = Subset(ds, range(1_000))
-        elif samples is not None:
-            ds = Subset(ds, samples)
-        elif restrict_samples is not None:
-            ds = Subset(ds, range(restrict_samples))
-
     return ds
 
 
 @cli.command()
-@click.option("--debug", is_flag=True)
 @click.option("--data-key", type=str, default="data")
-@click.argument("config-file", type=click.Path(exists=True))
-@click.argument("out-file", type=click.Path())
-def make_dataset(debug: bool, data_key: str, config_file: str, out_file: str):
+@click.argument("config-file", type=click.Path(exists=True, path_type=Path))
+@click.argument("out-file", type=click.Path(path_type=Path))
+def make_dataset(data_key: str, config_file: Path, out_file: Path):
     """
     Create a dataset based on the provided configuration and save to a pickle file.
 
-    :param debug: Flag for debugging.
-    :type debug: bool
     :param data_key: Key for dataset configuration in the config dictionary, defaults to "data".
     :type data_key: str
     :param config_file: Path to the configuration file.
@@ -183,7 +169,7 @@ def make_dataset(debug: bool, data_key: str, config_file: str, out_file: str):
     with open(config_file) as f:
         config = yaml.safe_load(f)
 
-    ds = make_dataset_(config, debug=debug, data_key=data_key)
+    ds = make_dataset_(config, data_key=data_key)
 
     with open(out_file, "wb") as f:
         pickle.dump(ds, f)
@@ -236,6 +222,8 @@ def compute_burdens_(
     .. note::
         Checkpoint models all corresponding to the same repeat are averaged for that repeat.
     """
+    logger.setLevel(logging.INFO)
+
     if not skip_burdens:
         logger.info("agg_models[*][*].reverse:")
         pprint(
@@ -247,10 +235,38 @@ def compute_burdens_(
 
     data_config = config["data"]
 
-    ds_full = ds.dataset if isinstance(ds, Subset) else ds
+    if "sample_file" in config:
+        sample_file = Path(config["sample_file"])
+        logger.info(f"Using samples from {sample_file}")
+        if sample_file.suffix == ".pkl":
+            with open(sample_file, "rb") as f:
+                sample_ids = np.array(pickle.load(f))
+        elif sample_file.suffix == ".zarr":
+            sample_ids = zarr.load(sample_file)
+        elif sample_file.suffix == ".npy":
+            sample_ids = np.load(sample_file)
+        else:
+            raise ValueError("Unknown file type for sample_file")
+        ds_samples = ds.get_metadata()["samples"]
+        sample_indices = np.where(
+            np.isin(ds_samples.astype(str), sample_ids.astype(str))
+        )[0]
+        if debug:
+            sample_indices = sample_indices[:1000]
+    elif debug:
+        sample_indices = np.arange(min(1000, len(ds)))
+    else:
+        sample_indices = np.arange(len(ds))
+
+    logger.info(
+        f"Computing gene impairment for {sample_indices.shape[0]} samples: {sample_indices}"
+    )
+    ds = Subset(ds, sample_indices)
+
+    ds_full = ds.dataset  # if isinstance(ds, Subset) else ds
     collate_fn = getattr(ds_full, "collate_fn", None)
     n_total_samples = len(ds)
-    ds.rare_embedding.skip_embedding = skip_burdens
+    ds_full.rare_embedding.skip_embedding = skip_burdens
 
     if chunk is not None:
         if n_chunks is None:
@@ -903,7 +919,7 @@ def compute_burdens(
         with open(dataset_file, "rb") as f:
             dataset = pickle.load(f)
     else:
-        dataset = make_dataset_(config)
+        dataset = make_dataset_(data_config)
 
     if torch.cuda.is_available():
         logger.info("Using GPU")

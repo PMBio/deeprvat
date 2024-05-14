@@ -225,6 +225,7 @@ def safe_merge(
     right: pd.DataFrame,
     validate: str = "1:1",
     equal_row_nums: bool = False,
+    **kwargs,
 ):
     """
     Safely merge two pandas DataFrames.
@@ -251,7 +252,7 @@ def safe_merge(
                 "left and right dataframes are unequal"
             )
 
-    merged = pd.merge(left, right, validate=validate)
+    merged = pd.merge(left, right, validate=validate, **kwargs)
 
     try:
         assert len(merged) == len(left)

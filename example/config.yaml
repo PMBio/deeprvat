@@ -22,6 +22,9 @@ baseline_results:
         base: baseline_results
         type: missense/skat
 
+cv_path: sample_files
+n_folds: 5
+
 alpha: 0.05
 
 n_burden_chunks: 2
