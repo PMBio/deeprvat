@@ -4,11 +4,11 @@ on: [ push ]
 
 jobs:
   DeepRVAT-Pipeline-Smoke-Tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
-      - uses: mamba-org/setup-micromamba@v1.8.0
+      - uses: mamba-org/setup-micromamba@v1.8.1
         with:
           environment-name: deeprvat-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
@@ -37,12 +37,12 @@ jobs:
         shell: micromamba-shell {0}
 
   DeepRVAT-Pipeline-Tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: DeepRVAT-Pipeline-Smoke-Tests
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
-      - uses: mamba-org/setup-micromamba@v1.8.0
+      - uses: mamba-org/setup-micromamba@v1.8.1
         with:
           environment-name: deeprvat-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
@@ -79,11 +79,11 @@ jobs:
 
 
   DeepRVAT-Preprocessing-Pipeline-Smoke-Tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
-      - uses: mamba-org/setup-micromamba@v1.8.0
+      - uses: mamba-org/setup-micromamba@v1.8.1
         with:
           environment-name: deeprvat-preprocess-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
@@ -112,11 +112,11 @@ jobs:
 
 
   DeepRVAT-Annotation-Pipeline-Smoke-Tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
-      - uses: mamba-org/setup-micromamba@v1.8.0
+      - uses: mamba-org/setup-micromamba@v1.8.1
         with:
           environment-name: deeprvat-preprocess-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
@@ -131,12 +131,12 @@ jobs:
 
 
   DeepRVAT-Preprocessing-Pipeline-Tests-No-QC:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: DeepRVAT-Preprocessing-Pipeline-Smoke-Tests
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
-      - uses: mamba-org/setup-micromamba@v1.8.0
+      - uses: mamba-org/setup-micromamba@v1.8.1
         with:
           environment-name: deeprvat-preprocess-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
@@ -171,13 +171,13 @@ jobs:
 
 
   DeepRVAT-Preprocessing-Pipeline-Tests-With-QC:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: DeepRVAT-Preprocessing-Pipeline-Smoke-Tests
     steps:
 
       - name: Check out repository code
         uses: actions/checkout@v4
-      - uses: mamba-org/setup-micromamba@v1.8.0
+      - uses: mamba-org/setup-micromamba@v1.8.1
         with:
           environment-name: deeprvat-preprocess-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
