@@ -61,7 +61,6 @@ def make_multipheno_data():
         )
         data[p]["input_tensor"] = data[p]["input_tensor_zarr"][:]
         data[p]["samples"] = {"train": np.arange(data[p]["y"].shape[0])}
-        data[p]["sample_indices"] = np.arange(data[p]["y"].shape[0])
 
     return data
 
@@ -147,10 +146,9 @@ def test_make_dataset(phenotype: str, min_variant_count: int, tmp_path: Path):
         yaml.dump(config, f)
 
     # This is the function we want to test
-    input_tensor_out_file = tmp_path / "input_tensor.zarr"
-    covariates_out_file = tmp_path / "covariates.zarr"
-    y_out_file = tmp_path / "y.zarr"
-    samples_out_file = tmp_path / "sample_ids.zarr"
+    input_tensor_out_file = str(tmp_path / "input_tensor.zarr")
+    covariates_out_file = str(tmp_path / "covariates.zarr")
+    y_out_file = str(tmp_path / "y.zarr")
     logger.info("Constructing test dataset")
     _ = make_dataset_(
         False,
@@ -161,7 +159,6 @@ def test_make_dataset(phenotype: str, min_variant_count: int, tmp_path: Path):
         input_tensor_out_file,
         covariates_out_file,
         y_out_file,
-        samples_out_file,
     )
 
     # Load the data it output

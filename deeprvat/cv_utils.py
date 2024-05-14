@@ -59,9 +59,11 @@ def spread_config(
     cv_path = f"{config_template['cv_path']}/{n_folds}_fold"
     for module in data_modules:
         config = copy.deepcopy(config_template)
-        sample_file = f"{cv_path}/samples_{split}{fold}.pkl"
-        logger.info(f"setting sample file {sample_file}")
-        config["sample_file"] = sample_file
+        data_slots = DATA_SLOT_DICT[module]
+        for data_slot in data_slots:
+            sample_file = f"{cv_path}/samples_{split}{fold}.pkl"
+            logger.info(f"setting sample file {sample_file}")
+            config[data_slot]["dataset_config"]["sample_file"] = sample_file
 
         if (module == "deeprvat") | (module == "deeprvat_pretrained"):
             logger.info("Writing baseline directories")
@@ -89,7 +91,8 @@ def generate_test_config(input_config, out_file, fold, n_folds):
     split = "test"
     sample_file = f"{cv_path}/samples_{split}{fold}.pkl"
     logger.info(f"setting sample file {sample_file}")
-    config["sample_file"] = sample_file
+    for data_slot in DATA_SLOT_DICT["deeprvat"]:
+        config[data_slot]["dataset_config"]["sample_file"] = sample_file
     with open(out_file, "w") as f:
         yaml.dump(config, f)
 
