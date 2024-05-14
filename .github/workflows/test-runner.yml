@@ -4,7 +4,7 @@ on: [ push ]
 
 jobs:
   DeepRVAT-Tests-Runner:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -24,7 +24,7 @@ jobs:
         shell: micromamba-shell {0}
 
   DeepRVAT-Tests-Runner-Preprocessing:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
         shell: micromamba-shell {0}
 
   DeepRVAT-Tests-Runner-Annotations:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
