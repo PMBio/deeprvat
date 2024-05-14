@@ -1082,7 +1082,7 @@ def aggregate_abscores(
         delayed(process_chunk)(
             i, abs_splice_res_dir, tissues_to_exclude, tissue_agg_function, ca_shortened
         )
-        for i in tqdm(os.listdir(abs_splice_res_dir))
+        for i in tqdm(sorted(os.listdir(abs_splice_res_dir)))
     )
     all_absplice_scores = list(output_generator)
 
@@ -1751,6 +1751,10 @@ def process_vep(
     assert vep_file.pos.isna().sum() == 0
     assert vep_file.ref.isna().sum() == 0
     assert vep_file.alt.isna().sum() == 0
+    assert (
+        vep_file[["chrom", "pos", "ref", "alt"]].drop_duplicates().shape
+        == vcf_df[["chrom", "pos", "ref", "alt"]].drop_duplicates().shape
+    )
 
     if "pos" in vep_file.columns:
         vep_file["pos"] = vep_file["pos"].astype(int)
