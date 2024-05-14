@@ -33,19 +33,19 @@ contains the configuration parameters for setting phenotypes, training data, mod
 Samples missing in `phenotypes.parquet` won't be used in DeepRVAT training/testing. The user must generate this file as it's not output by the preprocessing/annotation pipeline.
 This file must also contain all covariates that should be used during training/association testing (e.g., genetic sex, age, genetic principal components).
 
-- `[path_to_deeprvat]/example/baseline_results`
+- `baseline_results`
 directory containing the results of the seed gene discovery pipline. Insturctions [here](seed_gene_discovery.md)
 
 ## Configuration file: Common parameters
 
-The `config.yaml` file located in your `experiment` directory contains the configuration parameters of key sections: phenotypes, baseline_results, training_data, and data. It also allows to set many other configurations, such as the variant annotations 
+The `config.yaml` file located in your `experiment` directory contains the configuration parameters of key sections: phenotypes, baseline_results, training_data, and data. It also allows to set many other configurations detailed below. 
 
 `config['training_data']` contains the relevant specifications for the training dataset creation.
 
 `config['data']` contains the relevant specifications for the association dataset creation.
 
 ### Baseline results
-Specifies paths to results from various seed gene discovery method runs (Burden/SKAT test with pLoF and missense variants). When using the seed gene discovery pipeline provided with this package, simply link the directory as 'baseline_results' in the experiment directory without any further changes.
+`config['baseline_results']` specifies paths to results from the seed gene discovery pipeline (Burden/SKAT test with pLoF and missense variants). When using the seed gene discovery pipeline provided with this package, simply link the directory as 'baseline_results' in the experiment directory without any further changes.
 
 If you want to provide custom baseline results (already combined across tests), store them like `baseline_results/{phenotype}/combined_baseline/eval/burden_associations.parquet` and set the `baseline_results` in the config to 
 ```
@@ -58,7 +58,7 @@ Baseline files have to be provided for each `{phenotype}` in `config['training']
 
 
 ### Phenotypes
-`config['phenotypes]` should consist of a complete list of phenotypes. To adjust only those phenotypes that should be used in training, add the phenotype names as a list under `config['training']['phenotypes']`. The phenotypes that are not listed under `config['training']['phenotypes']`, but are listed under 
+`config['phenotypes]` should consist of a complete list of phenotypes. To change phenotypes used during training, use `config['training']['phenotypes']`. The phenotypes that are not listed under `config['training']['phenotypes']`, but are listed under 
 `config['phenotypes]` will subsequently be used only for association testing.
 All phenotypes listed either in `config['phenotypes]` or `config['training']['phenotypes']` have to be in the column names of `phenotypes.parquet`.
 
@@ -78,13 +78,13 @@ All variant anntations that should be included in DeepRVAT's variant annotation 
 
 #### Variant minor allele frequency filter
 
-To set a threshold for variants with a MAF below a certain value (e.g., UKB_MAF < 0.1%), use:
+To filter for variants with a MAF below a certain value (e.g., UKB_MAF < 0.1%), use:
 `config[key]['dataset_config']['rare_embedding']['config']['thresholds']['UKB_MAF'] = "UKB_MAF < 1e-3"`. In this example,  `UKB_MAF` represents the MAF column from annotations.parquet here denoting MAF in the UK Biobank. 
 
 #### Additional variant filters
 Additional variant filters can be added via `config[key]['dataset_config']['rare_embedding']['config']['thresholds'][{anno}] = "{anno} > X"`.For example `config['data]['dataset_config']['rare_embedding']['config']['thresholds']['CADD_PHRED'] = "CADD_PHRED > 5"` will only include variants with a CADD score > 5 during association testing. Mind that all annotations used in the `threshold` section also have to be listed in `config[key]['dataset_config']['annotations']`.
 
-#### subsetting samples
+#### Subsetting samples
 To specify a sample file for training or association testing, use: `config[key]['dataset_config']['sample_file]`. 
 Only `.pkl` files containing a list of sample IDs (string) are supported at the moment.
 For example, if DeepRVAT training and association testing should be done on two separat datas sets, you can provide two sample files `training_samples.pkl` and `test_samples.pkl` via `config['training_data']['dataset_config']['sample_file] = training_samples.pkl` and `config['data']['dataset_config']['sample_file] = test_samples.pkl`. 
@@ -133,7 +133,7 @@ If you use the pre-trained DeepRVAT model provided with this package, use `confi
 ### Running the association testing pipeline with REGENIE
 
 #### Input data
-For running with REGENIE, in addition the input data, the following REGENIE specific files should also be included in your `experiment` directory:
+For running with REGENIE, in addition to the default input data, the following REGENIE specific files should also be included in your `experiment` directory:
 
 
 To run REGENIE Step 1
@@ -179,7 +179,7 @@ snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/association_testing_pret
 
 
 #### Testing multiple sub-chohorts
-For testing multiple sub-cohorts, remember that REGENIE Step 1 (compute intense) only needs to be executed once per sample and phenotype. We suggest running REGENIE Step 1 on all samples and phenotypes initially and then linking the output as regenie_output/step1/ in each experiment directory for testing a sub-cohort.
+For testing multiple sub-cohorts, remember that REGENIE Step 1 (compute intense) only needs to be executed once per sample and phenotype. We suggest running REGENIE Step 1 on all samples and phenotypes initially and then linking the output as `regenie_output/step1/` in each experiment directory for testing a sub-cohort.
 
 Samples to be considered when testing sub-cohorts can be provided via `keep_samples.txt` which look like 
 
@@ -202,7 +202,7 @@ snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/association_testing_pret
 
 ## Training and association testing using cross-validation
 
-DeepRVAT offers a cv-like scheme, where it's trained on all samples except those in the held-out fold. Then, it computes gene impairment scores for the held-out samples using models that excluded them. This process repeats for all folds, providing DeepRVAT scores for all samples from models that hadn't seen them before. This is repeated for all folds, yielding DeepRVAT scores for all samples. 
+DeepRVAT offers a cv-like scheme, where it's trained on all samples except those in the held-out fold. Then, it computes gene impairment scores for the held-out samples using models that excluded them. This is repeated for all folds, yielding DeepRVAT scores for all samples. 
 
 ### Input data and configuration file
 The following files should be contained within your `experiment` directory: 
@@ -221,7 +221,7 @@ For running 5-fold cross-validation include the following configuration in the c
 cv_path: sample_files
 n_folds: 5
 ```
-Provide sample files structured as sample_files/5_fold/samples_{split}{fold}.pkl, where {split} represents train/test and {fold} is a number from 0 to 4.
+Provide sample files structured as `sample_files/5_fold/samples_{split}{fold}.pkl`, where `{split}` represents train/test and `{fold}` is a number from `0 to 4`.
 
 ### Run the pipeline
 ```shell
@@ -231,7 +231,7 @@ snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/cv_training/cv_training_
 
 
 ## Training and association testing with a combined pipeline
-To run the full pipeline from training through association testing, use the below procedure. This includes training and association testing dataset generation, deepRVAT model training, computation of burdens, regression and evaluation. 
+To run the full pipeline from training through association testing, use the below procedure. This includes training and association testing dataset generation, DeepRVAT model training, computation of burdens, regression and evaluation. 
 
 ### Input data and configuration file
 The following files should be contained within your `experiment` directory: 
