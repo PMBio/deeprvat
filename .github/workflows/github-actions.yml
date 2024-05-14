@@ -4,7 +4,7 @@ on: [ push ]
 
 jobs:
   DeepRVAT-Pipeline-Smoke-Tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -37,7 +37,7 @@ jobs:
         shell: micromamba-shell {0}
 
   DeepRVAT-Pipeline-Tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: DeepRVAT-Pipeline-Smoke-Tests
     steps:
       - name: Check out repository code
@@ -79,7 +79,7 @@ jobs:
 
 
   DeepRVAT-Preprocessing-Pipeline-Smoke-Tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -112,7 +112,7 @@ jobs:
 
 
   DeepRVAT-Annotation-Pipeline-Smoke-Tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -131,7 +131,7 @@ jobs:
 
 
   DeepRVAT-Preprocessing-Pipeline-Tests-No-QC:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: DeepRVAT-Preprocessing-Pipeline-Smoke-Tests
     steps:
       - name: Check out repository code
@@ -171,7 +171,7 @@ jobs:
 
 
   DeepRVAT-Preprocessing-Pipeline-Tests-With-QC:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: DeepRVAT-Preprocessing-Pipeline-Smoke-Tests
     steps:
 
