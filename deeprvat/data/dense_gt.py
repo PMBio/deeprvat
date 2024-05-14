@@ -362,7 +362,7 @@ class DenseGTDataset(Dataset):
         # account for the fact that genotypes.h5 and phenotype_df can have different
         # orders of their samples
         self.index_map_geno, _ = get_matched_sample_indices(
-            samples_gt.astype(int), self.samples.astype(int)
+            samples_gt.astype(str), self.samples.astype(str)
         )
         # get_matched_sample_indices is a much, much faster implementation of the code below
         # self.index_map_geno = [np.where(samples_gt.astype(int) == i) for i in self.samples.astype(int)]
