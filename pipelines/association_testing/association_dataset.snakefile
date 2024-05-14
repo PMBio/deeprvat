@@ -1,5 +1,8 @@
 configfile: "config.yaml"
 
+debug_flag = config.get('debug', False)
+debug = '--debug ' if debug_flag else ''
+
 rule association_dataset:
     input:
         config = '{phenotype}/deeprvat/hpopt_config.yaml'
@@ -11,5 +14,6 @@ rule association_dataset:
     priority: 30
     shell:
         'deeprvat_associate make-dataset '
+        + debug +
         '{input.config} '
         '{output}'
