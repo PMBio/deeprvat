@@ -120,7 +120,11 @@ def cli():
 @click.argument("out_file", type=click.Path(writable=True))
 @click.argument("duplicates_file", type=click.Path(writable=True))
 @click.option("--chromosomes", type=str)
-def add_variant_ids(variant_file: str, out_file: str, duplicates_file: str, chromosomes: Optional[str]=None,
+def add_variant_ids(
+    variant_file: str,
+    out_file: str,
+    duplicates_file: str,
+    chromosomes: Optional[str] = None,
 ):
     variants = pd.read_csv(
         variant_file, sep="\t", names=["chrom", "pos", "ref", "alt"], index_col=False
