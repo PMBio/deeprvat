@@ -8,6 +8,7 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
+
       - uses: mamba-org/setup-micromamba@v1.8.1
         with:
           environment-name: deeprvat-preprocess-gh-action
@@ -25,9 +26,9 @@ jobs:
   DeepRVAT-Tests-Runner-Preprocessing:
     runs-on: ubuntu-24.04
     steps:
-
       - name: Check out repository code
         uses: actions/checkout@v4
+
       - uses: mamba-org/setup-micromamba@v1.8.1
         with:
           environment-name: deeprvat-preprocess-gh-action
@@ -46,7 +47,6 @@ jobs:
   DeepRVAT-Tests-Runner-Annotations:
     runs-on: ubuntu-24.04
     steps:
-
       - name: Check out repository code
         uses: actions/checkout@v4
       - uses: mamba-org/setup-micromamba@v1.8.1
