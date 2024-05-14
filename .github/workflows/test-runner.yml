@@ -61,5 +61,5 @@ jobs:
         shell: micromamba-shell {0}
 
       - name: Run pytest annotations
-        run: pytest -v ${{ github.workspace }}/tests/annotations
+        run: pytest -n auto -v ${{ github.workspace }}/tests/annotations
         shell: micromamba-shell {0}
