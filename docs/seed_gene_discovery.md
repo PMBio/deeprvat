@@ -56,7 +56,7 @@ test_config:
 
 ## Running the seed gene discovery pipeline
 
-In a directory with all of the [input data](#input-data) required and your [configuration file](#configuration-file) set up, run: 
+In a directory with all of the [input data](##input-data) required and your [configuration file](##configuration-file) set up, run: 
 
 ```
 [path_to_deeprvat]/pipelines/seed_gene_discovery.snakefile
