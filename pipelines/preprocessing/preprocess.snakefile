@@ -50,10 +50,17 @@ rule combine_genotypes:
     shell:
         f"{preprocessing_cmd} combine-genotypes {{input}} {{output}}"
 
+rule extract_samples:
+    input:
+        vcf_files,
+    output:
+        norm_dir / "samples_chr.csv",
+    shell:
+        f"{load_bcftools} bcftools query --list-samples {{input}} > {{output}}"
 
 rule normalize:
     input:
-        samplefile=norm_dir / "samples_chr.csv",
+        samplefile=rules.extract_samples.output,
         fasta=fasta_file,
         fastaindex=fasta_index_file,
     params:
@@ -77,7 +84,7 @@ rule index_fasta:
 
 rule sparsify:
     input:
-        bcf=bcf_dir / "{vcf_stem}.bcf",
+        bcf=rules.normalize.output.bcf_file
     output:
         tsv=sparse_dir / "{vcf_stem}.tsv.gz",
     resources:
@@ -89,7 +96,7 @@ rule sparsify:
 
 rule variants:
     input:
-        bcf=bcf_dir / "{vcf_stem}.bcf",
+        bcf=rules.normalize.output.bcf_file,
     output:
         norm_variants_dir / "{vcf_stem}.tsv.gz",
     resources:
@@ -100,7 +107,7 @@ rule variants:
 
 rule concatenate_variants:
     input:
-        expand(norm_variants_dir / "{vcf_stem}.tsv.gz",vcf_stem=vcf_stems),
+        expand(rules.variants.output,vcf_stem=vcf_stems),
     output:
         norm_variants_dir / "variants_no_id.tsv.gz",
     resources:
@@ -111,7 +118,7 @@ rule concatenate_variants:
 
 rule add_variant_ids:
     input:
-        norm_variants_dir / "variants_no_id.tsv.gz",
+        rules.concatenate_variants.output
     output:
         variants=norm_variants_dir / "variants.tsv.gz",
         duplicates=qc_duplicate_vars_dir / "duplicates.tsv",
@@ -123,7 +130,7 @@ rule add_variant_ids:
 
 rule create_parquet_variant_ids:
     input:
-        norm_variants_dir / "variants_no_id.tsv.gz",
+        rules.concatenate_variants.output
     output:
         variants=norm_variants_dir / "variants.parquet",
         duplicates=qc_duplicate_vars_dir / "duplicates.parquet",
@@ -131,13 +138,3 @@ rule create_parquet_variant_ids:
         mem_mb=2048,
     shell:
         f"{preprocessing_cmd} add-variant-ids {{input}} {{output.variants}} {{output.duplicates}}"
-
-
-rule extract_samples:
-    input:
-        vcf_files,
-    output:
-        norm_dir / "samples_chr.csv",
-    shell:
-        f"{load_bcftools} bcftools query --list-samples {{input}} > {{output}}"
-
