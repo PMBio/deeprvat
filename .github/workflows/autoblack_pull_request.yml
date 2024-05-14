@@ -7,7 +7,7 @@ name: autoblack_pull_request
 on: [ pull_request ]
 jobs:
   black-code:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
