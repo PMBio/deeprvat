@@ -138,4 +138,5 @@ rule create_parquet_variant_ids:
     resources:
         mem_mb=2048,
     shell:
-        f"{preprocessing_cmd} add-variant-ids {{input}} {{output.variants}} {{output.duplicates}}"
+        f"""{preprocessing_cmd} add-variant-ids --chromosomes {','.join(str(chr) for chr in set(chromosomes))} \
+         {{input}} {{output.variants}} {{output.duplicates}}"""
