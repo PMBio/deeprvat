@@ -14,7 +14,7 @@ burden_phenotype = phenotypes[0]
 
 n_burden_chunks = config.get("n_burden_chunks", 1) if not debug_flag else 2
 n_regression_chunks = config.get("n_regression_chunks", 40) if not debug_flag else 2
-n_avg_chunks = config.get('n_avg_chunks', 40)
+n_avg_chunks = config.get('n_avg_chunks', 1)
 n_trials = config["hyperparameter_optimization"]["n_trials"]
 n_bags = config["training"]["n_bags"] if not debug_flag else 3
 n_repeats = config["n_repeats"]
@@ -28,20 +28,25 @@ n_parallel_training_jobs = config["training"].get("n_parallel_jobs", 1)
 wildcard_constraints:
     repeat="\d+",
     trial="\d+",
-    cv_split="\d+",
-    phenotype="[A-z0-9_]+",
 
 
 cv_splits = config.get("n_folds", 5)
 cv_exp = True
-
-
 
 include: "cv_training.snakefile"
 include: "cv_burdens.snakefile"
 include: "../association_testing/burdens.snakefile"
 include: "../association_testing/regress_eval.snakefile"
 
+
+rule all_evaluate:  #regress_eval.snakefile
+    input:
+        significant=expand(
+            "{phenotype}/deeprvat/eval/significant.parquet", phenotype=phenotypes
+        ),
+        results=expand(
+            "{phenotype}/deeprvat/eval/all_results.parquet", phenotype=phenotypes
+        ),
 
 
 rule all_regression:  #regress_eval.snakefile
@@ -78,25 +83,6 @@ rule all_training:  #cv_training.snakefile
             "cv_split{cv_split}/deeprvat/models/repeat_{repeat}/config.yaml",
             repeat=range(n_repeats),
             cv_split=range(cv_splits),
-        ),
-
-rule all_training_dataset:  #cv_training.snakefile
-    input:
-        expand(
-            "cv_split0/deeprvat/{phenotype}/deeprvat/input_tensor.zarr",
-            phenotype=training_phenotypes,
-        ),
-        expand(
-            "cv_split0/deeprvat/{phenotype}/deeprvat/covariates.zarr",
-            phenotype=training_phenotypes,
-        ),
-        expand(
-            "cv_split0/deeprvat/{phenotype}/deeprvat/y.zarr",
-            phenotype=training_phenotypes,
-        ),
-        expand(
-            "cv_split0/deeprvat/{phenotype}/deeprvat/sample_ids.zarr",
-            phenotype=training_phenotypes,
         ),
 
 
