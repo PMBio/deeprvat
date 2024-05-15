@@ -87,7 +87,6 @@ jobs:
           --snakefile ${{ github.workspace }}/pipelines/seed_gene_discovery.snakefile --show-failed-logs -F
         shell: micromamba-shell {0}
 
-
   DeepRVAT-Preprocessing-Pipeline-Smoke-Tests:
     runs-on: ubuntu-latest
     steps:
@@ -120,7 +119,6 @@ jobs:
           --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml --show-failed-logs
         shell: micromamba-shell {0}
 
-
   DeepRVAT-Annotation-Pipeline-Smoke-Tests:
     runs-on: ubuntu-latest
     steps:
@@ -138,7 +136,6 @@ jobs:
           --snakefile ${{ github.workspace }}/pipelines/annotations.snakefile \
           --configfile ${{ github.workspace }}/pipelines/config/deeprvat_annotation_config.yaml --show-failed-logs
         shell: micromamba-shell {0}
-
 
   DeepRVAT-Preprocessing-Pipeline-Tests-No-QC:
     runs-on: ubuntu-latest
@@ -178,7 +175,6 @@ jobs:
           --snakefile ${{ github.workspace }}/pipelines/preprocess_no_qc.snakefile \
           --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml --show-failed-logs
         shell: micromamba-shell {0}
-
 
   DeepRVAT-Preprocessing-Pipeline-Tests-With-QC:
     runs-on: ubuntu-latest
