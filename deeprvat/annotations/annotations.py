@@ -1923,7 +1923,7 @@ def compute_plof(anno_df_in, anno_df_out):
         "Consequence_splice_donor_variant",
     ]
 
-    anno_df["is_plof"] = anno_df[PLOF_COLS].eq(1).any(axis=1)
+    anno_df["is_plof"] = anno_df[PLOF_COLS].eq(1).any(axis=1).astype(int)
     anno_df.to_parquet(anno_df_out)
 
 
