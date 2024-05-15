@@ -1,0 +1,33 @@
+name: Setup DeepRVAT ENV
+
+on:
+  workflow_call:
+    inputs:
+      environment-file:
+        required: true
+        type: string
+      command:
+        required: true
+        type: string
+      env-name:
+        required: true
+        type: string
+    secrets:
+      token:
+        required: true
+
+jobs:
+  setup-env:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - uses: mamba-org/setup-micromamba@v1.8.1
+        with:
+          environment-name: deeprvat-${{ inputs.env-name }}-action
+          environment-file: ${{ inputs.environment-file }}
+          cache-environment: true
+          cache-downloads: true
+      - name: Smoke test run_training pipeline
+        run: ${{ inputs.command }}
+        shell: micromamba-shell {0}

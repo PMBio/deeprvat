@@ -20,6 +20,15 @@ jobs:
           --snakefile ${{ github.workspace }}/pipelines/run_training.snakefile --show-failed-logs
         shell: micromamba-shell {0}
 
+  Smoke-RunTraining2:
+    uses: ./.github/workflows/setup-deeprvat-env.yml
+    with:
+      environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
+      env-name: Smoke-RunTraining
+      command: |
+          python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example \
+          --snakefile ${{ github.workspace }}/pipelines/run_training.snakefile --show-failed-logs
+
   Smoke-Association-Testing-Pretrained:
     runs-on: ubuntu-latest
     steps:
