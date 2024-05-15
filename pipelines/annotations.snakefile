@@ -184,18 +184,6 @@ absplice_main_conf_path = (
 with open(absplice_main_conf_path,"r") as fd:
     absplice_main_conf = yaml.safe_load(fd)
 
-include: Path("resources") / "absplice_download.snakefile"
-include: Path("resources") / "absplice_splicing_pred_DNA.snakefile"
-
-if absplice_main_conf["AbSplice_RNA"] == True:
-    include: deeprvat_parent_path / "deeprvat" / "pipelines" / "resources" / "absplice_splicing_pred_RNA.snakefile"
-
-all_absplice_output_files = list()
-all_absplice_output_files.append(rules.all_download.input)
-all_absplice_output_files.append(rules.all_predict_dna.input)
-
-if absplice_main_conf["AbSplice_RNA"] == True:
-    all_absplice_output_files.append(rules.all_predict_rna.input)
 
 
 rule all:
@@ -251,6 +239,8 @@ rule extract_with_header:
                 + load_hts
                 + """ bcftools view  -s '' --force-samples {input} |bgzip  > {output}"""
         )
+
+
 
 
 rule extract_variants:
@@ -526,6 +516,9 @@ rule merge_deepsea_pcas:
             ]
         )
 
+include: Path("resources") / "absplice_download.snakefile"
+include: Path("resources") / "absplice_splicing_pred_DNA.snakefile"
+
 rule aggregate_absplice_scores:
     input:
         abscore_files=expand(
@@ -663,3 +656,4 @@ rule select_rename_fill_columns:
                 "{output}",
             ]
         )
+
