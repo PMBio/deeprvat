@@ -403,9 +403,7 @@ rule deepSea:
 rule concat_deepSea:
     input:
         deepSEAscoreFiles=expand(
-            [
-                rules.deepSea.output,
-            ],
+            rules.deepSea.output,
             file_stem=file_stems,
         ),
     params:
