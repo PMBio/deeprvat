@@ -132,7 +132,7 @@ ncores_agg_absplice = int(config.get("ncores_agg_absplice") or 4)
 source_variant_file_pattern_complete = (
         source_variant_file_pattern + "." + source_variant_file_type
 )
-print(included_chromosomes)
+print(f"{included_chromosomes=}")
 file_paths = [
     glob(
         str(
@@ -151,7 +151,6 @@ file_stems = [
     .group()
     for i in file_paths
 ]
-print(file_stems)
 
 absplice_download_dir = (
         config.get("absplice_download_dir")
