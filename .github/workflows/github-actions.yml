@@ -21,7 +21,7 @@ jobs:
         shell: micromamba-shell {0}
 
   Smoke-RunTraining2:
-    uses: ${{ github.workspace }}/.github/workflows/setup-deeprvat-env.yml
+    uses: ./.github/workflows/setup-deeprvat-env.yaml
     with:
       environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
       env-name: Smoke-RunTraining
