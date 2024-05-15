@@ -402,9 +402,12 @@ rule deepSea:
 
 rule concat_deepSea:
     input:
-        deepSEAscoreFiles=expand(
-            rules.deepSea.output,
-            file_stem=file_stems,
+        deepSEAscoreFiles = expand(
+            [
+                anno_dir
+                / ("{file_stem}" + ".CLI.deepseapredict.diff.tsv"),
+            ],
+            file_stem = file_stems
         ),
     params:
         joined=lambda w, input: ",".join(input.deepSEAscoreFiles),
@@ -494,8 +497,8 @@ rule merge_annotations:
 rule concat_annotations:
     input:
         vcf_files=expand(
-            [rules.merge_annotations.output],
-            file_stem=file_stems,
+            [anno_dir / "{file_stem}_merged.parquet"],
+            file_stem = file_stems,
         ),
     output:
         anno_dir / "vep_deepripe.parquet",
