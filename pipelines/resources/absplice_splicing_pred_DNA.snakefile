@@ -25,7 +25,7 @@ def splicemap3(wildcards):
 
 rule mmsplice_splicemap:
     input:
-        vcf=rules.extract_with_header.output,
+        vcf=rules.extract_with_header.output[0],
         fasta=Path(absplice_download_dir) / config_download["fasta"][genome]["file"],
         splicemap_5=splicemap5,
         splicemap_3=splicemap3,
@@ -63,7 +63,7 @@ if absplice_main_conf["use_rocksdb"] == True:
             threads=1,
             gpu=1,
         input:
-            vcf=rules.extract_with_header.output,
+            vcf=rules.extract_with_header.output[0],
             fasta=str(
                 Path(absplice_download_dir) / config_download["fasta"][genome]["file"]
             ),
@@ -95,7 +95,7 @@ else:
             threads=1,
             gpu=1,
         input:
-            vcf=rules.extract_with_header.output,
+            vcf=rules.extract_with_header.output[0],
             fasta=Path(absplice_download_dir) / config_download["fasta"][genome]["file"],
         params:
             genome=genome_mapper[absplice_main_conf["genome"]],
