@@ -503,7 +503,7 @@ rule deepRiPe_eclip_k5:
 
 rule vep:
     input:
-        vcf=rules.strip_chr_name.output
+        vcf=rules.strip_chr_name.output,
         fasta=fasta_dir / fasta_file_name,
     output:
         anno_dir / (source_variant_file_pattern + "_vep_anno.tsv"),
