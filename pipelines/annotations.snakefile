@@ -187,7 +187,7 @@ with open(absplice_main_conf_path, "r") as fd:
 
 rule all:
     input:
-        anno_dir / "vep_deepripe_deepsea_absplice_maf_pIDs_filtered_filled.parquet",
+        anno_dir / "complete_annotations.parquet",
 
 
 if not gene_id_file:
