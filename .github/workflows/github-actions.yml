@@ -23,7 +23,7 @@ jobs:
   Smoke-RunTraining2:
     uses: ./.github/workflows/setup-deeprvat-env.yaml
     with:
-      environment-file: "${{ github.workspace }}/deeprvat_env_no_gpu.yml"
+      environment-file: deeprvat_env_no_gpu.yml
       env-name: Smoke-RunTraining
       command: |
           python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example \

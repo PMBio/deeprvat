@@ -22,7 +22,7 @@ jobs:
       - uses: mamba-org/setup-micromamba@v1.8.1
         with:
           environment-name: deeprvat-${{ inputs.env-name }}-action
-          environment-file: ${{ inputs.environment-file }}
+          environment-file: ${{ github.workspace }}/${{ inputs.environment-file }}
           cache-environment: true
           cache-downloads: true
       - name: Smoke test run_training pipeline
