@@ -14,10 +14,15 @@ jobs:
           environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
           cache-environment: true
           cache-downloads: true
-      - name: Smoketest training_association_testing pipeline
+      - name: Smoketest run_training pipeline
         run: |
           python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example \
-          --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
+          --snakefile ${{ github.workspace }}/pipelines/run_training.snakefile --show-failed-logs
+        shell: micromamba-shell {0}
+      - name: Smoketest association_testing_pretrained pipeline
+        run: |
+          python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example \
+          --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained.snakefile --show-failed-logs -F
         shell: micromamba-shell {0}
       - name: Link pretrained models
         run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
@@ -25,7 +30,7 @@ jobs:
       - name: Smoketest association_testing_pretrained pipeline
         run: |
           python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example \
-          --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained.snakefile --show-failed-logs
+          --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained.snakefile --show-failed-logs -F
         shell: micromamba-shell {0}
       - name: Copy seed gene discovery snakemake config
         run: cd ${{ github.workspace }}/example && cp ../deeprvat/seed_gene_discovery/config.yaml .
