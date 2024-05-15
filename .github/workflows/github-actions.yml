@@ -83,7 +83,7 @@ jobs:
 
   Pipeline-Tests-RunTraining:
     runs-on: ubuntu-latest
-    needs: Pipeline-Smoke-Tests-RunTraining
+    needs: Smoke-Tests-RunTraining
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -108,7 +108,7 @@ jobs:
 
   Pipeline-Tests-Training-Association-Testing:
     runs-on: ubuntu-latest
-    needs: Pipeline-Smoke-Tests-Association-Testing-Pretrained
+    needs: Smoke-Tests-Association-Testing-Pretrained
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -133,7 +133,7 @@ jobs:
 
   Pipeline-Tests-Association-Testing-Pretrained:
     runs-on: ubuntu-latest
-    needs: Pipeline-Smoke-Tests-Association-Testing-Pretrained
+    needs: Smoke-Tests-Association-Testing-Pretrained
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -162,7 +162,7 @@ jobs:
 
   Pipeline-Tests-Seed-Gene-Discovery:
     runs-on: ubuntu-latest
-    needs: Pipeline-Smoke-Tests-Seed-Gene-Discovery
+    needs: Smoke-Tests-Seed-Gene-Discovery
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
