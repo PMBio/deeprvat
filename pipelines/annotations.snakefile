@@ -27,7 +27,7 @@ def alphanum_key(s):
     ["z", 23, "a"]
 
     """
-    return [tryint(c) for c in re.split("([0-9]+)", s)]
+    return [tryint(c) for c in re.split("([0-9]+)",s)]
 
 
 def human_sort(l):
@@ -48,29 +48,29 @@ gene_id_file = config.get("gene_id_parquet")
 
 deeprvat_parent_path = Path(config["deeprvat_repo_dir"])
 annotation_python_file = (
-    deeprvat_parent_path / "deeprvat" / "annotations" / "annotations.py"
+        deeprvat_parent_path / "deeprvat" / "annotations" / "annotations.py"
 )
 annotation_columns_yaml_file = (
-    config.get("annotation_columns_yaml_file")
-    or deeprvat_parent_path
-    / "pipelines"
-    / "config"
-    / "annotation_colnames_filling_values.yaml"
+        config.get("annotation_columns_yaml_file")
+        or deeprvat_parent_path
+        / "pipelines"
+        / "config"
+        / "annotation_colnames_filling_values.yaml"
 )
 included_chromosomes = config.get(
-    "included_chromosomes", [f"{c}" for c in range(1, 23)] + ["X", "Y"]
+    "included_chromosomes",[f"{c}" for c in range(1,23)] + ["X", "Y"]
 )
 
-preprocess_dir = Path(config.get("preprocessing_workdir", ""))
+preprocess_dir = Path(config.get("preprocessing_workdir",""))
 variant_pq = (
-    config.get("variant_parquetfile_path")
-    or preprocess_dir / "norm" / "variants" / "variants.parquet"
+        config.get("variant_parquetfile_path")
+        or preprocess_dir / "norm" / "variants" / "variants.parquet"
 )
 genotype_file = (
-    config.get("genotype_file_path") or preprocess_dir / "preprocessed" / "genotypes.h5"
+        config.get("genotype_file_path") or preprocess_dir / "preprocessed" / "genotypes.h5"
 )
 saved_deepripe_models_path = (
-    Path(config["faatpipe_repo_dir"]) / "data" / "deepripe_models"
+        Path(config["faatpipe_repo_dir"]) / "data" / "deepripe_models"
 )
 merge_nthreads = int(config.get("merge_nthreads") or 8)
 
@@ -82,7 +82,6 @@ load_hts = f'{config["htslib_load_cmd"]} &&' if config.get("htslib_load_cmd") el
 load_perl = f'{config["perl_load_cmd"]} &&' if config.get("perl_load_cmd") else ""
 load_vep = f'{config["vep_load_cmd"]} &&' if config.get("vep_load_cmd") else ""
 
-
 # init data path
 source_variant_file_pattern = config["source_variant_file_pattern"]
 source_variant_file_type = config["source_variant_file_type"]
@@ -90,9 +89,8 @@ source_variant_dir = Path(config["source_variant_dir"])
 anno_tmp_dir = Path(config["anno_tmp_dir"])
 anno_dir = Path(config["anno_dir"])
 pybedtools_tmp_path = Path(
-    config.get("pybedtools_tmp_path", anno_tmp_dir / "pybedtools")
+    config.get("pybedtools_tmp_path",anno_tmp_dir / "pybedtools")
 )
-
 
 # init vep
 vep_source_dir = Path(config["vep_repo_dir"])
@@ -110,13 +108,13 @@ else:
 # init deepSEA
 deepSEA_tmp_dir = config.get("deepSEA_tmp_dir") or anno_tmp_dir / "deepSEA_PCA"
 deepSEA_pca_obj = (
-    config.get("deepSEA_pca_object") or anno_tmp_dir / "deepSEA_PCA" / "pca.npy"
+        config.get("deepSEA_pca_object") or anno_tmp_dir / "deepSEA_PCA" / "pca.npy"
 )
 deepSEA_means_and_sds = (
-    config.get("deepSEA_means_and_sds")
-    or anno_tmp_dir / "deepSEA_PCA" / "deepSEA_means_SDs.parquet"
+        config.get("deepSEA_means_and_sds")
+        or anno_tmp_dir / "deepSEA_PCA" / "deepSEA_means_SDs.parquet"
 )
-n_pca_components = config.get("deepsea_pca_n_components", 100)
+n_pca_components = config.get("deepsea_pca_n_components",100)
 
 # init deepripe
 n_jobs_deepripe = int(config.get("n_jobs_deepripe") or 8)
@@ -125,7 +123,6 @@ n_jobs_deepripe = int(config.get("n_jobs_deepripe") or 8)
 kipoi_repo_dir = Path(config["kipoiveff_repo_dir"])
 ncores_addis = int(config.get("n_jobs_addids") or 32)
 
-
 # init absplice
 absplice_repo_dir = Path(config["absplice_repo_dir"])
 n_cores_absplice = int(config.get("n_cores_absplice") or 4)
@@ -133,14 +130,14 @@ ncores_merge_absplice = int(config.get("n_cores_merge_absplice") or 8)
 ncores_agg_absplice = int(config.get("ncores_agg_absplice") or 4)
 
 source_variant_file_pattern_complete = (
-    source_variant_file_pattern + "." + source_variant_file_type
+        source_variant_file_pattern + "." + source_variant_file_type
 )
 print(included_chromosomes)
 file_paths = [
     glob(
         str(
             source_variant_dir
-            / source_variant_file_pattern_complete.format(chr=c, block="*")
+            / source_variant_file_pattern_complete.format(chr=c,block="*")
         )
     )
     for c in included_chromosomes
@@ -149,54 +146,50 @@ file_paths = [
 file_paths = list(chain.from_iterable(file_paths))
 human_sort(file_paths)
 file_stems = [
-    re.compile(source_variant_file_pattern.format(chr="(\d+|X|Y)", block="\d+"))
+    re.compile(source_variant_file_pattern.format(chr="(\d+|X|Y)",block="\d+"))
     .search(i)
     .group()
     for i in file_paths
 ]
-
+print(file_stems)
 
 absplice_download_dir = (
-    config.get("absplice_download_dir")
-    or absplice_repo_dir / "example" / "data" / "resources" / "downloaded_files"
+        config.get("absplice_download_dir")
+        or absplice_repo_dir / "example" / "data" / "resources" / "downloaded_files"
 )
-absplice_output_dir = config.get("absplice_output_dir", anno_tmp_dir / "absplice")
+absplice_output_dir = config.get("absplice_output_dir",anno_tmp_dir / "absplice")
 vcf_id = anno_tmp_dir / "{vcf_id}"
 vcf_dir = anno_tmp_dir
 
 config_download_path = (
-    deeprvat_parent_path / "pipelines" / "resources" / "absplice_config_download.yaml"
+        deeprvat_parent_path / "pipelines" / "resources" / "absplice_config_download.yaml"
 )
-with open(config_download_path, "r") as fd:
+with open(config_download_path,"r") as fd:
     config_download = yaml.safe_load(fd)
 
 config_pred_path = (
-    deeprvat_parent_path / "pipelines" / "resources" / "absplice_config_pred.yaml"
+        deeprvat_parent_path / "pipelines" / "resources" / "absplice_config_pred.yaml"
 )
-with open(config_pred_path, "r") as fd:
+with open(config_pred_path,"r") as fd:
     config_pred = yaml.safe_load(fd)
 
 config_cat_path = (
-    deeprvat_parent_path / "pipelines" / "resources" / "absplice_config_cat.yaml"
+        deeprvat_parent_path / "pipelines" / "resources" / "absplice_config_cat.yaml"
 )
-with open(config_cat_path, "r") as fd:
+with open(config_cat_path,"r") as fd:
     config_cat = yaml.safe_load(fd)
 
 absplice_main_conf_path = (
-    deeprvat_parent_path / "pipelines" / "resources" / "config_absplice.yaml"
+        deeprvat_parent_path / "pipelines" / "resources" / "config_absplice.yaml"
 )
-with open(absplice_main_conf_path, "r") as fd:
+with open(absplice_main_conf_path,"r") as fd:
     absplice_main_conf = yaml.safe_load(fd)
-
 
 include: Path("resources") / "absplice_download.snakefile"
 include: Path("resources") / "absplice_splicing_pred_DNA.snakefile"
 
-
 if absplice_main_conf["AbSplice_RNA"] == True:
-
     include: deeprvat_parent_path / "deeprvat" / "pipelines" / "resources" / "absplice_splicing_pred_RNA.snakefile"
-
 
 all_absplice_output_files = list()
 all_absplice_output_files.append(rules.all_download.input)
@@ -250,23 +243,23 @@ rule calculate_allele_frequency:
 rule extract_with_header:
     input:
         source_variant_dir
-        / (source_variant_file_pattern + f".{source_variant_file_type}"),
+        / f"{{file_stem}}.{source_variant_file_type}",
     output:
-        anno_tmp_dir / (source_variant_file_pattern + "_variants_header.vcf.gz"),
+        anno_tmp_dir / "{file_stem}_variants_header.vcf.gz",
     shell:
         (
-            load_bfc
-            + load_hts
-            + """ bcftools view  -s '' --force-samples {input} |bgzip  > {output}"""
+                load_bfc
+                + load_hts
+                + """ bcftools view  -s '' --force-samples {input} |bgzip  > {output}"""
         )
 
 
 rule extract_variants:
     input:
         source_variant_dir
-        / (source_variant_file_pattern + f".{source_variant_file_type}"),
+        / f"{{file_stem}}.{source_variant_file_type}",
     output:
-        anno_tmp_dir / (source_variant_file_pattern + "_variants.vcf"),
+        anno_tmp_dir / "{file_stem}_variants.vcf",
     shell:
         " ".join(
             [
@@ -283,12 +276,12 @@ rule deepRiPe_parclip:
         variants=rules.extract_variants.output,
         fasta=fasta_dir / fasta_file_name,
     output:
-        anno_dir / (source_variant_file_pattern + "_variants.parclip_deepripe.csv.gz"),
+        anno_dir / ("{file_stem}_variants.parclip_deepripe.csv.gz"),
     threads: n_jobs_deepripe
     resources:
         mem_mb=lambda wildcards, attempt: 5_000 * (attempt + 1),
     shell:
-        f"mkdir -p {pybedtools_tmp_path/ 'parclip'} && deeprvat_annotations scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/ 'parclip'} {saved_deepripe_models_path} {{threads}} 'parclip'"
+        f"mkdir -p {pybedtools_tmp_path / 'parclip'} && deeprvat_annotations scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'parclip'} {saved_deepripe_models_path} {{threads}} 'parclip'"
 
 
 rule deepRiPe_eclip_hg2:
@@ -296,12 +289,12 @@ rule deepRiPe_eclip_hg2:
         variants=rules.extract_variants.output,
         fasta=fasta_dir / fasta_file_name,
     output:
-        anno_dir / (source_variant_file_pattern + "_variants.eclip_hg2_deepripe.csv.gz"),
+        anno_dir / ("{file_stem}_variants.eclip_hg2_deepripe.csv.gz"),
     threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
     resources:
         mem_mb=lambda wildcards, attempt: 5_000 * (attempt + 1),
     shell:
-        f"mkdir -p {pybedtools_tmp_path/ 'hg2'} && deeprvat_annotations scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/ 'hg2'} {saved_deepripe_models_path} {{threads}} 'eclip_hg2'"
+        f"mkdir -p {pybedtools_tmp_path / 'hg2'} && deeprvat_annotations scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'hg2'} {saved_deepripe_models_path} {{threads}} 'eclip_hg2'"
 
 
 rule deepRiPe_eclip_k5:
@@ -309,19 +302,19 @@ rule deepRiPe_eclip_k5:
         variants=rules.extract_variants.output,
         fasta=fasta_dir / fasta_file_name,
     output:
-        anno_dir / (source_variant_file_pattern + "_variants.eclip_k5_deepripe.csv.gz"),
+        anno_dir / ("{file_stem}_variants.eclip_k5_deepripe.csv.gz"),
     threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
     resources:
         mem_mb=lambda wildcards, attempt: 5_000 * (attempt + 1),
     shell:
-        f"mkdir -p {pybedtools_tmp_path/ 'k5'} && deeprvat_annotations scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/ 'k5'} {saved_deepripe_models_path} {{threads}} 'eclip_k5'"
+        f"mkdir -p {pybedtools_tmp_path / 'k5'} && deeprvat_annotations scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path / 'k5'} {saved_deepripe_models_path} {{threads}} 'eclip_k5'"
 
 
 rule strip_chr_name:
     input:
         rules.extract_variants.output,
     output:
-        anno_tmp_dir / (source_variant_file_pattern + "_stripped.vcf.gz"),
+        anno_tmp_dir / "{file_stem}_stripped.vcf.gz",
     shell:
         f"{load_hts} cut -c 4- {{input}} |bgzip > {{output}}"
 
@@ -331,7 +324,7 @@ rule vep:
         vcf=rules.strip_chr_name.output,
         fasta=fasta_dir / fasta_file_name,
     output:
-        anno_dir / (source_variant_file_pattern + "_vep_anno.tsv"),
+        anno_dir / "{file_stem}_vep_anno.tsv",
     threads: vep_nfork
     resources:
         mem_mb=lambda wildcards, attempt: 5_000 * (attempt + 1),
@@ -388,7 +381,7 @@ rule deepSea:
         variants=rules.extract_with_header.output,
         fasta=fasta_dir / fasta_file_name,
     output:
-        anno_dir / (source_variant_file_pattern + ".CLI.deepseapredict.diff.tsv"),
+        anno_dir / "{file_stem}.CLI.deepseapredict.diff.tsv",
     threads: n_jobs_deepripe
     resources:
         mem_mb=lambda wildcards, attempt: 5_000 * (attempt + 1),
@@ -400,12 +393,9 @@ rule deepSea:
 
 rule concat_deepSea:
     input:
-        deepSEAscoreFiles = expand(
-            [
-                anno_dir
-                / ("{file_stem}" + ".CLI.deepseapredict.diff.tsv"),
-            ],
-            file_stem = file_stems
+        deepSEAscoreFiles=expand(
+            rules.deepSea.output,
+            file_stem=file_stems
         ),
     params:
         joined=lambda w, input: ",".join(input.deepSEAscoreFiles),
@@ -480,23 +470,24 @@ rule merge_annotations:
         variant_file=variant_pq,
         vcf_file=rules.extract_variants.output,
     output:
-        anno_dir / f"{source_variant_file_pattern}_merged.parquet",
+        anno_dir / "{file_stem}_merged.parquet",
     resources:
         mem_mb=lambda wildcards, attempt: 5_000 * (attempt + 1),
     shell:
         (
-            "HEADER=$(grep  -n  '#Uploaded_variation' "
-            + "{input.vep}"
-            + "| head | cut -f 1 -d ':') && deeprvat_annotations "
-            + "merge-annotations $(($HEADER-1)) {input.vep} {input.deepripe_parclip} {input.deepripe_hg2} {input.deepripe_k5} {input.variant_file} {input.vcf_file} {output}"
+                "HEADER=$(grep  -n  '#Uploaded_variation' "
+                + "{input.vep}"
+                + "| head | cut -f 1 -d ':') && deeprvat_annotations "
+                + "merge-annotations $(($HEADER-1)) {input.vep} {input.deepripe_parclip} {input.deepripe_hg2} {input.deepripe_k5} {input.variant_file} {input.vcf_file} {output}"
         )
 
 
 rule concat_annotations:
     input:
         vcf_files=expand(
-            [anno_dir / "{file_stem}_merged.parquet"],
-            file_stem = file_stems,
+            rules.merge_annotations.output,
+            #[anno_dir / "{file_stem}_merged.parquet"],
+            file_stem=file_stems,
         ),
     output:
         anno_dir / "vep_deepripe.parquet",
@@ -540,13 +531,10 @@ rule merge_deepsea_pcas:
 rule aggregate_absplice_scores:
     input:
         abscore_files=expand(
-            [
-                absplice_output_dir
-                / absplice_main_conf["genome"]
-                / "dna"
-                / "{file_stem}_variants_header.vcf.gz_AbSplice_DNA.csv"
-            ],
+            rules.absplice_dna.output.absplice_dna,
             file_stem=file_stems,
+            genome=genome,
+            vcf_id=vcf_ids
         ),
         current_annotation_file=rules.merge_deepsea_pcas.output,
     output:

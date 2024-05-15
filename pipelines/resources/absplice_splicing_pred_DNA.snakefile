@@ -100,7 +100,7 @@ else:
     
     rule spliceai_vcf_to_csv:
         input:
-            spliceai_vcf = Path(absplice_output_dir) /  config_pred['splicing_pred']['spliceai_vcf'],
+            spliceai_vcf = rules.spliceai.output.result,
         output:
             spliceai_csv = Path(absplice_output_dir) / config_pred['splicing_pred']['spliceai'],
         conda:
@@ -114,8 +114,8 @@ rule absplice_dna:
     resources: 
         mem_mb = lambda wildcards, attempt: attempt * 16_000
     input:
-        mmsplice_splicemap = Path(absplice_output_dir) / config_pred['splicing_pred']['mmsplice_splicemap'],
-        spliceai = Path(absplice_output_dir) / config_pred['splicing_pred']['spliceai'],
+        mmsplice_splicemap = rules.mmsplice_splicemap.output.result,
+        spliceai = rules.spliceai.output.result
     params:
         extra_info = absplice_main_conf['extra_info_dna']
     conda:
@@ -127,7 +127,7 @@ rule absplice_dna:
 
 rule all_predict_dna:
     input:
-        expand([absplice_output_dir / absplice_main_conf['genome'] / 'dna' / '{file_stem}_AbSplice_DNA.csv'],file_stem=file_stems)
+        expand(rules.absplice_dna.output,file_stem=file_stems, genome=genome, vcf_id=vcf_ids)
 
 del splicemap5
 del splicemap3
