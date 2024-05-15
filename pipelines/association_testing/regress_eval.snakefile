@@ -12,7 +12,6 @@ rule evaluate:
     threads: 1
     resources:
         mem_mb = 16000,
-        load = 16000
     params:
         n_combis = 1,
         use_baseline_results = '--use-baseline-results'
@@ -35,7 +34,6 @@ rule combine_regression_chunks:
     threads: 1
     resources:
         mem_mb = lambda wildcards, attempt: 12000 + (attempt - 1) * 4098,
-        load = 2000
     shell:
         'deeprvat_associate combine-regression-results '
         '--model-name repeat_0 ' 
@@ -60,8 +58,6 @@ rule regress:
     threads: 2
     resources:
         mem_mb = lambda wildcards, attempt: 28676  + (attempt - 1) * 4098,
-        # mem_mb = 16000,
-        load = lambda wildcards, attempt: 28000 + (attempt - 1) * 4000
     params:
         burden_file = f'{phenotypes[0]}/deeprvat/burdens/burdens_average.zarr',
         burden_dir = '{phenotype}/deeprvat/burdens',

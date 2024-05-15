@@ -1,6 +1,8 @@
 # Seed gene discovery
 
-This pipeline discovers *seed genes* for DeepRVAT training. The pipeline runs SKAT and burden tests for missense and pLOF variants, weighting variants with Beta(MAF,1,25). To run the tests, we use the `Scoretest` from the [SEAK](https://github.com/HealthML/seak) package.
+This pipeline discovers *seed genes* for DeepRVAT training. The pipeline runs SKAT and burden tests for missense and pLOF variants, weighting variants with Beta(MAF,1,25). To run the tests, we use the `Scoretest` from the [SEAK](https://github.com/HealthML/seak) package (has to be installed from github).
+
+To run the pipeline, an experiment directory with the `config.yaml` has to be created.
 
 (input-data)=
 ## Input data

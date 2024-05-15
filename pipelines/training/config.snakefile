@@ -33,11 +33,15 @@ rule config:
         baseline_out=lambda wildcards: f"--baseline-results-out  {wildcards.phenotype}/deeprvat/baseline_results.parquet"
         if wildcards.phenotype in training_phenotypes
         else " ",
+        association_only=lambda wildcards: f"--association-only"
+        if wildcards.phenotype not in training_phenotypes
+        else " ",
     shell:
         (
             "deeprvat_config update-config "
             "--phenotype {wildcards.phenotype} "
-            "{params.baseline_results}"
+            "{params.association_only} "
+            "{params.baseline_results} "
             "{params.baseline_out} "
             "{params.seed_genes_out} "
             "{input.config} "

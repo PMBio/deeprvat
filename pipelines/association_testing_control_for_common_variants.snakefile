@@ -118,7 +118,6 @@ rule regression_correct_common:
     threads: 2
     resources:
         mem_mb = lambda wildcards, attempt: 28676  + (attempt - 1) * 4098,
-        load = lambda wildcards, attempt: 28000 + (attempt - 1) * 4000
     params:
         burden_file = f'{burden_phenotype}/deeprvat/burdens/burdens_{{burden_agg_fct}}_{{n_avg_repeats}}_{{combi}}.zarr',
         burden_dir = '{phenotype}/deeprvat/burdens/',

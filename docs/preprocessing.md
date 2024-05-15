@@ -3,7 +3,7 @@
 The DeepRVAT preprocessing pipeline is based on [snakemake](https://snakemake.readthedocs.io/en/stable/) it uses
 [bcftools+samstools](https://www.htslib.org/) and a [python script](https://github.com/PMBio/deeprvat/blob/main/deeprvat/preprocessing/preprocess.py) preprocessing.py.
 
-![DeepRVAT preprocessing pipeline](_static/preprocess_rulegraph_no_qc.svg)
+![DeepRVAT preprocessing pipeline](_static/preprocess_no_qc_rulegraph.svg)
 
 ## Output
 
@@ -11,7 +11,7 @@ The important files that this pipeline produces that are needed in DeepRVAT are:
 
 - **preprocessed/genotypes.h5** *The main sparse hdf5 file*
 
-- **norm/variants/variants.parquet** *List of variants i parquet format*
+- **norm/variants/variants.parquet** *List of variants in parquet format*
 
 ## Setup environment
 
@@ -52,9 +52,6 @@ included_chromosomes : [21,22]
 
 # The format of the name of the "raw" vcf files
 vcf_files_list: vcf_files_list.txt
-
-# Number of threads to use in the preprocessing script, separate from snakemake threads
-preprocess_threads: 16
 
 # If you need to run a cmd to load bcf and samtools specify it here, see example
 bcftools_load_cmd : # module load bcftools/1.10.2 &&
@@ -129,7 +126,7 @@ we used when we wrote the paper. The qc is specific to the UKBB data, so if you 
 pipeline without qc.
 
 ### Run the preprocess pipeline with example data and qc
-![DeepRVAT preprocessing pipeline](_static/preprocess_rulegraph_with_qc.svg)
+![DeepRVAT preprocessing pipeline](_static/preprocess_with_qc_rulegraph.svg)
 
 *The vcf files in the example data folder was generated using [fake-vcf](https://github.com/endast/fake-vcf) (with some
 manual editing).
@@ -173,7 +170,7 @@ total 48
 
 ### Run the preprocess pipeline with example data and no qc
 
-![DeepRVAT preprocessing pipeline](_static/preprocess_rulegraph_no_qc.svg)
+![DeepRVAT preprocessing pipeline](_static/preprocess_no_qc_rulegraph.svg)
 
 *The vcf files in the example data folder was generated using [fake-vcf](https://github.com/endast/fake-vcf) (with some
 manual editing).
