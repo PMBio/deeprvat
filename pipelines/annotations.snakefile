@@ -157,7 +157,7 @@ absplice_download_dir = (
         or absplice_repo_dir / "example" / "data" / "resources" / "downloaded_files"
 )
 absplice_output_dir = config.get("absplice_output_dir",anno_tmp_dir / "absplice")
-vcf_id = anno_tmp_dir / "{vcf_id}"
+vcf_id = anno_tmp_dir / "{file_stem}"
 vcf_dir = anno_tmp_dir
 
 config_download_path = (
@@ -526,14 +526,13 @@ rule merge_deepsea_pcas:
             ]
         )
 
-
 rule aggregate_absplice_scores:
     input:
         abscore_files=expand(
             rules.absplice_dna.output.absplice_dna,
-            file_stem=file_stems,
+            #absplice_output_dir / '{genome}' / 'dna' / '{file_stem}_AbSplice_DNA.csv',           # file_stem=file_stems,
             genome=genome,
-            vcf_id=vcf_ids
+            file_stem=file_stems
         ),
         current_annotation_file=rules.merge_deepsea_pcas.output,
     output:

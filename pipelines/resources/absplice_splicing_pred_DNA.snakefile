@@ -1,9 +1,6 @@
 from pathlib import Path
 
 genome = absplice_main_conf['genome']
-p = Path(vcf_dir)
-vcf_ids = [f.name for f in p.glob('*_variants_header.vcf.gz')] 
-
 
 def splicemap5(wildcards):
     path = Path(absplice_download_dir) / config_download['splicemap_dir']
@@ -26,7 +23,7 @@ def splicemap3(wildcards):
 
 rule mmsplice_splicemap:
     input:
-        vcf = vcf_id,
+        vcf = anno_tmp_dir / "{file_stem}_variants_header.vcf.gz",
         fasta = Path(absplice_download_dir) / config_download['fasta'][genome]['file'],
         splicemap_5 = splicemap5,
         splicemap_3 = splicemap3
@@ -62,7 +59,7 @@ if absplice_main_conf['use_rocksdb'] == True:
             threads = 1,
             gpu = 1,
         input:
-            vcf = vcf_id,
+            vcf = anno_tmp_dir / "{file_stem}_variants_header.vcf.gz",
             fasta = str(Path(absplice_download_dir) / config_download['fasta'][genome]['file']),
             spliceai_rocksdb = expand(Path(absplice_download_dir) / config_download['spliceai_rocksdb'][genome],
                                     chromosome=config_download['chromosomes'])
@@ -87,7 +84,7 @@ else:
             threads = 1,
             gpu = 1,
         input:
-            vcf = vcf_id,
+            vcf = anno_tmp_dir / "{file_stem}_variants_header.vcf.gz",
             fasta = Path(absplice_download_dir) /config_download['fasta'][genome]['file']
         params:
             genome = genome_mapper[absplice_main_conf['genome']]
@@ -121,13 +118,13 @@ rule absplice_dna:
     conda:
         "absplice"
     output:
-        absplice_dna = absplice_output_dir / '{genome}' / 'dna' / '{vcf_id}_AbSplice_DNA.csv'
+        absplice_dna = absplice_output_dir / '{genome}' / 'dna' / '{file_stem}_AbSplice_DNA.csv'
     script:
         "./absplice_dna.py"
 
 rule all_predict_dna:
     input:
-        expand(rules.absplice_dna.output,file_stem=file_stems, genome=genome, vcf_id=vcf_ids)
+        expand(rules.absplice_dna.output,file_stem=file_stems, genome=genome)
 
 del splicemap5
 del splicemap3
