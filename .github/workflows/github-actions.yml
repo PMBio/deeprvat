@@ -55,10 +55,15 @@ jobs:
       - name: Update config to use no gpus
         run: "sed -i 's/gpus: 1/gpus: 0/' ${{ github.workspace }}/example/config.yaml"
         shell: bash -el {0}
+      - name: Run run_training pipeline
+        run: |
+          python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
+          --snakefile ${{ github.workspace }}/pipelines/run_training.snakefile --show-failed-logs -F
+        shell: micromamba-shell {0}
       - name: Run training_association_testing pipeline
         run: |
           python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
-          --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
+          --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs -F
         shell: micromamba-shell {0}
       - name: Link pretrained models
         run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
@@ -66,7 +71,7 @@ jobs:
       - name: Run association_testing_pretrained pipeline
         run: |
           python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
-          --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained.snakefile --show-failed-logs
+          --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained.snakefile --show-failed-logs -F
         shell: micromamba-shell {0}
       - name: Copy seed gene discovery snakemake config
         run: cd ${{ github.workspace }}/example && cp ../deeprvat/seed_gene_discovery/config.yaml .
@@ -74,7 +79,7 @@ jobs:
       - name: Run seed_gene_discovery pipeline
         run: |
           python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
-          --snakefile ${{ github.workspace }}/pipelines/seed_gene_discovery.snakefile --show-failed-logs
+          --snakefile ${{ github.workspace }}/pipelines/seed_gene_discovery.snakefile --show-failed-logs -F
         shell: micromamba-shell {0}
 
 
