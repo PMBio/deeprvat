@@ -1,5 +1,5 @@
-name: DeepRVAT test runner
-run-name: DeepRVAT Tests 🧑🏼‍💻✅
+name: DeepRVAT code test runner
+run-name: DeepRVAT code Tests 🧑🏼‍💻✅
 on: [ push ]
 
 jobs:
