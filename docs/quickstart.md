@@ -1,5 +1,9 @@
 # Basic usage
 
+## Install the package
+
+Instructions [here](installation.md)
+
 ## Customize pipelines
 
 Before running any of the snakefiles, you may want to adjust the number of threads used by different steps in the pipeline. To do this, modify the `threads:` property of a given rule.
@@ -24,26 +28,6 @@ In each case, replace `[path_to_deeprvat]` with the path to your clone of the re
 Note that the example data used here is randomly generated, and so is only suited for testing whether the `deeprvat` package has been correctly installed.
 
 
-### Run the full training and association testing pipeline on some example data
-
-```shell
-mkdir deeprvat_train_associate
-cd deeprvat_train_associate
-ln -s [path_to_deeprvat]/example/* .
-snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/training_association_testing.snakefile
-```
-
-
-### Run the training pipeline on some example data
-
-```shell
-mkdir deeprvat_train
-cd deeprvat_train
-ln -s [path_to_deeprvat]/example/* .
-snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/run_training.snakefile
-```
-
-
 ### Run the association testing pipeline with pretrained models
 
 ```shell
@@ -63,4 +47,24 @@ cd deeprvat_associate_regenie
 ln -s [path_to_deeprvat]/example/* .
 ln -s precomputed_burdens/burdens.zarr .
 snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/association_testing_pretrained_regenie.snakefile
+```
+
+
+### Run the training pipeline on some example data
+
+```shell
+mkdir deeprvat_train
+cd deeprvat_train
+ln -s [path_to_deeprvat]/example/* .
+snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/run_training.snakefile
+```
+
+
+### Run the full training and association testing pipeline on some example data
+
+```shell
+mkdir deeprvat_train_associate
+cd deeprvat_train_associate
+ln -s [path_to_deeprvat]/example/* .
+snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/training_association_testing.snakefile
 ```
