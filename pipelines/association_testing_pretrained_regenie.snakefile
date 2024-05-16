@@ -12,7 +12,7 @@ n_bags = config['training']['n_bags'] if not debug_flag else 3
 n_repeats = config['n_repeats']
 debug = '--debug ' if debug_flag else ''
 do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
-model_path = Path(config.get("pretrained_model_path", "pretrained_models/models"))
+model_path = Path(config.get("pretrained_model_path", "pretrained_models"))
 
 wildcard_constraints:
     repeat="\d+",
