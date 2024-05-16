@@ -629,6 +629,12 @@ def test_filter_by_exon_distance(
             "annotations.parquet",
             "expected.parquet",
         ),
+        (
+            "select_rename_fill_columns_plof2",
+            "annotation_colnames_filling_values.yaml",
+            "annotations.parquet",
+            "expected.parquet",
+        ),
     ],
 )
 def test_select_rename_fill_annotations(
