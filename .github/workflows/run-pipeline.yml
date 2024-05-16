@@ -1,18 +1,17 @@
 name: Run pipeline
 
-
 on:
   workflow_call:
     inputs:
       environment_file:
         required: true
-        type: str
+        type: string
       pipeline_cmd:
         required: true
-        type: str
+        type: string
       name:
         required: true
-        type: str
+        type: string
 
 jobs:
   Run-Pipeline:
