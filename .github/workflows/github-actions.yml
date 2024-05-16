@@ -80,7 +80,6 @@ jobs:
           --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs -F
         shell: micromamba-shell {0}
 
-
   Smoke-Association-Testing-Training-Regenie:
     runs-on: ubuntu-latest
     steps:
@@ -100,7 +99,6 @@ jobs:
           python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example \
           --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained_regenie.snakefile --show-failed-logs -F
         shell: micromamba-shell {0}
-
 
   Smoke-Seed-Gene-Discovery:
     runs-on: ubuntu-latest
@@ -199,9 +197,6 @@ jobs:
           python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
           --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained.snakefile --show-failed-logs -F
         shell: micromamba-shell {0}
-
-
-
 
   Pipeline-Tests-Training-Association-Testing-Regenie:
     runs-on: ubuntu-latest
