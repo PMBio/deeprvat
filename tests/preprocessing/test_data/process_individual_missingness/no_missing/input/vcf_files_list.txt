@@ -1,0 +1,2 @@
+data/vcf/test_vcf_data_c21_b1.vcf.gz
+data/vcf/test_vcf_data_c22_b1.vcf.gz

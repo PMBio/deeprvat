@@ -1,0 +1,63 @@
+annotation_column_names: 
+  'af' : 
+    'combined_UKB_NFE_AF' : 0
+  'maf_mb' : 
+    'combined_UKB_NFE_AF_MB' : 10000
+  'maf' :
+    'combined_UKB_NFE_MAF' : 0
+  'PolyPhen' : 
+    'polyphen_score' : 0
+  'SIFT' : 
+    'sift_score' : 1
+  'QKI_hg2' : 
+    'DeepRipe_plus_QKI_lip_hg2' : 0
+  'QKI_k5' : 
+    'DeepRipe_plus_QKI_clip_k5' : 0
+  'KHDRBS1_k5' : 
+    'DeepRipe_plus_KHDRBS1_clip_k5' : 0
+  'ELAVL1_parclip' : 
+    'DeepRipe_plus_ELAVL1_parclip' : 0
+  'TARDBP_parclip' : 
+    'DeepRipe_plus_TARDBP_parclip' : 0
+  'HNRNPD_parclip' : 
+    'DeepRipe_plus_HNRNPD_parclip' : 0
+  'MBNL1_parclip' : 
+    'DeepRipe_plus_MBNL1_parclip' : 0
+  'QKI_parclip' : 
+    'DeepRipe_plus_QKI_parclip' : 0
+  'Consequence_splice_acceptor_variant' :
+    'Consequence_splice_acceptor_variant' : 0
+  'Consequence_splice_donor_variant' :
+    'Consequence_splice_donor_variant' : 0
+  'Consequence_stop_gained' :
+    'Consequence_stop_gained' : 0
+  'Consequence_frameshift_variant' :
+    'Consequence_frameshift_variant' : 0
+  'Consequence_stop_lost' :
+    'Consequence_stop_lost' : 0
+  'Consequence_start_lost' :
+    'Consequence_start_lost' : 0
+  'Consequence_inframe_insertion' :
+    'Consequence_inframe_insertion' : 0
+  'Consequence_inframe_deletion' :
+    'Consequence_inframe_deletion' : 0
+  'Consequence_missense_variant' :
+    'Consequence_missense_variant' : 0
+  'Consequence_protein_altering_variant' :
+    'Consequence_protein_altering_variant' : 0
+  'Consequence_splice_region_variant' :
+    'Consequence_splice_region_variant' : 0
+  'DeepSEA_PC_1' :
+    'DeepSEA_PC_1' : 0
+  'DeepSEA_PC_2' :
+    'DeepSEA_PC_2' : 0
+  'DeepSEA_PC_3' :
+    'DeepSEA_PC_3' : 0
+  'DeepSEA_PC_4' :
+    'DeepSEA_PC_4' : 0
+  'DeepSEA_PC_5' :
+    'DeepSEA_PC_5' : 0
+  'DeepSEA_PC_6' :
+    'DeepSEA_PC_6' : 0
+  'AF' :
+    'AF' : 0

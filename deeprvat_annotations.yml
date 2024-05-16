@@ -16,6 +16,9 @@ dependencies:
   - tensorflow=2.11.0
   - pyarrow=11.0.0
   - fastparquet=2023.4.0
+  - bioconda::pyranges=0.0.129
+  - pytest=8.2.0
+  - pytest-xdist=3.5.0
   #comment out lines below if you want to use preinstalled bcftools or samtools
   - bcftools=1.17
   - samtools=1.17
