@@ -6,13 +6,15 @@ on:
       environment_file:
         required: true
         type: string
+      prerun_cmd:
+        required: false
+        type: string
       pipeline_cmd:
         required: true
         type: string
       name:
         required: true
         type: string
-
 jobs:
   Run-Pipeline:
       runs-on: ubuntu-latest
@@ -25,6 +27,9 @@ jobs:
             environment-file: ${{inputs.environment_file}}
             cache-environment: true
             cache-downloads: true
+        - name: Run pre pipeline cmd
+          if: prerun_cmd
+          run: ${{inputs.prerun_cmd}}
         - name: ${{inputs.name}}
           run: ${{inputs.pipeline_cmd}}
           shell: micromamba-shell {0}
