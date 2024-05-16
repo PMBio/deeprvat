@@ -1,0 +1,31 @@
+name: Run pipeline
+
+
+on:
+  workflow_call:
+    inputs:
+      environment_file:
+        required: true
+        type: str
+      pipeline_cmd:
+        required: true
+        type: str
+      name:
+        required: true
+        type: str
+
+jobs:
+  Run-Pipeline:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Check out repository code
+          uses: actions/checkout@v4
+        - uses: mamba-org/setup-micromamba@v1.8.1
+          with:
+            environment-name: pipeline-env
+            environment-file: ${{inputs.environment_file}}
+            cache-environment: true
+            cache-downloads: true
+        - name: ${{inputs.name}}
+          run: ${{inputs.pipeline_cmd}}
+          shell: micromamba-shell {0}
