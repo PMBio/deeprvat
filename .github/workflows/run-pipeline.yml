@@ -30,6 +30,7 @@ jobs:
         - name: Run pre pipeline cmd
           if: prerun_cmd
           run: ${{inputs.prerun_cmd}}
+          shell: bash -el {0}
         - name: ${{inputs.name}}
           run: ${{inputs.pipeline_cmd}}
           shell: micromamba-shell {0}
