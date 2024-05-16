@@ -4,7 +4,8 @@ on: [ push ]
 
 jobs:
   Smoke-RunTraining:
-    uses: PMBio/deeprvat/.github/workflow/run-pipeline.yml
+    call-workflow-in-local-repo:
+      uses: ./.github/workflows/run-pipeline.yml
     with:
       environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
       name: Smoke-RunTraining
