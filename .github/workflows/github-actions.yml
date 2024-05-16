@@ -97,7 +97,7 @@ jobs:
       - name: Smoke test association_testing_pretrained_regenie pipeline
         run: |
           python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example \
-          --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained_regenie.snakefile --show-failed-logs -F
+          --snakefile ${{ github.workspace }}/pipelines/training_association_testing_regenie.snakefile --show-failed-logs -F
         shell: micromamba-shell {0}
 
   Smoke-Seed-Gene-Discovery:
