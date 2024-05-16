@@ -100,7 +100,7 @@ _Coming soon_
 (Association_testing)=
 ## Association testing using pretrained models
 
-If you already have a pretrained DeepRVAT model, we have setup pipelines for runing only the association testing stage. This includes creating the association dataset files, computing burdens, regression, and evaluation. 
+If you already have a pretrained DeepRVAT model, we have setup pipelines for running only the association testing stage. This includes creating the association dataset files, computing burdens, regression, and evaluation. 
 
 
 ### Input data
@@ -190,7 +190,7 @@ snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/association_testing_pret
 --->
 
 ## Training
-To run only the training stage of DeepRVAT, comprised of training data creation and running the DeepRVAT model, we have setup a training pipeline.
+To run only the training stage of DeepRVAT, comprised of training data creation and running the DeepRVAT model, we have set up a training pipeline.
 
 ### Input data
 The following files should be contained within your `experiment` directory: 
@@ -258,7 +258,7 @@ The following files should be contained within your `experiment` directory:
 - `protein_coding_genes.parquet`
 - `baseline_results` directory
 
-### Running the training and association testing pipelinewith SEAK
+### Running the training and association testing pipeline with SEAK
 
 ```shell
 cd experiment

@@ -15,7 +15,7 @@ Note that DeepRVAT scores are on a scale between 0 and 1, with a score closer to
 
 ### Pretrained models
 
-Some users may wish to select variants or make variant-to-gene assigments differently from our methods, or to work on datasets other than UKBB. For this, we provide an ensemble of pretrained DeepRVAT gene impairment modules, which can be used for scoring individual-gene pairs for subsequent association testing. We also provide a pipeline for functional annotation of variants for compatibility with the pretrained modules.
+Some users may wish to select variants or make variant-to-gene assignments differently from our methods, or to work on datasets other than UKBB. For this, we provide an ensemble of pretrained DeepRVAT gene impairment modules, which can be used for scoring individual-gene pairs for subsequent association testing. We also provide a pipeline for functional annotation of variants for compatibility with the pretrained modules.
 
 ### Model training
 

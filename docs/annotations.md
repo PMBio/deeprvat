@@ -1,10 +1,10 @@
 # DeepRVAT Annotation pipeline
 
-This pipeline is based on [snakemake](https://snakemake.readthedocs.io/en/stable/). It uses [bcftools + samstools](https://www.htslib.org/), as well as [perl](https://www.perl.org/), [deepRiPe](https://ohlerlab.mdc-berlin.de/software/DeepRiPe_140/) and [deepSEA](http://deepsea.princeton.edu/) as well as [VEP](http://www.ensembl.org/info/docs/tools/vep/index.html), including plugins for [primateAI](https://github.com/Illumina/PrimateAI) and  [spliceAI](https://github.com/Illumina/SpliceAI). DeepRiPe annotations were acquired using [faatpipe repository by HealthML](https://github.com/HealthML/faatpipe)[[1]](#reference-1-target) and DeepSea annotations were calculated using [kipoi-veff2](https://github.com/kipoi/kipoi-veff2)[[2]](#reference-2-target), abSplice scores were computet using [abSplice](https://github.com/gagneurlab/absplice/)[[3]](#reference-3-target)
+This pipeline is based on [snakemake](https://snakemake.readthedocs.io/en/stable/). It uses [bcftools + samstools](https://www.htslib.org/), as well as [perl](https://www.perl.org/), [deepRiPe](https://ohlerlab.mdc-berlin.de/software/DeepRiPe_140/) and [deepSEA](http://deepsea.princeton.edu/) as well as [VEP](http://www.ensembl.org/info/docs/tools/vep/index.html), including plugins for [primateAI](https://github.com/Illumina/PrimateAI) and  [spliceAI](https://github.com/Illumina/SpliceAI). DeepRiPe annotations were acquired using [faatpipe repository by HealthML](https://github.com/HealthML/faatpipe)[[1]](#reference-1-target) and DeepSea annotations were calculated using [kipoi-veff2](https://github.com/kipoi/kipoi-veff2)[[2]](#reference-2-target), abSplice scores were computed using [abSplice](https://github.com/gagneurlab/absplice/)[[3]](#reference-3-target)
 
 ![dag](_static/annotation_rulegraph.svg)
 
-*Figure 1: Rulegraph of the annoation pipeline.*
+*Figure 1: Rule graph of the annotation pipeline.*
 
 ## Output 
 This pipeline outputs a parquet file including all annotations as well as a file containing IDs to all protein coding genes needed to run DeepRVAT. 
@@ -28,7 +28,7 @@ BCFtools as well as HTSlib should be installed on the machine,
 
 should be installed for runnning the pipeline, together with the [plugins](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html) for primateAI and spliceAI. Annotation data for CADD, spliceAI and primateAI should be downloaded. The path to the data may be specified in the corresponding [config file](https://github.com/PMBio/deeprvat/blob/main/pipelines/config/deeprvat_annotation_config.yaml). 
 Download paths:
-- [CADD](https://cadd.bihealth.org/download): "All possible SNVs of GRCh38/hg38" and "gnomad.genomes.r3.0.indel.tsv.gz" incl. their  Tabix Indices
+- [CADD](https://cadd.bihealth.org/download): "All possible SNVs of GRCh38/hg38" and "gnomad.genomes.r3.0.indel.tsv.gz" incl. their Tabix Indices
 - [SpliceAI](https://basespace.illumina.com/s/otSPW8hnhaZR): "genome_scores_v1.3"/"spliceai_scores.raw.snv.hg38.vcf.gz" and "spliceai_scores.raw.indel.hg38.vcf.gz" 
 - [PrimateAI](https://basespace.illumina.com/s/yYGFdGih1rXL) PrimateAI supplementary data/"PrimateAI_scores_v0.2_GRCh38_sorted.tsv.bgz"
 - [AlphaMissense](https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz) 
@@ -80,7 +80,7 @@ The config above would use the following directory structure:
 
 
 Bcf files created by the [preprocessing pipeline](https://deeprvat.readthedocs.io/en/latest/preprocessing.html) are used as input data. The input data directory should only contain the files needed. 
-The pipeline also uses the variant.tsv file, the reference file and the genotypes file from the preprocesing pipeline. 
+The pipeline also uses the variant.tsv file, the reference file and the genotypes file from the preprocessing pipeline. 
 A GTF file as described in [requirements](#requirements) and the FASTA file used for preprocessing is also necessary.
 The pipeline beginns by installing the repositories needed for the annotations, it will automatically install all repositories in the `repo_dir` folder that can be specified in the config file relative to the annotation working directory.
 The text file mapping blocks to chromosomes is stored in `metadata` folder. The output is stored in the `output_dir/annotations` folder and any temporary files in the `tmp` subfolder. All repositories used including VEP with its corresponding cache as well as plugins are stored in `repo_dir/ensempl-vep`.
@@ -107,7 +107,7 @@ Data for VEP plugins and the CADD cache are stored in `annotation data`.
 
 
 ### Running the pipeline
-This pipeline should be run after running the [preprocessing pipeline](https://deeprvat.readthedocs.io/en/latest/preprocessing.html), since it relies on some of its outpur files (specifically the bcf files in  `norm/bcf/`, the variant files in `norm/variants/` and the genotype file `preprocessed/genotypes.h5`
+This pipeline should be run after running the [preprocessing pipeline](https://deeprvat.readthedocs.io/en/latest/preprocessing.html), since it relies on some of its output files (specifically the bcf files in  `norm/bcf/`, the variant files in `norm/variants/` and the genotype file `preprocessed/genotypes.h5`
 
 After configuration and activating the `deeprvat_annotations` environment run the pipeline using snakemake:
 
