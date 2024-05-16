@@ -81,7 +81,7 @@ jobs:
         shell: micromamba-shell {0}
 
 
-  Smoke-Association-Testing-Training-Regienie:
+  Smoke-Association-Testing-Training-Regenie:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
