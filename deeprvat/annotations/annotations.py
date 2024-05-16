@@ -1897,6 +1897,7 @@ def process_vep(
 
     return vep_file
 
+
 @cli.command()
 @click.argument("anno_df_in", type=click.Path(exists=True))
 @click.argument("anno_df_out", type=click.Path())
@@ -1905,7 +1906,7 @@ def compute_plof(anno_df_in, anno_df_out):
     Cumputes and adds plof column based on plof function.
 
     Parameters:
-    - anno_df_in(str): File path of annotation file to read in 
+    - anno_df_in(str): File path of annotation file to read in
     - anno_df_out(str): File path of output file
 
     Returns:

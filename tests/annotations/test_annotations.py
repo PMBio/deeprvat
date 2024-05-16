@@ -658,7 +658,6 @@ def test_select_rename_fill_annotations(
     )
 
 
-
 @pytest.mark.parametrize(
     "test_data_name_dir, annotations_in, expected",
     [
@@ -669,12 +668,8 @@ def test_select_rename_fill_annotations(
         ),
     ],
 )
-def test_compute_plof(
-    test_data_name_dir, annotations_in, expected, tmp_path
-):
-    current_test_data_dir = (
-        tests_data_dir / "compute_plof" / test_data_name_dir
-    )
+def test_compute_plof(test_data_name_dir, annotations_in, expected, tmp_path):
+    current_test_data_dir = tests_data_dir / "compute_plof" / test_data_name_dir
     annotations_in_path = current_test_data_dir / "input" / annotations_in
     expected_path = current_test_data_dir / "expected" / expected
     output_path = tmp_path / "out.parquet"
@@ -682,7 +677,7 @@ def test_compute_plof(
     cli_parameters = [
         "compute-plof",
         annotations_in_path.as_posix(),
-        output_path.as_posix()
+        output_path.as_posix(),
     ]
     result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
     assert result.exit_code == 0
