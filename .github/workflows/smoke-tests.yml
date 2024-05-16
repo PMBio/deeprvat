@@ -6,11 +6,11 @@ jobs:
   Smoke-RunTraining:
     uses: ./.github/workflows/run-pipeline.yml
     with:
-      environment_file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
+      environment_file: ./deeprvat_env_no_gpu.yml
       name: Smoke-RunTraining
       pipeline_cmd: |
-            python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example \
-            --snakefile ${{ github.workspace }}/pipelines/run_training.snakefile --show-failed-logs
+            python -m snakemake -n -j 2 --directory ./example \
+            --snakefile ./pipelines/run_training.snakefile --show-failed-logs
     
 
 #  Pipeline-Tests-RunTraining:
