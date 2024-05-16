@@ -4,14 +4,15 @@ on: [ push ]
 
 jobs:
   Smoke-RunTraining:
-    uses: ./.github/workflows/run-pipeline.yml
-    with:
-      environment_file: ./deeprvat_env_no_gpu.yml
-      name: Smoke-RunTraining
-      pipeline_cmd: |
-            python -m snakemake -n -j 2 --directory ./example \
-            --snakefile ./pipelines/run_training.snakefile --show-failed-logs
-    
+    steps:
+      uses: ./.github/workflows/run-pipeline.yml
+      with:
+        environment_file: ./deeprvat_env_no_gpu.yml
+        name: Smoke-RunTraining
+        pipeline_cmd: |
+              python -m snakemake -n -j 2 --directory ./example \
+              --snakefile ./pipelines/run_training.snakefile --show-failed-logs
+          
 
 #  Pipeline-Tests-RunTraining:
 #    runs-on: ubuntu-latest
