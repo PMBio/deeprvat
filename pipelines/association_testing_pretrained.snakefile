@@ -16,7 +16,7 @@ n_repeats = config['n_repeats']
 debug = '--debug ' if debug_flag else ''
 do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
 tensor_compression_level = config['training'].get('tensor_compression_level', 1)
-model_path = Path(config.get("pretrained_model_path", "pretrained_models"))
+model_path = Path(config.get("pretrained_model_path", "pretrained_models/models"))
 
 wildcard_constraints:
     repeat="\d+",
