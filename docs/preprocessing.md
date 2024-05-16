@@ -1,7 +1,7 @@
-# DeepRVAT Preprocessing pipeline
+# DeepRVAT preprocessing pipeline
 
-The DeepRVAT preprocessing pipeline is based on [snakemake](https://snakemake.readthedocs.io/en/stable/) it uses
-[bcftools+samstools](https://www.htslib.org/) and a [python script](https://github.com/PMBio/deeprvat/blob/main/deeprvat/preprocessing/preprocess.py) preprocessing.py.
+The DeepRVAT preprocessing pipeline is based on [snakemake](https://snakemake.readthedocs.io/en/stable/). It uses
+[bcftools+samtools](https://www.htslib.org/) and a [python script](https://github.com/PMBio/deeprvat/blob/main/deeprvat/preprocessing/preprocess.py) preprocessing.py.
 
 ![DeepRVAT preprocessing pipeline](_static/preprocess_no_qc_rulegraph.svg)
 
