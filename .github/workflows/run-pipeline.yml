@@ -42,7 +42,6 @@ jobs:
           uses: actions/checkout@v4
         - uses: mamba-org/setup-micromamba@v1.8.1
           with:
-            environment-name: pipeline-env-${{inputs.environment_file}}
             environment-file: ${{inputs.environment_file}}
             cache-environment: true
             cache-downloads: true
