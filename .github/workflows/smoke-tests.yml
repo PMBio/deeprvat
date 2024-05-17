@@ -25,5 +25,3 @@ jobs:
         pipeline_cmd: |
             python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
             --snakefile ${{ github.workspace }}/pipelines/run_training.snakefile --show-failed-logs -F
-            
-          
