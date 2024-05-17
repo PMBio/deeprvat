@@ -4,6 +4,25 @@ on: [ push ]
 
 jobs:
 
+
+  # Association Testing Training
+  Smoke-Association-Testing-Training:
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      environment_file: ./deeprvat_env_no_gpu.yml
+      name: Smoke-Association-Testing-Training
+      pipeline_file: ./pipelines/training_association_testing.snakefile
+
+  Pipeline-Tests-Association-Testing-Training:
+    needs: Smoke-Association-Testing-Training
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      environment_file: ./deeprvat_env_no_gpu.yml
+      name: Smoke-Association-Testing-Training
+      pipeline_file: ./pipelines/training_association_testing.snakefile
+      dry_run: false
+
+
   # Seed Gene Discovery
   Smoke-Seed-Gene-Discovery:
     uses: ./.github/workflows/run-pipeline.yml
