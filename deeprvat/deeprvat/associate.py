@@ -334,7 +334,7 @@ def compute_burdens_(
                     shape=(n_total_samples),
                     chunks=(None),
                     dtype=object,
-                    object_codec=JSON()
+                    object_codec=JSON(),
                 )
             start_idx = i * batch_size
             end_idx = min(start_idx + batch_size, chunk_end)  # read from chunk shape
