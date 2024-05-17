@@ -2,7 +2,6 @@ name: DeepRVAT Pipeline tests
 run-name: DeepRVAT Pipeline tests 🧬🧪💻🧑‍🔬
 on: [ push ]
 
-
 jobs:
   Smoke-RunTraining:
     uses: ./.github/workflows/run-pipeline.yml
@@ -14,6 +13,7 @@ jobs:
             --snakefile ./pipelines/run_training.snakefile --show-failed-logs
     
   Pipeline-Tests-RunTraining:
+    needs: Smoke-RunTraining
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_env_no_gpu.yml
