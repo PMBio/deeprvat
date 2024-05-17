@@ -12,9 +12,6 @@ on:
       pipeline_file:
         required: true
         type: string
-      name:
-        required: true
-        type: string
       no_gpu:
         required: false
         type: boolean
