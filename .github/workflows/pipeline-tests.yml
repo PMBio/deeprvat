@@ -8,7 +8,6 @@ jobs:
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_env_no_gpu.yml
-      name: Smoke-RunTraining
       pipeline_file: ./pipelines/run_training.snakefile
 
   Pipeline-Tests-RunTraining:
@@ -16,7 +15,6 @@ jobs:
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_env_no_gpu.yml
-      name: Pipeline-Tests-RunTraining
       pipeline_file: ./pipelines/run_training.snakefile
       dry_run: false
 
@@ -25,7 +23,6 @@ jobs:
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_env_no_gpu.yml
-      name: Smoke-Association-Testing-Pretrained
       prerun_cmd: cd ./example && ln -s ../pretrained_models
       pipeline_file: ./pipelines/association_testing_pretrained.snakefile
 
@@ -34,7 +31,6 @@ jobs:
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_env_no_gpu.yml
-      name: Pipeline-Tests-Training-Association-Testing
       prerun_cmd: cd ./example && ln -s ../pretrained_models
       pipeline_file: ./pipelines/association_testing_pretrained.snakefile
       dry_run: false
@@ -44,7 +40,6 @@ jobs:
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_env_no_gpu.yml
-      name: Smoke-Association-Testing-Pretrained-Regenie
       prerun_cmd: cd ./example && ln -s ../pretrained_models
       pipeline_file: ./pipelines/association_testing_pretrained_regenie.snakefile
 
@@ -54,7 +49,6 @@ jobs:
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_env_no_gpu.yml
-      name: Pipeline-Tests-Association-Testing-Pretrained-Regenie
       prerun_cmd: cd ./example && ln -s ../pretrained_models
       pipeline_file: ./pipelines/association_testing_pretrained_regenie.snakefile
       dry_run: false
@@ -64,7 +58,6 @@ jobs:
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_env_no_gpu.yml
-      name: Smoke-Association-Testing-Training
       pipeline_file: ./pipelines/training_association_testing.snakefile
 
   Pipeline-Tests-Association-Testing-Training:
@@ -72,7 +65,6 @@ jobs:
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_env_no_gpu.yml
-      name: Pipeline-Tests-Association-Testing-Training
       pipeline_file: ./pipelines/training_association_testing.snakefile
       dry_run: false
 
@@ -81,7 +73,6 @@ jobs:
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_env_no_gpu.yml
-      name: Smoke-Association-Testing-Training-Regenie
       pipeline_file: ./pipelines/training_association_testing_regenie.snakefile
 
   Pipeline-Tests-Training-Association-Testing-Regenie:
@@ -89,7 +80,6 @@ jobs:
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_env_no_gpu.yml
-      name: Pipeline-Tests-Training-Association-Testing-Regenie
       pipeline_file: ./pipelines/training_association_testing_regenie.snakefile
       dry_run: false
 
@@ -98,7 +88,6 @@ jobs:
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_env_no_gpu.yml
-      name: Smoke-Seed-Gene-Discovery
       prerun_cmd: cd ./example && cp ../deeprvat/seed_gene_discovery/config.yaml .
       pipeline_file: ./pipelines/seed_gene_discovery.snakefile
 
@@ -107,7 +96,6 @@ jobs:
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_env_no_gpu.yml
-      name: Pipeline-Tests-Seed-Gene-Discovery
       prerun_cmd: cd ./example && cp ../deeprvat/seed_gene_discovery/config.yaml .
       pipeline_file: ./pipelines/seed_gene_discovery.snakefile
       dry_run: false
@@ -128,7 +116,6 @@ jobs:
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_preprocessing_env.yml
-      name: Pipeline-Tests-Preprocessing-With-QC
       pipeline_file: ./pipelines/preprocess_with_qc.snakefile
       pipeline_directory: ./example/preprocess
       pipeline_config: ./pipelines/config/deeprvat_preprocess_config.yaml
@@ -139,7 +126,6 @@ jobs:
   Smoke-Preprocessing-No-QC:
     uses: ./.github/workflows/run-pipeline.yml
     with:
-      name: Smoke-Preprocessing-No-QC
       pipeline_file: ./pipelines/preprocess_no_qc.snakefile
       environment_file: ./deeprvat_preprocessing_env.yml
       pipeline_directory: ./example/preprocess
@@ -150,7 +136,6 @@ jobs:
     needs: Smoke-Preprocessing-No-QC
     uses: ./.github/workflows/run-pipeline.yml
     with:
-      name: Pipeline-Tests-Preprocessing-No-QC
       pipeline_file: ./pipelines/preprocess_no_qc.snakefile
       environment_file: ./deeprvat_preprocessing_env.yml
       pipeline_directory: ./example/preprocess
@@ -163,7 +148,6 @@ jobs:
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_annotations.yml
-      name: Smoke-Annotation-Pipeline
       pipeline_file: ./pipelines/annotations.snakefile
       pipeline_config: ./pipelines/config/deeprvat_annotation_config.yaml
       pipeline_directory: ./example/annotations

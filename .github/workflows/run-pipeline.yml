@@ -70,7 +70,7 @@ jobs:
           # There are no GPUs on the gh worker, so we can disable it in the config
           run: "sed -i 's/gpus: 1/gpus: 0/' ./example/config.yaml"
           shell: bash -el {0}
-        - name: ${{inputs.name}}
+        - name: ${{github.job}}
           run: |
             python -m snakemake ${{ (inputs.dry_run && '-n') || '' }} \
             -j 2 --directory ${{inputs.pipeline_directory}} \
