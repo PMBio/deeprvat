@@ -112,7 +112,7 @@ class DenseGTDataset(Dataset):
         else:
             logger.setLevel(logging.INFO)
 
-        self.check_samples = True  # TODO undo
+        self.check_samples = False # NOTE: Set to True for debugging
         self.split = split
         self.train_dataset = train_dataset
         self.chromosomes = (
