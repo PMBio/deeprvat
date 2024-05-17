@@ -77,8 +77,17 @@ jobs:
           run: |
             python -m snakemake ${{ (inputs.dry_run && '-n') || '' }} \
             -j 2 --directory ${{inputs.pipeline_directory}} \
-            ${{ (endsWith(inputs.pipeline_config, 'ml') && '--configfile inputs.pipeline_config') || '' }} \
+            ${{ (endsWith(inputs.pipeline_config, 'ml') && '--configfile ${{ inputs.pipeline_config }}') || '' }} \
             --snakefile ${{inputs.pipeline_file}} --show-failed-logs -F  
 
           shell: micromamba-shell {0}
 
+
+
+
+      - name: Run preprocessing pipeline no qc Smoke Test
+        run: |
+          python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example/preprocess \
+          --snakefile ${{ github.workspace }}/pipelines/preprocess_no_qc.snakefile \
+          --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml --show-failed-logs
+        shell: micromamba-shell {0}

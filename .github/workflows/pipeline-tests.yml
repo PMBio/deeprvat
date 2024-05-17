@@ -115,17 +115,21 @@ jobs:
   Smoke-Preprocessing-No-QC:
     uses: ./.github/workflows/run-pipeline.yml
     with:
-      environment_file: ./deeprvat_preprocessing_env.yml
       name: Smoke-Preprocessing-No-QC
       pipeline_file: ./pipelines/preprocess_no_qc.snakefile
+      environment_file: ./deeprvat_preprocessing_env.yml
+      pipeline_directory: ./example/preprocess
+      pipeline_config: ./pipelines/config/deeprvat_preprocess_config.yaml
 
   Pipeline-Tests-Preprocessing-No-QC:
     needs: Smoke-Preprocessing-No-QC
     uses: ./.github/workflows/run-pipeline.yml
     with:
-      environment_file: ./deeprvat_env_no_gpu.yml
       name: Pipeline-Tests-Preprocessing-No-QC
       pipeline_file: ./pipelines/preprocess_no_qc.snakefile
+      environment_file: ./deeprvat_env_no_gpu.yml
+      pipeline_directory: ./example/preprocess
+      pipeline_config: ./pipelines/config/deeprvat_preprocess_config.yaml
       dry_run: false
       download_example_data: true
 
@@ -136,6 +140,8 @@ jobs:
       environment_file: ./deeprvat_preprocessing_env.yml
       name: Preprocessing-With-QC
       pipeline_file: ./pipelines/preprocess_with_qc.snakefile
+      pipeline_directory: ./example/preprocess
+      pipeline_config: ./pipelines/config/deeprvat_preprocess_config.yaml
 
   Pipeline-Tests-Preprocessing-With-QC:
     needs: Smoke-Preprocessing-With-QC
@@ -144,6 +150,8 @@ jobs:
       environment_file: ./deeprvat_env_no_gpu.yml
       name: Pipeline-Tests-Preprocessing-No-QC
       pipeline_file: ./pipelines/preprocess_with_qc.snakefile
+      pipeline_directory: ./example/preprocess
+      pipeline_config: ./pipelines/config/deeprvat_preprocess_config.yaml
       dry_run: false
       download_example_data: true
 
