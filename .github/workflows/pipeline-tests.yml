@@ -120,6 +120,7 @@ jobs:
       environment_file: ./deeprvat_preprocessing_env.yml
       pipeline_directory: ./example/preprocess
       pipeline_config: ./pipelines/config/deeprvat_preprocess_config.yaml
+      download_example_data: true
 
   Pipeline-Tests-Preprocessing-No-QC:
     needs: Smoke-Preprocessing-No-QC
@@ -142,6 +143,7 @@ jobs:
       pipeline_file: ./pipelines/preprocess_with_qc.snakefile
       pipeline_directory: ./example/preprocess
       pipeline_config: ./pipelines/config/deeprvat_preprocess_config.yaml
+      download_example_data: true
 
   Pipeline-Tests-Preprocessing-With-QC:
     needs: Smoke-Preprocessing-With-QC
