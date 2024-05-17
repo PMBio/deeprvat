@@ -15,8 +15,38 @@ jobs:
     with:
       environment_file: ./deeprvat_env_no_gpu.yml
       name: Smoke-Association-Testing-Pretrained
-      pipeline_file: ./pipelines/association_testing_pretrained.snakefile
       prerun_cmd: cd ./example && ln -s ../pretrained_models
+      pipeline_file: ./pipelines/association_testing_pretrained.snakefile
+
+  Smoke-Association-Testing-Pretrained-Regenie:
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      environment_file: ./deeprvat_env_no_gpu.yml
+      name: Smoke-Association-Testing-Pretrained-Regenie
+      prerun_cmd: cd ./example && ln -s ../pretrained_models
+      pipeline_file: ./pipelines/association_testing_pretrained_regenie.snakefile
+
+  Smoke-Association-Testing-Training:
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      environment_file: ./deeprvat_env_no_gpu.yml
+      name: Smoke-Association-Testing-Training
+      pipeline_file: ./pipelines/training_association_testing.snakefile
+
+  Smoke-Association-Testing-Training-Regenie:
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      environment_file: ./deeprvat_env_no_gpu.yml
+      name: Smoke-Association-Testing-Training-Regenie
+      pipeline_file: ./pipelines/training_association_testing_regenie.snakefile
+
+  Smoke-Seed-Gene-Discovery:
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      environment_file: ./deeprvat_env_no_gpu.yml
+      name: Smoke-Seed-Gene-Discovery
+      prerun_cmd: cd ./example && cp ../deeprvat/seed_gene_discovery/config.yaml .
+      pipeline_file: ./pipelines/seed_gene_discovery.snakefile
 
   Pipeline-Tests-RunTraining:
     needs: Smoke-RunTraining
