@@ -32,6 +32,21 @@ n_repeats: 2
 
 do_scoretest: True
 
+gtf_file: gencode.v38.basic.annotation.gtf.gz
+
+regenie:
+    step_1:
+        bgen: imputation.bgen
+        snplist: imputation.snplist
+        bsize: 1000
+        options:
+            - "--sample imputation.sample"
+            - "--qt"
+    step_2:
+        bsize: 400
+        options:
+            - "--qt"
+
 training:
     min_variant_count: 1
     n_bags: 1

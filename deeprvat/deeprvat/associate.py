@@ -19,7 +19,7 @@ import torch.nn as nn
 import statsmodels.api as sm
 import yaml
 from bgen import BgenWriter
-from numcodecs import Blosc
+from numcodecs import Blosc, JSON
 from seak import scoretest
 from statsmodels.tools.tools import add_constant
 from torch.utils.data import DataLoader, Dataset, Subset
@@ -295,7 +295,7 @@ def compute_burdens_(
                     chunk_burden = np.zeros(shape=(n_samples,) + this_burdens.shape[1:])
                 chunk_y = np.zeros(shape=(n_samples,) + this_y.shape[1:])
                 chunk_x = np.zeros(shape=(n_samples,) + this_x.shape[1:])
-                chunk_sampleid = np.zeros(shape=(n_samples))
+                chunk_sampleid = [""] * n_samples
 
                 logger.info(f"Batch size: {batch['rare_variant_annotations'].shape}")
 
@@ -333,8 +333,8 @@ def compute_burdens_(
                     mode="a",
                     shape=(n_total_samples),
                     chunks=(None),
-                    dtype=np.float32,
-                    compressor=Blosc(clevel=compression_level),
+                    dtype=object,
+                    object_codec=JSON()
                 )
             start_idx = i * batch_size
             end_idx = min(start_idx + batch_size, chunk_end)  # read from chunk shape
@@ -513,7 +513,7 @@ def make_regenie_input_(
         with BgenWriter(
             bgen,
             n_samples,
-            samples=list(sample_ids),
+            samples=list(sample_ids.astype(str)),
             metadata="Pseudovariants containing DeepRVAT gene impairment scores. One pseudovariant per gene.",
         ) as f:
             for i in trange(n_genes):
