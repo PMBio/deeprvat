@@ -50,12 +50,12 @@ jobs:
           run: pip install -e ${{ github.workspace }}
           shell: micromamba-shell {0}
         - name: Cache Fasta file
-          #if: inputs.download_example_data
+          if: inputs.download_example_data
           id: cache-fasta
           uses: actions/cache@v4
           with:
             path: ./example/preprocess/workdir/reference
-            key: ${{ runner.os }}-reference-fasta
+            key: cache-reference-fasta
         - name: Download and unpack fasta data
           if: inputs.download_example_data && steps.cache-fasta.outputs.cache-hit != 'true'
           run: |
