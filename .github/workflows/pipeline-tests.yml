@@ -10,6 +10,7 @@ jobs:
       name: Smoke-RunTraining
       pipeline_file: ./pipelines/run_training.snakefile
 
+
   Pipeline-Tests-RunTraining:
     needs: Smoke-RunTraining
     uses: ./.github/workflows/run-pipeline.yml
