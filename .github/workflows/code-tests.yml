@@ -3,23 +3,22 @@ run-name: DeepRVAT Code Tests 🧑🏼‍💻✅
 on: [ push ]
 
 jobs:
-  DeepRVAT-Tests-Runner:
-    uses: ./.github/workflows/run-pytest.yml
-    with:
-      environment_file: ./deeprvat_env_no_gpu.yml
-      parallel_tests: true
-      test_path: ./tests/deeprvat
-
   DeepRVAT-Tests-Runner-Preprocessing:
     uses: ./.github/workflows/run-pytest.yml
     with:
       environment_file: ./deeprvat_preprocessing_env.yml
-      parallel_tests: true
       test_path: ./tests/preprocessing
 
   DeepRVAT-Tests-Runner-Annotations:
     uses: ./.github/workflows/run-pytest.yml
     with:
       environment_file: ./deeprvat_annotations.yml
-      parallel_tests: true
       test_path: ./tests/annotations
+      parallel_tests: true
+
+  DeepRVAT-Tests-Runner:
+    uses: ./.github/workflows/run-pytest.yml
+    with:
+      environment_file: ./deeprvat_env_no_gpu.yml
+      parallel_tests: true
+      test_path: ./tests/deeprvat
