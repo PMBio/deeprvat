@@ -13,16 +13,13 @@ jobs:
             python -m snakemake -n -j 2 --directory ./example \
             --snakefile ./pipelines/run_training.snakefile --show-failed-logs
     
-
-#  Pipeline-Tests-RunTraining:
-#    needs: Smoke-RunTraining
-#    steps:
-#      uses: ./.github/workflows/run-pipeline.yml
-#      with:
-#        environment_file: ./deeprvat_env_no_gpu.yml
-#        name: Run run_training pipeline
-#       # There are no GPUs on the gh worker, so we disable it in the config
-#        prerun_cmd: "sed -i 's/gpus: 1/gpus: 0/' ./example/config.yaml"
-#        pipeline_cmd: |
-#            python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
-#            --snakefile ${{ github.workspace }}/pipelines/run_training.snakefile --show-failed-logs -F
+  Pipeline-Tests-RunTraining:
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      environment_file: ./deeprvat_env_no_gpu.yml
+      name: Run run_training pipeline
+     # There are no GPUs on the gh worker, so we disable it in the config
+      prerun_cmd: "sed -i 's/gpus: 1/gpus: 0/' ./example/config.yaml"
+      pipeline_cmd: |
+          python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
+          --snakefile ${{ github.workspace }}/pipelines/run_training.snakefile --show-failed-logs -F
