@@ -22,8 +22,7 @@ on:
       pipeline_directory:
         required: false
         type: string
-        default: false
-          ./example
+        default: ./example
       dry_run:
         required: false
         default: true
@@ -52,7 +51,7 @@ jobs:
           # There are no GPUs on the gh worker, so we can disable it in the config
           run: "sed -i 's/gpus: 1/gpus: 0/' ./example/config.yaml"
           shell: bash -el {0}
-        - name: ${{inputs.name}} # (inputs.dry_run && 'dry-run')
+        - name: ${{inputs.name}} (inputs.dry_run && 'dry-run')
           run: |
             python -m snakemake -j 2 --directory ${{inputs.pipeline_directory}} \
             --snakefile ${{inputs.pipeline_file}} --show-failed-logs -F \ 
