@@ -105,7 +105,6 @@ jobs:
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_preprocessing_env.yml
-      name: Preprocessing-With-QC
       pipeline_file: ./pipelines/preprocess_with_qc.snakefile
       pipeline_directory: ./example/preprocess
       pipeline_config: ./pipelines/config/deeprvat_preprocess_config.yaml
