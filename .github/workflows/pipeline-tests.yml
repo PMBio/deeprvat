@@ -1,5 +1,5 @@
-name: DeepRVAT Pipeline tests
-run-name: DeepRVAT Pipeline tests 🧬🧪💻🧑‍🔬
+name: DeepRVAT Pipeline Tests
+run-name: DeepRVAT Pipeline Tests 🧬🧪💻🧑‍🔬
 on: [ push ]
 
 jobs:

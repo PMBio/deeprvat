@@ -1,4 +1,4 @@
-name: Run pipeline
+name: Run snakemake pipeline
 
 on:
   workflow_call:
@@ -62,7 +62,7 @@ jobs:
           if: inputs.prerun_cmd
           run: ${{inputs.prerun_cmd}}
           shell: bash -el {0}
-        - name: Set to 0 Gpu in conf
+        - name: Set to 0 GPUs in config
           if: inputs.no_gpu
           # There are no GPUs on the gh worker, so we can disable it in the config
           run: "sed -i 's/gpus: 1/gpus: 0/' ./example/config.yaml"

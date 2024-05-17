@@ -1,9 +1,8 @@
 name: DeepRVAT code test runner
-run-name: DeepRVAT code Tests 🧑🏼‍💻✅
+run-name: DeepRVAT Code Tests 🧑🏼‍💻✅
 on: [ push ]
 
 jobs:
-  # Training Pipeline
   DeepRVAT-Tests-Runner:
     uses: ./.github/workflows/run-pytest.yml
     with:
