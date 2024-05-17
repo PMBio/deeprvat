@@ -28,7 +28,7 @@ jobs:
             cache-environment: true
             cache-downloads: true
         - name: Run pre pipeline cmd
-          if: prerun_cmd
+          if: inputs.prerun_cmd
           run: ${{inputs.prerun_cmd}}
           shell: bash -el {0}
         - name: ${{inputs.name}}
