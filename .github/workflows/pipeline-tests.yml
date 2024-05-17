@@ -28,6 +28,16 @@ jobs:
       prerun_cmd: cd ./example && ln -s ../pretrained_models
       pipeline_file: ./pipelines/association_testing_pretrained.snakefile
 
+  Pipeline-Tests-Training-Association-Testing:
+    needs: Smoke-Association-Testing-Pretrained
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      environment_file: ./deeprvat_env_no_gpu.yml
+      name: Pipeline-Tests-Training-Association-Testing
+      no_gpu: true
+      pipeline_file: ./pipelines/training_association_testing.snakefile
+      dry_run: false
+
   Smoke-Association-Testing-Pretrained-Regenie:
     uses: ./.github/workflows/run-pipeline.yml
     with:
