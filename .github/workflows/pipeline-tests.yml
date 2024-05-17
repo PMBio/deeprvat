@@ -14,7 +14,7 @@ jobs:
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_env_no_gpu.yml
-      name: Smoke-RunTraining
+      name: Smoke-Association-Testing-Pretrained
       pipeline_file: ./pipelines/association_testing_pretrained.snakefile
       prerun_cmd: cd ./example && ln -s ../pretrained_models
 
