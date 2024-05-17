@@ -55,7 +55,7 @@ jobs:
           run: |
             python -m snakemake -j 2 --directory ${{inputs.pipeline_directory}} \
             --snakefile ${{inputs.pipeline_file}} --show-failed-logs -F \ 
-            ${{ (inputs.dry_run && '--dry-run') || '' }}
+            ${{ (inputs.dry_run && '--dryrun') || '' }}
 
           shell: micromamba-shell {0}
 
