@@ -10,6 +10,13 @@ jobs:
       name: Smoke-RunTraining
       pipeline_file: ./pipelines/run_training.snakefile
 
+  Smoke-Association-Testing-Pretrained:
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      environment_file: ./deeprvat_env_no_gpu.yml
+      name: Smoke-RunTraining
+      pipeline_file: ./pipelines/association_testing_pretrained.snakefile
+      prerun_cmd: cd ./example && ln -s ../pretrained_models
 
   Pipeline-Tests-RunTraining:
     needs: Smoke-RunTraining
