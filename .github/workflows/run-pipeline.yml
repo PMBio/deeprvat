@@ -27,6 +27,9 @@ jobs:
             environment-file: ${{inputs.environment_file}}
             cache-environment: true
             cache-downloads: true
+        - name: Install DeepRVAT
+          run: pip install -e ${{ github.workspace }}
+          shell: micromamba-shell {0}
         - name: Run pre pipeline cmd
           if: inputs.prerun_cmd
           run: ${{inputs.prerun_cmd}}
