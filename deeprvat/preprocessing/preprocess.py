@@ -2,9 +2,9 @@ import gc
 import logging
 import sys
 import time
+from contextlib import ExitStack
 from pathlib import Path
 from typing import List, Optional, Tuple
-from contextlib import ExitStack
 
 import click
 import h5py
@@ -119,10 +119,21 @@ def cli():
 @click.argument("variant_file", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path(writable=True))
 @click.argument("duplicates_file", type=click.Path(writable=True))
-def add_variant_ids(variant_file: str, out_file: str, duplicates_file: str):
+@click.option("--chromosomes", type=str)
+def add_variant_ids(
+    variant_file: str,
+    out_file: str,
+    duplicates_file: str,
+    chromosomes: Optional[str] = None,
+):
     variants = pd.read_csv(
         variant_file, sep="\t", names=["chrom", "pos", "ref", "alt"], index_col=False
     )
+
+    if chromosomes is not None:
+        logging.info(f"Filtering variants based on chromosomes. Keeping {chromosomes}")
+        chromosomes = [f"chr{chrom}" for chrom in chromosomes.split(",")]
+        variants = variants[variants["chrom"].isin(chromosomes)]
 
     duplicates = variants[variants.duplicated()]
 

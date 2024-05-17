@@ -614,20 +614,13 @@ class DenseGTDataset(Dataset):
                     "Annotation dataframe has inconsistent allele frequency values"
                 )
             variants_with_af = safe_merge(
-                variants[["id"]].reset_index(drop=True), af_annotation, how="left"
+                variants[["id"]].reset_index(drop=True), af_annotation
             )
             assert np.all(
                 variants_with_af["id"].to_numpy() == variants["id"].to_numpy()
             )
-            af_isna = variants_with_af[af_col].isna()
-            if af_isna.sum() > 0:
-                logger.warning(
-                    f"Dropping {af_isna.sum()} variants missing from annotation dataframe"
-                )
-            mask = (
-                (~af_isna)
-                & (variants_with_af[af_col] >= af_threshold)
-                & (variants_with_af[af_col] <= 1 - af_threshold)
+            mask = (variants_with_af[af_col] >= af_threshold) & (
+                variants_with_af[af_col] <= 1 - af_threshold
             )
             mask = mask.to_numpy()
             del variants_with_af
@@ -938,10 +931,11 @@ class DenseGTDataset(Dataset):
         result = {
             "variant_metadata": self.variants[
                 ["id", "common_variant_mask", "rare_variant_mask", "matrix_index"]
-            ],
-            "samples": self.samples,
+            ]
         }
         if self.use_rare_variants:
             if hasattr(self.rare_embedding, "get_metadata"):
-                result["rare_embedding_metadata"] = self.rare_embedding.get_metadata()
+                result.update(
+                    {"rare_embedding_metadata": self.rare_embedding.get_metadata()}
+                )
         return result

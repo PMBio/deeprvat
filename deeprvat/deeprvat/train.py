@@ -82,9 +82,8 @@ def subset_samples(
     input_tensor: torch.Tensor,
     covariates: torch.Tensor,
     y: torch.Tensor,
-    sample_ids: torch.Tensor,
     min_variant_count: int,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     # First sum over annotations (dim 2) for each variant in each gene.
     # Then get the number of non-zero values across all variants in all
     # genes for each sample.
@@ -106,23 +105,21 @@ def subset_samples(
     input_tensor = input_tensor[mask]
     covariates = covariates[mask]
     y = y[mask]
-    sample_ids = sample_ids[mask]
 
     logger.info(f"{input_tensor.shape[0]} / {n_samples_orig} samples kept")
 
-    return input_tensor, covariates, y, sample_ids
+    return input_tensor, covariates, y
 
 
 def make_dataset_(
     debug: bool,
     pickle_only: bool,
     compression_level: int,
-    training_dataset_file: Optional[Path],
+    training_dataset_file: Optional[str],
     config_file: Union[str, Path],
-    input_tensor_out_file: Path,
-    covariates_out_file: Path,
-    y_out_file: Path,
-    samples_out_file: Path,
+    input_tensor_out_file: str,
+    covariates_out_file: str,
+    y_out_file: str,
 ):
     """
     Subfunction of make_dataset()
@@ -228,11 +225,10 @@ def make_dataset_(
     )
     covariates = torch.cat([b["x_phenotypes"] for b in batches])
     y = torch.cat([b["y"] for b in batches])
-    sample_ids = np.concatenate([b["sample"] for b in batches])
 
     logger.info("Subsetting samples by min_variant_count and missing y values")
-    input_tensor, covariates, y, sample_ids = subset_samples(
-        input_tensor, covariates, y, sample_ids, config["training"]["min_variant_count"]
+    input_tensor, covariates, y = subset_samples(
+        input_tensor, covariates, y, config["training"]["min_variant_count"]
     )
 
     if not pickle_only:
@@ -246,7 +242,6 @@ def make_dataset_(
         del input_tensor
         zarr.save_array(covariates_out_file, covariates.numpy())
         zarr.save_array(y_out_file, y.numpy())
-        zarr.save_array(samples_out_file, sample_ids)
 
     # DEBUG
     return ds.dataset
@@ -256,22 +251,20 @@ def make_dataset_(
 @click.option("--debug", is_flag=True)
 @click.option("--pickle-only", is_flag=True)
 @click.option("--compression-level", type=int, default=1)
-@click.option("--training-dataset-file", type=click.Path(exists=True, path_type=Path))
-@click.argument("config-file", type=click.Path(exists=True, path_type=Path))
-@click.argument("input-tensor-out-file", type=click.Path(path_type=Path))
-@click.argument("covariates-out-file", type=click.Path(path_type=Path))
-@click.argument("y-out-file", type=click.Path(path_type=Path))
-@click.argument("samples-out-file", type=click.Path(path_type=Path))
+@click.option("--training-dataset-file", type=click.Path())
+@click.argument("config-file", type=click.Path(exists=True))
+@click.argument("input-tensor-out-file", type=click.Path())
+@click.argument("covariates-out-file", type=click.Path())
+@click.argument("y-out-file", type=click.Path())
 def make_dataset(
     debug: bool,
     pickle_only: bool,
     compression_level: int,
-    training_dataset_file: Optional[Path],
-    config_file: Path,
-    input_tensor_out_file: Path,
-    covariates_out_file: Path,
-    y_out_file: Path,
-    samples_out_file: Path,
+    training_dataset_file: Optional[str],
+    config_file: str,
+    input_tensor_out_file: str,
+    covariates_out_file: str,
+    y_out_file: str,
 ):
     """
     Uses function make_dataset_() to convert dataset to sparse format and stores the respective data
@@ -305,7 +298,6 @@ def make_dataset(
         input_tensor_out_file,
         covariates_out_file,
         y_out_file,
-        samples_out_file,
     )
 
 
@@ -369,10 +361,9 @@ class MultiphenoDataset(Dataset):
             logger.info("Keeping all input tensors in main memory")
 
         for pheno, pheno_data in self.data.items():
-            n_samples = pheno_data["sample_indices"].shape[0]
-            if pheno_data["y"].shape == (n_samples, 1):
+            if pheno_data["y"].shape == (pheno_data["input_tensor_zarr"].shape[0], 1):
                 pheno_data["y"] = pheno_data["y"].squeeze()
-            elif pheno_data["y"].shape != (n_samples,):
+            elif pheno_data["y"].shape != (pheno_data["input_tensor_zarr"].shape[0],):
                 raise NotImplementedError(
                     "Multi-phenotype training is only implemented via multiple y files"
                 )
@@ -593,10 +584,8 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         self.n_annotations = any_pheno_data["input_tensor_zarr"].shape[2]
         self.n_covariates = any_pheno_data["covariates"].shape[1]
 
-        for pheno, pheno_data in self.data.items():
-            # n_samples = pheno_data["input_tensor_zarr"].shape[0]
-            sample_indices = pheno_data["sample_indices"]
-            n_samples = sample_indices.shape[0]
+        for _, pheno_data in self.data.items():
+            n_samples = pheno_data["input_tensor_zarr"].shape[0]
             assert pheno_data["covariates"].shape[0] == n_samples
             assert pheno_data["y"].shape[0] == n_samples
 
@@ -611,33 +600,29 @@ class MultiphenoBaggingData(pl.LightningDataModule):
                 samples = self.upsample()
                 n_samples = self.samples.shape[0]
                 logger.info(f"New sample number: {n_samples}")
-            # else:
-            #     samples = np.arange(n_samples)
+            else:
+                samples = np.arange(n_samples)
 
             # Sample self.n_samples * train_proportion samples with replacement
             # for training, use all remaining samples for validation
             if train_proportion == 1.0:
-                self.train_samples = sample_indices
-                self.val_samples = sample_indices
+                self.train_samples = self.samples
+                self.val_samples = self.samples
             else:
                 n_train_samples = round(n_samples * train_proportion)
                 rng = np.random.default_rng()
                 # select training samples from the underlying dataframe
                 train_samples = np.sort(
                     rng.choice(
-                        sample_indices,
-                        size=n_train_samples,
-                        replace=sample_with_replacement,
+                        samples, size=n_train_samples, replace=sample_with_replacement
                     )
                 )
                 # samples which are not part of train_samples, but in samples
                 # are validation samples.
-                val_samples = np.setdiff1d(sample_indices, train_samples)
-                logger.info(
-                    f"{pheno}: Using {train_samples.shape[0]} samples for training, "
-                    f"{val_samples.shape[0]} for validation"
-                )
-                pheno_data["samples"] = {"train": train_samples, "val": val_samples}
+                pheno_data["samples"] = {
+                    "train": train_samples,
+                    "val": np.setdiff1d(samples, train_samples),
+                }
 
         self.save_hyperparameters(
             # "min_variant_count",
@@ -655,8 +640,6 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         does not work at the moment for multi-phenotype training. Needs some minor changes
         to make it work again
         """
-        raise NotImplementedError
-
         unique_values = self.y.unique()
         if unique_values.size() != torch.Size([2]):
             raise ValueError(
@@ -945,19 +928,18 @@ def run_bagging(
 
 @cli.command()
 @click.option("--debug", is_flag=True)
-@click.option("--training-gene-file", type=click.Path(exists=True, path_type=Path))
+@click.option("--training-gene-file", type=click.Path(exists=True))
 @click.option("--n-trials", type=int, default=1)
 @click.option("--trial-id", type=int)
-@click.option("--samples-to-keep", type=click.Path(exists=True, path_type=Path))
+@click.option("--sample-file", type=click.Path(exists=True))
 @click.option(
     "--phenotype",
     multiple=True,
     type=(
         str,
-        click.Path(exists=True, path_type=Path),
-        click.Path(exists=True, path_type=Path),
-        click.Path(exists=True, path_type=Path),
-        click.Path(exists=True, path_type=Path),
+        click.Path(exists=True),
+        click.Path(exists=True),
+        click.Path(exists=True),
     ),
 )
 @click.argument("config-file", type=click.Path(exists=True))
@@ -965,11 +947,11 @@ def run_bagging(
 @click.argument("hpopt-file", type=click.Path())
 def train(
     debug: bool,
-    training_gene_file: Optional[Path],
+    training_gene_file: Optional[str],
     n_trials: int,
     trial_id: Optional[int],
-    samples_to_keep: Optional[Path],
-    phenotype: Tuple[Tuple[str, Path, Path, Path, Path]],
+    sample_file: Optional[str],
+    phenotype: Tuple[Tuple[str, str, str, str]],
     config_file: str,
     log_dir: str,
     hpopt_file: str,
@@ -985,8 +967,8 @@ def train(
     :type n_trials: int
     :param trial_id: Current trial in range n_trials. (optional)
     :type trial_id: Optional[int]
-    :param samples_to_keep: Path to a pickle file specifying which samples should be considered during training. (optional)
-    :type samples_to_keep: Optional[str]
+    :param sample_file: Path to a pickle file specifying which samples should be considered during training. (optional)
+    :type sample_file: Optional[str]
     :param phenotype: Array of phenotypes, containing an array of paths where the underlying data is stored:
         - str: Phenotype name
         - str: Annotated gene variants as zarr file
@@ -1020,57 +1002,30 @@ def train(
         logger.info(f"GPU memory: {torch.cuda.get_device_properties(0).total_memory}")
 
     logger.info("Loading input data")
-
-    if samples_to_keep is not None or "sample_file" in config:
-        if samples_to_keep is not None:
-            keep_sample_file = samples_to_keep
-            if "sample_file" in config:
-                logger.warning(
-                    f"--samples-to-keep option overrides sample_file in config.yaml"
-                )
-        else:
-            keep_sample_file = Path(config["sample_file"])
-
-        logger.info(f"Using samples from {keep_sample_file}")
-        if keep_sample_file.suffix == ".pkl":
-            with open(keep_sample_file, "rb") as f:
-                sample_ids = np.array(pickle.load(f))
-        elif keep_sample_file.suffix == ".zarr":
-            sample_ids = zarr.load(keep_sample_file)
-        elif keep_sample_file.suffix == ".npy":
-            sample_ids = np.load(keep_sample_file)
-        else:
-            raise ValueError("Unknown file type for sample_file")
+    if sample_file is not None:
+        logger.info(f"Using training samples from {sample_file}")
+        with open(sample_file, "rb") as f:
+            samples = pickle.load(f)["training_samples"]
+        if debug:
+            samples = [s for s in samples if s < 1000]
     else:
-        sample_ids = None
+        samples = slice(None)
 
     data = dict()
     # pack underlying data into a single dict that can be passed to downstream functions
-    for pheno, input_tensor_file, covariates_file, y_file, sample_file in phenotype:
+    for pheno, input_tensor_file, covariates_file, y_file in phenotype:
         data[pheno] = dict()
         data[pheno]["input_tensor_zarr"] = zarr.open(
             input_tensor_file, mode="r"
         )  # TODO: subset here?
-        n_samples = data[pheno]["input_tensor_zarr"].shape[0]
-
-        data[pheno]["sample_ids"] = zarr.load(sample_file)
-        sample_indices = np.arange(n_samples)
-        if sample_ids is not None:
-            sample_indices = sample_indices[
-                np.isin(data[pheno]["sample_ids"], sample_ids)
-            ]
-
-        if debug:
-            sample_indices = sample_indices[:1000]
-
-        data[pheno]["sample_indices"] = sample_indices
-
         data[pheno]["covariates"] = torch.tensor(
-            zarr.load(covariates_file)[sample_indices]
-        )  # TODO: or maybe shouldn't subset here?
-        data[pheno]["y"] = torch.tensor(
-            zarr.load(y_file)[sample_indices]
-        )  # TODO: or maybe shouldn't subset here?
+            zarr.open(covariates_file, mode="r")[:]
+        )[
+            samples
+        ]  # TODO: or maybe shouldn't subset here?
+        data[pheno]["y"] = torch.tensor(zarr.open(y_file, mode="r")[:])[
+            samples
+        ]  # TODO: or maybe shouldn't subset here?
 
         if training_gene_file is not None:
             with open(training_gene_file, "rb") as f:

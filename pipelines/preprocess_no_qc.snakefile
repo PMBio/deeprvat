@@ -3,17 +3,17 @@ include: "preprocessing/preprocess.snakefile"
 
 rule all:
     input:
-        preprocessed_dir / "genotypes.h5",
-        norm_variants_dir / "variants.tsv.gz",
-        variants=norm_variants_dir / "variants.parquet",
+        combined_genotypes=rules.combine_genotypes.output,
+        variants_tsv=rules.add_variant_ids.output.variants,
+        variants_parquet=rules.create_parquet_variant_ids.output.variants,
 
 
-rule preprocess_no_qc:
+rule preprocess:
     input:
-        variants=norm_variants_dir / "variants.tsv.gz",
-        variants_parquet=norm_variants_dir / "variants.parquet",
-        samples=norm_dir / "samples_chr.csv",
-        sparse_tg=expand(sparse_dir / "{vcf_stem}.tsv.gz", vcf_stem=vcf_stems),
+        variants=rules.add_variant_ids.output.variants,
+        variants_parquet=rules.create_parquet_variant_ids.output.variants,
+        samples=rules.extract_samples.output,
+        sparse_tg=expand(rules.sparsify.output.tsv, vcf_stem=vcf_stems),
     output:
         expand(preprocessed_dir / "genotypes_chr{chr}.h5", chr=chromosomes),
     shell:
@@ -27,6 +27,6 @@ rule preprocess_no_qc:
                 "{input.variants_parquet}",
                 "{input.samples}",
                 f"{sparse_dir}",
-                f"{preprocessed_dir / 'genotypes'}",
+                f"{preprocessed_dir/ 'genotypes'}",
             ]
         )

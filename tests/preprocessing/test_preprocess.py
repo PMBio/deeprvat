@@ -1,11 +1,13 @@
+from pathlib import Path
+
+import h5py
 import numpy as np
 import pandas as pd
-from pandas.testing import assert_frame_equal
-from deeprvat.preprocessing.preprocess import cli as preprocess_cli
-from click.testing import CliRunner
-from pathlib import Path
-import h5py
 import pytest
+from click.testing import CliRunner
+from pandas.testing import assert_frame_equal
+
+from deeprvat.preprocessing.preprocess import cli as preprocess_cli
 
 script_dir = Path(__file__).resolve().parent
 tests_data_dir = script_dir / "test_data"
@@ -25,6 +27,14 @@ def load_h5_archive(h5_path):
     [
         (
             "no_filters_minimal",
+            [
+                "--chromosomes",
+                "1",
+            ],
+            "genotypes_chr1.h5",
+        ),
+        (
+            "no_filters_minimal_str_samples",
             [
                 "--chromosomes",
                 "1",
@@ -172,24 +182,73 @@ def test_combine_genotypes(test_data_name_dir, input_h5, result_h5, tmp_path):
 
 
 @pytest.mark.parametrize(
-    "test_data_name_dir, input_variants, output_variants, output_duplicates",
+    "test_data_name_dir, input_variants, output_variants, output_duplicates, chromosomes",
     [
         (
             "add_variant_ids_tsv",
             "variants_no_id.tsv.gz",
             "variants.tsv.gz",
             "duplicates.tsv",
+            None,
         ),
         (
             "add_variant_ids_parquet",
             "variants_no_id.tsv.gz",
             "variants.parquet",
             "duplicates.parquet",
+            None,
+        ),
+        (
+            "add_variant_ids_tsv_chr1",
+            "variants_no_id.tsv.gz",
+            "variants.tsv.gz",
+            "duplicates.tsv",
+            "1",
+        ),
+        (
+            "add_variant_ids_tsv_chr2",
+            "variants_no_id.tsv.gz",
+            "variants.tsv.gz",
+            "duplicates.tsv",
+            "2",
+        ),
+        (
+            "add_variant_ids_tsv",
+            "variants_no_id.tsv.gz",
+            "variants.tsv.gz",
+            "duplicates.tsv",
+            "1,2",
+        ),
+        (
+            "add_variant_ids_parquet_chr1",
+            "variants_no_id.tsv.gz",
+            "variants.parquet",
+            "duplicates.parquet",
+            "1",
+        ),
+        (
+            "add_variant_ids_parquet_chr2",
+            "variants_no_id.tsv.gz",
+            "variants.parquet",
+            "duplicates.parquet",
+            "2",
+        ),
+        (
+            "add_variant_ids_parquet",
+            "variants_no_id.tsv.gz",
+            "variants.parquet",
+            "duplicates.parquet",
+            "1,2",
         ),
     ],
 )
 def test_add_variant_ids(
-    test_data_name_dir, input_variants, output_variants, output_duplicates, tmp_path
+    test_data_name_dir,
+    input_variants,
+    output_variants,
+    output_duplicates,
+    chromosomes,
+    tmp_path,
 ):
     cli_runner = CliRunner()
 
@@ -210,6 +269,9 @@ def test_add_variant_ids(
         (norm_variants_dir / output_variants).as_posix(),
         (qc_duplicate_vars_dir / output_duplicates).as_posix(),
     ]
+
+    if chromosomes:
+        cli_parameters += ["--chromosomes", chromosomes]
 
     result = cli_runner.invoke(preprocess_cli, cli_parameters)
     assert result.exit_code == 0

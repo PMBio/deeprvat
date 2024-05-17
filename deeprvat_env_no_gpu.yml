@@ -33,6 +33,8 @@ dependencies:
   - parallel=20230922
   - pip=23.1.2
   - plotnine=0.10.1
+  - pytest=8.2.0
+  - pytest-xdist=3.5.0
   - pip:
     - git+https://github.com/HealthML/seak@v0.4.3
     - bgen==1.6.3

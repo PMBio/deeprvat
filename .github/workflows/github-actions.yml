@@ -8,7 +8,7 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
-      - uses: mamba-org/setup-micromamba@v1.8.0
+      - uses: mamba-org/setup-micromamba@v1.8.1
         with:
           environment-name: deeprvat-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
@@ -42,7 +42,7 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
-      - uses: mamba-org/setup-micromamba@v1.8.0
+      - uses: mamba-org/setup-micromamba@v1.8.1
         with:
           environment-name: deeprvat-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
@@ -83,7 +83,7 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
-      - uses: mamba-org/setup-micromamba@v1.8.0
+      - uses: mamba-org/setup-micromamba@v1.8.1
         with:
           environment-name: deeprvat-preprocess-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
@@ -116,7 +116,7 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
-      - uses: mamba-org/setup-micromamba@v1.8.0
+      - uses: mamba-org/setup-micromamba@v1.8.1
         with:
           environment-name: deeprvat-preprocess-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
@@ -136,7 +136,7 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
-      - uses: mamba-org/setup-micromamba@v1.8.0
+      - uses: mamba-org/setup-micromamba@v1.8.1
         with:
           environment-name: deeprvat-preprocess-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
@@ -177,7 +177,7 @@ jobs:
 
       - name: Check out repository code
         uses: actions/checkout@v4
-      - uses: mamba-org/setup-micromamba@v1.8.0
+      - uses: mamba-org/setup-micromamba@v1.8.1
         with:
           environment-name: deeprvat-preprocess-gh-action
           environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
