@@ -57,7 +57,7 @@ jobs:
             path: ./example/preprocess/workdir/reference
             key: ${{ runner.os }}-reference-fasta
         - name: Download and unpack fasta data
-          #if: inputs.download_example_data && steps.cache-fasta.outputs.cache-hit != 'true'
+          if: inputs.download_example_data && steps.cache-fasta.outputs.cache-hit != 'true'
           run: |
             wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38.primary_assembly.genome.fa.gz \
             -O ./example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa.gz \
