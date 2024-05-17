@@ -97,8 +97,22 @@ jobs:
     needs: Smoke-Seed-Gene-Discovery
     uses: ./.github/workflows/run-pipeline.yml
     with:
-      environment_file: ./deeprvat_env_no_gpu.yml
+      environment_file: ./deeprvat_env_no_g pu.yml
       name: Smoke-Seed-Gene-Discovery
       prerun_cmd: cd ./example && cp ../deeprvat/seed_gene_discovery/config.yaml .
       pipeline_file: ./pipelines/seed_gene_discovery.snakefile
       dry_run: false
+
+  Smoke-Preprocessing-No-QC:
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      environment_file: ./deeprvat_preprocessing_env.yml
+      name: Smoke-Preprocessing-No-QC
+      pipeline_file: ./pipelines/preprocess_no_qc.snakefile
+
+  Smoke-Preprocessing-With-QC:
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      environment_file: ./deeprvat_preprocessing_env.yml
+      name: Preprocessing-With-QC
+      pipeline_file: ./pipelines/preprocess_no_qc.snakefile
