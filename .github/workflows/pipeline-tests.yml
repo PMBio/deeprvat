@@ -3,6 +3,7 @@ run-name: DeepRVAT Pipeline tests 🧬🧪💻🧑‍🔬
 on: [ push ]
 
 jobs:
+  # Training Pipeline
   Smoke-RunTraining:
     uses: ./.github/workflows/run-pipeline.yml
     with:
@@ -19,6 +20,7 @@ jobs:
       pipeline_file: ./pipelines/run_training.snakefile
       dry_run: false
 
+  # Association Testing Pretrained Pipeline
   Smoke-Association-Testing-Pretrained:
     uses: ./.github/workflows/run-pipeline.yml
     with:
@@ -36,6 +38,7 @@ jobs:
       pipeline_file: ./pipelines/training_association_testing.snakefile
       dry_run: false
 
+  # Association Testing Pretrained Regenie
   Smoke-Association-Testing-Pretrained-Regenie:
     uses: ./.github/workflows/run-pipeline.yml
     with:
@@ -55,6 +58,7 @@ jobs:
       pipeline_file: ./pipelines/association_testing_pretrained_regenie.snakefile
       dry_run: false
 
+  # Association Testing Training
   Smoke-Association-Testing-Training:
     uses: ./.github/workflows/run-pipeline.yml
     with:
@@ -71,6 +75,7 @@ jobs:
       pipeline_file: ./pipelines/training_association_testing.snakefile
       dry_run: false
 
+  # Association Testing Training Regenie
   Smoke-Association-Testing-Training-Regenie:
     uses: ./.github/workflows/run-pipeline.yml
     with:
@@ -87,6 +92,7 @@ jobs:
       pipeline_file: ./pipelines/training_association_testing_regenie.snakefile
       dry_run: false
 
+  # Seed Gene Discovery
   Smoke-Seed-Gene-Discovery:
     uses: ./.github/workflows/run-pipeline.yml
     with:
@@ -105,6 +111,7 @@ jobs:
       pipeline_file: ./pipelines/seed_gene_discovery.snakefile
       dry_run: false
 
+  # Preprocessing-No-QC
   Smoke-Preprocessing-No-QC:
     uses: ./.github/workflows/run-pipeline.yml
     with:
@@ -112,6 +119,7 @@ jobs:
       name: Smoke-Preprocessing-No-QC
       pipeline_file: ./pipelines/preprocess_no_qc.snakefile
 
+  # Preprocessing With QC
   Smoke-Preprocessing-With-QC:
     uses: ./.github/workflows/run-pipeline.yml
     with:
@@ -119,6 +127,7 @@ jobs:
       name: Preprocessing-With-QC
       pipeline_file: ./pipelines/preprocess_no_qc.snakefile
 
+  # Annotation Pipeline
   Smoke-Annotation-Pipeline:
     uses: ./.github/workflows/run-pipeline.yml
     with:
