@@ -123,4 +123,4 @@ jobs:
       environment_file: ./deeprvat_preprocessing_env.yml
       name: Preprocessing-With-QC
       pipeline_file: ./pipelines/annotations.snakefile
-      pipeline_config: pipelines/config/deeprvat_annotation_config.yaml
+      pipeline_config: ./pipelines/config/deeprvat_annotation_config.yaml
