@@ -45,6 +45,8 @@ jobs:
       pipeline_file: ./pipelines/association_testing_pretrained_regenie.snakefile
 
   Pipeline-Tests-Association-Testing-Pretrained-Regenie:
+    needs: Smoke-Association-Testing-Pretrained-Regenie
+
     uses: ./.github/workflows/run-pipeline.yml
     with:
       environment_file: ./deeprvat_env_no_gpu.yml
