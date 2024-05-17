@@ -7,11 +7,6 @@ phenotypes = config['phenotypes']
 phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
 
 
-rule all_association_dataset:
-    input:
-        expand('{phenotype}/deeprvat/association_dataset.pkl',
-               phenotype=phenotypes)
-
 rule association_dataset:
     input:
         data_config = '{phenotype}/deeprvat/config.yaml'
