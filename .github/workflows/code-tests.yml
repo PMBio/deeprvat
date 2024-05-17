@@ -1,0 +1,26 @@
+name: DeepRVAT code test runner
+run-name: DeepRVAT code Tests 🧑🏼‍💻✅
+on: [ push ]
+
+jobs:
+  # Training Pipeline
+  DeepRVAT-Tests-Runner:
+    uses: ./.github/workflows/run-pytest.yml
+    with:
+      environment_file: ./deeprvat_env_no_gpu.yml
+      parallel_tests: true
+      test_path: ./tests/deeprvat
+
+  DeepRVAT-Tests-Runner-Preprocessing:
+    uses: ./.github/workflows/run-pytest.yml
+    with:
+      environment_file: ./deeprvat_preprocessing_env.yml
+      parallel_tests: true
+      test_path: ./tests/preprocessing
+
+  DeepRVAT-Tests-Runner-Annotations:
+    uses: ./.github/workflows/run-pytest.yml
+    with:
+      environment_file: ./deeprvat_annotations.yml
+      parallel_tests: true
+      test_path: ./tests/annotations
