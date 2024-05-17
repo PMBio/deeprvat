@@ -1,0 +1,65 @@
+name: DeepRVAT code test runner
+run-name: DeepRVAT code Tests 🧑🏼‍💻✅
+on: [ push ]
+
+jobs:
+  DeepRVAT-Tests-Runner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - uses: mamba-org/setup-micromamba@v1.8.1
+        with:
+          environment-name: deeprvat-preprocess-gh-action
+          environment-file: ${{ github.workspace }}/deeprvat_env_no_gpu.yml
+          cache-environment: true
+          cache-downloads: true
+
+      - name: Install DeepRVAT
+        run: pip install -e ${{ github.workspace }}
+        shell: micromamba-shell {0}
+      - name: Run pytest deeprvat
+        run: pytest -n auto -v ${{ github.workspace }}/tests/deeprvat
+        shell: micromamba-shell {0}
+
+  DeepRVAT-Tests-Runner-Preprocessing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - uses: mamba-org/setup-micromamba@v1.8.1
+        with:
+          environment-name: deeprvat-preprocess-gh-action
+          environment-file: ${{ github.workspace }}/deeprvat_preprocessing_env.yml
+          cache-environment: true
+          cache-downloads: true
+
+      - name: Install DeepRVAT
+        run: pip install -e ${{ github.workspace }}
+        shell: micromamba-shell {0}
+
+      - name: Run pytest preprocessing
+        run: pytest -v ${{ github.workspace }}/tests/preprocessing
+        shell: micromamba-shell {0}
+
+  DeepRVAT-Tests-Runner-Annotations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - uses: mamba-org/setup-micromamba@v1.8.1
+        with:
+          environment-name: deeprvat-annotation-gh-action
+          environment-file: ${{ github.workspace }}/deeprvat_annotations.yml
+          cache-environment: true
+          cache-downloads: true
+
+      - name: Install DeepRVAT
+        run: pip install -e ${{ github.workspace }}
+        shell: micromamba-shell {0}
+
+      - name: Run pytest annotations
+        run: pytest -n auto -v ${{ github.workspace }}/tests/annotations
+        shell: micromamba-shell {0}

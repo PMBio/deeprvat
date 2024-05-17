@@ -1,0 +1,35 @@
+# GitHub Action that uses Black to reformat the Python code in an incoming pull request.
+# If all Python code in the pull request is complient with Black then this Action does nothing.
+# Othewrwise, Black is run and its changes are committed back to the incoming pull request.
+# https://github.com/cclauss/autoblack
+
+name: autoblack_pull_request
+on: [ pull_request ]
+jobs:
+  black-code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install black
+      - run: black --check .
+      - name: If needed, commit black changes to the pull request
+        if: failure()
+        run: |
+          printenv | grep GITHUB
+          git config --global user.name 'PMBio'
+          git config --global user.email 'PMBio@users.noreply.github.com'          
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
+          git remote -v
+          git branch
+          git status
+          black .
+          git status
+          echo ready to commit
+          git commit -am "fixup! Format Python code with psf/black pull_request"
+          echo ready to push
+          git push
