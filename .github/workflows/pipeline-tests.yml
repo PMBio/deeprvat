@@ -116,3 +116,13 @@ jobs:
       environment_file: ./deeprvat_preprocessing_env.yml
       name: Preprocessing-With-QC
       pipeline_file: ./pipelines/preprocess_no_qc.snakefile
+
+
+
+  Smoke-Annotation-Pipeline:
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      environment_file: ./deeprvat_preprocessing_env.yml
+      name: Preprocessing-With-QC
+      pipeline_file: ./pipelines/preprocess_no_qc.snakefile
+      pipeline_config: pipelines/config/deeprvat_annotation_config.yaml

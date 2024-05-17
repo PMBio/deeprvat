@@ -23,6 +23,9 @@ on:
         required: false
         type: string
         default: ./example
+      pipeline_config:
+        required: false
+        type: string
       dry_run:
         required: false
         default: true
@@ -55,6 +58,7 @@ jobs:
           run: |
             python -m snakemake ${{ (inputs.dry_run && '-n') || '' }} \
             -j 2 --directory ${{inputs.pipeline_directory}} \
+            ${{ (inputs.pipeline_config && "--configfile ${{inputs.pipeline_config}}") || '' }} \
             --snakefile ${{inputs.pipeline_file}} --show-failed-logs -F  
 
           shell: micromamba-shell {0}
