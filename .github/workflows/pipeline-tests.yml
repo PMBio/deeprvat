@@ -49,3 +49,13 @@ jobs:
       pipeline_config: ./pipelines/config/deeprvat_preprocess_config.yaml
       dry_run: false
       download_example_data: true
+
+  # Annotation Pipeline
+  Smoke-Annotation-Pipeline:
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      environment_file: ./deeprvat_annotations.yml
+      name: Preprocessing-With-QC
+      pipeline_file: ./pipelines/annotations.snakefile
+      pipeline_config: ./pipelines/config/deeprvat_annotation_config.yaml
+      pipeline_directory: ./example/annotations
