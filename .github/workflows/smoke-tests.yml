@@ -21,5 +21,5 @@ jobs:
      # There are no GPUs on the gh worker, so we disable it in the config
       prerun_cmd: "sed -i 's/gpus: 1/gpus: 0/' ./example/config.yaml"
       pipeline_cmd: |
-          python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
-          --snakefile ${{ github.workspace }}/pipelines/run_training.snakefile --show-failed-logs -F
+          python -m snakemake -j 2 --directory ./example \
+          --snakefile ./pipelines/run_training.snakefile --show-failed-logs -F
