@@ -15,6 +15,11 @@ on:
       name:
         required: true
         type: string
+      no_gpu:
+        required: false
+        type: boolean
+        default: false
+
 jobs:
   Run-Pipeline:
       runs-on: ubuntu-latest
@@ -33,6 +38,11 @@ jobs:
         - name: Run pre pipeline cmd
           if: inputs.prerun_cmd
           run: ${{inputs.prerun_cmd}}
+          shell: bash -el {0}
+        - name: Set to 0 Gpu in conf
+          if: inputs.no_gpu
+          # There are no GPUs on the gh worker, so we can disable it in the config
+          run: "sed -i 's/gpus: 1/gpus: 0/' ./example/config.yaml"
           shell: bash -el {0}
         - name: ${{inputs.name}}
           run: ${{inputs.pipeline_cmd}}
