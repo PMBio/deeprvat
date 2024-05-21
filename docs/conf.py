@@ -7,9 +7,9 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 from datetime import datetime
+from importlib.metadata import version
 from pathlib import Path
 
-import pkg_resources
 import yaml
 
 
@@ -29,7 +29,7 @@ author_list = get_authors(cff_file=cff_path)
 project = "DeepRVAT"
 copyright = f"{datetime.now().year}, {author_list}"
 author = f"{author_list}"
-version = pkg_resources.require("DeepRVAT")[0].version
+version = version("deeprvat")
 release = version
 
 # -- General configuration ---------------------------------------------------
