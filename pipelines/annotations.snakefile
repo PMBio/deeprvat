@@ -132,7 +132,7 @@ ncores_agg_absplice = int(config.get("ncores_agg_absplice") or 4)
 source_variant_file_pattern_complete = (
     source_variant_file_pattern + "." + source_variant_file_type
 )
-print(f"{included_chromosomes=}")
+
 file_paths = [
     glob(
         str(
@@ -187,7 +187,7 @@ with open(absplice_main_conf_path, "r") as fd:
 
 rule all:
     input:
-        anno_dir / "vep_deepripe_deepsea_absplice_maf_pIDs_filtered_filled.parquet",
+        anno_dir / "complete_annotations.parquet",
 
 
 if not gene_id_file:
@@ -629,13 +629,21 @@ rule filter_by_exon_distance:
             ]
         )
 
+rule compute_plof_column:
+    input: rules.filter_by_exon_distance.output,
+    output: anno_dir / "vep_deepripe_deepsea_absplice_maf_pIDs_filtered_plof.parquet",
+    resources: mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
+    shell: 'deeprvat_annotations compute-plof {input} {output}'
+
+
+
 
 rule select_rename_fill_columns:
     input:
         yaml_file=annotation_columns_yaml_file,
-        annotations_path=rules.filter_by_exon_distance.output,
+        annotations_path=rules.compute_plof_column.output,
     output:
-        anno_dir / "vep_deepripe_deepsea_absplice_maf_pIDs_filtered_filled.parquet",
+        anno_dir / "complete_annotations.parquet",
     resources:
         mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
     shell:

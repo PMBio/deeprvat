@@ -189,6 +189,7 @@ def get_pvals(results, method_mapping=None, phenotype_mapping={}):
             "gene",
             "experiment_group",
             "Discovery type",
+            "beta",
             "pval",
             "-log10pval",
             "pval_corrected",
