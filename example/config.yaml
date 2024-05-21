@@ -158,6 +158,7 @@ training_data:
             - DeepRipe_plus_MBNL1_parclip
             - DeepRipe_plus_QKI_parclip
             - SpliceAI_delta_score
+            - alphamissense
         use_common_variants: False
         use_rare_variants: True
         rare_embedding:
@@ -197,6 +198,7 @@ training_data:
                     - DeepRipe_plus_MBNL1_parclip
                     - DeepRipe_plus_QKI_parclip
                     - SpliceAI_delta_score
+                    - alphamissense
                 thresholds:
                     MAF: "MAF < 1e-2"
                     CADD_PHRED:  "CADD_PHRED > 5"
@@ -277,6 +279,7 @@ data:
             - DeepRipe_plus_MBNL1_parclip
             - DeepRipe_plus_QKI_parclip
             - SpliceAI_delta_score
+            - alphamissense
         gene_file: protein_coding_genes.parquet
         use_common_variants: False
         use_rare_variants: True
@@ -317,6 +320,7 @@ data:
                     - DeepRipe_plus_MBNL1_parclip
                     - DeepRipe_plus_QKI_parclip
                     - SpliceAI_delta_score
+                    - alphamissense
                 thresholds:
                     MAF: "MAF < 1e-3"
                     CADD_PHRED:  "CADD_PHRED > 5"
