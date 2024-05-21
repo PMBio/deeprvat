@@ -7,11 +7,29 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 from datetime import datetime
+from pathlib import Path
+
+import pkg_resources
+import yaml
+
+
+def get_authors(cff_file):
+    with open(cff_file) as cff_data:
+        authors = yaml.safe_load(cff_data).get("authors")
+        return ", ".join(
+            [f"{a['family-names']}, {a['given-names'][0]}." for a in authors]
+        )
+
+
+cff_path = Path(__file__).parent.resolve() / "../CITATION.cff"
+
+author_list = get_authors(cff_file=cff_path)
+
 
 project = "DeepRVAT"
-copyright = f"{datetime.now().year}, Clarke, B., Holtkamp, E., Öztürk, H., Mück, M., Wahlberg, M., Meyer, K., Brechtmann, F., Hölzlwimmer, F. R., Gagneur, J., & Stegle, O"
-author = "Clarke, B., Holtkamp, E., Öztürk, H., Mück, M., Wahlberg, M., Meyer, K., Brechtmann, F., Hölzlwimmer, F. R., Gagneur, J., & Stegle, O"
-version = "0.1.0"
+copyright = f"{datetime.now().year}, {author_list}"
+author = f"{author_list}"
+version = pkg_resources.require("DeepRVAT")[0].version
 release = version
 
 # -- General configuration ---------------------------------------------------
