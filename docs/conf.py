@@ -7,7 +7,6 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 from datetime import datetime
-from importlib.metadata import version
 from pathlib import Path
 
 import yaml
@@ -22,14 +21,13 @@ def get_authors(cff_file):
 
 
 cff_path = Path(__file__).parent.resolve() / "../CITATION.cff"
-
 author_list = get_authors(cff_file=cff_path)
 
 
 project = "DeepRVAT"
 copyright = f"{datetime.now().year}, {author_list}"
 author = f"{author_list}"
-version = version("deeprvat")
+version = "0.1.0"
 release = version
 
 # -- General configuration ---------------------------------------------------
