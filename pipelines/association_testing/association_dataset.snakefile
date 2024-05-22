@@ -11,11 +11,27 @@ rule association_dataset:
     input:
         config = '{phenotype}/deeprvat/hpopt_config.yaml'
     output:
-        '{phenotype}/deeprvat/association_dataset.pkl'
+        temp('{phenotype}/deeprvat/association_dataset.pkl')
     threads: 4
     resources:
-        mem_mb = lambda wildcards, attempt: 32000 * (attempt + 1),
-        load = 64000
+        mem_mb = lambda wildcards, attempt: 32000 * (attempt + 1)
+    priority: 30
+    shell:
+        'deeprvat_associate make-dataset '
+        + debug +
+        "--skip-genotypes "
+        '{input.config} '
+        '{output}'
+
+
+rule association_dataset_burdens:
+    input:
+        config = f'{phenotypes[0]}/deeprvat/hpopt_config.yaml'
+    output:
+        temp('burdens/association_dataset.pkl')
+    threads: 4
+    resources:
+        mem_mb = lambda wildcards, attempt: 32000 * (attempt + 1)
     priority: 30
     shell:
         'deeprvat_associate make-dataset '

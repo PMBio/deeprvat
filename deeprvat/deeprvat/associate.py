@@ -19,7 +19,7 @@ import torch.nn as nn
 import statsmodels.api as sm
 import yaml
 from bgen import BgenWriter
-from numcodecs import Blosc
+from numcodecs import Blosc, JSON
 from seak import scoretest
 from statsmodels.tools.tools import add_constant
 from torch.utils.data import DataLoader, Dataset, Subset
@@ -53,8 +53,7 @@ def get_burden(
     batch: Dict,
     agg_models: Dict[str, List[nn.Module]],
     device: torch.device = torch.device("cpu"),
-    skip_burdens=False,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Compute burden scores for rare variants.
 
@@ -76,24 +75,17 @@ def get_burden(
     with torch.no_grad():
         X = batch["rare_variant_annotations"].to(device)
         burden = []
-        if not skip_burdens:
-            for key in sorted(
-                list(agg_models.keys()), key=lambda x: int(x.split("_")[1])
-            ):
-                this_agg_models = agg_models[key]
-                this_burden: torch.Tensor = sum([m(X) for m in this_agg_models]) / len(
-                    this_agg_models
-                )
-                burden.append(this_burden.cpu().numpy())
-            burden = np.concatenate(burden, axis=2)
-        else:
-            burden = None
+        for key in sorted(list(agg_models.keys()), key=lambda x: int(x.split("_")[1])):
+            this_agg_models = agg_models[key]
+            this_burden: torch.Tensor = sum([m(X) for m in this_agg_models]) / len(
+                this_agg_models
+            )
+            burden.append(this_burden.cpu().numpy())
+        burden = np.concatenate(burden, axis=2)
 
-    y = batch["y"]
-    x = batch["x_phenotypes"]
     sample_ids = batch["sample"]
 
-    return burden, y, x, sample_ids
+    return burden, sample_ids
 
 
 def separate_parallel_results(results: List) -> Tuple[List, ...]:
@@ -117,7 +109,7 @@ def make_dataset_(
     config: Dict,
     debug: bool = False,
     data_key: str = "data",
-    skip_burdens: bool = False,
+    skip_genotypes: bool = False,
     samples: Optional[List[int]] = None,
 ) -> Dataset:
     """
@@ -129,6 +121,8 @@ def make_dataset_(
     :type debug: bool
     :param data_key: Key for dataset configuration in the config dictionary, defaults to "data".
     :type data_key: str
+    :param skip_genotypes: Retrieve only covariates and phenotypes, not genotypes
+    :type skip_genotypes: bool
     :param samples: List of sample indices to include in the dataset, defaults to None.
     :type samples: List[int]
     :return: Loaded instance of the created dataset.
@@ -144,7 +138,7 @@ def make_dataset_(
     else:
         gt_variant_args = (
             (data_config["gt_file"], data_config["variant_file"])
-            if not skip_burdens
+            if not skip_genotypes
             else tuple()
         )
         ds = DenseGTDataset(
@@ -169,11 +163,11 @@ def make_dataset_(
 @cli.command()
 @click.option("--debug", is_flag=True)
 @click.option("--data-key", type=str, default="data")
-@click.option("--skip-burdens", is_flag=True)
+@click.option("--skip-genotypes", is_flag=True)
 @click.argument("config-file", type=click.Path(exists=True))
 @click.argument("out-file", type=click.Path())
 def make_dataset(
-    debug: bool, data_key: str, skip_burdens: bool, config_file: str, out_file: str
+    debug: bool, data_key: str, skip_genotypes: bool, config_file: str, out_file: str
 ):
     """
     Create a dataset based on the provided configuration and save to a pickle file.
@@ -182,6 +176,8 @@ def make_dataset(
     :type debug: bool
     :param data_key: Key for dataset configuration in the config dictionary, defaults to "data".
     :type data_key: str
+    :param skip_genotypes: Retrieve only covariates and phenotypes, not genotypes
+    :type skip_genotypes: bool
     :param config_file: Path to the configuration file.
     :type config_file: str
     :param out_file: Path to the output file.
@@ -192,7 +188,7 @@ def make_dataset(
         config = yaml.safe_load(f)
 
     ds = make_dataset_(
-        config, debug=debug, data_key=data_key, skip_burdens=skip_burdens
+        config, debug=debug, data_key=data_key, skip_genotypes=skip_genotypes
     )
 
     with open(out_file, "wb") as f:
@@ -279,7 +275,7 @@ def compute_xy(
         with open(dataset_file, "rb") as f:
             dataset = pickle.load(f)
     else:
-        dataset = make_dataset_(data_config)
+        dataset = make_dataset_(data_config, skip_genotypes=True)
 
     sample_ids, x, y = compute_xy_(
         data_config,
@@ -303,10 +299,7 @@ def compute_burdens_(
     device: torch.device = torch.device("cpu"),
     bottleneck: bool = False,
     compression_level: int = 1,
-    skip_burdens: bool = False,
-) -> Tuple[
-    np.ndarray, zarr.core.Array, zarr.core.Array, zarr.core.Array, zarr.core.Array
-]:
+) -> Tuple[np.ndarray, zarr.core.Array, zarr.core.Array]:
     """
     Compute burdens using the PyTorch model for each repeat.
 
@@ -339,21 +332,17 @@ def compute_burdens_(
     .. note::
         Checkpoint models all corresponding to the same repeat are averaged for that repeat.
     """
-    if not skip_burdens:
-        logger.info("agg_models[*][*].reverse:")
-        pprint(
-            {
-                repeat: [m.reverse for m in models]
-                for repeat, models in agg_models.items()
-            }
-        )
+    logger.info("agg_models[*][*].reverse:")
+    pprint(
+        {repeat: [m.reverse for m in models] for repeat, models in agg_models.items()}
+    )
 
     data_config = config["data"]
 
     ds_full = ds.dataset if isinstance(ds, Subset) else ds
     collate_fn = getattr(ds_full, "collate_fn", None)
     n_total_samples = len(ds)
-    ds.rare_embedding.skip_embedding = skip_burdens
+    ds.rare_embedding.skip_embedding = False
 
     if chunk is not None:
         if n_chunks is None:
@@ -390,63 +379,37 @@ def compute_burdens_(
             file=sys.stdout,
             total=(n_samples // batch_size + (n_samples % batch_size != 0)),
         ):
-            this_burdens, this_y, this_x, this_sampleid = get_burden(
-                batch, agg_models, device=device, skip_burdens=skip_burdens
-            )
+            this_burdens, this_sampleid = get_burden(batch, agg_models, device=device)
             if i == 0:
-                if not skip_burdens:
-                    chunk_burden = np.zeros(shape=(n_samples,) + this_burdens.shape[1:])
-                chunk_y = np.zeros(shape=(n_samples,) + this_y.shape[1:])
-                chunk_x = np.zeros(shape=(n_samples,) + this_x.shape[1:])
-                chunk_sampleid = np.zeros(shape=(n_samples))
+                chunk_burden = np.zeros(shape=(n_samples,) + this_burdens.shape[1:])
+                chunk_sampleid = [""] * n_samples
 
                 logger.info(f"Batch size: {batch['rare_variant_annotations'].shape}")
 
-                if not skip_burdens:
-                    burdens = zarr.open(
-                        Path(cache_dir) / "burdens.zarr",
-                        mode="a",
-                        shape=(n_total_samples,) + this_burdens.shape[1:],
-                        chunks=(1000, 1000, 1),
-                        dtype=np.float32,
-                        compressor=Blosc(clevel=compression_level),
-                    )
-                    logger.info(f"burdens shape: {burdens.shape}")
-                else:
-                    burdens = None
+                burdens = zarr.open(
+                    Path(cache_dir) / "burdens.zarr",
+                    mode="a",
+                    shape=(n_total_samples,) + this_burdens.shape[1:],
+                    chunks=(1000, 1000, 1),
+                    dtype=np.float32,
+                    compressor=Blosc(clevel=compression_level),
+                )
+                logger.info(f"burdens shape: {burdens.shape}")
 
-                y = zarr.open(
-                    Path(cache_dir) / "y.zarr",
-                    mode="a",
-                    shape=(n_total_samples,) + this_y.shape[1:],
-                    chunks=(None, None),
-                    dtype=np.float32,
-                    compressor=Blosc(clevel=compression_level),
-                )
-                x = zarr.open(
-                    Path(cache_dir) / "x.zarr",
-                    mode="a",
-                    shape=(n_total_samples,) + this_x.shape[1:],
-                    chunks=(None, None),
-                    dtype=np.float32,
-                    compressor=Blosc(clevel=compression_level),
-                )
                 sample_ids = zarr.open(
                     Path(cache_dir) / "sample_ids.zarr",
                     mode="a",
                     shape=(n_total_samples),
                     chunks=(None),
-                    dtype=np.float32,
-                    compressor=Blosc(clevel=compression_level),
+                    dtype=str,
+                    compressor=JSON(),
                 )
+
             start_idx = i * batch_size
             end_idx = min(start_idx + batch_size, chunk_end)  # read from chunk shape
 
-            if not skip_burdens:
-                chunk_burden[start_idx:end_idx] = this_burdens
+            chunk_burden[start_idx:end_idx] = this_burdens
 
-            chunk_y[start_idx:end_idx] = this_y
-            chunk_x[start_idx:end_idx] = this_x
             chunk_sampleid[start_idx:end_idx] = this_sampleid
 
             if debug:
@@ -457,11 +420,7 @@ def compute_burdens_(
             if bottleneck and i > 20:
                 break
 
-        if not skip_burdens:
-            burdens[chunk_start:chunk_end] = chunk_burden
-
-        y[chunk_start:chunk_end] = chunk_y
-        x[chunk_start:chunk_end] = chunk_x
+        burdens[chunk_start:chunk_end] = chunk_burden
         sample_ids[chunk_start:chunk_end] = chunk_sampleid
 
     if torch.cuda.is_available():
@@ -469,7 +428,7 @@ def compute_burdens_(
             "Max GPU memory allocated: " f"{torch.cuda.max_memory_allocated(0)} bytes"
         )
 
-    return ds_full.rare_embedding.genes, burdens, y, x, sample_ids
+    return ds_full.rare_embedding.genes, burdens, sample_ids
 
 
 def make_regenie_input_(
@@ -965,7 +924,6 @@ def load_models(
 @click.option("--n-chunks", type=int)
 @click.option("--chunk", type=int)
 @click.option("--dataset-file", type=click.Path(exists=True))
-@click.option("--link-burdens", type=click.Path())
 @click.argument("data-config-file", type=click.Path(exists=True))
 @click.argument("model-config-file", type=click.Path(exists=True))
 @click.argument("checkpoint-files", type=click.Path(exists=True), nargs=-1)
@@ -976,7 +934,6 @@ def compute_burdens(
     n_chunks: Optional[int],
     chunk: Optional[int],
     dataset_file: Optional[str],
-    link_burdens: Optional[str],
     data_config_file: str,
     model_config_file: str,
     checkpoint_files: Tuple[str],
@@ -995,8 +952,6 @@ def compute_burdens(
     :type chunk: Optional[int]
     :param dataset_file: Path to the dataset file, i.e., association_dataset.pkl.
     :type dataset_file: Optional[str]
-    :param link_burdens: Path to burden.zarr file to link.
-    :type link_burdens: Optional[str]
     :param data_config_file: Path to the data configuration file.
     :type data_config_file: str
     :param model_config_file: Path to the model configuration file.
@@ -1025,7 +980,7 @@ def compute_burdens(
         with open(dataset_file, "rb") as f:
             dataset = pickle.load(f)
     else:
-        dataset = make_dataset_(config)
+        dataset = make_dataset_(data_config)
 
     if torch.cuda.is_available():
         logger.info("Using GPU")
@@ -1034,12 +989,9 @@ def compute_burdens(
         logger.info("Using CPU")
         device = torch.device("cpu")
 
-    if link_burdens is None:
-        agg_models = load_models(model_config, checkpoint_files, device=device)
-    else:
-        agg_models = None
+    agg_models = load_models(model_config, checkpoint_files, device=device)
 
-    genes, _, _, _, _ = compute_burdens_(
+    genes, _, _ = compute_burdens_(
         debug,
         data_config,
         dataset,
@@ -1049,15 +1001,10 @@ def compute_burdens(
         chunk=chunk,
         device=device,
         bottleneck=bottleneck,
-        skip_burdens=(link_burdens is not None),
     )
 
     logger.info("Saving computed burdens, corresponding genes, and targets")
     np.save(Path(out_dir) / "genes.npy", genes)
-    if link_burdens is not None:
-        source_path = Path(out_dir) / "burdens.zarr"
-        source_path.unlink(missing_ok=True)
-        source_path.symlink_to(link_burdens)
 
 
 def regress_on_gene_scoretest(
@@ -1261,12 +1208,13 @@ def regress_(
 @click.option("--n-chunks", type=int, default=1)
 @click.option("--use-bias", is_flag=True)
 @click.option("--gene-file", type=click.Path(exists=True))
-@click.option("--repeat", type=int, default=0)
+# @click.option("--repeat", type=int, default=0)
 @click.option("--do-scoretest", is_flag=True)
 @click.option("--sample-file", type=click.Path(exists=True))
-@click.option("--burden-file", type=click.Path(exists=True))
 @click.argument("config-file", type=click.Path(exists=True))
-@click.argument("burden-dir", type=click.Path(exists=True))
+@click.argument("xy-dir", type=click.Path(exists=True))
+# @click.argument("burden-dir", type=click.Path(exists=True))
+@click.argument("burden-file", type=click.Path(exists=True))
 @click.argument("out-dir", type=click.Path())
 def regress(
     debug: bool,
@@ -1274,13 +1222,15 @@ def regress(
     n_chunks: int,
     use_bias: bool,
     gene_file: str,
-    repeat: int,
+    # repeat: int,
     config_file: str,
-    burden_dir: str,
+    xy_dir: str,
+    # burden_dir: str,
+    burden_file: str,
     out_dir: str,
     do_scoretest: bool,
     sample_file: Optional[str],
-    burden_file: Optional[str],
+    # burden_file: Optional[str],
 ):
     """
     Perform regression analysis.
@@ -1295,8 +1245,8 @@ def regress(
     :type use_bias: bool
     :param gene_file: Path to the gene file.
     :type gene_file: str
-    :param repeat: Index of the repeat, defaults to 0.
-    :type repeat: int
+    # :param repeat: Index of the repeat, defaults to 0.
+    # :type repeat: int
     :param config_file: Path to the configuration file.
     :type config_file: str
     :param burden_dir: Path to the directory containing burdens.zarr file.
@@ -1309,16 +1259,24 @@ def regress(
     :type sample_file: Optional[str]
     :return: Regression results saved to out_dir as "burden_associations_{chunk}.parquet"
     """
-    logger.info("Loading saved burdens")
+    burden_dir = Path(burden_file).parent
     # if burden_file is not None:
     #     logger.info(f'Loading burdens from {burden_file}')
     #     burdens = zarr.open(burden_file)[:, :, repeat]
     # else:
     #     burdens = zarr.open(Path(burden_dir) / "burdens.zarr")[:, :, repeat]
-    logger.info(f"Loading x, y, genes from {burden_dir}")
-    y = zarr.open(Path(burden_dir) / "y.zarr")[:]
-    x_pheno = zarr.open(Path(burden_dir) / "x.zarr")[:]
-    genes = pd.Series(np.load(Path(burden_dir) / "genes.npy"))
+    logger.info(f"Loading covariates and targets from {xy_dir}")
+    y = zarr.load(Path(xy_dir) / "y.zarr")
+    x_pheno = zarr.load(Path(xy_dir) / "x.zarr")
+
+    # Make sure sample IDs agree
+    try:
+        assert np.array_equal(
+            zarr.load(Path(xy_dir) / "sample_ids.zarr"),
+            zarr.load(Path(burden_dir) / "sample_ids.zarr"),
+        )
+    except:
+        raise ValueError("Sample IDs in xy_dir and burden_dir disagree")
 
     if sample_file is not None:
         with open(sample_file, "rb") as f:
@@ -1330,8 +1288,13 @@ def regress(
         x_pheno = x_pheno[samples]
 
     n_samples = y.shape[0]
-    assert y.shape[0] == n_samples
-    assert x_pheno.shape[0] == n_samples
+    try:
+        assert y.shape[0] == n_samples
+        assert x_pheno.shape[0] == n_samples
+    except:
+        raise ValueError(
+            "Inconsistent number of samples between covariates and targets"
+        )
     # assert len(genes) == burdens.shape[1]
 
     nan_mask = ~np.isnan(y).squeeze()
@@ -1348,6 +1311,9 @@ def regress(
         gene_df.set_index("id")
         genes = gene_df.loc[genes, "gene"].str.split(".").apply(lambda x: x[0])
 
+    logger.info(f"Loading saved burdens from {burden_dir}")
+    genes = pd.Series(np.load(Path(burden_dir) / "genes.npy"))
+
     chunk_size = math.ceil(len(genes) / n_chunks)
     chunk_start = chunk * chunk_size
     chunk_end = min(len(genes), chunk_start + chunk_size)
@@ -1357,14 +1323,9 @@ def regress(
 
     genes = genes.iloc[chunk_start:chunk_end]
     gene_indices = np.arange(len(genes))
+
     logger.info(f"Only extracting genes in range {chunk_start, chunk_end}")
-    if burden_file is not None:
-        logger.info(f"Loading burdens from {burden_file}")
-        burdens = zarr.open(burden_file)[:, chunk_start:chunk_end, repeat]
-    else:
-        burdens = zarr.open(Path(burden_dir) / "burdens.zarr")[
-            :, chunk_start:chunk_end, repeat
-        ]
+    burdens = zarr.open(burden_file)[:, chunk_start:chunk_end, 0]
 
     if sample_file is not None:
         burdens = burdens[samples]
