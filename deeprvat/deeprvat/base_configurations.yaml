@@ -1,0 +1,94 @@
+
+#DeepRVAT model training settings
+training:
+    min_variant_count: 0
+    n_bags: 1
+    drop_n_bags: 0
+    train_proportion: 0.8
+    sample_with_replacement: False
+    n_parallel_jobs: 6
+    dataloader_config:
+        batch_size: 1024
+        num_workers: 0
+        temp_dir: $TMPDIR/deeprvat_train
+        cache_tensors: True
+        chunksize: 100
+
+#Optional Optuna hyperparameter optimizaiton for training
+hyperparameter_optimization:
+    direction: maximize
+    n_trials: 1
+    sampler:
+        type: TPESampler
+        config: {}
+
+#DeepRVAT model settings
+model:
+    type: DeepSet
+    model_collection: agg_models
+    checkpoint: combined_agg.pt
+    config:
+        phi_layers: 2
+        phi_hidden_dim: 20
+        rho_layers: 3
+        rho_hidden_dim: 10
+        activation: LeakyReLU
+        pool: max
+        use_sigmoid: True
+        metrics:
+            objective: MSE
+            objective_mode: min
+            loss: MSE
+            all:
+                MSE: {}
+                PearsonCorrTorch: {}
+                MAE: {}
+                RSquared: {}
+        optimizer:
+            type: AdamW
+            config: {}
+
+#Seed Gene settings
+baseline_results:      
+    correction_method: Bonferroni
+    #n_training_genes: 40
+
+#Training dataset settings
+training_data:
+    dataset_config:
+        min_common_af:
+            MAF: 0.01
+        use_common_variants: False
+        use_rare_variants: True
+        rare_embedding:
+            type: PaddedAnnotations
+            config:
+                verbose: True
+                low_memory: True
+        verbose: True
+    dataloader_config:
+        batch_size: 64
+        num_workers: 8
+
+#Association dataset settings
+assocation_testing_data:
+    dataset_config:
+        min_common_af:
+            MAF: 0.01
+        use_common_variants: False
+        use_rare_variants: True
+        rare_embedding:
+            type: PaddedAnnotations
+            config:
+                verbose: True
+                low_memory: True
+        verbose: True
+    dataloader_config:
+        batch_size: 16
+        num_workers: 10
+
+#Additional settings for association testing
+n_burden_chunks: 5
+n_regression_chunks: 2
+n_avg_chunks: 1
+do_scoretest: True

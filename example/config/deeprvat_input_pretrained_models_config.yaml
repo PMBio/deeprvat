@@ -1,0 +1,100 @@
+use_pretrained_models: True
+
+#Phenotypes to be used only for Association Testing
+phenotypes_for_association_testing:
+  Apolipoprotein_A: {}
+    #min_seed_genes: 3
+    #max_seed_genes: None
+    #pvalue_threshold: None
+  Apolipoprotein_B: {}
+  Calcium: {}
+  Cholesterol: {}
+  Red_blood_cell_erythrocyte_count: {}
+  HDL_cholesterol: {}
+  IGF_1: {}
+  LDL_direct: {}
+  Lymphocyte_percentage: {}
+  Mean_platelet_thrombocyte_volume: {}
+  Mean_corpuscular_volume: {}
+  Mean_reticulocyte_volume: {}
+  Neutrophill_count: {}
+  Platelet_count: {}
+  Platelet_crit: {}
+  Platelet_distribution_width: {}
+  SHBG: {}
+  Standing_height: {}
+  Total_bilirubin: {}
+  Triglycerides: {}
+  Urate: {}
+
+#Phenotypes to be used only for training
+phenotypes_for_training:
+  - Apolipoprotein_A
+  - Apolipoprotein_B
+  - Calcium
+  - Cholesterol
+  - Red_blood_cell_erythrocyte_count
+
+#File paths of necessary input files to DeepRVAT
+gt_filename: genotypes.h5
+variant_filename: variants.parquet
+phenotype_filename: phenotypes.parquet
+annotation_filename: annotations.parquet
+gene_filename: protein_coding_genes.parquet
+
+covariates: #x_phenotypes
+  - age
+  - age2
+  - age_sex
+  - genetic_sex
+  - genetic_PC_1
+  - genetic_PC_2
+  - genetic_PC_3
+  - genetic_PC_4
+  - genetic_PC_5
+  - genetic_PC_6
+  - genetic_PC_7
+  - genetic_PC_8
+  - genetic_PC_9
+  - genetic_PC_10
+  - genetic_PC_11
+  - genetic_PC_12
+  - genetic_PC_13
+  - genetic_PC_14
+  - genetic_PC_15
+  - genetic_PC_16
+  - genetic_PC_17
+  - genetic_PC_18
+  - genetic_PC_19
+  - genetic_PC_20
+
+association_testing_data_thresholds:
+  MAF: "< 1e-3"
+  CADD_PHRED: "> 5"
+
+#Seed Gene Baseline data settings
+seed_gene_results: #baseline_results
+  options:
+      -
+          base: baseline_results
+          type: plof/burden
+      -
+          base: baseline_results
+          type: missense/burden
+      -
+          base: baseline_results
+          type: plof/skat
+      -
+          base: baseline_results
+          type: missense/skat
+
+  alpha: 0.05
+
+#DeepRVAT model settings
+n_repeats: 30
+y_transformation: quantile_transform
+
+#Additional settings if using the CV pipeline
+cv_exp: False
+#cv_path: sample_files
+#n_folds: 5
