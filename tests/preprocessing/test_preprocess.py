@@ -52,6 +52,16 @@ def load_h5_archive(h5_path):
             "genotypes_chr1.h5",
         ),
         (
+            "filter_variants_multiple",
+            [
+                "--chromosomes",
+                "1",
+                "--exclude-variants",
+                f"{(tests_data_dir / 'process_sparse_gt/filter_variants_minimal/input/qc').as_posix()}",
+            ],
+            "genotypes_chr1.h5",
+        ),
+        (
             "filter_samples_minimal",
             [
                 "--chromosomes",
