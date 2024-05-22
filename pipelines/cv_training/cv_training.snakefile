@@ -3,16 +3,16 @@ rule all_cv_training:
         expand('cv_split{cv_split}/deeprvat/models/repeat_{repeat}/best/bag_{bag}.ckpt',
                bag=range(n_bags), repeat=range(n_repeats),
                cv_split = range(cv_splits)),
-        expand('cv_split{cv_split}/deeprvat/models/repeat_{repeat}/config.yaml',
+        expand('cv_split{cv_split}/deeprvat/models/repeat_{repeat}/deeprvat_config.yaml',
                repeat=range(n_repeats),
                cv_split = range(cv_splits))
 
 # make a config for each cv_split (specifying the samples for the current fold)
 rule spread_config:
     input:
-        config = 'config.yaml'
+        config = 'deeprvat_config.yaml'
     output:
-        train = 'cv_split{cv_split}/deeprvat/config.yaml',
+        train = 'cv_split{cv_split}/deeprvat/deeprvat_config.yaml',
     params:
         out_path = 'cv_split{cv_split}/'
     threads: 1
@@ -67,11 +67,11 @@ use rule training_dataset_pickle from deeprvat_workflow as deeprvat_training_dat
 
 use rule config from deeprvat_workflow as deeprvat_config with:
     input:
-        config = 'cv_split{cv_split}/deeprvat/config.yaml', # TODO: change this into cv specific config
+        config = 'cv_split{cv_split}/deeprvat/deeprvat_config.yaml', # TODO: change this into cv specific config
         baseline = lambda wildcards: [
             str(Path(r['base']) /wildcards.phenotype / r['type'] /
                 'eval/burden_associations.parquet')
-            for r in config['baseline_results'] 
+            for r in config['baseline_results']['options'] 
         ] if wildcards.phenotype in training_phenotypes else []
     params:
         baseline_results = lambda wildcards, input: ''.join([
@@ -82,8 +82,7 @@ use rule config from deeprvat_workflow as deeprvat_config with:
         seed_genes_out = lambda wildcards: f'--seed-genes-out cv_split{wildcards.cv_split}/deeprvat/{wildcards.phenotype}/deeprvat/seed_genes.parquet' if wildcards.phenotype in training_phenotypes else ' ',
         association_only = lambda wildcards: f'--association-only' if wildcards.phenotype not in training_phenotypes else ' '
 
-
-
+use rule create_main_config from deeprvat_workflow as deeprvat_create_main_config
 
 
 

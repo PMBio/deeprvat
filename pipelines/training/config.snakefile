@@ -1,7 +1,6 @@
-
 rule config:
     input:
-        config="config.yaml",
+        config="deeprvat_config.yaml",
         baseline=lambda wildcards: [
             str(
                 Path(r["base"])
@@ -9,7 +8,7 @@ rule config:
                 / r["type"]
                 / "eval/burden_associations.parquet"
             )
-            for r in config["baseline_results"]
+            for r in config["baseline_results"]["options"]
         ]
         if wildcards.phenotype in training_phenotypes
         else [],

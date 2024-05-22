@@ -1,6 +1,6 @@
 from pathlib import Path
 
-configfile: 'config.yaml'
+configfile: 'deeprvat_config.yaml'
 
 debug_flag = config.get('debug', False)
 phenotypes = config['phenotypes']
@@ -22,7 +22,7 @@ wildcard_constraints:
     repeat="\d+",
     trial="\d+",
 
-cv_exp = False
+cv_exp = config.get('cv_exp', False)
 config_file_prefix = (
     "cv_split0/deeprvat/" if cv_exp else ""
 ) 
@@ -32,7 +32,6 @@ include: "training/config.snakefile"
 include: "association_testing/association_dataset.snakefile"
 include: "association_testing/burdens.snakefile"
 include: "association_testing/regress_eval.snakefile"
-
 
 
 rule all_regression:  #regress_eval.snakefile

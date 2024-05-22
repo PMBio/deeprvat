@@ -82,7 +82,7 @@ def get_baseline_results(
             r["type"].split("/")[0],
             r["type"].split("/")[1],
         ): f"{r['base']}/{pheno}/{r['type']}/eval/burden_associations.parquet"
-        for r in config["baseline_results"]
+        for r in config["baseline_results"]["options"]
     }
     logger.info(f"reading baseline from {baseline_paths}")
     for (t, m), p in baseline_paths.items():

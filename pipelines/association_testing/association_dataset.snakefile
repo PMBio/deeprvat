@@ -1,4 +1,4 @@
-configfile: "config.yaml"
+configfile: "deeprvat_config.yaml"
 
 debug_flag = config.get('debug', False)
 debug = '--debug ' if debug_flag else ''

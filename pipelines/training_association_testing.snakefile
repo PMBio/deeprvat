@@ -1,6 +1,6 @@
 from pathlib import Path
 
-configfile: 'config.yaml'
+configfile: 'deeprvat_config.yaml'
 
 debug_flag = config.get('debug', False)
 phenotypes = config['phenotypes']
@@ -18,7 +18,7 @@ do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
 tensor_compression_level = config['training'].get('tensor_compression_level', 1)
 model_path = Path("models")
 n_parallel_training_jobs = config["training"].get("n_parallel_jobs", 1)
-cv_exp = False
+cv_exp = config.get('cv_exp', False)
 
 wildcard_constraints:
     repeat="\d+",
@@ -60,7 +60,7 @@ rule all_training:
     input:
         expand(model_path / 'repeat_{repeat}/best/bag_{bag}.ckpt',
                bag=range(n_bags), repeat=range(n_repeats)),
-        model_path / "config.yaml"
+        model_path / "deeprvat_config.yaml"
 
 rule all_training_dataset:
     input:

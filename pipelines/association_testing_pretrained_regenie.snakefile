@@ -1,6 +1,6 @@
 from pathlib import Path
 
-configfile: 'config.yaml'
+configfile: 'deeprvat_config.yaml'
 
 debug_flag = config.get('debug', False)
 phenotypes = config['phenotypes']
@@ -18,7 +18,7 @@ wildcard_constraints:
     repeat="\d+",
     trial="\d+",
 
-include: "association_testing/config.snakefile"
+include: "training/config.snakefile"
 include: "association_testing/association_dataset.snakefile"
 include: "association_testing/burdens.snakefile"
 include: "association_testing/regress_eval_regenie.snakefile"

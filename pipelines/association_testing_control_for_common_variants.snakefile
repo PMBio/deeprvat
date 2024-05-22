@@ -1,6 +1,6 @@
 from pathlib import Path
 
-configfile: 'config.yaml'
+configfile: 'deeprvat_config.yaml'
 
 debug_flag = config.get('debug', False)
 phenotypes = config['phenotypes']
@@ -149,7 +149,7 @@ rule prepare_genotypes_per_gene:
         "prs" #TODO upgrade deeprvat environment pyarrow to version 6.0.1. to make DeepRVAT env work 
     input:
         significant_genes = '{phenotype}/deeprvat/eval/significant_genes_restest.parquet',
-        config = 'config.yaml', #TODO potentially make this phenotype specific,
+        config = 'deeprvat_config.yaml', #TODO potentially make this phenotype specific,
         genotype_file = lambda wildcards: f'{genotype_base_dir}/GWAS_variants_clumped_mac_{phecode_dict[wildcards.phenotype]}.parquet',
         sample_file = '{phenotype}/deeprvat/burdens/sample_ids.finished'
     params: 
@@ -179,7 +179,7 @@ rule prepare_genotypes_per_gene:
 rule get_significant_genes:
     input:
         res_file = f"{{phenotype}}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/eval/{use_seed}/all_results.parquet",
-        config = 'config.yaml' #TODO potentially make this phenotype specific
+        config = 'deeprvat_config.yaml' #TODO potentially make this phenotype specific
     output:
         out_parquet = '{phenotype}/deeprvat/eval/significant_genes_restest.parquet',
         out_npy = '{phenotype}/deeprvat/burdens/significant_genes_restest.npy'
