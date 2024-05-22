@@ -25,7 +25,7 @@ check_result_file(){
   fi
 }
 
-generate_rule_graph() {
+generate_rule_graph_monochrome() {
   SNAKEFILE="$PIPELINE_DIR/$1"
   DIRECTORY="$2"
   CONFIG="$3"
@@ -33,7 +33,7 @@ generate_rule_graph() {
 
   echo "Generating rule graph: $OUTPUT_FILE"
 
-  # The awk part makes sure that the nodes are all the same color
+  # The awk part makes sure that the nodes are all black
   snakemake -n --snakefile "$SNAKEFILE" --directory "$DIRECTORY" --configfile "$CONFIG" --forceall --rulegraph \
     | sed -n '/digraph/,$p' | awk '!/color=/{gsub(/color = "[^"]+",/, "");} {gsub(/,$/, "");} 1' | awk '{$1=$1}1' \
     | dot -Tsvg > "$OUTPUT_FILE"
@@ -42,16 +42,20 @@ generate_rule_graph() {
 }
 
 
-generate_dag_graph() {
+
+generate_rule_graph() {
   SNAKEFILE="$PIPELINE_DIR/$1"
   DIRECTORY="$2"
   CONFIG="$3"
-  OUTPUT_FILE="$STATIC_DIR/$(basename "$SNAKEFILE" |cut -f 1 -d'.')_dag.svg"
+  OUTPUT_FILE="$STATIC_DIR/$(basename "$SNAKEFILE" |cut -f 1 -d'.')_rulegraph.svg"
 
-  echo "Generating dag graph: $OUTPUT_FILE"
-  snakemake -n --snakefile "$SNAKEFILE" --directory "$DIRECTORY" --configfile "$CONFIG" --forceall --dag \
-    | sed -n '/digraph/,$p' | dot -Tsvg > "$OUTPUT_FILE"
+  echo "Generating rule graph: $OUTPUT_FILE"
+
+  snakemake -n --snakefile "$SNAKEFILE" --directory "$DIRECTORY" --configfile "$CONFIG" --forceall --rulegraph \
+    | sed -n '/digraph/,$p'  \
+    | dot -Tsvg > "$OUTPUT_FILE"
   check_result_file "$OUTPUT_FILE"
+  echo -e "---------\n"
 }
 
 
@@ -59,7 +63,6 @@ generate_rule_graph "preprocess_with_qc.snakefile" "$WORK_DIR/preprocess" "$CONF
 generate_rule_graph "preprocess_no_qc.snakefile" "$WORK_DIR/preprocess" "$CONFIG_DIR/deeprvat_preprocess_config.yaml"
 
 generate_rule_graph "annotations.snakefile"  "$WORK_DIR/annotations" "$CONFIG_DIR/deeprvat_annotation_config.yaml"
-generate_dag_graph "annotations.snakefile"  "$WORK_DIR/annotations" "$CONFIG_DIR/deeprvat_annotation_config.yaml"
 
 generate_rule_graph "association_testing_pretrained.snakefile" "$WORK_DIR" "$WORK_DIR/config.yaml"
 
