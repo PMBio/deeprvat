@@ -8,6 +8,8 @@ debug = '--debug ' if debug_flag else ''
 phenotypes = config['phenotypes']
 phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
 
+burdens = Path('burdens/burdens_average.zarr')
+
 n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
 
 regenie_config_step1 = config["regenie"]["step_1"]
@@ -23,24 +25,29 @@ wildcard_constraints:
     job="\d+"
 
 
-# rule evaluate:
-#     input:
-#         associations = expand('{{phenotype}}/deeprvat/average_regression_results/burden_associations.parquet',
-#                               repeat=range(n_repeats)),
-#         config = '{phenotype}/deeprvat/hpopt_config.yaml',
-#     output:
-#         "{phenotype}/deeprvat/eval/significant.parquet",
-#         "{phenotype}/deeprvat/eval/all_results.parquet"
-#     threads: 1
-#     shell:
-#         'deeprvat_evaluate '
-#         + debug +
-#         '--use-seed-genes '
-#         '--n-repeats {n_repeats} '
-#         '--correction-method FDR '
-#         '{input.associations} '
-#         '{input.config} '
-#         '{wildcards.phenotype}/deeprvat/eval'
+rule evaluate:
+    input:
+        associations ='{phenotype}/deeprvat/average_regression_results/burden_associations.parquet',
+        config = f"{config_file_prefix}{{phenotype}}/deeprvat/hpopt_config.yaml"
+    output:
+        "{phenotype}/deeprvat/eval/significant.parquet",
+        "{phenotype}/deeprvat/eval/all_results.parquet"
+    threads: 1
+    resources:
+        mem_mb = 16000,
+        load = 16000
+    params:
+        n_combis = 1,
+        use_baseline_results = '--use-baseline-results'
+    shell:
+        'deeprvat_evaluate '
+        + debug +
+        '{params.use_baseline_results} '
+        '--correction-method Bonferroni '
+        '--phenotype {wildcards.phenotype} '
+        '{input.associations} '
+        '{input.config} '
+        '{wildcards.phenotype}/deeprvat/eval'
 
 rule all_regenie:
     input:
@@ -228,14 +235,18 @@ rule make_regenie_burdens:
     input:
         gene_file = config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"],
         gtf_file = config["gtf_file"],
-        burdens = 'burdens/burdens_average.zarr',
-        genes = burdens.parent / "genes.npy",
-        samples = burdens.parent / "sample_ids.zarr",
         datasets = expand("{phenotype}/deeprvat/association_dataset.pkl",
                           phenotype=phenotypes),
+        chunks =  expand(
+            'burdens/burdens_averaging_{chunk}.finished',
+            chunk=range(n_avg_chunks)
+        ),
     params:
         phenotypes = " ".join([f"--phenotype {p} {p}/deeprvat/association_dataset.pkl {p}/deeprvat/xy"
-                               for p in phenotypes]) + " "
+                               for p in phenotypes]) + " ",
+        burdens = burdens,
+        genes = burdens.parent / "genes.npy",
+        samples = burdens.parent / "sample_ids.zarr",
     output:
         sample_file = "regenie_input/deeprvat_pseudovariants.sample",
         bgen = "regenie_input/deeprvat_pseudovariants.bgen",
@@ -253,7 +264,7 @@ rule make_regenie_burdens:
         # "{wildcards.phenotype}/deeprvat/burdens "
         "--sample-file {output.sample_file} "
         "--bgen {output.bgen} "
-        "--burdens-genes-samples {input.burdens} {input.genes} {input.samples} "
+        "--burdens-genes-samples {params.burdens} {params.genes} {params.samples} "
         "{input.gene_file} "
         "{input.gtf_file} "
 
