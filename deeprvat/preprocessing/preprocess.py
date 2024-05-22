@@ -255,6 +255,7 @@ def process_sparse_gt(
     if chromosomes is not None:
         chromosomes = [f"chr{chrom}" for chrom in chromosomes.split(",")]
         variants = variants[variants["chrom"].isin(chromosomes)]
+
     total_variants = len(variants)
     if len(exclude_variants) > 0:
         variant_exclusion_files = [
@@ -267,17 +268,15 @@ def process_sparse_gt(
             ],
             ignore_index=True,
         )
-        if chromosomes is not None:
-            variants_to_exclude = variants_to_exclude[
-                variants_to_exclude["chrom"].isin(chromosomes)
-            ]
+
         variants_to_exclude = variants_to_exclude.drop_duplicates(ignore_index=True)
         variant_ids_to_exclude = pd.merge(
             variants_to_exclude, variants, validate="1:1"
         )["id"]
+
         variants = variants[~variants["id"].isin(variant_ids_to_exclude)]
         if not skip_sanity_checks:
-            assert total_variants - len(variants) == len(variants_to_exclude)
+            assert total_variants - len(variants) == len(variant_ids_to_exclude)
 
     logging.info(f"Dropped {total_variants - len(variants)} variants")
     logging.info(f"...done ({time.time() - start_time} s)")
