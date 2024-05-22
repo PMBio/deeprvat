@@ -5,8 +5,18 @@ on:
 - pull_request
 
 jobs:
+  docs-graphs-generate:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: ammaraskar/sphinx-action@0.4
+      build-command: "make generate-doc-graphs"
+      with:
+        docs-folder: "docs/"
+
   docs-build:
     runs-on: ubuntu-latest
+    needs: docs-graphs-generate
     steps:
     - uses: actions/checkout@v4
     - uses: ammaraskar/sphinx-action@0.4
