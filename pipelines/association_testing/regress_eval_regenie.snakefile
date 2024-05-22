@@ -25,8 +25,6 @@ config_file_prefix = (
     "cv_split0/deeprvat/" if cv_exp else ""
 )
 
-
-
 wildcard_constraints:
     job="\d+"
 
