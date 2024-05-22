@@ -10,7 +10,7 @@ phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
 
 n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
 
-burdens = Path(config["burden_file"])
+burdens = Path(config.get("burden_file", "burdens/burdens_average.zarr"))
 
 regenie_config_step1 = config["regenie_options"]["step_1"]
 regenie_config_step2 = config["regenie_options"]["step_2"]
@@ -237,7 +237,7 @@ rule make_regenie_burdens:
     input:
         gene_file = config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"],
         gtf_file = config["gtf_file"],
-        burdens = burdens,
+        burdens = 'burdens/burdens_average.zarr',
         genes = burdens.parent / "genes.npy",
         samples = burdens.parent / "sample_ids.zarr",
         datasets = expand("{phenotype}/deeprvat/association_dataset.pkl",
