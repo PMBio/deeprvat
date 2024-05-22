@@ -1,3 +1,43 @@
+rare_variant_annotations:
+  - MAF_MB
+  - CADD_raw
+  - sift_score
+  - polyphen_score
+  - Consequence_splice_acceptor_variant
+  - Consequence_splice_donor_variant
+  - Consequence_stop_gained
+  - Consequence_frameshift_variant
+  - Consequence_stop_lost
+  - Consequence_start_lost
+  - Consequence_inframe_insertion
+  - Consequence_inframe_deletion
+  - Consequence_missense_variant
+  - Consequence_protein_altering_variant
+  - Consequence_splice_region_variant
+  - condel_score
+  - DeepSEA_PC_1
+  - DeepSEA_PC_2
+  - DeepSEA_PC_3
+  - DeepSEA_PC_4
+  - DeepSEA_PC_5
+  - DeepSEA_PC_6
+  - PrimateAI_score
+  - AbSplice_DNA
+  - DeepRipe_plus_QKI_lip_hg2
+  - DeepRipe_plus_QKI_clip_k5
+  - DeepRipe_plus_KHDRBS1_clip_k5
+  - DeepRipe_plus_ELAVL1_parclip
+  - DeepRipe_plus_TARDBP_parclip
+  - DeepRipe_plus_HNRNPD_parclip
+  - DeepRipe_plus_MBNL1_parclip
+  - DeepRipe_plus_QKI_parclip
+  - SpliceAI_delta_score
+  - alphamissense
+
+training_data_thresholds:
+  MAF: "< 1e-2"
+  CADD_PHRED: "> 5"
+  
 model:
   checkpoint: combined_agg.pt
   config:
