@@ -3,7 +3,7 @@ from pathlib import Path
 import deeprvat.preprocessing.preprocess as deeprvat_preprocess
 
 
-configfile: "config/deeprvat_preprocess_config.yaml"
+configfile: "../example/config/deeprvat_preprocess_config.yaml"
 
 load_samtools = config.get("samtools_load_cmd") or ""
 load_bcftools = config.get("bcftools_load_cmd") or ""

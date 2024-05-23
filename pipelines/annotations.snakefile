@@ -5,7 +5,7 @@ import re
 import yaml
 
 
-configfile: "config/deeprvat_annotation_config.yaml"
+configfile: "../example/config/deeprvat_annotation_config.yaml"
 
 
 ## helper functions
@@ -53,7 +53,7 @@ annotation_python_file = (
 annotation_columns_yaml_file = (
     config.get("annotation_columns_yaml_file")
     or deeprvat_parent_path
-    / "pipelines"
+    / "example"
     / "config"
     / "annotation_colnames_filling_values.yaml"
 )
