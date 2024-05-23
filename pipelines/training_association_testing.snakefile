@@ -11,6 +11,9 @@ if not exists('./deeprvat_config.yaml'):
 configfile: 'deeprvat_config.yaml'
 
 debug_flag = config.get('debug', False)
+debug = '--debug ' if debug_flag else ''
+deterministic_flag = config.get('debug', False)
+deterministic = '--deterministic ' if deterministic_flag else ''
 phenotypes = config['phenotypes']
 phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
 training_phenotypes = config["training"].get("phenotypes", phenotypes)
@@ -21,7 +24,6 @@ n_avg_chunks = config.get('n_avg_chunks', 1)
 n_trials = config['hyperparameter_optimization']['n_trials']
 n_bags = config['training']['n_bags'] if not debug_flag else 3
 n_repeats = config['n_repeats']
-debug = '--debug ' if debug_flag else ''
 do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
 tensor_compression_level = config['training'].get('tensor_compression_level', 1)
 model_path = Path("models")
