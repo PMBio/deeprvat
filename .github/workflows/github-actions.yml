@@ -53,12 +53,13 @@ jobs:
         shell: micromamba-shell {0}
       # There are no GPUs on the gh worker, so we disable it in the config
       - name: Update config to use no gpus
-        run: "sed -i 's/gpus: 1/gpus: 0/' ${{ github.workspace }}/example/config.yaml"
+        run: "sed -i 's/gpus: 1/gpus: 0/' ${{ github.workspace }}/tests/deeprvat/test_data/training/deeprvat_config.yaml"
         shell: bash -el {0}
       - name: Run training_association_testing pipeline
         run: |
           python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
-          --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
+          --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs \
+          --config ${{ github.workspace }}/tests/deeprvat/test_data/training/deeprvat_config.yaml
         shell: micromamba-shell {0}
       - name: Link pretrained models
         run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
@@ -66,7 +67,8 @@ jobs:
       - name: Run association_testing_pretrained pipeline
         run: |
           python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
-          --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained.snakefile --show-failed-logs
+          --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained.snakefile --show-failed-logs \
+          --config ${{ github.workspace }}/tests/deeprvat/test_data/training/deeprvat_config.yaml
         shell: micromamba-shell {0}
       - name: Copy seed gene discovery snakemake config
         run: cd ${{ github.workspace }}/example && cp ../deeprvat/seed_gene_discovery/config.yaml .
@@ -99,7 +101,7 @@ jobs:
         run: |
           python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example/preprocess \
           --snakefile ${{ github.workspace }}/pipelines/preprocess_no_qc.snakefile \
-          --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml --show-failed-logs
+          --configfile ${{ github.workspace }}/example/config/deeprvat_preprocess_config.yaml --show-failed-logs
         shell: micromamba-shell {0}
 
 
@@ -107,7 +109,7 @@ jobs:
         run: |
           python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example/preprocess \
           --snakefile ${{ github.workspace }}/pipelines/preprocess_with_qc.snakefile \
-          --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml --show-failed-logs
+          --configfile ${{ github.workspace }}/example/config/deeprvat_preprocess_config.yaml --show-failed-logs
         shell: micromamba-shell {0}
 
 
@@ -126,7 +128,7 @@ jobs:
         run: |
           python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example/annotations \
           --snakefile ${{ github.workspace }}/pipelines/annotations.snakefile \
-          --configfile ${{ github.workspace }}/pipelines/config/deeprvat_annotation_config.yaml --show-failed-logs
+          --configfile ${{ github.workspace }}/example/config/deeprvat_annotation_config.yaml --show-failed-logs
         shell: micromamba-shell {0}
 
 
@@ -166,7 +168,7 @@ jobs:
         run: |
           python -m snakemake -j 2 --directory ${{ github.workspace }}/example/preprocess \
           --snakefile ${{ github.workspace }}/pipelines/preprocess_no_qc.snakefile \
-          --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml --show-failed-logs
+          --configfile ${{ github.workspace }}/example/config/deeprvat_preprocess_config.yaml --show-failed-logs
         shell: micromamba-shell {0}
 
 
@@ -207,5 +209,5 @@ jobs:
         run: |
           python -m snakemake -j 2 --directory ${{ github.workspace }}/example/preprocess \
           --snakefile ${{ github.workspace }}/pipelines/preprocess_with_qc.snakefile \
-          --configfile ${{ github.workspace }}/pipelines/config/deeprvat_preprocess_config.yaml --show-failed-logs
+          --configfile ${{ github.workspace }}/example/config/deeprvat_preprocess_config.yaml --show-failed-logs
         shell: micromamba-shell {0}

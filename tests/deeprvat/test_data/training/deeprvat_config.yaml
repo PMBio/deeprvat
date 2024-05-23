@@ -1,40 +1,28 @@
 phenotypes:
-    Cholesterol:
-        correction_method: FDR
-        n_training_genes: 40
-        baseline_phenotype: Cholesterol
-    HDL_cholesterol:
-        correction_method: FDR
-        n_training_genes: 40
-        baseline_phenotype: HDL_cholesterol
-    Mean_platelet_thrombocyte_volume:
-        correction_method: FDR
-        n_training_genes: 40
-        baseline_phenotype: Mean_platelet_thrombocyte_volume
-    Platelet_crit:
-        correction_method: FDR
-        n_training_genes: 40
-        baseline_phenotype: Platelet_crit
-    Platelet_distribution_width:
-        correction_method: FDR
-        n_training_genes: 40
-        baseline_phenotype: Platelet_distribution_width
+    Cholesterol:  {}
+    HDL_cholesterol: {}
+    Mean_platelet_thrombocyte_volume: {}
+    Platelet_crit: {}
+    Platelet_distribution_width: {}
 
 baseline_results:
-    -
-        base: baseline_results
-        type: plof/burden
-    -
-        base: baseline_results
-        type: missense/burden
-    -
-        base: baseline_results
-        type: plof/skat
-    -
-        base: baseline_results
-        type: missense/skat
+    correction_method: Bonferroni
+    options:
+        -
+            base: baseline_results
+            type: plof/burden
+        -
+            base: baseline_results
+            type: missense/burden
+        -
+            base: baseline_results
+            type: plof/skat
+        -
+            base: baseline_results
+            type: missense/skat
 
 alpha: 0.05
+cv_exp: False
 
 n_burden_chunks: 4
 n_regression_chunks: 2
