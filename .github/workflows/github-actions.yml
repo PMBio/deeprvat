@@ -17,7 +17,8 @@ jobs:
       - name: Smoketest training_association_testing pipeline
         run: |
           python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example \
-          --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs
+          --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs \
+          --configfile ${{ github.workspace }}/tests/deeprvat/test_data/training/deeprvat_config.yaml
         shell: micromamba-shell {0}
       - name: Link pretrained models
         run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
@@ -25,7 +26,8 @@ jobs:
       - name: Smoketest association_testing_pretrained pipeline
         run: |
           python -m snakemake -n -j 2 --directory ${{ github.workspace }}/example \
-          --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained.snakefile --show-failed-logs
+          --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained.snakefile --show-failed-logs \
+          --configfile ${{ github.workspace }}/tests/deeprvat/test_data/training/deeprvat_config.yaml
         shell: micromamba-shell {0}
       - name: Copy seed gene discovery snakemake config
         run: cd ${{ github.workspace }}/example && cp ../deeprvat/seed_gene_discovery/config.yaml .
@@ -59,7 +61,7 @@ jobs:
         run: |
           python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
           --snakefile ${{ github.workspace }}/pipelines/training_association_testing.snakefile --show-failed-logs \
-          --config ${{ github.workspace }}/tests/deeprvat/test_data/training/deeprvat_config.yaml
+          --configfile ${{ github.workspace }}/tests/deeprvat/test_data/training/deeprvat_config.yaml
         shell: micromamba-shell {0}
       - name: Link pretrained models
         run: cd ${{ github.workspace }}/example && ln -s ../pretrained_models
@@ -68,7 +70,7 @@ jobs:
         run: |
           python -m snakemake -j 2 --directory ${{ github.workspace }}/example \
           --snakefile ${{ github.workspace }}/pipelines/association_testing_pretrained.snakefile --show-failed-logs \
-          --config ${{ github.workspace }}/tests/deeprvat/test_data/training/deeprvat_config.yaml
+          --configfile ${{ github.workspace }}/tests/deeprvat/test_data/training/deeprvat_config.yaml
         shell: micromamba-shell {0}
       - name: Copy seed gene discovery snakemake config
         run: cd ${{ github.workspace }}/example && cp ../deeprvat/seed_gene_discovery/config.yaml .
