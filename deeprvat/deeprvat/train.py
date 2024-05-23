@@ -543,6 +543,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         cache_tensors: bool = False,
         temp_dir: Optional[str] = None,
         chunksize: int = 1000,
+        deterministic: bool = False,
     ):
         """
         Initialize the MultiphenoBaggingData.
@@ -576,6 +577,8 @@ class MultiphenoBaggingData(pl.LightningDataModule):
             pheno: self.data[pheno]["genes"].shape[0] for pheno in self.data.keys()
         }
 
+        self.seed = 42 if deterministic else None
+
         # Get the number of annotations and covariates
         # This is the same for all phenotypes, so we can look at the tensors for any one of them
         any_pheno_data = next(iter(self.data.values()))
@@ -608,7 +611,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
                 self.val_samples = self.samples
             else:
                 n_train_samples = round(n_samples * train_proportion)
-                rng = np.random.default_rng()
+                rng = np.random.default_rng(seed=self.seed)
                 # select training samples from the underlying dataframe
                 train_samples = np.sort(
                     rng.choice(
@@ -649,7 +652,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         class_sizes = [idx.shape[0] for idx in class_indices]
         minority_class = 0 if class_sizes[0] < class_sizes[1] else 1
         minority_indices = class_indices[minority_class].detach().numpy()
-        rng = np.random.default_rng()
+        rng = np.random.default_rng(seed=seed)
         upsampled_indices = rng.choice(
             minority_indices,
             size=(self.upsampling_factor - 1) * class_sizes[minority_class],
@@ -722,6 +725,7 @@ def run_bagging(
     trial: Optional[optuna.trial.Trial] = None,
     trial_id: Optional[int] = None,
     debug: bool = False,
+    deterministic: bool = False,
 ) -> Optional[float]:
     """
     Main function called during training. Also used for trial pruning and sampling new parameters in optuna.
@@ -740,10 +744,17 @@ def run_bagging(
     :type trial_id: Optional[int]
     :param debug: Use a strongly reduced dataframe
     :type debug: bool
+    :param deterministic: Set random seeds for reproducibility
+    :type deterministic: bool
 
     :returns: Optional[float]: computes the lowest scores of all loss metrics and returns their average
     :rtype: Optional[float]
     """
+
+    if deterministic:
+        logger.info("Setting random seeds for reproducibility")
+        torch.manual_seed(42)
+        random.seed(42)
 
     # if hyperparameter optimization is performed (train(); hpopt_file != None)
     if trial is not None:
@@ -812,6 +823,7 @@ def run_bagging(
         dm = MultiphenoBaggingData(
             this_data,
             train_proportion,
+            deterministic=deterministic,
             **dm_kwargs,
             **config["training"]["dataloader_config"],
         )
@@ -928,6 +940,7 @@ def run_bagging(
 
 @cli.command()
 @click.option("--debug", is_flag=True)
+@click.option("--deterministic", is_flag=True)
 @click.option("--training-gene-file", type=click.Path(exists=True))
 @click.option("--n-trials", type=int, default=1)
 @click.option("--trial-id", type=int)
@@ -947,6 +960,7 @@ def run_bagging(
 @click.argument("hpopt-file", type=click.Path())
 def train(
     debug: bool,
+    deterministic: bool,
     training_gene_file: Optional[str],
     n_trials: int,
     trial_id: Optional[int],
@@ -1086,6 +1100,7 @@ def train(
                 trial=trial,
                 trial_id=trial_id,
                 debug=debug,
+                deterministic=deterministic,
             ),
             n_trials=n_trials,
             timeout=hparam_optim.get("timeout", None),
