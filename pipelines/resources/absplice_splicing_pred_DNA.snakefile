@@ -33,7 +33,7 @@ rule mmsplice_splicemap:
         mem_mb=30_000,
         threads=4,
     conda:
-        "absplice"
+        "./absplice.yaml"
     output:
         result=Path(absplice_output_dir)
         / config_pred["splicing_pred"]["mmsplice_splicemap"],
@@ -113,7 +113,7 @@ else:
             spliceai_csv=Path(absplice_output_dir)
             / config_pred["splicing_pred"]["spliceai"],
         conda:
-            "absplice"
+            "./absplice.yaml"
         run:
             from absplice.utils import read_spliceai_vcf
 
@@ -130,7 +130,7 @@ rule absplice_dna:
     params:
         extra_info=absplice_main_conf["extra_info_dna"],
     conda:
-        "absplice"
+        "./absplice.yaml"
     output:
         absplice_dna=absplice_output_dir
         / "{genome}"
