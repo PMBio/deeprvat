@@ -27,10 +27,14 @@ on:
         required: false
         default: true
         type: boolean
-      download_example_data:
+      download_fasta_data:
         required: false
         default: false
         type: boolean
+      fasta_download_path:
+        required: false
+        type: string
+
 jobs:
   Run-Pipeline:
       runs-on: ubuntu-latest
@@ -46,18 +50,18 @@ jobs:
           run: pip install -e ${{ github.workspace }}
           shell: micromamba-shell {0}
         - name: Cache Fasta file
-          if: inputs.download_example_data
+          if: inputs.download_fasta_data
           id: cache-fasta
           uses: actions/cache@v4
           with:
-            path: ./example/preprocess/workdir/reference
-            key: cache-reference-fasta
+            path: ${{ inputs.fasta_download_path}}
+            key: cache-reference-fasta-${{ inputs.fasta_download_path}}
         - name: Download and unpack fasta data
-          if: inputs.download_example_data && steps.cache-fasta.outputs.cache-hit != 'true'
+          if: inputs.download_fasta_data && steps.cache-fasta.outputs.cache-hit != 'true'
           run: |
             wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38.primary_assembly.genome.fa.gz \
-            -O ./example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa.gz \
-            && gzip -d ./example/preprocess/workdir/reference/GRCh38.primary_assembly.genome.fa.gz
+            -O ${{ inputs.fasta_download_path}}/GRCh38.primary_assembly.genome.fa.gz \
+            && gzip -d ${{ inputs.fasta_download_path}}/GRCh38.primary_assembly.genome.fa.gz
         - name: Run pre pipeline cmd
           if: inputs.prerun_cmd
           run: ${{inputs.prerun_cmd}}

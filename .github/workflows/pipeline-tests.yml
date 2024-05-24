@@ -45,7 +45,6 @@ jobs:
 
   Pipeline-Tests-Association-Testing-Pretrained-Regenie:
     needs: Smoke-Association-Testing-Pretrained-Regenie
-
     uses: ./.github/workflows/run-pipeline.yml
     with:
       pipeline_file: ./pipelines/association_testing_pretrained_regenie.snakefile
@@ -108,7 +107,8 @@ jobs:
       environment_file: ./deeprvat_preprocessing_env.yml
       pipeline_directory: ./example/preprocess
       pipeline_config: ./pipelines/config/deeprvat_preprocess_config.yaml
-      download_example_data: true
+      download_fasta_data: true
+      fasta_download_path: ./example/preprocess/workdir/reference
 
   Pipeline-Tests-Preprocessing-With-QC:
     needs: Smoke-Preprocessing-With-QC
@@ -119,7 +119,8 @@ jobs:
       pipeline_directory: ./example/preprocess
       pipeline_config: ./pipelines/config/deeprvat_preprocess_config.yaml
       dry_run: false
-      download_example_data: true
+      download_fasta_data: true
+      fasta_download_path: ./example/preprocess/workdir/reference
 
   # Preprocessing-No-QC
   Smoke-Preprocessing-No-QC:
@@ -129,7 +130,8 @@ jobs:
       environment_file: ./deeprvat_preprocessing_env.yml
       pipeline_directory: ./example/preprocess
       pipeline_config: ./pipelines/config/deeprvat_preprocess_config.yaml
-      download_example_data: true
+      download_fasta_data: true
+      fasta_download_path: ./example/preprocess/workdir/reference
 
   Pipeline-Tests-Preprocessing-No-QC:
     needs: Smoke-Preprocessing-No-QC
@@ -140,7 +142,8 @@ jobs:
       pipeline_directory: ./example/preprocess
       pipeline_config: ./pipelines/config/deeprvat_preprocess_config.yaml
       dry_run: false
-      download_example_data: true
+      download_fasta_data: true
+      fasta_download_path: ./example/preprocess/workdir/reference
 
   # Annotation Pipeline
   Smoke-Annotation-Pipeline:
