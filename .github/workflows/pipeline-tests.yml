@@ -22,6 +22,6 @@ jobs:
       pipeline_directory: ./example/annotations
       pipeline_config: ./pipelines/config/deeprvat_annotation_config.yaml
       dry_run: false
-      prerun_cmd: bash ./deeprvat/annotations/setup_annotation_workflow.sh
+      prerun_cmd: bash ./deeprvat/annotations/setup_annotation_workflow.sh cache Plugins ./example/annotations/repo_dir
       #download_fasta_data: true
       #fasta_download_path: ./example/preprocess/workdir/reference
