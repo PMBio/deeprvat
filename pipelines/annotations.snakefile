@@ -124,7 +124,6 @@ kipoi_repo_dir = Path(config["kipoiveff_repo_dir"])
 ncores_addis = int(config.get("n_jobs_addids") or 32)
 
 # init absplice
-absplice_repo_dir = Path(config["absplice_repo_dir"])
 n_cores_absplice = int(config.get("n_cores_absplice") or 4)
 ncores_merge_absplice = int(config.get("n_cores_merge_absplice") or 8)
 ncores_agg_absplice = int(config.get("ncores_agg_absplice") or 4)
@@ -154,7 +153,7 @@ file_stems = [
 
 absplice_download_dir = (
     config.get("absplice_download_dir")
-    or absplice_repo_dir / "example" / "data" / "resources" / "downloaded_files"
+    or anno_tmp_dir / "absplice" 
 )
 absplice_output_dir = config.get("absplice_output_dir", anno_tmp_dir / "absplice")
 vcf_id = anno_tmp_dir / "{file_stem}"

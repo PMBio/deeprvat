@@ -385,6 +385,13 @@ def test_aggregate_abscores(
             "vep_deepripe_deepsea.parquet",
             "vep_deepripe_deepsea_absplice.parquet",
         ),
+        (
+            "merge_absplice_scores_exons",
+            "abSplice_score_file.parquet",
+            "vep_deepripe_deepsea.parquet",
+            "vep_deepripe_deepsea_absplice.parquet",
+        ),
+        
     ],
 )
 def test_merge_absplice_scores(

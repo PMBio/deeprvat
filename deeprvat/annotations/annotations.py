@@ -1210,9 +1210,10 @@ def merge_abscores(
     annotations = annotations.rename(columns={"Gene": "gene_id"})
     annotations.drop_duplicates(inplace=True, subset=["gene_id", "id"])
     original_len = len(annotations)
-
+    all_ids  = set(annotations.id)
+    all_absplice_scores.drop_duplicates(subset = ["chrom", "pos", "ref", "alt", "gene_id"], inplace = True)
     logger.info("Merging")
-    merged = pd.merge(
+    annotations = pd.merge(
         annotations,
         all_absplice_scores,
         validate="1:1",
@@ -1221,24 +1222,25 @@ def merge_abscores(
     )
 
     logger.info("Sanity checking merge")
-    assert len(merged) == original_len
+    assert len(annotations) == original_len
+    assert set(annotations.id) == all_ids
     logger.info(
-        f"len of merged after dropping duplicates: {len(merged.drop_duplicates(subset=['id', 'gene_id']))}"
+        f"len of merged after dropping duplicates: {len(annotations.drop_duplicates(subset=['id', 'gene_id']))}"
     )
-    logger.info(f"len of merged without dropping duplicates: {len(merged)}")
+    logger.info(f"len of merged without dropping duplicates: {len(annotations)}")
 
-    assert len(merged.drop_duplicates(subset=["id", "gene_id"])) == len(merged)
+    assert len(annotations.drop_duplicates(subset=["id", "gene_id"])) == len(annotations)
 
     logger.info(
-        f'Filling {merged["AbSplice_DNA"].isna().sum()} '
+        f'Filling {annotations["AbSplice_DNA"].isna().sum()} '
         "missing AbSplice values with 0"
     )
-    merged["AbSplice_DNA"] = merged["AbSplice_DNA"].fillna(0)
+    annotations["AbSplice_DNA"] = annotations["AbSplice_DNA"].fillna(0)
 
     annotation_out_file = out_file
 
     logger.info(f"Writing to {annotation_out_file}")
-    merged.to_parquet(annotation_out_file, engine="pyarrow")
+    annotations.to_parquet(annotation_out_file, engine="pyarrow")
 
 
 pd.options.mode.chained_assignment = None
