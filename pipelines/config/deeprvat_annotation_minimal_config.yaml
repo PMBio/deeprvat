@@ -8,7 +8,7 @@ preprocessing_workdir : preprocessing_workdir
 # comment out / remove to run on all chromosomes
 included_chromosomes : ['3','4']
 deepsea_pca_n_components: 7
-annotation_columns_yaml_file: config/annotation_colnames_filling_values.yaml
+annotation_columns_yaml_file: ../../../deeprvat/pipelines/config/annotation_colnames_filling_values.yaml
 anno_tmp_dir : output_exons/annotations/tmp
 anno_dir : output_exons/annotations
 vep_cache_dir : repo_dir/ensembl-vep/cache/
