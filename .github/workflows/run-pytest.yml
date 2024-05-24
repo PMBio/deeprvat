@@ -1,0 +1,33 @@
+name: Run pytest
+
+on:
+  workflow_call:
+    inputs:
+      environment_file:
+        required: true
+        type: string
+      test_path:
+        required: true
+        type: string
+      parallel_tests:
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  Run-Pytest:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Check out repository code
+          uses: actions/checkout@v4
+        - uses: mamba-org/setup-micromamba@v1.8.1
+          with:
+            environment-file: ${{inputs.environment_file}}
+            cache-environment: true
+            cache-downloads: true
+        - name: Install DeepRVAT
+          run: pip install -e ${{ github.workspace }}
+          shell: micromamba-shell {0}
+        - name: Run pytest
+          run: pytest ${{ (inputs.parallel_tests && '-n auto') || '' }} -v ${{ inputs.test_path }}
+          shell: micromamba-shell {0}
