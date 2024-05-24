@@ -1,0 +1,20 @@
+fasta_dir : reference
+fasta_file_name : GRCh38.primary_assembly.genome.fa
+gtf_file_name : gencode.v44.annotation.gtf.gz
+source_variant_dir : preprocessing_workdir_exons/norm/bcf/
+source_variant_file_pattern : chr{chr}test
+source_variant_file_type: 'bcf'
+preprocessing_workdir : preprocessing_workdir
+# comment out / remove to run on all chromosomes
+included_chromosomes : ['3','4']
+deepsea_pca_n_components: 7
+annotation_columns_yaml_file: config/annotation_colnames_filling_values.yaml
+anno_tmp_dir : output_exons/annotations/tmp
+anno_dir : output_exons/annotations
+vep_cache_dir : repo_dir/ensembl-vep/cache/
+vep_plugin_dir : repo_dir/ensembl-vep/Plugins
+absplice_download_dir : absplice_download/downloaded_files
+deeprvat_repo_dir : ../deeprvat
+kipoiveff_repo_dir : repo_dir/kipoi-veff2
+faatpipe_repo_dir : repo_dir/faatpipe
+vep_repo_dir : repo_dir/ensembl-vep
