@@ -40,7 +40,7 @@ on:
       postrun_shell:
         required: false
         type: string
-        default: bash -el # or micromamba-shell
+        default: "bash -el" # or micromamba-shell
 jobs:
   Run-Pipeline:
       runs-on: ubuntu-latest
