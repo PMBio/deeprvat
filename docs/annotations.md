@@ -23,7 +23,6 @@ The filenames should then contain the corresponding chromosome and block number.
 BCFtools as well as HTSlib should be installed on the machine, 
 - [CADD](https://github.com/kircherlab/CADD-scripts/tree/master/src/scripts) as well as 
 - [VEP](http://www.ensembl.org/info/docs/tools/vep/script/vep_download.html),  
-- [absplice](https://github.com/gagneurlab/absplice/tree/master), 
 - [kipoi-veff2](https://github.com/kipoi/kipoi-veff2)
 - [faatpipe](https://github.com/HealthML/faatpipe), and the
 - [vep-plugins repository](https://github.com/Ensembl/VEP_plugins/)
@@ -61,12 +60,12 @@ The config above would use the following directory structure:
 |   |-- annotations
 |   |   |-- tmp
 |   |   |   |-- deepSEA_PCA
+|   |   |   |-- absplice
 
 |-- repo_dir
 |   |-- ensembl-vep
 |   |   |-- cache
 |   |   |-- plugins
-|   |-- abSplice
 |   |-- faatpipe
 |   |-- kipoi-veff2
 
@@ -98,7 +97,6 @@ Data for VEP plugins and the CADD cache are stored in `annotation data`.
     ```
 - Clone the repositories mentioned in [requirements](#requirements) into `repo_dir` and install the needed conda environments with  
     ```shell
-    mamba env create -f repo_dir/absplice/environment.yaml
     mamba env create -f repo_dir/kipoi-veff2/environment.minimal.linux.yml
     mamba env create -f deeprvat/deeprvat_annotations.yml
     ```

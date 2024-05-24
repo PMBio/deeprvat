@@ -19,7 +19,6 @@ anno_dir : output_dir/annotations
 
 vep_cache_dir : repo_dir/ensembl-vep/cache/
 vep_plugin_dir : repo_dir/ensembl-vep/Plugins
-absplice_repo_dir : repo_dir/absplice
 deeprvat_repo_dir : ../..
 kipoiveff_repo_dir : repo_dir/kipoi-veff2
 faatpipe_repo_dir : repo_dir/faatpipe

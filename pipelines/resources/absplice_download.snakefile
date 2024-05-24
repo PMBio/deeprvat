@@ -53,7 +53,7 @@ rule download_human_fasta:
     output:
         Path(absplice_download_dir) / config_download["fasta"][genome]["file"],
     conda:
-        "absplice"
+        "./absplice.yaml"
     shell:
         "wget -O - {params} | gunzip -c > {output}"
 
@@ -75,7 +75,7 @@ rule download_splicemaps:
         splicemap_psi5=Path(absplice_download_dir)
         / config_download["splicemap"]["psi5"],
     conda:
-        "absplice"
+        "./absplice.yaml"
     shell:
         "splicemap_download --version {params.version} --splicemap_dir {params.dirname} --tissues {wildcards.tissue}"
 
@@ -103,7 +103,7 @@ if absplice_main_conf["AbSplice_RNA"] == True:
         output:
             Path(absplice_download_dir) / config_download["gtf"][genome]["file"],
         conda:
-            "absplice"
+            "./absplice.yaml"
         shell:
             "wget -O - {params} | gunzip -c > {output}"
 
@@ -119,7 +119,7 @@ if absplice_main_conf["AbSplice_RNA"] == True:
             coding_genes=Path(absplice_download_dir)
             / config_download["gtf"][genome]["coding_genes"],
         conda:
-            "absplice"
+            "./absplice.yaml"
         resources:
             mem_mb=lambda wildcards, attempt: attempt * 16000,
         script:
