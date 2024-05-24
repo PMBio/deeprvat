@@ -14,7 +14,7 @@ anno_dir : output_exons/annotations
 vep_cache_dir : repo_dir/ensembl-vep/cache/
 vep_plugin_dir : repo_dir/ensembl-vep/Plugins
 absplice_download_dir : absplice_download/downloaded_files
-deeprvat_repo_dir : ../deeprvat
+deeprvat_repo_dir : ../../../deeprvat
 kipoiveff_repo_dir : repo_dir/kipoi-veff2
 faatpipe_repo_dir : repo_dir/faatpipe
 vep_repo_dir : repo_dir/ensembl-vep
