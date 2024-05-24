@@ -13,15 +13,6 @@ git checkout release/111
 perl INSTALL.pl --AUTO acfp --ASSEMBLY GRCh38 --CACHEDIR $VEP_CACHEDIR --PLUGINS CADD, SpliceAI, PrimateAI --PLUGINSDIR $VEP_PLUGINDIR --species homo_sapiens
 cd ../..
 
-echo "- AbSplice"
-mkdir -p $REPO_DIR/absplice
-git clone https://github.com/gagneurlab/absplice.git $REPO_DIR/absplice
-cd $REPO_DIR/absplice
-mamba env create -f environment.yaml
-mamba activate absplice
-pip install -e .
-cd ../..
-
 echo "- DeepSea(kipoi-veff2)"
 mkdir -p $REPO_DIR/kipoi-veff2
 git clone https://github.com/kipoi/kipoi-veff2.git $REPO_DIR/kipoi-veff2
