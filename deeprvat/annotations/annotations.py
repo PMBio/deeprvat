@@ -1210,8 +1210,10 @@ def merge_abscores(
     annotations = annotations.rename(columns={"Gene": "gene_id"})
     annotations.drop_duplicates(inplace=True, subset=["gene_id", "id"])
     original_len = len(annotations)
-    all_ids  = set(annotations.id)
-    all_absplice_scores.drop_duplicates(subset = ["chrom", "pos", "ref", "alt", "gene_id"], inplace = True)
+    all_ids = set(annotations.id)
+    all_absplice_scores.drop_duplicates(
+        subset=["chrom", "pos", "ref", "alt", "gene_id"], inplace=True
+    )
     logger.info("Merging")
     annotations = pd.merge(
         annotations,
@@ -1229,7 +1231,9 @@ def merge_abscores(
     )
     logger.info(f"len of merged without dropping duplicates: {len(annotations)}")
 
-    assert len(annotations.drop_duplicates(subset=["id", "gene_id"])) == len(annotations)
+    assert len(annotations.drop_duplicates(subset=["id", "gene_id"])) == len(
+        annotations
+    )
 
     logger.info(
         f'Filling {annotations["AbSplice_DNA"].isna().sum()} '
