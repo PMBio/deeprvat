@@ -9,6 +9,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/run_training.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
+      postrun_cmd: echo "Hello World from post"
 
   Pipeline-Tests-RunTraining:
     needs: Smoke-RunTraining
@@ -17,7 +18,9 @@ jobs:
       pipeline_file: ./pipelines/run_training.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
       dry_run: false
-
+      postrun_cmd: python --version
+      postrun_shell: micromamba-shell
+      
   # Association Testing Pretrained Pipeline
   Smoke-Association-Testing-Pretrained:
     uses: ./.github/workflows/run-pipeline.yml
