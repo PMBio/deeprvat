@@ -78,8 +78,6 @@ jobs:
           run: "sed -i 's/gpus: 1/gpus: 0/' ./example/config.yaml"
           shell: bash -el {0}
         - name: "Running pipeline ${{ github.jobs[github.job].name }}"
-          env:
-            CONDA_OVERRIDE_CUDA: "11.8"
           run: |
             python -m snakemake ${{ (inputs.dry_run && '-n') || '' }} \
             -j 2 --directory ${{inputs.pipeline_directory}} \
