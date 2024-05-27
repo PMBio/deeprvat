@@ -45,8 +45,6 @@ jobs:
   Run-Pipeline:
       runs-on: ubuntu-latest
       steps:
-        - name: Maximize build space
-          uses: easimon/maximize-build-space@master
         - name: Check out repository code
           uses: actions/checkout@v4
         - uses: mamba-org/setup-micromamba@v1.8.1
