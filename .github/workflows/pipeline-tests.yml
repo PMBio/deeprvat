@@ -20,7 +20,7 @@ jobs:
       pipeline_file: ./pipelines/annotations.snakefile
       environment_file: ./deeprvat_annotations.yml
       pipeline_directory: ./example/annotations
-      pipeline_extra_flags: --use-conda
+      pipeline_extra_flags: --use-conda --conda-frontend conda
       pipeline_config: ./pipelines/config/deeprvat_annotation_minimal_config.yaml
       dry_run: false
       prerun_cmd: bash ./deeprvat/annotations/setup_annotation_workflow.sh cache Plugins ./example/annotations/repo_dir
