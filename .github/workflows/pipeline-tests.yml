@@ -23,6 +23,6 @@ jobs:
       pipeline_extra_flags: --use-conda --conda-frontend conda
       pipeline_config: ./pipelines/config/deeprvat_annotation_minimal_config.yaml
       dry_run: false
-      prerun_cmd: bash ./deeprvat/annotations/setup_annotation_workflow.sh cache Plugins ./example/annotations/repo_dir
+      prerun_cmd: bash ./deeprvat/annotations/setup_annotation_workflow.sh cache Plugins ./example/annotations/repo_dir && export CONDA_OVERRIDE_CUDA="11.8"
       download_fasta_data: true
       fasta_download_path: ./example/annotations/reference
