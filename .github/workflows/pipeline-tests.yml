@@ -24,4 +24,4 @@ jobs:
       dry_run: false
       prerun_cmd: bash ./deeprvat/annotations/setup_annotation_workflow.sh cache Plugins ./example/annotations/repo_dir
       download_fasta_data: true
-      fasta_download_path: ./example/preprocess/workdir/reference
+      fasta_download_path: ./example/annotations/reference
