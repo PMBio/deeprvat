@@ -27,6 +27,7 @@ jobs:
       dry_run: false
       prerun_cmd: |
         bash ./deeprvat/annotations/setup_annotation_workflow.sh cache Plugins ./example/annotations/repo_dir clean && \
+        && df -h  && \
         sed -i "s/tensorflow-gpu/tensorflow/"  ./pipelines/resources/environment_spliceai_rocksdb.yaml
       download_fasta_data: true
       fasta_download_path: ./example/annotations/reference
