@@ -17,7 +17,7 @@ variant_filtering:
 
 # False by default, you can change this if you want to run on large datasets
 # (see absplice Readme https://github.com/gagneurlab/absplice#absplice-dna)
-use_rocksdb: True
+use_rocksdb: False
 
 splicemap_tissues:
   - Adipose_Subcutaneous
