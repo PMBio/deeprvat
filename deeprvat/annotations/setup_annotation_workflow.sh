@@ -2,6 +2,7 @@
 VEP_CACHEDIR=$1
 VEP_PLUGINDIR=$2
 REPO_DIR=$3
+CLEANUP=$4
 
 echo "downloading necessary repos and installing conda environments"
 perl -MCPAN -e 'install Bundle::DBI'
@@ -33,5 +34,11 @@ git clone https://github.com/Ensembl/VEP_plugins.git $REPO_DIR/VEP_plugins
 
 mamba activate deeprvat_annotations
 
+# Cleanup mamba
+if [ -n "$CLEANUP" ]; then
+  mamba clean --all --yes
+fi
+
 ##create token output file
 touch $REPO_DIR/annotation-workflow-setup.done
+
