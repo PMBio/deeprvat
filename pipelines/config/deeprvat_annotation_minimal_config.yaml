@@ -1,7 +1,7 @@
 fasta_dir : reference
 fasta_file_name : GRCh38.primary_assembly.genome.fa
 gtf_file_name : gencode.v44.annotation.gtf.gz
-source_variant_dir : preprocessing_workdir_exons/norm/bcf/
+source_variant_dir : preprocessing_workdir/norm/bcf/
 source_variant_file_pattern : chr{chr}test
 source_variant_file_type: 'bcf'
 preprocessing_workdir : preprocessing_workdir

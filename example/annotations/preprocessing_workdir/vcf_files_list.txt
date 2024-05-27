@@ -1,0 +1,2 @@
+vcf/chr3test.vcf.gz
+vcf/chr4test.vcf.gz
