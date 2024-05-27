@@ -11,7 +11,7 @@ mkdir -p $REPO_DIR/ensembl-vep
 git clone https://github.com/Ensembl/ensembl-vep.git $REPO_DIR/ensembl-vep 
 cd $REPO_DIR/ensembl-vep
 git checkout release/111
-perl INSTALL.pl --AUTO acfp --ASSEMBLY GRCh38 --PLUGINS CADD, SpliceAI, PrimateAI --PLUGINSDIR $VEP_PLUGINDIR --species homo_sapiens
+perl INSTALL.pl --AUTO acfp --ASSEMBLY GRCh38 --CACHEDIR $VEP_CACHEDIR --PLUGINS CADD, SpliceAI, PrimateAI --PLUGINSDIR $VEP_PLUGINDIR --species homo_sapiens
 cd ../..
 
 echo "- DeepSea(kipoi-veff2)"
