@@ -12,6 +12,9 @@ on:
       pipeline_file:
         required: true
         type: string
+      pipeline_extra_flags:
+        required: false
+        type: string
       no_gpu:
         required: false
         type: boolean
@@ -79,8 +82,7 @@ jobs:
             python -m snakemake ${{ (inputs.dry_run && '-n') || '' }} \
             -j 2 --directory ${{inputs.pipeline_directory}} \
             ${{ (endsWith(inputs.pipeline_config, 'ml') && '--configfile')  || '' }}  ${{ inputs.pipeline_config }} \
-            --snakefile ${{inputs.pipeline_file}} --show-failed-logs -F
-          shell: micromamba-shell {0}
+            --snakefile ${{inputs.pipeline_file}} --show-failed-logs -F ${{ inputs.pipeline_extra_flags }}          shell: micromamba-shell {0}
         - name: Run post pipeline cmd
           if: inputs.postrun_cmd
           run: ${{inputs.postrun_cmd}}
