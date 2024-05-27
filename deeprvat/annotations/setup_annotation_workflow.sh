@@ -18,8 +18,8 @@ echo "- DeepSea(kipoi-veff2)"
 mkdir -p $REPO_DIR/kipoi-veff2
 git clone https://github.com/kipoi/kipoi-veff2.git $REPO_DIR/kipoi-veff2
 cd $REPO_DIR/kipoi-veff2
-mamba env create -f environment.minimal.linux.yml
-mamba activate kipoi-veff2
+$MAMBA_EXE env create -f environment.minimal.linux.yml
+$MAMBA_EXE activate kipoi-veff2
 python -m pip install .
 cd ../..
 
@@ -32,11 +32,11 @@ mkdir -p $REPO_DIR/VEP_plugins
 git clone https://github.com/Ensembl/VEP_plugins.git $REPO_DIR/VEP_plugins
 ##returning to main environment
 
-mamba activate deeprvat_annotations
+$MAMBA_EXE activate deeprvat_annotations
 
 # Cleanup mamba
 if [ -n "$CLEANUP" ]; then
-  mamba clean --all --yes
+  $MAMBA_EXE clean --all --yes
 fi
 
 ##create token output file
