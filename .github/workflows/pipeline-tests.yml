@@ -18,10 +18,10 @@ jobs:
   Pipeline-Tests-Annotation:
     needs: Smoke-Annotation-Pipeline
     uses: ./.github/workflows/run-pipeline.yml
-    env:
-      CONDA_OVERRIDE_CUDA: 11.8
     with:
       pipeline_file: ./pipelines/annotations.snakefile
+      env:
+        CONDA_OVERRIDE_CUDA: 11.8
       environment_file: ./deeprvat_annotations.yml
       pipeline_directory: ./example/annotations
       pipeline_extra_flags: --use-conda --conda-frontend conda
