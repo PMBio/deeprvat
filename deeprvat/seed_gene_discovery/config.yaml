@@ -60,8 +60,8 @@ variant_file: variants.parquet
 
 data:
     gt_file: genotypes.h5
+    variant_file: variants.parquet
     dataset_config:
-        variant_file: variants.parquet
         phenotype_file: phenotypes.parquet
         standardize_xpheno: False
         y_transformation: quantile_transform
