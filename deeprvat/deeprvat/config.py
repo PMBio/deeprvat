@@ -68,6 +68,7 @@ def create_main_config(
         "training",
         "n_repeats",
         "y_transformation",
+        "evaluation",
         "cv_exp",
         "cv_path",
         "n_folds",
@@ -96,7 +97,7 @@ def create_main_config(
         if input_config["use_pretrained_models"]:
             no_pretrain = False
             logger.info("Pretrained Model setup specified.")
-            to_remove = {"training", "phenotypes_for_training"}
+            to_remove = {"training", "phenotypes_for_training", "seed_gene_results"}
             expected_input_keys = [
                 item for item in expected_input_keys if item not in to_remove
             ]
@@ -200,11 +201,10 @@ def create_main_config(
         full_config["assocation_testing_data"]["dataset_config"]["rare_embedding"][
             "config"
         ]["thresholds"][k] = f"{k} {v}"
-    # Baseline results
-    full_config["baseline_results"]["options"] = input_config["seed_gene_results"][
-        "options"
-    ]
-    full_config["alpha"] = input_config["seed_gene_results"]["alpha"]
+    # Results evaluation parameters; alpha parameter for significance threshold
+    full_config["evaluation"] = {}
+    full_config["evaluation"]["correction_method"] = input_config["evaluation"]["correction_method"]
+    full_config["evaluation"]["alpha"] = input_config["evaluation"]["alpha"]
     # DeepRVAT model
     full_config["n_repeats"] = input_config["n_repeats"]
 
@@ -218,6 +218,11 @@ def create_main_config(
         full_config["training"]["early_stopping"] = input_config["training"]["early_stopping"]
         # Training Phenotypes
         full_config["training"]["phenotypes"] = input_config["phenotypes_for_training"]
+        # Baseline results
+        full_config["baseline_results"]["options"] = input_config["seed_gene_results"][
+            "options"
+        ]
+        full_config["baseline_results"]["alpha_seed_genes"] = input_config["seed_gene_results"]["alpha_seed_genes"]
     else:
         full_config["model"] = input_config["model"]
 
@@ -319,7 +324,7 @@ def update_config(
             else:
                 logger.info("Not performing EAC filtering of baseline results")
             logger.info(f"  Correcting p-values using {correction_method} method")
-            alpha = config.get("alpha_seed_genes", config.get("alpha"))
+            alpha = config["baseline_results"].get("alpha_seed_genes", config.get("alpha"))
             baseline_df = pval_correction(
                 baseline_df, alpha, correction_type=correction_method
             )

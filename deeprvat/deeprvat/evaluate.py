@@ -330,7 +330,6 @@ def evaluate_(
 @click.option("--debug", is_flag=True)
 @click.option("--phenotype", type=str)
 @click.option("--use-baseline-results", is_flag=True)
-@click.option("--correction-method", type=str, default="Bonferroni")
 @click.option(
     "--combine-pval", type=str, default="Bonferroni"
 )  # Bonferroni min pval per gene for multiple baseline tests
@@ -341,7 +340,6 @@ def evaluate(
     debug: bool,
     phenotype: Optional[str],
     use_baseline_results: bool,
-    correction_method: str,
     association_files: Tuple[str],
     config_file: str,
     out_dir: str,
@@ -361,7 +359,8 @@ def evaluate(
     )
     associations["phenotype"] = pheno
 
-    alpha = config["alpha"]
+    alpha = config["evaluation"]["alpha"]
+    correction_method = config["evaluation"]["correction_method"]
 
     if use_baseline_results:
         logger.info("Reading baseline results")

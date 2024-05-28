@@ -123,7 +123,7 @@ seed_gene_results: #baseline_results
           base: baseline_results
           type: missense/skat
 
-  alpha: 0.05
+  alpha_seed_genes: 0.05
 
 #DeepRVAT training settings
 training:
@@ -143,6 +143,11 @@ training:
 #DeepRVAT model settings
 n_repeats: 6
 y_transformation: quantile_transform
+
+# Results evaluation settings
+evaluation:
+    correction_method: Bonferroni
+    alpha: 0.05
 
 #Additional settings if using the CV pipeline
 cv_exp: False

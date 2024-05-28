@@ -43,7 +43,6 @@ rule evaluate:
         'deeprvat_evaluate '
         + debug +
         '{params.use_baseline_results} '
-        '--correction-method Bonferroni '
         '--phenotype {wildcards.phenotype} '
         '{input.associations} '
         '{input.config} '

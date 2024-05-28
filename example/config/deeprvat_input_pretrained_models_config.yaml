@@ -61,27 +61,14 @@ association_testing_data_thresholds:
   MAF: "< 1e-3"
   CADD_PHRED: "> 5"
 
-#Seed Gene Baseline data settings
-seed_gene_results: #baseline_results
-  options:
-      -
-          base: baseline_results
-          type: plof/burden
-      -
-          base: baseline_results
-          type: missense/burden
-      -
-          base: baseline_results
-          type: plof/skat
-      -
-          base: baseline_results
-          type: missense/skat
-
-  alpha: 0.05
-
 #DeepRVAT model settings
 n_repeats: 30
 y_transformation: quantile_transform
+
+# Results evaluation settings
+evaluation:
+    correction_method: Bonferroni
+    alpha: 0.05
 
 #Additional settings if using the CV pipeline
 cv_exp: False
