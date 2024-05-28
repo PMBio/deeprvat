@@ -537,7 +537,7 @@ def make_dataset_(
             dataset = pickle.load(f)
     else:
         logger.info("Instantiating dataset")
-        
+
         dataset = DenseGTDataset(
             gt_file=data_config["gt_file"],
             skip_y_na=True,
