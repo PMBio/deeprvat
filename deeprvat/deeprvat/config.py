@@ -96,7 +96,7 @@ def create_main_config(
         if input_config["use_pretrained_models"]:
             no_pretrain = False
             logger.info("Pretrained Model setup specified.")
-            to_remove = {"pl_trainer", "early_stopping"}
+            to_remove = {"training", "phenotypes_for_training"}
             expected_input_keys = [
                 item for item in expected_input_keys if item not in to_remove
             ]
@@ -117,16 +117,19 @@ def create_main_config(
                 "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
             )
         )
-        
-    if all(key not in input_config["training"] for key in ["pl_trainer", "early_stopping"]):
-       raise KeyError(
-           "Missing keys pl_trainer and/or early_stopping under config['training'] "
-           "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
-       )
+
+    if no_pretrain:  
+        if all(key not in input_config["training"] for key in ["pl_trainer", "early_stopping"]):
+            raise KeyError(
+                "Missing keys pl_trainer and/or early_stopping under config['training'] "
+                "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
+            )
 
     # Phenotypes
-    full_config["phenotypes"] = input_config["phenotypes_for_association_testing"]
-    full_config["training"]["phenotypes"] = input_config["phenotypes_for_training"]
+    full_config["phenotypes"] = {}
+    for pheno in input_config["phenotypes_for_association_testing"]:
+        full_config["phenotypes"][pheno] = {}
+        # Can optionally specify dictionary of = {"min_seed_genes": 3, "max_seed_genes": None, "pvalue_threshold": None}
     full_config["training_data"]["dataset_config"]["y_transformation"] = input_config[
         "y_transformation"
     ]
@@ -213,6 +216,8 @@ def create_main_config(
         full_config["training"]["pl_trainer"] = input_config["training"]["pl_trainer"]
         # Early Stopping
         full_config["training"]["early_stopping"] = input_config["training"]["early_stopping"]
+        # Training Phenotypes
+        full_config["training"]["phenotypes"] = input_config["phenotypes_for_training"]
     else:
         full_config["model"] = input_config["model"]
 

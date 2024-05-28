@@ -1,29 +1,26 @@
 #Phenotypes to be used only for Association Testing
 phenotypes_for_association_testing:
-  Apolipoprotein_A: {}
-    #min_seed_genes: 3
-    #max_seed_genes: None
-    #pvalue_threshold: None
-  Apolipoprotein_B: {}
-  Calcium: {}
-  Cholesterol: {}
-  Red_blood_cell_erythrocyte_count: {}
-  HDL_cholesterol: {}
-  IGF_1: {}
-  LDL_direct: {}
-  Lymphocyte_percentage: {}
-  Mean_platelet_thrombocyte_volume: {}
-  Mean_corpuscular_volume: {}
-  Mean_reticulocyte_volume: {}
-  Neutrophill_count: {}
-  Platelet_count: {}
-  Platelet_crit: {}
-  Platelet_distribution_width: {}
-  SHBG: {}
-  Standing_height: {}
-  Total_bilirubin: {}
-  Triglycerides: {}
-  Urate: {}
+  - Apolipoprotein_A
+  - Apolipoprotein_B
+  - Calcium
+  - Cholesterol
+  - Red_blood_cell_erythrocyte_count
+  - HDL_cholesterol
+  - IGF_1
+  - LDL_direct
+  - Lymphocyte_percentage
+  - Mean_platelet_thrombocyte_volume
+  - Mean_corpuscular_volume
+  - Mean_reticulocyte_volume
+  - Neutrophill_count
+  - Platelet_count
+  - Platelet_crit
+  - Platelet_distribution_width
+  - SHBG
+  - Standing_height
+  - Total_bilirubin
+  - Triglycerides
+  - Urate
 
 #Phenotypes to be used only for training
 phenotypes_for_training:
