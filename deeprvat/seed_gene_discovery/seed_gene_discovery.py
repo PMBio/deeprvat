@@ -537,13 +537,12 @@ def make_dataset_(
             dataset = pickle.load(f)
     else:
         logger.info("Instantiating dataset")
-        variant_file = data_config.get(
-            "variant_file", f'{data_config["gt_file"][:-3]}_variants.parquet'
-        )
+
         dataset = DenseGTDataset(
             gt_file=data_config["gt_file"],
             skip_y_na=True,
             skip_x_na=True,
+            variant_file=data_config["variant_file"],
             **data_config["dataset_config"],
         )
         logger.info("Writing pickled data set")
