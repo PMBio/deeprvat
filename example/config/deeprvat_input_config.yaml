@@ -128,21 +128,20 @@ seed_gene_results: #baseline_results
 
   alpha: 0.05
 
-#PyTorch Lightening trainer settings
-pl_trainer:
-    gpus: 1
-    precision: 16
-    min_epochs: 50
-    max_epochs: 1000
-    log_every_n_steps: 1
-    check_val_every_n_epoch: 1
-
-#PyTorch Lightening Early Stopping Criteria
-early_stopping:
-    mode: min
-    patience: 3
-    min_delta: 0.00001
-    verbose: True
+#DeepRVAT training settings
+training:
+  pl_trainer: #PyTorch Lightening trainer settings
+      gpus: 1
+      precision: 16
+      min_epochs: 50
+      max_epochs: 1000
+      log_every_n_steps: 1
+      check_val_every_n_epoch: 1
+  early_stopping: #PyTorch Lightening Early Stopping Criteria
+      mode: min
+      patience: 3
+      min_delta: 0.00001
+      verbose: True
 
 #DeepRVAT model settings
 n_repeats: 6

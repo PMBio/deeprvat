@@ -838,18 +838,18 @@ def run_bagging(
         callbacks = [checkpoint_callback]
 
         # to prune underperforming trials we enable a pruning strategy that can be set in config
-        if "early_stopping" in config:
+        if "early_stopping" in config["training"]:
             callbacks.append(
-                EarlyStopping(monitor=objective, **config["early_stopping"])
+                EarlyStopping(monitor=objective, **config["training"]["early_stopping"])
             )
 
         if debug:
-            config["pl_trainer"]["min_epochs"] = 10
-            config["pl_trainer"]["max_epochs"] = 20
+            config["training"]["pl_trainer"]["min_epochs"] = 10
+            config["training"]["pl_trainer"]["max_epochs"] = 20
 
         # initialize trainer, which will call background functionality
         trainer = pl.Trainer(
-            logger=tb_logger, callbacks=callbacks, **config.get("pl_trainer", {})
+            logger=tb_logger, callbacks=callbacks, **config["training"].get("pl_trainer", {})
         )
 
         while True:
@@ -992,8 +992,8 @@ def train(
         config = yaml.safe_load(f)
 
     if debug:
-        config["pl_trainer"].pop("gpus", None)
-        config["pl_trainer"].pop("precision", None)
+        config["training"]["pl_trainer"].pop("gpus", None)
+        config["training"]["pl_trainer"].pop("precision", None)
 
     logger.info(f"Running training using config:\n{pformat(config)}")
 

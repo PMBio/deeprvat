@@ -65,8 +65,7 @@ def create_main_config(
         "association_testing_data_thresholds",
         "training_data_thresholds",
         "seed_gene_results",
-        "pl_trainer",
-        "early_stopping",
+        "training",
         "n_repeats",
         "y_transformation",
         "cv_exp",
@@ -118,6 +117,12 @@ def create_main_config(
                 "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
             )
         )
+        
+    if all(key not in input_config["training"] for key in ["pl_trainer", "early_stopping"]):
+       raise KeyError(
+           "Missing keys pl_trainer and/or early_stopping under config['training'] "
+           "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
+       )
 
     # Phenotypes
     full_config["phenotypes"] = input_config["phenotypes_for_association_testing"]
@@ -205,9 +210,9 @@ def create_main_config(
 
     if no_pretrain:
         # PL trainer
-        full_config["pl_trainer"] = input_config["pl_trainer"]
+        full_config["training"]["pl_trainer"] = input_config["training"]["pl_trainer"]
         # Early Stopping
-        full_config["early_stopping"] = input_config["early_stopping"]
+        full_config["training"]["early_stopping"] = input_config["training"]["early_stopping"]
     else:
         full_config["model"] = input_config["model"]
 
