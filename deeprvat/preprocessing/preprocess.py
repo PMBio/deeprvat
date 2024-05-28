@@ -277,6 +277,8 @@ def process_sparse_gt(
         variants = variants[~variants["id"].isin(variant_ids_to_exclude)]
         if not skip_sanity_checks:
             assert total_variants - len(variants) == len(variant_ids_to_exclude)
+            if variants.empty:
+                raise ValueError("All variants have been filtered out.")
 
     logging.info(f"Dropped {total_variants - len(variants)} variants")
     logging.info(f"...done ({time.time() - start_time} s)")
@@ -312,6 +314,9 @@ def process_sparse_gt(
             logging.info(f"Found no samples to exclude in {exclude_samples}")
 
     samples = sorted(list(samples))
+
+    if len(samples) == 0:
+        raise ValueError("All samples have been excluded.")
 
     logging.info("Processing sparse GT files by chromosome")
     total_calls_dropped = 0

@@ -17,33 +17,41 @@ regenie_step2_bsize = regenie_config_step2["bsize"]
 regenie_njobs = regenie_config_step1.get("njobs", 1)
 regenie_joblist = range(1, regenie_njobs)
 
+config_file_prefix = (
+    "cv_split0/deeprvat/" if cv_exp else ""
+)
+
 
 wildcard_constraints:
     job="\d+"
 
 
-# rule evaluate:
-#     input:
-#         associations = expand('{{phenotype}}/deeprvat/mean_agg_results/burden_associations.parquet',
-#                               repeat=range(n_repeats)),
-#         config = '{phenotype}/deeprvat/hpopt_config.yaml',
-#     output:
-#         "{phenotype}/deeprvat/eval/significant.parquet",
-#         "{phenotype}/deeprvat/eval/all_results.parquet"
-#     threads: 1
-#     shell:
-#         'deeprvat_evaluate '
-#         + debug +
-#         '--use-seed-genes '
-#         '--n-repeats {n_repeats} '
-#         '--correction-method FDR '
-#         '{input.associations} '
-#         '{input.config} '
-#         '{wildcards.phenotype}/deeprvat/eval'
+rule evaluate:
+    input:
+        associations ='{phenotype}/deeprvat/average_regression_results/burden_associations.parquet',
+        config = f"{config_file_prefix}{{phenotype}}/deeprvat/hpopt_config.yaml"
+    output:
+        "{phenotype}/deeprvat/eval/significant.parquet",
+        "{phenotype}/deeprvat/eval/all_results.parquet"
+    threads: 1
+    resources:
+        mem_mb = 16000,
+        load = 16000
+    params:
+        use_baseline_results = '--use-baseline-results'
+    shell:
+        'deeprvat_evaluate '
+        + debug +
+        '{params.use_baseline_results} '
+        '--correction-method Bonferroni '
+        '--phenotype {wildcards.phenotype} '
+        '{input.associations} '
+        '{input.config} '
+        '{wildcards.phenotype}/deeprvat/eval'
 
 rule all_regenie:
     input:
-        expand('{phenotype}/deeprvat/mean_agg_results/burden_associations.parquet',
+        expand('{phenotype}/deeprvat/average_regression_results/burden_associations.parquet',
                phenotype=phenotypes),
 
 rule convert_regenie_output:
@@ -51,12 +59,12 @@ rule convert_regenie_output:
         expand("regenie_output/step2/deeprvat_{phenotype}.regenie",
                phenotype=phenotypes)
     output:
-        expand('{phenotype}/deeprvat/mean_agg_results/burden_associations.parquet',
+        expand('{phenotype}/deeprvat/average_regression_results/burden_associations.parquet',
                phenotype=phenotypes)
     params:
         pheno_options = " ".join([
             f"--phenotype {phenotype} regenie_output/step2/deeprvat_{phenotype}.regenie "
-            f"{phenotype}/deeprvat/mean_agg_results/burden_associations.parquet"
+            f"{phenotype}/deeprvat/average_regression_results/burden_associations.parquet"
         for phenotype in phenotypes]),
         gene_file = config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"]
     threads: 1

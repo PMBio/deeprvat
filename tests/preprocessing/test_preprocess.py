@@ -23,7 +23,7 @@ def load_h5_archive(h5_path):
 
 
 @pytest.mark.parametrize(
-    "test_data_name_dir, extra_cli_params, genotype_file_name",
+    "test_data_name_dir, extra_cli_params, genotype_file_name, should_fail",
     [
         (
             "no_filters_minimal",
@@ -32,6 +32,7 @@ def load_h5_archive(h5_path):
                 "1",
             ],
             "genotypes_chr1.h5",
+            False,
         ),
         (
             "no_filters_minimal_str_samples",
@@ -40,6 +41,7 @@ def load_h5_archive(h5_path):
                 "1",
             ],
             "genotypes_chr1.h5",
+            False,
         ),
         (
             "filter_variants_minimal",
@@ -50,6 +52,18 @@ def load_h5_archive(h5_path):
                 f"{(tests_data_dir / 'process_sparse_gt/filter_variants_minimal/input/qc').as_posix()}",
             ],
             "genotypes_chr1.h5",
+            False,
+        ),
+        (
+            "filter_variants_all",
+            [
+                "--chromosomes",
+                "1",
+                "--exclude-variants",
+                f"{(tests_data_dir / 'process_sparse_gt/filter_variants_all/input/qc').as_posix()}",
+            ],
+            "genotypes_chr1.h5",
+            True,
         ),
         (
             "filter_variants_multiple",
@@ -60,6 +74,7 @@ def load_h5_archive(h5_path):
                 f"{(tests_data_dir / 'process_sparse_gt/filter_variants_multiple/input/qc').as_posix()}",
             ],
             "genotypes_chr1.h5",
+            False,
         ),
         (
             "filter_samples_minimal",
@@ -70,6 +85,18 @@ def load_h5_archive(h5_path):
                 f"{(tests_data_dir / 'process_sparse_gt/filter_samples_minimal/input/qc').as_posix()}",
             ],
             "genotypes_chr1.h5",
+            False,
+        ),
+        (
+            "filter_samples_all",
+            [
+                "--chromosomes",
+                "1",
+                "--exclude-samples",
+                f"{(tests_data_dir / 'process_sparse_gt/filter_samples_all/input/qc').as_posix()}",
+            ],
+            "genotypes_chr1.h5",
+            True,
         ),
         (
             "filter_calls_minimal",
@@ -80,6 +107,7 @@ def load_h5_archive(h5_path):
                 f"{(tests_data_dir / 'process_sparse_gt/filter_calls_minimal/input/qc').as_posix()}",
             ],
             "genotypes_chr1.h5",
+            False,
         ),
         (
             "filter_calls_vars_samples_minimal",
@@ -94,11 +122,12 @@ def load_h5_archive(h5_path):
                 f"{(tests_data_dir / 'process_sparse_gt/filter_calls_vars_samples_minimal/input/qc/variants/').as_posix()}",
             ],
             "genotypes_chr1.h5",
+            False,
         ),
     ],
 )
 def test_process_sparse_gt_file(
-    test_data_name_dir, extra_cli_params, genotype_file_name, tmp_path
+    test_data_name_dir, extra_cli_params, genotype_file_name, should_fail, tmp_path
 ):
     cli_runner = CliRunner()
 
@@ -127,7 +156,14 @@ def test_process_sparse_gt_file(
         out_file_base.as_posix(),
     ]
 
-    result = cli_runner.invoke(preprocess_cli, cli_parameters, catch_exceptions=False)
+    result = cli_runner.invoke(preprocess_cli, cli_parameters, catch_exceptions=True)
+
+    if should_fail:
+        assert isinstance(result.exception, ValueError)
+        return
+    else:
+        assert result.exception is None
+
     assert result.exit_code == 0
 
     h5_file = out_file_base.as_posix().replace("genotypes", genotype_file_name)
