@@ -324,7 +324,7 @@ def update_config(
             else:
                 logger.info("Not performing EAC filtering of baseline results")
             logger.info(f"  Correcting p-values using {correction_method} method")
-            alpha = config["baseline_results"].get("alpha_seed_genes", config.get("alpha"))
+            alpha = config["baseline_results"].get("alpha_seed_genes", config["evaluation"].get("alpha"))
             baseline_df = pval_correction(
                 baseline_df, alpha, correction_type=correction_method
             )
