@@ -849,7 +849,9 @@ def run_bagging(
 
         # initialize trainer, which will call background functionality
         trainer = pl.Trainer(
-            logger=tb_logger, callbacks=callbacks, **config["training"].get("pl_trainer", {})
+            logger=tb_logger,
+            callbacks=callbacks,
+            **config["training"].get("pl_trainer", {}),
         )
 
         while True:
