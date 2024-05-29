@@ -205,7 +205,7 @@ def create_main_config(
             "config"
         ]["thresholds"][k] = f"{k} {v}"
     # Results evaluation parameters; alpha parameter for significance threshold
-    full_config["evaluation"] = {}
+    if "evaluation" not in full_config: full_config["evaluation"] = {}
     full_config["evaluation"]["correction_method"] = input_config["evaluation"][
         "correction_method"
     ]
@@ -226,12 +226,16 @@ def create_main_config(
         # Training Phenotypes
         full_config["training"]["phenotypes"] = input_config["phenotypes_for_training"]
         # Baseline results
+        if ["baseline_results"] not in full_config: full_config["baseline_results"] = {}
         full_config["baseline_results"]["options"] = input_config["seed_gene_results"][
             "options"
         ]
         full_config["baseline_results"]["alpha_seed_genes"] = input_config[
             "seed_gene_results"
         ]["alpha_seed_genes"]
+        full_config["baseline_results"]["correction_method"] = input_config[
+            "seed_gene_results"
+        ]["correction_method"]
     else:
         full_config["model"] = input_config["model"]
 

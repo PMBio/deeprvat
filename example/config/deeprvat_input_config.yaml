@@ -123,6 +123,7 @@ seed_gene_results: #baseline_results
           base: baseline_results
           type: missense/skat
 
+  correction_method: Bonferroni
   alpha_seed_genes: 0.05
 
 #DeepRVAT training settings

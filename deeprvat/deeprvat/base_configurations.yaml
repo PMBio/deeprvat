@@ -49,8 +49,7 @@ model:
             config: {}
 
 #Seed Gene settings
-baseline_results:      
-    correction_method: Bonferroni
+#baseline_results:      
     #n_training_genes: 40
 
 #Training dataset settings
