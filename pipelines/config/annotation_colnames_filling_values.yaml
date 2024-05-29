@@ -12,7 +12,7 @@ annotation_column_names:
   'AbSplice_DNA' :
       'AbSplice_DNA' : 0
   'af' : 
-    'combined_UKB_NFE_AF' : 0
+    'AF' : 0
   'maf_mb' : 
     'MAF_MB' : 10000
   'maf' :
@@ -73,7 +73,5 @@ annotation_column_names:
     'DeepSEA_PC_5' : 0
   'DeepSEA_PC_6' :
     'DeepSEA_PC_6' : 0
-  'AF' :
-    'AF' : 0
   'is_plof':
     'is_plof' : 0

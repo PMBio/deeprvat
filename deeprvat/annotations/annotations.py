@@ -1784,20 +1784,11 @@ def process_vep(
 
     float_vals = [
         "DISTANCE",
-        "gnomADg_FIN_AF",
-        "AF",
-        "AFR_AF",
-        "AMR_AF",
-        "EAS_AF",
-        "EUR_AF",
-        "SAS_AF",
-        "MAX_AF",
         "MOTIF_POS",
         "MOTIF_SCORE_CHANGE",
         "CADD_PHRED",
         "CADD_RAW",
         "PrimateAI",
-        "TSL",
         "Condel",
     ]
     float_vals_present = [i for i in float_vals if i in vep_file.columns]
@@ -1812,7 +1803,6 @@ def process_vep(
             "ref",
             "alt",
             "Gene",
-            "gnomADe_NFE_AF",
             "CADD_PHRED",
             "CADD_RAW",
             "Consequence",
@@ -1824,10 +1814,6 @@ def process_vep(
             "SIFT",
             "SIFT_score",
             "PolyPhen_score",
-            "UKB_AF",
-            "combined_UKB_NFE_AF",
-            "combined_UKB_NFE_AF_MB",
-            "gene_id",
             "Condel",
         ]
         + str_cols

@@ -98,7 +98,7 @@ vep_cache_dir = Path(config.get("vep_cache_dir")) or vep_source_dir / "cache"
 vep_plugin_dir = Path(config.get("vep_plugin_dir")) or vep_source_dir / "Plugin"
 vep_input_format = config.get("vep_input_format") or "vcf"
 vep_nfork = int(config.get("vep_nfork") or 5)
-af_mode = config.get("af_mode") or "af"
+af_mode = config.get("af_mode")
 condel_config_path = vep_plugin_dir / "config" / "Condel" / "config"
 if config.get("additional_vep_plugin_cmds"):
     VEP_plugin_cmds = config["additional_vep_plugin_cmds"].values()
@@ -309,6 +309,8 @@ rule vep:
     output:
         anno_dir / "{file_stem}_vep_anno.tsv",
     threads: vep_nfork
+    params: 
+        af =lambda w:  f'--{af_mode}' if af_mode else ''
     resources:
         mem_mb=lambda wildcards, attempt: 5_000 * (attempt + 1),
     shell:
@@ -329,14 +331,13 @@ rule vep:
                 str(genome_assembly),
                 "--format",
                 str(vep_input_format),
-                "--{af_mode}",
+                "{params.af}",
                 "--offline",
                 "--cache",
                 "--dir_cache",
                 str(vep_cache_dir),
                 "--dir_plugins",
                 str(vep_plugin_dir),
-                "--force_overwrite",
                 "--fork",
                 str(vep_nfork),
                 "--fasta",
@@ -349,7 +350,6 @@ rule vep:
                 "--canonical",
                 "--protein",
                 "--biotype",
-                "--af",
                 "--force_overwrite",
                 "--no_stats",
                 "--per_gene",
