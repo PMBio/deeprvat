@@ -237,7 +237,7 @@ def create_main_config(
         if "baseline_results" not in full_config:
             full_config["baseline_results"] = {}
         full_config["baseline_results"]["options"] = input_config["seed_gene_results"][
-            "options"
+            "result_dirs"
         ]
         full_config["baseline_results"]["alpha_seed_genes"] = input_config[
             "seed_gene_results"
