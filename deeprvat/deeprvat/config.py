@@ -10,8 +10,7 @@ import torch.nn.functional as F
 import yaml
 
 from deeprvat.deeprvat.evaluate import pval_correction
-import deeprvat.deeprvat as deeprvat_dir
-import pretrained_models as pretrained_dir
+from pathlib import Path
 import os
 from copy import deepcopy
 
@@ -46,13 +45,18 @@ def create_main_config(
     :type output_dir: str
     :return: Joined configuration file saved to deeprvat_config.yaml.
     """
+
+    with open(config_file) as f:
+        input_config = yaml.safe_load(f)
+    
     # Base Config
-    with open(
-        f"{os.path.dirname(deeprvat_dir.__file__)}/base_configurations.yaml"
-    ) as f:
+    with open(f"{input_config['deeprvat_repo_dir']}/deeprvat/base_configurations.yaml") as f:
         base_config = yaml.safe_load(f)
+    
+    full_config = base_config
 
     expected_input_keys = [
+        "deeprvat_repo_dir",
         "phenotypes_for_association_testing",
         "phenotypes_for_training",
         "gt_filename",
@@ -73,11 +77,6 @@ def create_main_config(
         "cv_path",
         "n_folds",
     ]
-
-    full_config = base_config
-
-    with open(config_file) as f:
-        input_config = yaml.safe_load(f)
 
     # CV setup parameters
     if not input_config["cv_exp"]:
@@ -101,9 +100,12 @@ def create_main_config(
             expected_input_keys = [
                 item for item in expected_input_keys if item not in to_remove
             ]
-            expected_input_keys.extend(["use_pretrained_models", "model"])
+            
+            pretrained_model_path = Path(input_config["pretrained_model_path"])
 
-            with open(f"{os.path.dirname(pretrained_dir.__file__)}/config.yaml") as f:
+            expected_input_keys.extend(["use_pretrained_models", "model", "pretrained_model_path"])
+
+            with open(f"{pretrained_model_path}/config.yaml") as f:
                 pretrained_config = yaml.safe_load(f)
 
             for k in pretrained_config:
@@ -240,9 +242,10 @@ def create_main_config(
         ]["correction_method"]
     else:
         full_config["model"] = input_config["model"]
-
+        full_config["pretrained_model_path"] = input_config["pretrained_model_path"]
+        #need to also save deeprvat_config.yaml also to pretrained-model dir
         with open(
-            f"{os.path.dirname(pretrained_dir.__file__)}/deeprvat_config.yaml", "w"
+            f"{pretrained_model_path}/deeprvat_config.yaml", "w"
         ) as f:
             yaml.dump(full_config, f)
 

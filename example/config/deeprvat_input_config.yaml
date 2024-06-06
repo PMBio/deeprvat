@@ -1,3 +1,5 @@
+deeprvat_repo_dir: ../..
+
 #Phenotypes to be used only for Association Testing
 phenotypes_for_association_testing:
   - Apolipoprotein_A
