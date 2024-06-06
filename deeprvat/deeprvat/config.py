@@ -111,18 +111,26 @@ def create_main_config(
             for k in pretrained_config:
                 input_config[k] = deepcopy(pretrained_config[k])
 
-    if set(input_config.keys()) - set(expected_input_keys):
-        extra_keys = set(input_config.keys()) - set(expected_input_keys)
-        raise KeyError(
-            (
-                "Unspecified key present in input YAML file. "
-                f"The follow extra keys are present: {extra_keys} "
-                "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
+    if set(input_config.keys()) != set(expected_input_keys):
+        if set(input_config.keys()) - set(expected_input_keys):
+            raise KeyError(
+                (
+                    "Unspecified key(s) present in input YAML file. "
+                    f"The follow extra keys are present: {set(input_config.keys()) - set(expected_input_keys)} "
+                    "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
+                )
             )
-        )
+        if set(expected_input_keys) - set(input_config.keys()):
+            raise KeyError(
+                (
+                    "Missing key(s) in input YAML file. "
+                    f"The follow keys are missing: {set(expected_input_keys) - set(input_config.keys())} "
+                    "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
+                )
+            )
 
     if no_pretrain:
-        if all(
+        if any(
             key not in input_config["training"]
             for key in ["pl_trainer", "early_stopping"]
         ):
@@ -229,7 +237,7 @@ def create_main_config(
         # Training Phenotypes
         full_config["training"]["phenotypes"] = input_config["phenotypes_for_training"]
         # Baseline results
-        if ["baseline_results"] not in full_config:
+        if "baseline_results" not in full_config:
             full_config["baseline_results"] = {}
         full_config["baseline_results"]["options"] = input_config["seed_gene_results"][
             "options"
