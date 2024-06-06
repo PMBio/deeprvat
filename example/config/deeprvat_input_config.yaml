@@ -153,6 +153,7 @@ evaluation:
     alpha: 0.05
 
 #Additional settings if using the CV pipeline
-cv_exp: False
-#cv_path: sample_files
-#n_folds: 5
+cv_options:
+  cv_exp: False
+  #cv_path: sample_files
+  #n_folds: 5

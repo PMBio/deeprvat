@@ -70,20 +70,22 @@ def create_main_config(
         "n_repeats",
         "y_transformation",
         "evaluation",
-        "cv_exp",
-        "cv_path",
-        "n_folds",
+        "cv_options",
     ]
 
     # CV setup parameters
-    if not input_config["cv_exp"]:
+    if not input_config["cv_options"]["cv_exp"]:
         logger.info("Not CV setup...removing CV pipeline parameters from config")
-        to_remove = {"cv_path", "n_folds"}
-        expected_input_keys = [
-            item for item in expected_input_keys if item not in to_remove
-        ]
         full_config["cv_exp"] = False
-    else:
+    else: #CV experiment setup specified
+        if any(
+            key not in input_config["cv_options"]
+            for key in ["cv_exp","cv_path","n_folds"]
+        ):
+            raise KeyError(
+                "Missing keys cv_path or n_folds under config['cv_options'] "
+                "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
+            )
         full_config["cv_path"] = input_config["cv_path"]
         full_config["n_folds"] = input_config["n_folds"]
         full_config["cv_exp"] = True
