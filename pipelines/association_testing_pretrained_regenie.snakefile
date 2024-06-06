@@ -1,4 +1,11 @@
 from pathlib import Path
+from os.path import exists
+
+if not exists('./deeprvat_config.yaml'):
+    print("Generating deeprvat_config.yaml...")
+    from deeprvat.deeprvat.config import create_main_config
+    create_main_config('deeprvat_input_pretrained_models_config.yaml')
+    print("     Finished.")
 
 configfile: 'deeprvat_config.yaml'
 

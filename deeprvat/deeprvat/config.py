@@ -27,12 +27,9 @@ def cli():
     pass
 
 
-@cli.command()
-@click.argument("config-file", type=click.Path(exists=True))
-@click.argument("output-dir", type=click.Path(), default=".")
 def create_main_config(
     config_file: str,
-    output_dir: str,
+    output_dir: Optional[str] = ".",
 ):
     """
     Generates the necessary deeprvat_config.yaml file for running all pipelines.
