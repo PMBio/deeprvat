@@ -556,7 +556,10 @@ def make_dataset_(
         logger.info(f"Setting batch size to length of dataset")
         batch_size = len(dataset)
 
-    logger.info(f"Read dataset, batch size {data_config['dataloader_config']}")
+    if "batch_size" in config["dataloader_config"].keys():
+        raise ValueError("You can't specify the batch_size in the dataloader config")
+
+    logger.info(f"Read dataset, batch size {batch_size}")
     dataloader = DataLoader(
         dataset,
         batch_size=batch_size,
