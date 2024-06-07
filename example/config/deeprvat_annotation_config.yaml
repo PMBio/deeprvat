@@ -8,12 +8,12 @@ fasta_file_name : hg38.fa
 gtf_file_name : gencode.v44.annotation.gtf.gz
 
 source_variant_file_pattern : test_vcf_data_c{chr}_b{block}
-source_variant_file_type: 'vcf.gz'
+source_variant_file_type: 'bcf'
 
 # comment out / remove to run on all chromosomes
 included_chromosomes : ['21','22']
 
-source_variant_dir : input_dir/vcf
+source_variant_dir : preprocessing_workdir/norm/bcf
 anno_tmp_dir : output_dir/annotations/tmp
 anno_dir : output_dir/annotations
 
