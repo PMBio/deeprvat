@@ -182,7 +182,7 @@ def test_deepsea_pca(
 
 
 @pytest.mark.parametrize(
-    "test_data_name_dir, expected, hg2_output, k5_output, parclip_output, variants, vcf, vep_output, vep_header_line",
+    "test_data_name_dir, expected, hg2_output, k5_output, parclip_output, variants, vcf, vep_output, vep_header_line, column_yaml_file",
     [
         (
             "merge_annotations_small",
@@ -194,6 +194,7 @@ def test_deepsea_pca(
             "test.vcf",
             "test_vep.tsv",
             "49",
+            "annotation_colnames_filling_values.yaml",
         ),
         (
             "merge_annotations_mixedIDs",
@@ -205,6 +206,7 @@ def test_deepsea_pca(
             "test.vcf",
             "test_vep.tsv",
             "49",
+            "annotation_colnames_filling_values.yaml",
         ),
     ],
 )
@@ -218,6 +220,7 @@ def test_merge_annotations(
     vcf,
     vep_output,
     vep_header_line,
+    column_yaml_file,
     tmp_path,
 ):
     current_test_data_dir = tests_data_dir / "merge_annotations" / test_data_name_dir
@@ -227,6 +230,7 @@ def test_merge_annotations(
     parclip_deepripe_path = current_test_data_dir / "input" / parclip_output
     vcf_path = current_test_data_dir / "input" / vcf
     vep_output_path = current_test_data_dir / "input" / vep_output
+    column_yaml_file_path = current_test_data_dir / "input" / column_yaml_file
     variants_path = current_test_data_dir / "input" / variants
     output_path = tmp_path / "out_merged.parquet"
     cli_runner = CliRunner()
@@ -241,6 +245,7 @@ def test_merge_annotations(
         variants_path.as_posix(),
         vcf_path.as_posix(),
         output_path.as_posix(),
+        column_yaml_file_path.as_posix(),
     ]
     result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
     assert result.exit_code == 0

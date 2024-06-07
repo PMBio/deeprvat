@@ -568,11 +568,13 @@ def readYamlColumns(annotation_columns_yaml_file):
         config = yaml.safe_load(fd)
     columns = config["annotation_column_names"]
     prior_names = list(columns.keys())
-    post_names = [list(columns[k].keys())[0] for k in columns]
-    fill_vals = [list(columns[k].values())[0] for k in columns]
+    post_names = [columns[k][0] for k in columns]
+    fill_vals = [columns[k][1] for k in columns]
+    types = [columns[k][2] for k in columns]
     column_name_mapping = dict(zip(prior_names, post_names))
     fill_value_mapping = dict(zip(post_names, fill_vals))
-    return prior_names, post_names, fill_vals, column_name_mapping, fill_value_mapping
+    type_mapping = dict(zip(prior_names, types))
+    return prior_names, post_names, fill_vals, column_name_mapping, fill_value_mapping, type_mapping
 
 
 def get_parquet_columns(parquet_file):
@@ -1617,7 +1619,7 @@ def concatenate_deepsea(
 @click.argument("variant_file", type=click.Path(exists=True))
 @click.argument("vcf_file", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
-@click.option("--vepcols_to_retain", type=str)
+@click.argument("column_yaml", type=click.Path(exists=True))
 def merge_annotations(
     vep_header_line: int,
     vep_file: str,
@@ -1627,7 +1629,8 @@ def merge_annotations(
     variant_file: str,
     vcf_file: str,
     out_file: str,
-    vepcols_to_retain: Optional[str],
+    column_yaml: str,
+
 ):
     """
     Merge VEP, DeepRipe (parclip, hg2, k5), and variant files into one dataFrame and save result as parquet file
@@ -1641,7 +1644,7 @@ def merge_annotations(
     - variant_file (str): Path to the variant file.
     - vcf_file (str): vcf file containing chrom, pos, ref and alt information
     - out_file (str): Path to save the merged output file in Parquet format.
-    - vepcols_to_retain (Optional[str]): Comma-separated list of additional VEP columns to retain.
+    - column yaml file
 
     Returns:
     None
@@ -1650,11 +1653,11 @@ def merge_annotations(
     $ python annotations.py merge_annotations 1 vep_file.tsv deepripe_parclip.csv deepripe_hg2.csv deepripe_k5.csv variant_file.tsv merged_output.parquet --vepcols_to_retain="AlphaMissense,PolyPhen"
     """
     # load vep file
+    _,_,_,_,_,types_mapping = readYamlColumns(column_yaml)
     vep_df = pd.read_csv(vep_file, header=vep_header_line, sep="\t", na_values="-")
-    if vepcols_to_retain is not None:
-        vepcols_to_retain = [c for c in vepcols_to_retain.split(",")]
+
     vep_df = process_vep(
-        vep_file=vep_df, vcf_file=vcf_file, vepcols_to_retain=vepcols_to_retain
+        vep_file=vep_df, vcf_file=vcf_file, types_mapping = types_mapping
     )
     logger.info(f"vep_df shape is {vep_df.shape}")
     logger.info("load deepripe_parclip")
@@ -1725,14 +1728,14 @@ def process_deepripe(deepripe_df: pd.DataFrame, column_prefix: str) -> pd.DataFr
 
 
 def process_vep(
-    vep_file: pd.DataFrame, vcf_file: str, vepcols_to_retain: list = []
+    vep_file: pd.DataFrame, vcf_file: str, types_mapping: dict
 ) -> pd.DataFrame:
     """
     Process the VEP DataFrame, extracting relevant columns and handling data types.
 
     Parameters:
     - vep_file (pd.DataFrame): DataFrame containing VEP data.
-    - vepcols_to_retain (list, optional): List of additional columns to retain. Defaults to an empty list.
+    - types_mapping (dict): List of columns to retain as keys and their corresponding type as values.
 
     Returns:
     pd.DataFrame: Processed VEP DataFrame.
@@ -1769,42 +1772,6 @@ def process_vep(
         lambda x: "{}{}".format("chr", x.split("chr")[-1])
     )
 
-    str_cols = [
-        "STRAND",
-        "TSL",
-        "GENE_PHENO",
-        "CADD_PHRED",
-        "CADD_RAW",
-        "SpliceAI_pred",
-        "BIOTYPE",
-        "Gene",
-    ]
-    str_cols_present = [i for i in str_cols if i in vep_file.columns]
-    vep_file[str_cols_present] = vep_file[str_cols_present].astype(str)
-
-    float_vals = [
-        "DISTANCE",
-        "gnomADg_FIN_AF",
-        "AF",
-        "AFR_AF",
-        "AMR_AF",
-        "EAS_AF",
-        "EUR_AF",
-        "SAS_AF",
-        "MAX_AF",
-        "MOTIF_POS",
-        "MOTIF_SCORE_CHANGE",
-        "CADD_PHRED",
-        "CADD_RAW",
-        "PrimateAI",
-        "TSL",
-        "Condel",
-    ]
-    float_vals_present = [i for i in float_vals if i in vep_file.columns]
-    vep_file[float_vals_present] = (
-        vep_file[float_vals_present].replace("-", "NaN").astype(float)
-    )
-
     necessary_columns = (
         [
             "chrom",
@@ -1812,32 +1779,12 @@ def process_vep(
             "ref",
             "alt",
             "Gene",
-            "gnomADe_NFE_AF",
-            "CADD_PHRED",
-            "CADD_RAW",
-            "Consequence",
-            "PrimateAI",
-            "Alpha_Missense",
-            "am_pathogenicity",
-            "AbSplice_DNA",
-            "PolyPhen",
-            "SIFT",
-            "SIFT_score",
-            "PolyPhen_score",
-            "UKB_AF",
-            "combined_UKB_NFE_AF",
-            "combined_UKB_NFE_AF_MB",
-            "gene_id",
-            "Condel",
+            "Consequence"
         ]
-        + str_cols
-        + float_vals
-        + (vepcols_to_retain or [])
+        + list(types_mapping.keys())
+        
     )
     necessary_columns_present = [i for i in necessary_columns if i in vep_file.columns]
-
-    vep_file = vep_file[list(set(necessary_columns_present))]
-
     if "SpliceAI_pred" in vep_file.columns:
         vep_file["SpliceAI_delta_score"] = vep_file["SpliceAI_pred"].apply(
             calculate_scores_max
@@ -1847,59 +1794,24 @@ def process_vep(
         dummies = (
             vep_file["Consequence"].str.get_dummies(",").add_prefix("Consequence_")
         )
+        all_consequences = [i for i in types_mapping.keys() if 'Consequence' in i]
+        mask = pd.DataFrame(
+            data=np.zeros(shape=(len(vep_file), len(all_consequences))),
+            columns=all_consequences,
+            dtype=float,
+        )
+        mask[list(dummies.columns)] = dummies
+        vep_file[mask.columns] = mask
     else:
         raise ValueError("'Consequence' column expected to be in VEP output")
-    all_consequences = [
-        "Consequence_splice_acceptor_variant",
-        "Consequence_5_prime_UTR_variant",
-        "Consequence_TFBS_ablation",
-        "Consequence_start_lost",
-        "Consequence_incomplete_terminal_codon_variant",
-        "Consequence_intron_variant",
-        "Consequence_stop_gained",
-        "Consequence_splice_donor_5th_base_variant",
-        "Consequence_downstream_gene_variant",
-        "Consequence_intergenic_variant",
-        "Consequence_splice_donor_variant",
-        "Consequence_NMD_transcript_variant",
-        "Consequence_protein_altering_variant",
-        "Consequence_splice_polypyrimidine_tract_variant",
-        "Consequence_inframe_insertion",
-        "Consequence_mature_miRNA_variant",
-        "Consequence_synonymous_variant",
-        "Consequence_regulatory_region_variant",
-        "Consequence_non_coding_transcript_exon_variant",
-        "Consequence_stop_lost",
-        "Consequence_TF_binding_site_variant",
-        "Consequence_splice_donor_region_variant",
-        "Consequence_stop_retained_variant",
-        "Consequence_splice_region_variant",
-        "Consequence_coding_sequence_variant",
-        "Consequence_upstream_gene_variant",
-        "Consequence_frameshift_variant",
-        "Consequence_start_retained_variant",
-        "Consequence_3_prime_UTR_variant",
-        "Consequence_inframe_deletion",
-        "Consequence_missense_variant",
-        "Consequence_non_coding_transcript_variant",
-        "Consequence_TFBS_amplification",
-        "Consequence_coding_transcript_variant",
-        "Consequence_feature_elongation",
-        "Consequence_feature_truncation",
-        "Consequence_regulatory_region_ablation",
-        "Consequence_regulatory_region_amplification",
-        "Consequence_sequence_variant",
-        "Consequence_transcript_ablation",
-        "Consequence_transcript_amplification",
-    ]
-    all_consequences = list(set(all_consequences))
-    mask = pd.DataFrame(
-        data=np.zeros(shape=(len(vep_file), len(all_consequences))),
-        columns=all_consequences,
-        dtype=float,
-    )
-    mask[list(dummies.columns)] = dummies
-    vep_file[mask.columns] = mask
+    vep_file = vep_file[list(set(necessary_columns_present+all_consequences))]
+
+    types_present = dict((k, types_mapping[k]) for k in set(types_mapping.keys()).intersection(necessary_columns_present))
+    logger.info(vep_file.columns)
+    logger.info(types_mapping.keys())
+    logger.info(types_present)
+    vep_file.astype(types_present)
+
 
     return vep_file
 
@@ -1931,6 +1843,7 @@ def compute_plof(anno_df_in, anno_df_out):
     ]
 
     anno_df["is_plof"] = anno_df[PLOF_COLS].eq(1).any(axis=1).astype(int)
+    logger.info(f'writing to {anno_df_out}')
     anno_df.to_parquet(anno_df_out)
 
 
@@ -1962,7 +1875,7 @@ def concat_annotations(
         logger.info(file.columns)
 
         if f == file_paths[0]:
-            logger.info("creating new file")
+            logger.info(f"creating new file {out_file}")
             file.to_parquet(out_file, engine="fastparquet")
         else:
             try:
@@ -2044,6 +1957,7 @@ def calculate_maf(annotations_path: str, out_file: str):
     - annotations_path (str): Path to the annotations file containing allele frequency data.
     - out_file (str): Path to the output file to save the calculated MAF data.
     """
+    logger.info(f'reading annotation file {annotations_path}')
     annotation_file = pd.read_parquet(annotations_path)
     af = annotation_file["af"]
     annotation_file = annotation_file.drop(
@@ -2051,6 +1965,7 @@ def calculate_maf(annotations_path: str, out_file: str):
     )
     annotation_file["maf"] = af.apply(lambda x: min(x, 1 - x))
     annotation_file["maf_mb"] = (af * (1 - af) + 1e-8) ** (-0.5)
+    logger.info(f'saving file to {out_file}')
     annotation_file.to_parquet(out_file)
 
 
@@ -2073,7 +1988,7 @@ def add_gene_ids(gene_id_file: str, annotations_path: str, out_file: str):
     genes.rename(columns={"id": "gene_id"}, inplace=True)
     annotations = pd.read_parquet(annotations_path)
     len_anno = len(annotations)
-    annotations.rename(columns={"gene_id": "gene_base"}, inplace=True)
+    annotations.rename(columns={"Gene": "gene_base"}, inplace=True)
     merged = annotations.merge(genes, on=["gene_base"], how="left")
     assert len(merged) == len_anno
     merged.to_parquet(out_file)
@@ -2125,7 +2040,7 @@ def select_rename_fill_annotations(
     logger.info(
         f"reading  in yaml file containing name and fill value mappings from {annotation_columns_yaml_file}"
     )
-    prior_names, _, _, column_name_mapping, fill_value_mapping = readYamlColumns(
+    prior_names, _, _, column_name_mapping, fill_value_mapping,*_ = readYamlColumns(
         annotation_columns_yaml_file
     )
     key_cols = ["id", "gene_id"]

@@ -95,31 +95,7 @@ annotation_column_names:
     - 'Consequence_splice_region_variant' 
     - 0
     - int
-  'DeepSEA_PC_1' :
-    - 'DeepSEA_PC_1' 
+  'is_plof':
+    - 'is_plof' 
     - 0
-    - float
-  'DeepSEA_PC_2' :
-    - 'DeepSEA_PC_2' 
-    - 0
-    - float
-  'DeepSEA_PC_3' :
-    - 'DeepSEA_PC_3' 
-    - 0
-    - float
-  'DeepSEA_PC_4' :
-    - 'DeepSEA_PC_4' 
-    - 0
-    - float
-  'DeepSEA_PC_5' :
-    - 'DeepSEA_PC_5' 
-    - 0
-    - float
-  'DeepSEA_PC_6' :
-    - 'DeepSEA_PC_6' 
-    - 0
-    - float
-  'AF' :
-    - 'AF' 
-    - 0
-    - float
+    - int

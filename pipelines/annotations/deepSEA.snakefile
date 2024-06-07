@@ -79,23 +79,4 @@ rule add_ids_deepSea:
                 "{output}",
             ]
         )
-rule merge_deepsea_pcas:
-    input:
-        annotations=rules.concat_annotations.output,
-        deepsea_pcas=rules.add_ids_deepSea.output,
-        col_yaml_file=annotation_columns_yaml_file,
-    output:
-        anno_dir / "vep_deepripe_deepsea.parquet",
-    resources:
-        mem_mb=lambda wildcards, attempt: 30_000 * (attempt + 1),
-    shell:
-        " ".join(
-            [
-                "deeprvat_annotations",
-                "merge-deepsea-pcas",
-                "{input.annotations}",
-                "{input.deepsea_pcas}",
-                "{input.col_yaml_file}",
-                "{output}",
-            ]
-        )
+

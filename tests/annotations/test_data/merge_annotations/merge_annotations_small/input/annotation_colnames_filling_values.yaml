@@ -119,7 +119,11 @@ annotation_column_names:
     - 'DeepSEA_PC_6' 
     - 0
     - float
-  'AF' :
-    - 'AF' 
+  'is_plof':
+    - 'is_plof' 
     - 0
+    - int
+  'AbSplice_DNA' :
+    - 'AbSplice_DNA' 
+    -  0
     - float

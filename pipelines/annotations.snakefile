@@ -98,7 +98,7 @@ vep_cache_dir = Path(config.get("vep_cache_dir")) or vep_source_dir / "cache"
 vep_plugin_dir = Path(config.get("vep_plugin_dir")) or vep_source_dir / "Plugin"
 vep_input_format = config.get("vep_input_format") or "vcf"
 vep_nfork = int(config.get("vep_nfork") or 5)
-af_mode = config.get("af_mode") or "af"
+af_mode = config.get("af_mode")
 condel_config_path = vep_plugin_dir / "config" / "Condel" / "config"
 if config.get("additional_vep_plugin_cmds"):
     VEP_plugin_cmds = config["additional_vep_plugin_cmds"].values()
@@ -183,8 +183,14 @@ absplice_main_conf_path = (
 with open(absplice_main_conf_path, "r") as fd:
     absplice_main_conf = yaml.safe_load(fd)
 
+include_absplice = config.get('include_absplice', True)
+include_deepSEA = config.get('include_deepSEA', True)
 
 
+
+rule all:
+    input:
+        chckpt = anno_dir / 'chckpts' / 'select_rename_fill_columns.chckpt'
 
 if not gene_id_file:
     gene_id_file = anno_tmp_dir / "protein_coding_genes.parquet"
@@ -245,6 +251,8 @@ rule vep:
     output:
         anno_dir / "{file_stem}_vep_anno.tsv",
     threads: vep_nfork
+    params: 
+        af =lambda w:  f'--{af_mode}' if af_mode else ''
     resources:
         mem_mb=lambda wildcards, attempt: 5_000 * (attempt + 1),
     shell:
@@ -265,14 +273,13 @@ rule vep:
                 str(genome_assembly),
                 "--format",
                 str(vep_input_format),
-                "--{af_mode}",
+                "{params.af}",
                 "--offline",
                 "--cache",
                 "--dir_cache",
                 str(vep_cache_dir),
                 "--dir_plugins",
                 str(vep_plugin_dir),
-                "--force_overwrite",
                 "--fork",
                 str(vep_nfork),
                 "--fasta",
@@ -285,7 +292,6 @@ rule vep:
                 "--canonical",
                 "--protein",
                 "--biotype",
-                "--af",
                 "--force_overwrite",
                 "--no_stats",
                 "--per_gene",
@@ -306,6 +312,7 @@ rule merge_annotations:
         deepripe_hg2=rules.deepRiPe_eclip_hg2.output,
         variant_file=variant_pq,
         vcf_file=rules.extract_variants.output,
+        col_yaml_file=annotation_columns_yaml_file,
     output:
         anno_dir / "{file_stem}_merged.parquet",
     resources:
@@ -315,7 +322,7 @@ rule merge_annotations:
             "HEADER=$(grep  -n  '#Uploaded_variation' "
             + "{input.vep}"
             + "| head | cut -f 1 -d ':') && deeprvat_annotations "
-            + "merge-annotations $(($HEADER-1)) {input.vep} {input.deepripe_parclip} {input.deepripe_hg2} {input.deepripe_k5} {input.variant_file} {input.vcf_file} {output}"
+            + "merge-annotations $(($HEADER-1)) {input.vep} {input.deepripe_parclip} {input.deepripe_hg2} {input.deepripe_k5} {input.variant_file} {input.vcf_file} {output} {input.col_yaml_file}"
         )
 
 
@@ -327,7 +334,8 @@ rule concat_annotations:
             file_stem=file_stems,
         ),
     output:
-        anno_dir / "vep_deepripe.parquet",
+        annotations = anno_dir / "annotations.parquet",
+        chckpt = anno_dir / 'chckpts' / "concat_annotations.chckpt"
     params:
         joined=lambda w, input: ",".join(input.vcf_files),
     resources:
@@ -338,19 +346,83 @@ rule concat_annotations:
                 "deeprvat_annotations",
                 "concat-annotations",
                 "{params.joined}",
-                "{output}",
+                "{output.annotations}",
             ]
-        )
+        )+" && touch {output.chckpt}"
 
-include: "annotations/deepSEA.snakefile"
-include: "annotations/absplice.snakefile"
+
+if(include_deepSEA):
+    include: "annotations/deepSEA.snakefile"
+
+    rule merge_deepsea_pcas:
+        input:
+            chckpt = rules.concat_annotations.output.chckpt,
+            annotations=rules.concat_annotations.output.annotations,
+            deepsea_pcas=rules.add_ids_deepSea.output,
+            col_yaml_file=annotation_columns_yaml_file,
+        output:
+            annotations  = anno_dir / "annotations.parquet",
+            chckpt = anno_dir / 'chckpts' / 'merge_deepsea_pcas.chckpt'
+        resources:
+            mem_mb=lambda wildcards, attempt: 30_000 * (attempt + 1),
+        shell:
+            " ".join(
+                [
+                    "deeprvat_annotations",
+                    "merge-deepsea-pcas",
+                    "{input.annotations}",
+                    "{input.deepsea_pcas}",
+                    "{input.col_yaml_file}",
+                    "{output.annotations}",
+                ]
+            )+" && touch {output.chckpt}"
+else: 
+    rule omit_deepSEA:
+        input: 
+            chckpt = rules.concat_annotations.output.chckpt,
+        output: 
+            chckpt = anno_dir / 'chckpts' / 'merge_deepsea_pcas.chckpt' 
+        shell:
+            'touch {output.chckpt}'
+
+if (include_absplice):
+    include: "annotations/absplice.snakefile"
+    rule merge_absplice_scores:
+        input:
+            absplice_scores=rules.aggregate_absplice_scores.output.score_file,
+            current_annotation_file=anno_dir / "annotations.parquet",
+            chckpt = anno_dir / 'chckpts' / 'merge_deepsea_pcas.chckpt'
+        output:
+            annotations = anno_dir / "annotations.parquet",
+            chckpt = anno_dir / 'chckpts' / 'merge_absplice_scores.chckpt'
+        threads: ncores_merge_absplice
+        resources:
+            mem_mb=lambda wildcards, attempt: 19_000 * (attempt + 1),
+        shell:
+            " ".join(
+                [
+                    "deeprvat_annotations",
+                    "merge-abscores",
+                    "{input.current_annotation_file}",
+                    "{input.absplice_scores}",
+                    "{output.annotations}",
+                ]
+            )
+else: 
+    rule omit_absplice:
+        input: 
+            chckpt = anno_dir / 'chckpts' / 'merge_deepsea_pcas.chckpt'
+        output:
+            chckpt = anno_dir / 'chckpts' / 'merge_absplice_scores.chckpt'
+        shell: 
+            'touch {output.chckpt}'
 
 rule calculate_allele_frequency:
     input:
         genotype_file=genotype_file,
         variants=variant_pq,
     output:
-        allele_frequencies=anno_tmp_dir / "af_df.parquet",
+        allele_frequencies = anno_tmp_dir / "af_df.parquet",
     resources:
         mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
     shell:
@@ -368,9 +440,16 @@ rule calculate_allele_frequency:
 rule merge_allele_frequency:
     input:
         allele_frequencies=rules.calculate_allele_frequency.output.allele_frequencies,
-        annotation_file=rules.merge_absplice_scores.output,
+        chckpt_absplice = anno_dir / 'chckpts' / 'merge_absplice_scores.chckpt',
+        chckpt_deepsea = anno_dir / 'chckpts' / 'merge_deepsea_pcas.chckpt',
+        ckckpt_concat_annotations = rules.concat_annotations.output.chckpt,
+        
     output:
-        anno_dir / "vep_deepripe_deepsea_absplice_af.parquet",
+        #annotations = anno_dir / "annotations.parquet",
+        chckpt = anno_dir / 'chckpts' / 'merge_allele_frequency.chckpt'
+    params:
+        annotations_in = anno_dir / "annotations.parquet",
+        annotations_out = anno_dir / "annotations.parquet",
     resources:
         mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
     shell:
@@ -378,30 +457,36 @@ rule merge_allele_frequency:
             [
                 f"deeprvat_annotations",
                 "merge-af",
-                "{input.annotation_file}",
+                "{params.annotations_in}",
                 "{input.allele_frequencies}",
-                "{output}",
+                "{params.annotations_out}",
             ]
-        )
+        )+" && touch {output.chckpt}"
 
 
 rule calculate_MAF:
     input:
-        rules.merge_allele_frequency.output,
+        chckpt = rules.merge_allele_frequency.output.chckpt,
     output:
-        anno_dir / "vep_deepripe_deepsea_absplice_maf.parquet",
+        chckpt = anno_dir / 'chckpts' / 'calculate_MAF.chckpt'
+    params: 
+        annotations_in = rules.merge_allele_frequency.params.annotations_out,
+        annotations_out = anno_dir / "annotations.parquet",
     resources:
         mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
     shell:
-        " ".join([f"deeprvat_annotations", "calculate-maf", "{input}", "{output}"])
+        " ".join([f"deeprvat_annotations", "calculate-maf", "{params.annotations_in}", "{params.annotations_out}"])+ " && touch {output.chckpt}"
 
 
 rule add_gene_ids:
     input:
         gene_id_file=gene_id_file,
-        annotations_path=rules.calculate_MAF.output,
-    output:
-        anno_dir / "vep_deepripe_deepsea_absplice_maf_pIDs.parquet",
+        chckpt = rules.calculate_MAF.output.chckpt
+    output: 
+        chckpt = anno_dir / 'chckpts' / 'add_gene_ids.chckpt'
+    params: 
+        annotations_in = rules.calculate_MAF.params.annotations_out,
+        annotations_out = anno_dir / "annotations.parquet",
     resources:
         mem_mb=lambda wildcards, attempt: 19_000 * (attempt + 1),
     shell:
@@ -410,19 +495,22 @@ rule add_gene_ids:
                 f"deeprvat_annotations",
                 "add-gene-ids",
                 "{input.gene_id_file}",
-                "{input.annotations_path}",
-                "{output}",
+                "{params.annotations_in}",
+                "{params.annotations_out}",
             ]
-        )
+        )+" && touch {output.chckpt}"
 
 
 rule filter_by_exon_distance:
     input:
-        annotations_path=rules.add_gene_ids.output,
         gtf_file=gtf_file,
         protein_coding_genes=gene_id_file,
+        chckpt = rules.add_gene_ids.output.chckpt
     output:
-        anno_dir / "vep_deepripe_deepsea_absplice_maf_pIDs_filtered.parquet",
+        chckpt = anno_dir / 'chckpts' / 'filter_by_exon_distance.chckpt'
+    params: 
+        annotations_in = rules.add_gene_ids.params.annotations_out,
+        annotations_out = anno_dir / "annotations.parquet",
     resources:
         mem_mb=lambda wildcards, attempt: 25_000 * (attempt + 1),
     shell:
@@ -430,18 +518,23 @@ rule filter_by_exon_distance:
             [
                 f"deeprvat_annotations",
                 "filter-annotations-by-exon-distance",
-                "{input.annotations_path}",
+                "{params.annotations_in}",
                 "{input.gtf_file}",
                 "{input.protein_coding_genes}",
-                "{output}",
+                "{params.annotations_out}",
             ]
-        )
+        ) +" && touch {output.chckpt}"
 
 rule compute_plof_column:
-    input: rules.filter_by_exon_distance.output,
-    output: anno_dir / "vep_deepripe_deepsea_absplice_maf_pIDs_filtered_plof.parquet",
+    input: 
+        chckpt = rules.filter_by_exon_distance.output.chckpt
+    output: 
+        chckpt = anno_dir / 'chckpts' / 'compute_plof_column.chckpt'
+    params:
+        annotations_in = rules.filter_by_exon_distance.params.annotations_out,
+        annotations_out = anno_dir / "annotations.parquet",
     resources: mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
-    shell: 'deeprvat_annotations compute-plof {input} {output}'
+    shell: 'deeprvat_annotations compute-plof {params.annotations_in} {params.annotations_out} && touch {output.chckpt}'
 
 
 
@@ -449,9 +542,12 @@ rule compute_plof_column:
 rule select_rename_fill_columns:
     input:
         yaml_file=annotation_columns_yaml_file,
-        annotations_path=rules.compute_plof_column.output,
+        chckpt = rules.compute_plof_column.output.chckpt,
     output:
-        anno_dir / "complete_annotations.parquet",
+        chckpt = anno_dir / 'chckpts' / 'select_rename_fill_columns.chckpt'
+    params: 
+        annotations_in=rules.compute_plof_column.params.annotations_out,
+        annotations_out = anno_dir / "annotations.parquet",
     resources:
         mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
     shell:
@@ -460,11 +556,9 @@ rule select_rename_fill_columns:
                 f"deeprvat_annotations",
                 "select-rename-fill-annotations",
                 "{input.yaml_file}",
-                "{input.annotations_path}",
-                "{output}",
+                "{params.annotations_in}",
+                "{params.annotations_out}",
             ]
-        )
+        ) +" && touch {output.chckpt}"
 
-rule all:
-    input:
-        anno_dir / "complete_annotations.parquet",
+
