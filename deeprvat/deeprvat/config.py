@@ -45,11 +45,13 @@ def create_main_config(
 
     with open(config_file) as f:
         input_config = yaml.safe_load(f)
-    
+
     # Base Config
-    with open(f"{input_config['deeprvat_repo_dir']}/deeprvat/base_configurations.yaml") as f:
+    with open(
+        f"{input_config['deeprvat_repo_dir']}/deeprvat/base_configurations.yaml"
+    ) as f:
         base_config = yaml.safe_load(f)
-    
+
     full_config = base_config
 
     expected_input_keys = [
@@ -78,10 +80,10 @@ def create_main_config(
     if not input_config["cv_options"]["cv_exp"]:
         logger.info("Not CV setup...removing CV pipeline parameters from config")
         full_config["cv_exp"] = False
-    else: #CV experiment setup specified
+    else:  # CV experiment setup specified
         if any(
             key not in input_config["cv_options"]
-            for key in ["cv_exp","cv_path","n_folds"]
+            for key in ["cv_exp", "cv_path", "n_folds"]
         ):
             raise KeyError(
                 "Missing keys cv_path or n_folds under config['cv_options'] "
@@ -93,12 +95,14 @@ def create_main_config(
 
     # REGENIE setup parameters
     if not input_config["regenie_options"]["regenie_exp"]:
-        logger.info("Not using REGENIE integration...removing REGENIE parameters from config")
+        logger.info(
+            "Not using REGENIE integration...removing REGENIE parameters from config"
+        )
         full_config["regenie_exp"] = False
-    else: #REGENIE integration
+    else:  # REGENIE integration
         if any(
             key not in input_config["regenie_options"]
-            for key in ["regenie_exp","step_1","step_2"]
+            for key in ["regenie_exp", "step_1", "step_2"]
         ):
             raise KeyError(
                 "Missing keys step_1 or step_2 under config['regenie_options'] "
@@ -107,9 +111,13 @@ def create_main_config(
         full_config["regenie_exp"] = True
         full_config["regenie_options"] = {}
         full_config["gtf_file"] = input_config["regenie_options"]["gtf_file"]
-        full_config["regenie_options"]["step_1"] = input_config["regenie_options"]["step_1"]
-        full_config["regenie_options"]["step_2"] = input_config["regenie_options"]["step_2"]
-        
+        full_config["regenie_options"]["step_1"] = input_config["regenie_options"][
+            "step_1"
+        ]
+        full_config["regenie_options"]["step_2"] = input_config["regenie_options"][
+            "step_2"
+        ]
+
     no_pretrain = True
     if "use_pretrained_models" in input_config:
         if input_config["use_pretrained_models"]:
@@ -119,10 +127,12 @@ def create_main_config(
             expected_input_keys = [
                 item for item in expected_input_keys if item not in to_remove
             ]
-            
+
             pretrained_model_path = Path(input_config["pretrained_model_path"])
 
-            expected_input_keys.extend(["use_pretrained_models", "model", "pretrained_model_path"])
+            expected_input_keys.extend(
+                ["use_pretrained_models", "model", "pretrained_model_path"]
+            )
 
             with open(f"{pretrained_model_path}/config.yaml") as f:
                 pretrained_config = yaml.safe_load(f)
@@ -270,10 +280,8 @@ def create_main_config(
     else:
         full_config["model"] = input_config["model"]
         full_config["pretrained_model_path"] = input_config["pretrained_model_path"]
-        #need to also save deeprvat_config.yaml also to pretrained-model dir
-        with open(
-            f"{pretrained_model_path}/deeprvat_config.yaml", "w"
-        ) as f:
+        # need to also save deeprvat_config.yaml also to pretrained-model dir
+        with open(f"{pretrained_model_path}/deeprvat_config.yaml", "w") as f:
             yaml.dump(full_config, f)
 
     with open(f"{output_dir}/deeprvat_config.yaml", "w") as f:
