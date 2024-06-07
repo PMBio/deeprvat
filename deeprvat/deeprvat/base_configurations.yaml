@@ -70,7 +70,7 @@ training_data:
         num_workers: 8
 
 #Association dataset settings
-assocation_testing_data:
+association_testing_data:
     dataset_config:
         min_common_af:
             MAF: 0.01

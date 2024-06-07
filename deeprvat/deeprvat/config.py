@@ -166,43 +166,43 @@ def create_main_config(
     full_config["training_data"]["dataset_config"]["y_transformation"] = input_config[
         "y_transformation"
     ]
-    full_config["assocation_testing_data"]["dataset_config"]["y_transformation"] = (
+    full_config["association_testing_data"]["dataset_config"]["y_transformation"] = (
         input_config["y_transformation"]
     )
     # genotypes.h5
     full_config["training_data"]["gt_file"] = input_config["gt_filename"]
-    full_config["assocation_testing_data"]["gt_file"] = input_config["gt_filename"]
+    full_config["association_testing_data"]["gt_file"] = input_config["gt_filename"]
     # variants.parquet
     full_config["training_data"]["variant_file"] = input_config["variant_filename"]
-    full_config["assocation_testing_data"]["variant_file"] = input_config[
+    full_config["association_testing_data"]["variant_file"] = input_config[
         "variant_filename"
     ]
     # phenotypes.parquet
     full_config["training_data"]["dataset_config"]["phenotype_file"] = input_config[
         "phenotype_filename"
     ]
-    full_config["assocation_testing_data"]["dataset_config"]["phenotype_file"] = (
+    full_config["association_testing_data"]["dataset_config"]["phenotype_file"] = (
         input_config["phenotype_filename"]
     )
     # annotations.parquet
     full_config["training_data"]["dataset_config"]["annotation_file"] = input_config[
         "annotation_filename"
     ]
-    full_config["assocation_testing_data"]["dataset_config"]["annotation_file"] = (
+    full_config["association_testing_data"]["dataset_config"]["annotation_file"] = (
         input_config["annotation_filename"]
     )
     # protein_coding_genes.parquet
-    full_config["assocation_testing_data"]["dataset_config"]["gene_file"] = (
+    full_config["association_testing_data"]["dataset_config"]["gene_file"] = (
         input_config["gene_filename"]
     )
-    full_config["assocation_testing_data"]["dataset_config"]["rare_embedding"][
+    full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
         "config"
     ]["gene_file"] = input_config["gene_filename"]
     # rare_variant_annotations
     full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
         "annotations"
     ] = input_config["rare_variant_annotations"]
-    full_config["assocation_testing_data"]["dataset_config"]["rare_embedding"][
+    full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
         "config"
     ]["annotations"] = input_config["rare_variant_annotations"]
     # variant annotations
@@ -210,19 +210,19 @@ def create_main_config(
     for i, k in enumerate(input_config["training_data_thresholds"].keys()):
         anno_list.insert(i + 1, k)
     full_config["training_data"]["dataset_config"]["annotations"] = anno_list
-    full_config["assocation_testing_data"]["dataset_config"]["annotations"] = anno_list
+    full_config["association_testing_data"]["dataset_config"]["annotations"] = anno_list
     # covariates
     full_config["training_data"]["dataset_config"]["x_phenotypes"] = input_config[
         "covariates"
     ]
-    full_config["assocation_testing_data"]["dataset_config"]["x_phenotypes"] = (
+    full_config["association_testing_data"]["dataset_config"]["x_phenotypes"] = (
         input_config["covariates"]
     )
     # Thresholds
     full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
         "thresholds"
     ] = {}
-    full_config["assocation_testing_data"]["dataset_config"]["rare_embedding"][
+    full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
         "config"
     ]["thresholds"] = {}
     for k, v in input_config["training_data_thresholds"].items():
@@ -230,7 +230,7 @@ def create_main_config(
             "thresholds"
         ][k] = f"{k} {v}"
     for k, v in input_config["association_testing_data_thresholds"].items():
-        full_config["assocation_testing_data"]["dataset_config"]["rare_embedding"][
+        full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
             "config"
         ]["thresholds"][k] = f"{k} {v}"
     # Results evaluation parameters; alpha parameter for significance threshold
@@ -243,8 +243,8 @@ def create_main_config(
     # DeepRVAT model
     full_config["n_repeats"] = input_config["n_repeats"]
 
-    full_config["data"] = full_config["assocation_testing_data"]
-    del full_config["assocation_testing_data"]
+    full_config["data"] = full_config["association_testing_data"]
+    del full_config["association_testing_data"]
 
     if no_pretrain:
         # PL trainer
