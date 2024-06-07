@@ -47,7 +47,9 @@ def create_main_config(
         input_config = yaml.safe_load(f)
 
     # Base Config
-    with open(f"{input_config['deeprvat_repo_dir']}/deeprvat/deeprvat/base_configurations.yaml") as f:
+    with open(
+        f"{input_config['deeprvat_repo_dir']}/deeprvat/deeprvat/base_configurations.yaml"
+    ) as f:
         base_config = yaml.safe_load(f)
 
     full_config = base_config
@@ -304,11 +306,13 @@ def create_sg_discovery_config(
 
     with open(config_file) as f:
         input_config = yaml.safe_load(f)
-    
+
     # Base Config
-    with open(f"{input_config['deeprvat_repo_dir']}/deeprvat/seed_gene_discovery/seed_gene_base_configurations.yaml") as f:
+    with open(
+        f"{input_config['deeprvat_repo_dir']}/deeprvat/seed_gene_discovery/seed_gene_base_configurations.yaml"
+    ) as f:
         base_config = yaml.safe_load(f)
-    
+
     full_config = base_config
 
     expected_input_keys = [
@@ -355,17 +359,25 @@ def create_sg_discovery_config(
     full_config["variant_file"] = input_config["variant_filename"]
     full_config["data"]["variant_file"] = input_config["variant_filename"]
     # phenotypes.parquet
-    full_config["data"]["dataset_config"]["phenotype_file"] = input_config["phenotype_filename"]
+    full_config["data"]["dataset_config"]["phenotype_file"] = input_config[
+        "phenotype_filename"
+    ]
     # annotations.parquet
-    full_config["data"]["dataset_config"]["annotation_file"] = input_config["annotation_filename"]
+    full_config["data"]["dataset_config"]["annotation_file"] = input_config[
+        "annotation_filename"
+    ]
     # protein_coding_genes.parquet
     full_config["data"]["dataset_config"]["gene_file"] = input_config["gene_filename"]
-    full_config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"] = input_config["gene_filename"]
+    full_config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"] = (
+        input_config["gene_filename"]
+    )
     # X_phenotypes (covariates)
     full_config["data"]["dataset_config"]["x_phenotypes"] = input_config["covariates"]
     # Annotations
     full_config["data"]["dataset_config"]["annotations"] = input_config["annotations"]
-    full_config["data"]["dataset_config"]["rare_embedding"]["config"]["annotations"] = input_config["annotations"]
+    full_config["data"]["dataset_config"]["rare_embedding"]["config"]["annotations"] = (
+        input_config["annotations"]
+    )
     # Test Types
     full_config["test_types"] = input_config["test_types"]
     # Variant Types
@@ -377,14 +389,25 @@ def create_sg_discovery_config(
     # Test Configurations
     full_config["test_config"] = input_config["test_config"]
     # Dataset Configurations
-    full_config["data"]["dataset_config"]["standardize_xpheno"] = input_config["dataset_config"]["standardize_xpheno"]
-    full_config["data"]["dataset_config"]["y_transformation"] = input_config["dataset_config"]["y_transformation"]
-    full_config["data"]["dataset_config"]["standardize_xpheno"] = input_config["dataset_config"]["standardize_xpheno"]
-    full_config["data"]["dataset_config"]["min_common_af"] = input_config["dataset_config"]["min_common_af"]
-    full_config["data"]["dataset_config"]["rare_embedding"]["type"] = input_config["dataset_config"]["rare_embedding"]["type"]
+    full_config["data"]["dataset_config"]["standardize_xpheno"] = input_config[
+        "dataset_config"
+    ]["standardize_xpheno"]
+    full_config["data"]["dataset_config"]["y_transformation"] = input_config[
+        "dataset_config"
+    ]["y_transformation"]
+    full_config["data"]["dataset_config"]["standardize_xpheno"] = input_config[
+        "dataset_config"
+    ]["standardize_xpheno"]
+    full_config["data"]["dataset_config"]["min_common_af"] = input_config[
+        "dataset_config"
+    ]["min_common_af"]
+    full_config["data"]["dataset_config"]["rare_embedding"]["type"] = input_config[
+        "dataset_config"
+    ]["rare_embedding"]["type"]
 
     with open(f"{output_dir}/sg_discovery_config.yaml", "w") as f:
         yaml.dump(full_config, f)
+
 
 @cli.command()
 @click.option("--association-only", is_flag=True)
