@@ -1,26 +1,24 @@
+from os.path import exists
 
-configfile: "config.yaml"
+if not exists('./sg_discovery_config.yaml'):
+    print("Generating sg_discovery_config.yaml...")
+    from deeprvat.deeprvat.config import create_sg_discovery_config
+    create_sg_discovery_config('seed_gene_discovery_input_config.yaml') #Name your input config here
+    print("     Finished.")
 
+configfile: "sg_discovery_config.yaml"
 
 debug_flag = config.get("debug", False)
-
 phenotypes = config["phenotypes"]
-
 vtypes = config.get("variant_types", ["plof"])
-
-
 ttypes = config.get("test_types", ["burden"])
 rare_maf = config.get("rare_maf", 0.001)
-
 n_chunks_missense = 15
 n_chunks_plof = 4
-
 debug = "--debug " if debug_flag else ""
 persist_burdens = "--persist-burdens" if config.get("persist_burdens", False) else ""
 
-
 conda_check = 'conda info | grep "active environment"'
-
 
 wildcard_constraints:
     repeat="\d+",
@@ -244,7 +242,7 @@ rule association_dataset:
 
 rule config:
     input:
-        config="config.yaml",
+        config="sg_discovery_config.yaml",
     output:
         "{phenotype}/{vtype}/config.yaml",
     params:

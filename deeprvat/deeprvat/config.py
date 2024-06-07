@@ -47,7 +47,7 @@ def create_main_config(
         input_config = yaml.safe_load(f)
     
     # Base Config
-    with open(f"{input_config['deeprvat_repo_dir']}/deeprvat/base_configurations.yaml") as f:
+    with open(f"{input_config['deeprvat_repo_dir']}/deeprvat/deeprvat/base_configurations.yaml") as f:
         base_config = yaml.safe_load(f)
     
     full_config = base_config
@@ -279,6 +279,106 @@ def create_main_config(
     with open(f"{output_dir}/deeprvat_config.yaml", "w") as f:
         yaml.dump(full_config, f)
 
+
+def create_sg_discovery_config(
+    config_file: str,
+    output_dir: Optional[str] = ".",
+):
+    """
+    Generates the necessary sg_discovery_config.yaml file for running the seed_gene_discovery pipelines.
+    This function expects inputs as shown in the following config-file:
+        - DEEPRVAT_DIR/example/seed_gene_discovery_input_config.yaml
+
+    :param config_file: Path to directory of relevant config yaml file
+    :type config_file: str
+    :param output_dir: Path to directory where created sg_discovery_config.yaml will be saved.
+    :type output_dir: str
+    :return: Joined configuration file saved to sg_discovery_config.yaml.
+    """
+
+    with open(config_file) as f:
+        input_config = yaml.safe_load(f)
+    
+    # Base Config
+    with open(f"{input_config['deeprvat_repo_dir']}/deeprvat/seed_gene_discovery/seed_gene_base_configurations.yaml") as f:
+        base_config = yaml.safe_load(f)
+    
+    full_config = base_config
+
+    expected_input_keys = [
+        "deeprvat_repo_dir",
+        "phenotypes",
+        "gt_filename",
+        "variant_filename",
+        "phenotype_filename",
+        "annotation_filename",
+        "gene_filename",
+        "covariates",
+        "annotations",
+        "test_types",
+        "variant_types",
+        "rare_maf",
+        "alpha_seed_genes",
+        "test_config",
+        "dataset_config",
+    ]
+
+    if set(input_config.keys()) != set(expected_input_keys):
+        if set(input_config.keys()) - set(expected_input_keys):
+            raise KeyError(
+                (
+                    "Unspecified key(s) present in input YAML file. "
+                    f"The follow extra keys are present: {set(input_config.keys()) - set(expected_input_keys)} "
+                    "Please review DEEPRVAT_DIR/example/config/seed_gene_discovery_input_config.yaml for list of keys."
+                )
+            )
+        if set(expected_input_keys) - set(input_config.keys()):
+            raise KeyError(
+                (
+                    "Missing key(s) in input YAML file. "
+                    f"The follow keys are missing: {set(expected_input_keys) - set(input_config.keys())} "
+                    "Please review DEEPRVAT_DIR/example/config/seed_gene_discovery_input_config.yaml for list of keys."
+                )
+            )
+
+    # Phenotypes
+    full_config["phenotypes"] = input_config["phenotypes"]
+    # genotypes.h5
+    full_config["data"]["gt_file"] = input_config["gt_filename"]
+    # variants.parquet
+    full_config["variant_file"] = input_config["variant_filename"]
+    full_config["data"]["variant_file"] = input_config["variant_filename"]
+    # phenotypes.parquet
+    full_config["data"]["dataset_config"]["phenotype_file"] = input_config["phenotype_filename"]
+    # annotations.parquet
+    full_config["data"]["dataset_config"]["annotation_file"] = input_config["annotation_filename"]
+    # protein_coding_genes.parquet
+    full_config["data"]["dataset_config"]["gene_file"] = input_config["gene_filename"]
+    full_config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"] = input_config["gene_filename"]
+    # X_phenotypes (covariates)
+    full_config["data"]["dataset_config"]["x_phenotypes"] = input_config["covariates"]
+    # Annotations
+    full_config["data"]["dataset_config"]["annotations"] = input_config["annotations"]
+    full_config["data"]["dataset_config"]["rare_embedding"]["config"]["annotations"] = input_config["annotations"]
+    # Test Types
+    full_config["test_types"] = input_config["test_types"]
+    # Variant Types
+    full_config["variant_types"] = input_config["variant_types"]
+    # Minor allele frequency threshold
+    full_config["rare_maf"] = input_config["rare_maf"]
+    # alpha parameter
+    full_config["alpha"] = input_config["alpha_seed_genes"]
+    # Test Configurations
+    full_config["test_config"] = input_config["test_config"]
+    # Dataset Configurations
+    full_config["data"]["dataset_config"]["standardize_xpheno"] = input_config["dataset_config"]["standardize_xpheno"]
+    full_config["data"]["dataset_config"]["y_transformation"] = input_config["dataset_config"]["y_transformation"]
+    full_config["data"]["dataset_config"]["standardize_xpheno"] = input_config["dataset_config"]["standardize_xpheno"]
+    full_config["data"]["dataset_config"]["min_common_af"] = input_config["dataset_config"]["min_common_af"]
+    full_config["data"]["dataset_config"]["rare_embedding"]["type"] = input_config["dataset_config"]["rare_embedding"]["type"]
+
+    with open(f"{output_dir}/sg_discovery_config.yaml", "w") as f:
+        yaml.dump(full_config, f)
 
 @cli.command()
 @click.option("--association-only", is_flag=True)

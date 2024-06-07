@@ -1,0 +1,105 @@
+deeprvat_repo_dir: ../..
+
+# Phenotypes to calculate the seed gene baseline results for
+phenotypes:
+  - Apolipoprotein_A
+  - Apolipoprotein_B
+  - Calcium
+  - Cholesterol_statin_corrected
+  - HDL_cholesterol
+  - IGF_1
+  - LDL_direct_statin_corrected
+  - SHBG
+  - Total_bilirubin
+  - Triglycerides
+  - Urate
+  - Standing_height
+  - Lymphocyte_percentage
+  - Mean_platelet_thrombocyte_volume
+  - Mean_corpuscular_volume
+  - Mean_reticulocyte_volume
+  - Neutrophill_count
+  - Platelet_count
+  - Platelet_crit
+  - Platelet_distribution_width
+  - Red_blood_cell_erythrocyte_count
+  - Body_mass_index_BMI
+  - Glucose
+  - Vitamin_D
+  - Albumin
+  - Total_protein
+  - Cystatin_C
+  - Gamma_glutamyltransferase
+  - Alkaline_phosphatase
+  - Creatinine
+  - Whole_body_fat_free_mass 
+  - Forced_expiratory_volume_in_1_second_FEV1
+  - Glycated_haemoglobin_HbA1c
+  - WHR_Body_mass_index_BMI_corrected
+
+#File paths of necessary input files
+gt_filename: genotypes.h5
+variant_filename: variants.parquet
+phenotype_filename: phenotypes.parquet
+annotation_filename: annotations.parquet
+gene_filename: protein_coding_genes.parquet
+
+covariates: #x_phenotypes
+  - age
+  - age2
+  - age_sex
+  - genetic_sex
+  - genetic_PC_1
+  - genetic_PC_2
+  - genetic_PC_3
+  - genetic_PC_4
+  - genetic_PC_5
+  - genetic_PC_6
+  - genetic_PC_7
+  - genetic_PC_8
+  - genetic_PC_9
+  - genetic_PC_10
+  - genetic_PC_11
+  - genetic_PC_12
+  - genetic_PC_13
+  - genetic_PC_14
+  - genetic_PC_15
+  - genetic_PC_16
+  - genetic_PC_17
+  - genetic_PC_18
+  - genetic_PC_19
+  - genetic_PC_20
+
+annotations:
+    - MAF
+    - is_plof
+    - Consequence_missense_variant
+
+test_types:
+   - skat
+   - burden
+
+variant_types:
+    - missense
+    - plof
+
+# Minor allele frequency threshold
+rare_maf: 0.001
+
+alpha_seed_genes: 0.05
+
+test_config:
+    center_genotype: True # center the genotype matrix
+    neglect_homozygous: False # genotype value for homozygous variants: 1 (True) or 2 (False)
+    collapse_method: sum # burden test collapsing method
+    var_weight_function: beta_maf  # variant weighting function. Supported are beta_maf (Beta(MAF,1,25)) or sift_polyphen (mean of 1-SIFT and Polyphen2 score)
+    min_mac: 10 # min expected allele count for genes to be included
+
+dataset_config:
+    standardize_xpheno: False
+    y_transformation: quantile_transform
+    min_common_af:
+        MAF: 0.001
+    rare_embedding:
+        type: SparseGenotype
+
