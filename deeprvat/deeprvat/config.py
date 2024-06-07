@@ -71,6 +71,7 @@ def create_main_config(
         "y_transformation",
         "evaluation",
         "cv_options",
+        "regenie_options",
     ]
 
     # CV setup parameters
@@ -90,6 +91,25 @@ def create_main_config(
         full_config["n_folds"] = input_config["n_folds"]
         full_config["cv_exp"] = True
 
+    # REGENIE setup parameters
+    if not input_config["regenie_options"]["regenie_exp"]:
+        logger.info("Not using REGENIE integration...removing REGENIE parameters from config")
+        full_config["regenie_exp"] = False
+    else: #REGENIE integration
+        if any(
+            key not in input_config["regenie_options"]
+            for key in ["regenie_exp","step_1","step_2"]
+        ):
+            raise KeyError(
+                "Missing keys step_1 or step_2 under config['regenie_options'] "
+                "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
+            )
+        full_config["regenie_exp"] = True
+        full_config["regenie_options"] = {}
+        full_config["gtf_file"] = input_config["regenie_options"]["gtf_file"]
+        full_config["regenie_options"]["step_1"] = input_config["regenie_options"]["step_1"]
+        full_config["regenie_options"]["step_2"] = input_config["regenie_options"]["step_2"]
+        
     no_pretrain = True
     if "use_pretrained_models" in input_config:
         if input_config["use_pretrained_models"]:

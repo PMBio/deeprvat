@@ -149,11 +149,27 @@ y_transformation: quantile_transform
 
 # Results evaluation settings
 evaluation:
-    correction_method: Bonferroni
-    alpha: 0.05
+  correction_method: Bonferroni
+  alpha: 0.05
 
 #Additional settings if using the CV pipeline
 cv_options:
   cv_exp: False
   #cv_path: sample_files
   #n_folds: 5
+
+#Additional settings if using the REGENIE integration
+regenie_options:
+  regenie_exp: False
+  # gtf_file: gencode.v38.basic.annotation.gtf.gz
+  # step_1:
+  #     bgen: imputation.bgen
+  #     snplist: imputation.snplist
+  #     bsize: 1000
+  #     options:
+  #         - "--sample imputation.sample"
+  #         - "--qt"
+  # step_2:
+  #     bsize: 400
+  #     options:
+  #         - "--qt"

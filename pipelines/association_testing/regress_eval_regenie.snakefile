@@ -10,8 +10,8 @@ phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
 
 n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
 
-regenie_config_step1 = config["regenie"]["step_1"]
-regenie_config_step2 = config["regenie"]["step_2"]
+regenie_config_step1 = config["regenie_options"]["step_1"]
+regenie_config_step2 = config["regenie_options"]["step_2"]
 regenie_step1_bsize = regenie_config_step1["bsize"]
 regenie_step2_bsize = regenie_config_step2["bsize"]
 regenie_njobs = regenie_config_step1.get("njobs", 1)
