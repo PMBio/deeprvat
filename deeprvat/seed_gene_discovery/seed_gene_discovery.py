@@ -638,7 +638,7 @@ def run_association(
             data_full = pickle.load(f)
     else:
         dataset, data_full = make_dataset_(config, debug=debug)
-    all_samples = np.array([int(i) for i in data_full["sample"]])
+    all_samples = np.array(data_full["sample"])
     if sample_file is not None:
         logger.info(f"Using sample file {sample_file}")
         with open(sample_file, "rb") as f:
