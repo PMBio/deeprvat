@@ -625,7 +625,7 @@ def run_association(
     logger.info(f"Saving burdens: {persist_burdens}")
 
     if test_type not in ["skat", "burden"]:
-        raise NotImplementedError("Test type {test_type} is invaldi/not implemented")
+        raise NotImplementedError(f"Test type {test_type} is invalid/not implemented")
 
     with open(config_file) as f:
         config = yaml.safe_load(f)
@@ -645,11 +645,11 @@ def run_association(
         training_dataset_file = (
             f"{'/'.join(sample_file.split('/')[:-2])}/training_dataset.pkl"
         )
-        # load this file to remap the sample ids
+        # Load this file to remap the sample ids
         with open(training_dataset_file, "rb") as f:
             ref_training_datset = pickle.load(f)
 
-        # Gett actual sample ids (from dataset the splitting was based on)
+        # Get actual sample ids (from dataset the splitting was based on)
         this_sample_ids = ref_training_datset.samples[samples].astype("int").tolist()
         if len(set(this_sample_ids) - set(all_samples)) > 0:
             logger.info(
@@ -679,7 +679,7 @@ def run_association(
 
     X = data_full["x_phenotypes"].numpy()[this_data_idx]
     logger.info(f"X shape: {X.shape}")
-    # don't add bias columns since
+    # Don't add bias columns since
     # ScoretestNoK automatically adds a bias column if not present
 
     Y = data_full["y"].numpy()[this_data_idx]
@@ -702,7 +702,7 @@ def run_association(
     )
 
     logger.info(f"Number of genes to test: {len(gene_ids)}")
-    # grouped annotations also contains non-coding gene ids
+    # Grouped annotations also contains non-coding gene ids
 
     if debug:
         logger.info("Debug mode: Using only 100 genes")
