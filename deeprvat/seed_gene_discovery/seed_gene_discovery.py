@@ -551,14 +551,13 @@ def make_dataset_(
 
     if debug:
         logger.info("Debug mode: Using only 1000 samples")
-        batch_size = 1000
+        data_config["dataloader_config"] = 1000
     else:
-        batch_size = len(dataset)
+        data_config["dataloader_config"] = len(dataset)
 
-    logger.info(f"read dataset, batch size {batch_size}")
+    logger.info(f"read dataset, batch size {data_config['dataloader_config']}")
     dataloader = DataLoader(
         dataset,
-        batch_size=batch_size,  # reading from dataloader config
         collate_fn=dataset.collate_fn,
         **data_config["dataloader_config"],
     )
