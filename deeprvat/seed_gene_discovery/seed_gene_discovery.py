@@ -557,8 +557,10 @@ def make_dataset_(
         batch_size = len(dataset)
 
     if "batch_size" in data_config["dataloader_config"].keys():
-        raise ValueError("""You can't specify the batch_size in the 
-                         dataloader config for the seed gene discovery""")
+        raise ValueError(
+            """You can't specify the batch_size in the 
+                         dataloader config for the seed gene discovery"""
+        )
 
     logger.info(f"Read dataset, batch size {batch_size}")
     dataloader = DataLoader(
