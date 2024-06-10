@@ -46,10 +46,7 @@ tool="ensembl-vep"
 if [[ "$TO_INSTALL" == *$tool* ]]; then
     echo "Installing $tool"
 
-    mkdir -pv $VEP_CACHEDIR
     perl -MCPAN -e 'install Bundle::DBI'
-    echo "- vep"
-    mkdir -p $REPO_DIR/ensembl-vep
     git clone https://github.com/Ensembl/ensembl-vep.git $REPO_DIR/ensembl-vep 
     cd $REPO_DIR/ensembl-vep
     git checkout release/111
