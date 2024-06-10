@@ -358,23 +358,24 @@ if(include_deepSEA):
     rule merge_deepsea_pcas:
         input:
             chckpt = rules.concat_annotations.output.chckpt,
-            annotations=rules.concat_annotations.output.annotations,
             deepsea_pcas=rules.add_ids_deepSea.output,
             col_yaml_file=annotation_columns_yaml_file,
         output:
-            annotations  = anno_dir / "annotations.parquet",
             chckpt = anno_dir / 'chckpts' / 'merge_deepsea_pcas.chckpt'
         resources:
             mem_mb=lambda wildcards, attempt: 30_000 * (attempt + 1),
+        params: 
+            annotations_in = anno_dir / "annotations.parquet",
+            annotations_out = anno_dir / "annotations.parquet",
         shell:
             " ".join(
                 [
                     "deeprvat_annotations",
                     "merge-deepsea-pcas",
-                    "{input.annotations}",
+                    "{params.annotations_in}",
                     "{input.deepsea_pcas}",
                     "{input.col_yaml_file}",
-                    "{output.annotations}",
+                    "{params.annotations_out}",
                 ]
             )+" && touch {output.chckpt}"
 else: 
