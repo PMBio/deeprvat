@@ -49,9 +49,8 @@ if [[ "$TO_INSTALL" == *$tool* ]]; then
     perl -MCPAN -e 'install Bundle::DBI'
     git clone https://github.com/Ensembl/ensembl-vep.git $REPO_DIR/ensembl-vep 
     cd $REPO_DIR/ensembl-vep
-    git checkout release/111
+    git checkout release/110
     perl INSTALL.pl --AUTO ac --ASSEMBLY GRCh38 --CACHEDIR $VEP_CACHEDIR --species homo_sapiens
-    tree $VEP_CACHEDIR
 fi
 
 
