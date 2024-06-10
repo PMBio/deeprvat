@@ -46,7 +46,6 @@ tool="ensembl-vep"
 if [[ "$TO_INSTALL" == *$tool* ]]; then
     echo "Installing $tool"
 
-    mkdir -p $VEP_PLUGINDIR
     mkdir -p $VEP_CACHEDIR
     perl -MCPAN -e 'install Bundle::DBI'
     echo "- vep"
@@ -54,7 +53,7 @@ if [[ "$TO_INSTALL" == *$tool* ]]; then
     git clone https://github.com/Ensembl/ensembl-vep.git $REPO_DIR/ensembl-vep 
     cd $REPO_DIR/ensembl-vep
     git checkout release/111
-    perl INSTALL.pl --AUTO acfp --ASSEMBLY GRCh38 --CACHEDIR $VEP_CACHEDIR --PLUGINS CADD, SpliceAI, PrimateAI --PLUGINSDIR $VEP_PLUGINDIR --species homo_sapiens
+    perl INSTALL.pl --AUTO ac --ASSEMBLY GRCh38 --CACHEDIR $VEP_CACHEDIR --species homo_sapiens
 fi
 
 
