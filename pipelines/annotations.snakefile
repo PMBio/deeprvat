@@ -299,7 +299,7 @@ rule strip_chr_name:
     output:
         anno_tmp_dir / "{file_stem}_stripped.vcf.gz",
     shell:
-        f"{load_hts} cut -c 4- {{input}} |bgzip > {{output}}"
+        load_hts + """ cut -c 4- {input} | awk -F'\\t' 'BEGIN {{OFS = FS}} {{$3 = "chr"$1"_"$2"_"$4"_"$5; print}}' |bgzip > {output} """
 
 
 rule vep:
