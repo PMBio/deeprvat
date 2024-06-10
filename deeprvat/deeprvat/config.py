@@ -455,7 +455,9 @@ def update_config(
 
     if phenotype is not None:
         logger.info(f"Updating config for phenotype {phenotype}")
-        config["association_testing_data"]["dataset_config"]["y_phenotypes"] = [phenotype]
+        config["association_testing_data"]["dataset_config"]["y_phenotypes"] = [
+            phenotype
+        ]
         if not association_only:
             config["training_data"]["dataset_config"]["y_phenotypes"] = [phenotype]
 
@@ -541,7 +543,8 @@ def update_config(
             logger.info(f"  {len(baseline_df)} significant genes from baseline")
 
             genes = pd.read_parquet(
-                config["association_testing_data"]["dataset_config"]["gene_file"], engine="pyarrow"
+                config["association_testing_data"]["dataset_config"]["gene_file"],
+                engine="pyarrow",
             )
             seed_gene_df = pd.merge(
                 baseline_df,

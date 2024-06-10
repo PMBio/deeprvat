@@ -172,7 +172,9 @@ def combine_test_set_burdens(
         x[start_idx:end_idx] = this_x
         start_idx = end_idx
 
-    y_transformation = config["association_testing_data"]["dataset_config"].get("y_transformation", None)
+    y_transformation = config["association_testing_data"]["dataset_config"].get(
+        "y_transformation", None
+    )
     standardize_xpheno = config["association_testing_data"]["dataset_config"].get(
         "standardize_xpheno", True
     )
