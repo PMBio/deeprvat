@@ -153,3 +153,22 @@ jobs:
       environment_file: ./deeprvat_annotations.yml
       pipeline_config: ./pipelines/config/deeprvat_annotation_config.yaml
       pipeline_directory: ./example/annotations
+
+
+  Pipeline-Annotation:
+    needs: Smoke-Annotation-Pipeline
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      pipeline_file: ./pipelines/annotations.snakefile
+      environment_file: ./deeprvat_annotations.yml
+      prerun_cmd: |
+        mkdir ./example/annotation/repo_dir && \
+        bash deeprvat/annotations/setup_annotation_workflow.sh  ./example/annotation/repo_dir/ensembl-vep/cache \
+        ./example/annotation/repo_dir/ensembl-vep/Plugin ./example/annotation/repo_dir \
+        && wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz \
+        -O ./example/annotation/reference/gencode.v44.annotation.gtf.gz
+      pipeline_directory: ./example/annotations
+      pipeline_config: ./pipelines/config/deeprvat_annotation_config_minimal.yaml
+      dry_run: false
+      download_fasta_data: true
+      fasta_download_path: ./example/annotation/reference
