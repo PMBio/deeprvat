@@ -355,7 +355,7 @@ def evaluate(
     pheno = (
         phenotype
         if phenotype is not None
-        else config["data"]["dataset_config"]["y_phenotypes"][0]
+        else config["association_testing_data"]["dataset_config"]["y_phenotypes"][0]
     )
     associations["phenotype"] = pheno
 

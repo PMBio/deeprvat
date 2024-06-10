@@ -245,7 +245,7 @@ def compute_burdens_(
             }
         )
 
-    data_config = config["data"]
+    data_config = config["association_testing_data"]
 
     ds_full = ds.dataset if isinstance(ds, Subset) else ds
     collate_fn = getattr(ds_full, "collate_fn", None)
@@ -700,7 +700,7 @@ def reverse_models(
     with open(data_config_file) as f:
         data_config = yaml.safe_load(f)
 
-    annotation_file = data_config["data"]["dataset_config"]["annotation_file"]
+    annotation_file = data_config["association_testing_data"]["dataset_config"]["annotation_file"]
 
     if torch.cuda.is_available():
         logger.info("Using GPU")
@@ -712,7 +712,7 @@ def reverse_models(
     # plof_df = (
     #     dd.read_parquet(
     #         annotation_file,
-    #         columns=data_config["data"]["dataset_config"]["rare_embedding"]["config"][
+    #         columns=data_config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"][
     #             "annotations"
     #         ],
     #     )
@@ -722,7 +722,7 @@ def reverse_models(
 
     plof_df = pd.read_parquet(
         annotation_file,
-        columns=data_config["data"]["dataset_config"]["rare_embedding"]["config"][
+        columns=data_config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"][
             "annotations"
         ],
     )
@@ -1120,7 +1120,7 @@ def regress_(
 
     genes_betas_pvals = [x for x in genes_betas_pvals if x is not None]
     regressed_genes, betas, pvals = separate_parallel_results(genes_betas_pvals)
-    y_phenotypes = config["data"]["dataset_config"]["y_phenotypes"]
+    y_phenotypes = config["association_testing_data"]["dataset_config"]["y_phenotypes"]
     regressed_phenotypes = [y_phenotypes] * len(regressed_genes)
     result = pd.DataFrame(
         {
@@ -1579,7 +1579,7 @@ def regress_common_(
         genes_betas_pvals.append(gene_stats)
     genes_betas_pvals = [x for x in genes_betas_pvals if x is not None]
     regressed_genes, betas, pvals = separate_parallel_results(genes_betas_pvals)
-    y_phenotypes = config["data"]["dataset_config"]["y_phenotypes"]
+    y_phenotypes = config["association_testing_data"]["dataset_config"]["y_phenotypes"]
     regressed_phenotypes = [y_phenotypes] * len(regressed_genes)
     result = pd.DataFrame(
         {

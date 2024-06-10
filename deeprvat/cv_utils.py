@@ -25,7 +25,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 DATA_SLOT_DICT = {
-    "deeprvat": ["data", "training_data"],
+    "deeprvat": ["association_testing_data", "training_data"],
     "seed_genes": ["data"],
 }
 
@@ -172,8 +172,8 @@ def combine_test_set_burdens(
         x[start_idx:end_idx] = this_x
         start_idx = end_idx
 
-    y_transformation = config["data"]["dataset_config"].get("y_transformation", None)
-    standardize_xpheno = config["data"]["dataset_config"].get(
+    y_transformation = config["association_testing_data"]["dataset_config"].get("y_transformation", None)
+    standardize_xpheno = config["association_testing_data"]["dataset_config"].get(
         "standardize_xpheno", True
     )
 

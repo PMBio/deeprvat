@@ -152,7 +152,7 @@ def make_dataset_(
             config[key]["dataset_config"]["y_phenotypes"] = y_phenotypes[:n_phenotypes]
 
         logger.info(f"Using {n_phenotypes} phenotypes:")
-        pprint(config["data"]["dataset_config"]["y_phenotypes"])
+        pprint(config["association_testing_data"]["dataset_config"]["y_phenotypes"])
 
     training_config = config["training"]
 
