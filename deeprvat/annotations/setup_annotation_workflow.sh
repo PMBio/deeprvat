@@ -15,7 +15,7 @@ if [ -z "$REPO_DIR" ]; then
     exit 1
 fi
 
-if [ -z "$TO_INSTALL" ]; then 
+if [ -z ""$TO_INSTALL"" ]; then 
     echo "You need to specify the tools to install $0 $REPO_DIR <TO_INSTALL>"
     echo "Example: $0 $REPO_DIR ensembl-vep,absplice,faatpipe,vep-plugins"
     echo "Valid values for TO_INSTALL: ensembl-vep absplice kipoi-veff2 faatpipe vep-plugins"
@@ -43,7 +43,7 @@ fi
 echo "Downloading necessary repos and installing conda environments for: $TO_INSTALL"
 
 tool="ensembl-vep"
-if [[ $TO_INSTALL == *$tool* ]]; then
+if [[ "$TO_INSTALL" == *$tool* ]]; then
     echo "Installing $tool"
 
     mkdir -p $VEP_PLUGINDIR
@@ -59,7 +59,7 @@ fi
 
 
 tool="absplice"
-if [[ $TO_INSTALL == *$tool* ]]; then
+if [[ "$TO_INSTALL" == *$tool* ]]; then
     echo "Installing $tool"
     mkdir -p $REPO_DIR/absplice
     git clone https://github.com/gagneurlab/absplice.git $REPO_DIR/absplice
@@ -70,7 +70,7 @@ if [[ $TO_INSTALL == *$tool* ]]; then
 fi
 
 tool="kipoi-veff2"
-if [[ $TO_INSTALL == *$tool* ]]; then
+if [[ "$TO_INSTALL" == *$tool* ]]; then
     echo "Installing $tool"
     mkdir -p $REPO_DIR/kipoi-veff2
     git clone https://github.com/kipoi/kipoi-veff2.git $REPO_DIR/kipoi-veff2
@@ -81,14 +81,14 @@ if [[ $TO_INSTALL == *$tool* ]]; then
 fi
 
 tool="faatpipe"
-if [[ $TO_INSTALL == *$tool* ]]; then
+if [[ "$TO_INSTALL" == *$tool* ]]; then
     echo "Installing $tool"
     mkdir -p $REPO_DIR/faatpipe
     git clone https://github.com/HealthML/faatpipe.git $REPO_DIR/faatpipe
 fi
 
 tool="vep-plugins"
-if [[ $TO_INSTALL == *$tool* ]]; then
+if [[ "$TO_INSTALL" == *$tool* ]]; then
     echo "Installing $tool"
     mkdir -p $VEP_PLUGINDIR
     git clone https://github.com/Ensembl/VEP_plugins.git $VEP_PLUGINDIR
