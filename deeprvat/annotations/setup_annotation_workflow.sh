@@ -51,6 +51,7 @@ if [[ "$TO_INSTALL" == *$tool* ]]; then
     cd $REPO_DIR/ensembl-vep
     git checkout release/111
     perl INSTALL.pl --AUTO ac --ASSEMBLY GRCh38 --CACHEDIR $VEP_CACHEDIR --species homo_sapiens
+    tree $VEP_CACHEDIR
 fi
 
 
