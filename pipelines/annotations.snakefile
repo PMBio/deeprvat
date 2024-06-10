@@ -190,7 +190,8 @@ include_deepSEA = config.get('include_deepSEA', True)
 
 rule all:
     input:
-        chckpt = anno_dir / 'chckpts' / 'select_rename_fill_columns.chckpt'
+        chckpt = anno_dir / 'chckpts' / 'select_rename_fill_columns.chckpt',
+        annotations = anno_dir / 'annotations.parquet'
 
 if not gene_id_file:
     gene_id_file = anno_tmp_dir / "protein_coding_genes.parquet"
