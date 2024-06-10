@@ -12,7 +12,7 @@ jobs:
       pipeline_config: ./pipelines/config/deeprvat_annotation_config.yaml
       pipeline_directory: ./example/annotations
       download_fasta_data: true
-      fasta_download_path: ./example/annotation/reference
+      fasta_download_path: ./example/annotations/reference
 
   Pipeline-Annotation:
     needs: Smoke-Annotation-Pipeline
