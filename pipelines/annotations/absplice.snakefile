@@ -27,22 +27,3 @@ rule aggregate_absplice_scores:
         )
 
 
-rule merge_absplice_scores:
-    input:
-        absplice_scores=rules.aggregate_absplice_scores.output.score_file,
-        current_annotation_file=rules.merge_deepsea_pcas.output,
-    output:
-        anno_dir / "vep_deepripe_deepsea_absplice.parquet",
-    threads: ncores_merge_absplice
-    resources:
-        mem_mb=lambda wildcards, attempt: 19_000 * (attempt + 1),
-    shell:
-        " ".join(
-            [
-                "deeprvat_annotations",
-                "merge-abscores",
-                "{input.current_annotation_file}",
-                "{input.absplice_scores}",
-                "{output}",
-            ]
-        )
