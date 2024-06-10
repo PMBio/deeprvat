@@ -22,8 +22,7 @@ jobs:
       environment_file: ./deeprvat_annotations.yml
       prerun_cmd: |
         mkdir ./example/annotations/repo_dir && \
-        bash deeprvat/annotations/setup_annotation_workflow.sh  ./example/annotations/repo_dir/ensembl-vep/cache \
-        ./example/annotations/repo_dir/ensembl-vep/Plugin ./example/annotations/repo_dir \
+        bash deeprvat/annotations/setup_annotation_workflow.sh ./example/annotations/repo_dir faatpipe
         && wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz \
         -O ./example/annotations/reference/gencode.v44.annotation.gtf.gz
       pipeline_directory: ./example/annotations
