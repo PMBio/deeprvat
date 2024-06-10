@@ -7,8 +7,8 @@ set -o pipefail
 
 REPO_DIR="$1"
 TO_INSTALL="$2" # valid values: ensembl-vep absplice kipoi-veff2 faatpipe vep-plugins
-VEP_CACHEDIR=$REPO_DIR/cache
-VEP_PLUGINDIR=$REPO_DIR/Plugins
+VEP_CACHEDIR=$REPO_DIR/ensembl-vep/cache
+VEP_PLUGINDIR=$REPO_DIR/ensembl-vep/Plugins
 
 if [ -z "$REPO_DIR" ]; then 
     echo "You need to specify the repo base path $0 <REPO_DIR> <TO_INSTALL>"
@@ -46,7 +46,7 @@ tool="ensembl-vep"
 if [[ "$TO_INSTALL" == *$tool* ]]; then
     echo "Installing $tool"
 
-    mkdir -p $VEP_CACHEDIR
+    mkdir -pv $VEP_CACHEDIR
     perl -MCPAN -e 'install Bundle::DBI'
     echo "- vep"
     mkdir -p $REPO_DIR/ensembl-vep
