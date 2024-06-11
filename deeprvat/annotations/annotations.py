@@ -1209,33 +1209,29 @@ def merge_abscores(
     annotations = pd.read_parquet(current_annotation_file, engine="pyarrow").drop(
         columns=["AbSplice_DNA"], errors="ignore"
     )
-    annotations = annotations.rename(columns={"Gene": "gene_id"})
-    annotations.drop_duplicates(inplace=True, subset=["gene_id", "id"])
+    all_absplice_scores = all_absplice_scores.rename(columns={"gene_id": "Gene"})
+    annotations.drop_duplicates(inplace=True, subset=["Gene", "id"])
     original_len = len(annotations)
-    all_ids = set(annotations.id)
-    all_absplice_scores.drop_duplicates(
-        subset=["chrom", "pos", "ref", "alt", "gene_id"], inplace=True
-    )
+    all_ids  = set(annotations.id)
+    all_absplice_scores.drop_duplicates(subset = ["chrom", "pos", "ref", "alt", "Gene"], inplace = True)
     logger.info("Merging")
     annotations = pd.merge(
         annotations,
         all_absplice_scores,
         validate="1:1",
         how="left",
-        on=["chrom", "pos", "ref", "alt", "gene_id"],
+        on=["chrom", "pos", "ref", "alt", "Gene"],
     )
 
     logger.info("Sanity checking merge")
     assert len(annotations) == original_len
     assert set(annotations.id) == all_ids
     logger.info(
-        f"len of merged after dropping duplicates: {len(annotations.drop_duplicates(subset=['id', 'gene_id']))}"
+        f"len of merged after dropping duplicates: {len(annotations.drop_duplicates(subset=['id', 'Gene']))}"
     )
     logger.info(f"len of merged without dropping duplicates: {len(annotations)}")
 
-    assert len(annotations.drop_duplicates(subset=["id", "gene_id"])) == len(
-        annotations
-    )
+    assert len(annotations.drop_duplicates(subset=["id", "Gene"])) == len(annotations)
 
     logger.info(
         f'Filling {annotations["AbSplice_DNA"].isna().sum()} '
