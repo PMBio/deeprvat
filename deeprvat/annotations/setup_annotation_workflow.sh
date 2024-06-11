@@ -50,10 +50,7 @@ if [[ "$TO_INSTALL" == *$tool* ]]; then
     git clone https://github.com/Ensembl/ensembl-vep.git "$REPO_DIR/ensembl-vep" 
     cd "$REPO_DIR/ensembl-vep"
     mkdir "$VEP_CACHEDIR"
-    # Tests are skipped in install for speed
-    perl INSTALL.pl --NO_TEST --NO_HTSLIB --AUTO ac --ASSEMBLY GRCh38 --CACHEDIR "$VEP_CACHEDIR" --species homo_sapiens --CACHE_VERSION 110
-    echo "CHECKING CACHE PATH"
-    tree "$VEP_CACHEDIR"
+    perl INSTALL.pl --NO_HTSLIB --NO_TEST --AUTO c --ASSEMBLY GRCh38 --CACHEDIR "$VEP_CACHEDIR" --species homo_sapiens --CACHE_VERSION 110
 fi
 
 
