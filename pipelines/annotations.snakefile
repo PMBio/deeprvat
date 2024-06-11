@@ -396,12 +396,13 @@ if (include_absplice):
     rule merge_absplice_scores:
         input:
             absplice_scores=rules.aggregate_absplice_scores.output.score_file,
-            current_annotation_file=anno_dir / "annotations.parquet",
             chckpt = anno_dir / 'chckpts' / 'merge_deepsea_pcas.chckpt'
         output:
-            annotations = anno_dir / "annotations.parquet",
             chckpt = anno_dir / 'chckpts' / 'merge_absplice_scores.chckpt'
         threads: ncores_merge_absplice
+        params: 
+            annotations_in = anno_dir / "annotations.parquet",
+            annotations_out = anno_dir / "annotations.parquet",
         resources:
             mem_mb=lambda wildcards, attempt: 19_000 * (attempt + 1),
         shell:
@@ -409,11 +410,12 @@ if (include_absplice):
                 [
                     "deeprvat_annotations",
                     "merge-abscores",
-                    "{input.current_annotation_file}",
+                    "{params.annotations_in}",
                     "{input.absplice_scores}",
-                    "{output.annotations}",
+                    "{params.annotations_out}",
                 ]
-            )
+            )+" && touch {output.chckpt}"
+            
 else: 
     rule omit_absplice:
         input: 
