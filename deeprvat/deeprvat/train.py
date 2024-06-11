@@ -1127,12 +1127,21 @@ def best_training_run(
 
     :returns: None
     """
+
     study = optuna.load_study(
         study_name=Path(hpopt_db).stem, storage=f"sqlite:///{hpopt_db}"
     )
 
     trials = study.trials_dataframe().query('state == "COMPLETE"')
-    best_trial = trials.sort_values("value", ascending=False).iloc[0]
+    with open("config.yaml") as f:
+        config = yaml.safe_load(f)
+        ascending = (
+            False
+            if config["hyperparameter_optimization"]["direction"] == "maximize"
+            else True
+        )
+        f.close()
+    best_trial = trials.sort_values("value", ascending=ascending).iloc[0]
     best_trial_id = best_trial["user_attrs_user_id"]
 
     logger.info(f"Best trial:\n{best_trial}")
