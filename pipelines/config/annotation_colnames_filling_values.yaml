@@ -147,7 +147,7 @@ annotation_column_names:
     - 'is_plof' 
     - 0
     - int
-  'AbSplice_DNA' :
-    - 'AbSplice_DNA' 
+  'Condel' :
+    - 'condel_score' 
     -  0
     - float

@@ -1806,7 +1806,7 @@ def process_vep(
     logger.info(vep_file.columns)
     logger.info(types_mapping.keys())
     logger.info(types_present)
-    vep_file.astype(types_present)
+    vep_file = vep_file.astype(types_present)
 
 
     return vep_file
