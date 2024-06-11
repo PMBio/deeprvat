@@ -700,7 +700,9 @@ def reverse_models(
     with open(data_config_file) as f:
         data_config = yaml.safe_load(f)
 
-    annotation_file = data_config["association_testing_data"]["dataset_config"]["annotation_file"]
+    annotation_file = data_config["association_testing_data"]["dataset_config"][
+        "annotation_file"
+    ]
 
     if torch.cuda.is_available():
         logger.info("Using GPU")
@@ -722,9 +724,9 @@ def reverse_models(
 
     plof_df = pd.read_parquet(
         annotation_file,
-        columns=data_config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"][
-            "annotations"
-        ],
+        columns=data_config["association_testing_data"]["dataset_config"][
+            "rare_embedding"
+        ]["config"]["annotations"],
     )
     plof_df = plof_df[plof_df[PLOF_COLS].eq(1).any(axis=1)]
 
