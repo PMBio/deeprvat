@@ -100,6 +100,8 @@ vep_input_format = config.get("vep_input_format") or "vcf"
 vep_nfork = int(config.get("vep_nfork") or 5)
 af_mode = config.get("af_mode")
 condel_config_path = vep_plugin_dir / "config" / "Condel" / "config"
+vep_online = config.get("vep_online", False ) 
+vep_no_cache = config.get("vep_no_cache", False)
 if config.get("additional_vep_plugin_cmds"):
     VEP_plugin_cmds = config["additional_vep_plugin_cmds"].values()
 else:
@@ -253,7 +255,10 @@ rule vep:
         anno_dir / "{file_stem}_vep_anno.tsv",
     threads: vep_nfork
     params: 
-        af =lambda w:  f'--{af_mode}' if af_mode else ''
+        af =lambda w:  f'--{af_mode}' if af_mode else '',
+        offline = lambda w:  '--offline' if not vep_online else '',
+        cache = lambda w:  '--cache' if not vep_no_cache else '--database',
+        dir_cache = lambda w: f'--dir_cache {str(vep_cache_dir)}' if not vep_no_cache else ''
     resources:
         mem_mb=lambda wildcards, attempt: 5_000 * (attempt + 1),
     shell:
@@ -275,10 +280,9 @@ rule vep:
                 "--format",
                 str(vep_input_format),
                 "{params.af}",
-                "--offline",
-                "--cache",
-                "--dir_cache",
-                str(vep_cache_dir),
+                "{params.offline}",
+                "{params.cache}",
+                "{params.dir_cache}"
                 "--dir_plugins",
                 str(vep_plugin_dir),
                 "--fork",

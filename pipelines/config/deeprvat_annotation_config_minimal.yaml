@@ -26,3 +26,5 @@ vep_repo_dir : repo_dir/ensembl-vep
 preprocessing_workdir : preprocessing_workdir
 include_absplice : False
 include_deepSEA : False
+vep_online: True
+vep_no_cache: True
