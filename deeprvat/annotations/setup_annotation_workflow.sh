@@ -47,9 +47,10 @@ if [[ "$TO_INSTALL" == *$tool* ]]; then
     echo "Installing $tool"
     
     perl -MCPAN -e 'install Bundle::DBI'
-    git clone https://github.com/Ensembl/ensembl-vep.git $REPO_DIR/ensembl-vep 
-    cd $REPO_DIR/ensembl-vep
-    mkdir $VEP_CACHEDIR
+    git clone https://github.com/Ensembl/ensembl-vep.git "$REPO_DIR/ensembl-vep" 
+    cd "$REPO_DIR/ensembl-vep"
+    ls -l
+    mkdir -v "$VEP_CACHEDIR"
     perl INSTALL.pl --AUTO ac --ASSEMBLY GRCh38 --CACHEDIR $VEP_CACHEDIR --species homo_sapiens --CACHE_VERSION 110
     echo "CHECKING CACHE PATH"
     tree $VEP_CACHEDIR # TODO REMOVE
