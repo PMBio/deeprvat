@@ -6,21 +6,25 @@
 Welcome to DeepRVAT's documentation!
 ======================================
 
-Rare variant association testing using deep learning and data-driven burden scores.
+Rare variant association testing using deep learning and data-driven gene impairment scores.
+
+_Coming soon:_ Overview of the DeepRVAT methodaster
 
 
 How to use this documentation
 ===================================
 
-A good place to start is in :doc:`Basic usage </quickstart>`, to install the package and make sure it runs correctly.
+First, see :doc:`Installation </installation>`.
 
-To run DeepRVAT on your data, first consult *Modes of usage* :doc:`here </practical>`, then proceed based on which mode is right for your use case.
+Visit :doc:`Quick start </quickstart>` if you want to skip the detailed documentation and dive right in, or if you want to quickly check that the package installed correctly.
 
-For all modes, you'll want to consult *Input data: Common requirements for all pipelines* and *Configuration file: Common parameters* :doc:`here </deeprvat>`.
+To run DeepRVAT on your data, first consult :doc:`Modes of usage </modes_of_usage>` then visit the section relevant to your use case.
 
-For all modes of usage other than association testing with precomputed burdens, you'll need to :doc:`preprocess </preprocessing>` your genotype data, followed by :doc:`annotating </annotations>` your variants.
+For all modes, you'll want to consult :doc:`Input data and configuration </input_data>`.
 
-To train custom DeepRVAT models, rather than using precomputed burdens or our provided pretrained models, you'll need to additionally run :doc:`seed gene discovery </seed_gene_discovery>`.
+Note also that for all modes of usage other than association testing with precomputed gene impairment scores, you'll need to :doc:`preprocess </preprocessing>` your genotype data, followed by :doc:`annotating </annotations>` your variants.
+
+To train custom DeepRVAT models, rather than using precomputed gene impairment scores or our provided pretrained models, you'll need to additionally run :doc:`seed gene discovery </seed_gene_discovery>`. See also the :doc:`Practical recommendations for training </practical>`.
 
 Finally, consult the relevant section for your use case :doc:`here </deeprvat>`.
 
@@ -51,10 +55,15 @@ To report a bug or make a feature request, please create an `issue <https://gith
 
    installation.md
    quickstart.md
+   modes_of_usage.md
    preprocessing.md
    annotations.md
    seed_gene_discovery.md
-   deeprvat.md
+   precomputed_burdens.md
+   pretrained_models.md
+   training_association.md
+   input_data.md
+   output_files.md
    cluster.md
    practical.md
    ukbiobank.md

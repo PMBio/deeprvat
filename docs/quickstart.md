@@ -1,8 +1,5 @@
-# Basic usage
+# Quick start
 
-## Install the package
-
-Instructions [here](installation.md)
 
 ## Customize pipelines
 
