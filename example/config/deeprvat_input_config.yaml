@@ -1,6 +1,6 @@
 deeprvat_repo_dir: ../..
 
-#Phenotypes to be used only for Association Testing
+# Phenotypes to be used only for Association Testing
 phenotypes_for_association_testing:
   - Apolipoprotein_A
   - Apolipoprotein_B
@@ -24,7 +24,7 @@ phenotypes_for_association_testing:
   - Triglycerides
   - Urate
 
-#Phenotypes to be used only for training
+# Phenotypes to be used only for training
 phenotypes_for_training:
   - Apolipoprotein_A
   - Apolipoprotein_B
@@ -32,7 +32,7 @@ phenotypes_for_training:
   - Cholesterol
   - Red_blood_cell_erythrocyte_count
 
-#File paths of necessary input files to DeepRVAT
+# File paths of necessary input files to DeepRVAT
 gt_filename: genotypes.h5
 variant_filename: variants.parquet
 phenotype_filename: phenotypes.parquet
@@ -109,7 +109,7 @@ training_data_thresholds:
   MAF: "< 1e-2"
   CADD_PHRED: "> 5"
 
-#Seed Gene Baseline data settings
+# Seed Gene Baseline data settings
 seed_gene_results: #baseline_results
   result_dirs:
       -
@@ -128,7 +128,7 @@ seed_gene_results: #baseline_results
   correction_method: Bonferroni
   alpha_seed_genes: 0.05
 
-#DeepRVAT training settings
+# DeepRVAT training settings
 training:
   pl_trainer: #PyTorch Lightening trainer settings
       gpus: 1
@@ -143,7 +143,7 @@ training:
       min_delta: 0.00001
       verbose: True
 
-#DeepRVAT model settings
+# DeepRVAT model settings
 n_repeats: 6
 y_transformation: quantile_transform
 
@@ -152,13 +152,18 @@ evaluation:
   correction_method: Bonferroni
   alpha: 0.05
 
-#Additional settings if using the CV pipeline
+# Subsetting samples for training or association testing
+#sample_files:
+#  training: training_samples.pkl
+#  association_testing: association_testing_samples.pkl
+
+# Additional settings if using the CV pipeline
 cv_options:
   cv_exp: False
   #cv_path: sample_files
   #n_folds: 5
 
-#Additional settings if using the REGENIE integration
+# Additional settings if using the REGENIE integration
 regenie_options:
   regenie_exp: False
   # gtf_file: gencode.v38.basic.annotation.gtf.gz

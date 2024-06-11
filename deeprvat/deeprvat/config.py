@@ -280,6 +280,15 @@ def create_main_config(
         # need to also save deeprvat_config.yaml also to pretrained-model dir
         with open(f"{pretrained_model_path}/deeprvat_config.yaml", "w") as f:
             yaml.dump(full_config, f)
+    
+    # Subsetting samples [optional]
+    if "sample_files" in input_config:
+        if "training" in input_config["sample_files"]:
+            logger.info("Adding in subset sample file for DeepRVAT training.")
+            full_config["training_data"]["dataset_config"]["sample_file"] = input_config["sample_files"]["training"]
+        if "association_testing" in input_config["sample_files"]:
+            logger.info("Adding in subset sample file for association testing.")
+            full_config["association_testing_data"]["dataset_config"]["sample_file"] = input_config["sample_files"]["association_testing"]
 
     with open(f"{output_dir}/deeprvat_config.yaml", "w") as f:
         yaml.dump(full_config, f)

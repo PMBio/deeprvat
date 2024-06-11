@@ -73,6 +73,10 @@ evaluation:
   correction_method: Bonferroni
   alpha: 0.05
 
+# Subsetting samples for association testing
+#sample_files:
+#  association_testing: association_testing_samples.pkl
+
 #Additional settings if using the CV pipeline
 cv_options:
   cv_exp: False
