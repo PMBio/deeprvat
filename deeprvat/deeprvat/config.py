@@ -405,6 +405,10 @@ def create_sg_discovery_config(
         "dataset_config"
     ]["standardize_xpheno"]
 
+    if "sample_file" in input_config:
+        logger.info("Adding in subset sample file for seed-gene-discovery.")
+        full_config["data"]["dataset_config"]["sample_file"] = input_config["sample_file"]
+
     with open(f"{output_dir}/sg_discovery_config.yaml", "w") as f:
         yaml.dump(full_config, f)
 

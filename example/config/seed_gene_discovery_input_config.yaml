@@ -98,3 +98,6 @@ test_config:
 dataset_config:
     standardize_xpheno: False
     y_transformation: quantile_transform
+
+# Subsetting samples - Optional pickled list of samples to subset to
+# sample_file: samples_list.pkl
