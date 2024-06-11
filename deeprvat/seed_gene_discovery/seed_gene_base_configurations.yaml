@@ -10,7 +10,9 @@ data:
         rare_embedding:
             config:
                 verbose: True
+            type: SparseGenotype
         verbose: True
+        min_common_af:
+            MAF: 0.001
     dataloader_config:
         num_workers: 10
-        #batch_size: 20

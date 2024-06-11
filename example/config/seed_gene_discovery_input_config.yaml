@@ -98,8 +98,3 @@ test_config:
 dataset_config:
     standardize_xpheno: False
     y_transformation: quantile_transform
-    min_common_af:
-        MAF: 0.001
-    rare_embedding:
-        type: SparseGenotype
-

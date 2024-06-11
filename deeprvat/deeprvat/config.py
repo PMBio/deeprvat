@@ -395,12 +395,6 @@ def create_sg_discovery_config(
     full_config["data"]["dataset_config"]["standardize_xpheno"] = input_config[
         "dataset_config"
     ]["standardize_xpheno"]
-    full_config["data"]["dataset_config"]["min_common_af"] = input_config[
-        "dataset_config"
-    ]["min_common_af"]
-    full_config["data"]["dataset_config"]["rare_embedding"]["type"] = input_config[
-        "dataset_config"
-    ]["rare_embedding"]["type"]
 
     with open(f"{output_dir}/sg_discovery_config.yaml", "w") as f:
         yaml.dump(full_config, f)
