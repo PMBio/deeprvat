@@ -10,7 +10,7 @@ rule aggregate_absplice_scores:
         abscore_files=expand(
             rules.absplice_dna.output.absplice_dna, genome=genome, file_stem=file_stems
         ),
-        current_annotation_file=rules.merge_deepsea_pcas.output,
+        current_annotation_file=anno_dir / "annotations.parquet",
     output:
         score_file=anno_tmp_dir / "abSplice_score_file.parquet",
     threads: ncores_agg_absplice
