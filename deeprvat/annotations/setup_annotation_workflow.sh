@@ -5,10 +5,10 @@ set -o pipefail
 
 # Prerequisites: mamba, git, Perl with DBI, Bioperl, DBD::mysql modules
 
-REPO_DIR="$1"
+REPO_DIR="$(cd "$(echo "$1")"; pwd)"
 TO_INSTALL="$2" # valid values: ensembl-vep absplice kipoi-veff2 faatpipe vep-plugins
-VEP_CACHEDIR=$REPO_DIR/ensembl-vep/cache
 VEP_PLUGINDIR=$REPO_DIR/ensembl-vep/Plugins
+VEP_CACHEDIR=$REPO_DIR/ensembl-vep/cache
 
 if [ -z "$REPO_DIR" ]; then 
     echo "You need to specify the repo base path $0 <REPO_DIR> <TO_INSTALL>"
@@ -49,8 +49,8 @@ if [[ "$TO_INSTALL" == *$tool* ]]; then
     perl -MCPAN -e 'install Bundle::DBI'
     git clone https://github.com/Ensembl/ensembl-vep.git "$REPO_DIR/ensembl-vep" 
     cd "$REPO_DIR/ensembl-vep"
-    mkdir cache
-    perl INSTALL.pl --AUTO ac --ASSEMBLY GRCh38 --CACHEDIR $VEP_CACHEDIR --species homo_sapiens --CACHE_VERSION 110
+    mkdir "$VEP_CACHEDIR"
+    perl INSTALL.pl --AUTO ac --ASSEMBLY GRCh38 --CACHEDIR "$VEP_CACHEDIR" --species homo_sapiens --CACHE_VERSION 110
     echo "CHECKING CACHE PATH"
     tree cache # TODO REMOVE
 fi
