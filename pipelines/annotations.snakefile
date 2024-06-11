@@ -282,7 +282,7 @@ rule vep:
                 "{params.af}",
                 "{params.offline}",
                 "{params.cache}",
-                "{params.dir_cache}"
+                "{params.dir_cache}",
                 "--dir_plugins",
                 str(vep_plugin_dir),
                 "--fork",
