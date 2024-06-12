@@ -4,13 +4,15 @@
 
 import click
 
+
 @click.group()
 def cli():
     pass
 
+
 @cli.command()
-@click.argument('input', type=click.Path(exists=True))
-@click.argument('output', type=click.Path(exists=False))
+@click.argument("input", type=click.Path(exists=True))
+@click.argument("output", type=click.Path(exists=False))
 def codign_genes(input, output):
     import pandas as pd
     import pyranges as pr
@@ -37,12 +39,10 @@ def codign_genes(input, output):
     df_genes[columns].to_csv(output["coding_genes"], index=False)
 
 
-
-
 @cli.command()
-@click.argument('input_fasta', type=click.Path(exists=True))
-@click.argument('input_vcf', type=click.Path(exists=True))
-@click.argument('output', type=click.Path(exists=False))
+@click.argument("input_fasta", type=click.Path(exists=True))
+@click.argument("input_vcf", type=click.Path(exists=True))
+@click.argument("output", type=click.Path(exists=False))
 def mmsplice_splicemap(input_fasta, input_vcf, output):
     from absplice import SpliceOutlier, SpliceOutlierDataloader
 
@@ -57,11 +57,9 @@ def mmsplice_splicemap(input_fasta, input_vcf, output):
     model.predict_save(dl, output["result"])
 
 
-
-
 @cli.command()
-@click.argument('input', type=click.Path(exists=True))
-@click.argument('output', type=click.Path(exists=False))
+@click.argument("input", type=click.Path(exists=True))
+@click.argument("output", type=click.Path(exists=False))
 def absplice_dna(input, output, extra_info):
     from absplice import SplicingOutlierResult
 

@@ -574,7 +574,14 @@ def readYamlColumns(annotation_columns_yaml_file):
     column_name_mapping = dict(zip(prior_names, post_names))
     fill_value_mapping = dict(zip(post_names, fill_vals))
     type_mapping = dict(zip(prior_names, types))
-    return prior_names, post_names, fill_vals, column_name_mapping, fill_value_mapping, type_mapping
+    return (
+        prior_names,
+        post_names,
+        fill_vals,
+        column_name_mapping,
+        fill_value_mapping,
+        type_mapping,
+    )
 
 
 def get_parquet_columns(parquet_file):
@@ -1212,8 +1219,10 @@ def merge_abscores(
     all_absplice_scores = all_absplice_scores.rename(columns={"gene_id": "Gene"})
     annotations.drop_duplicates(inplace=True, subset=["Gene", "id"])
     original_len = len(annotations)
-    all_ids  = set(annotations.id)
-    all_absplice_scores.drop_duplicates(subset = ["chrom", "pos", "ref", "alt", "Gene"], inplace = True)
+    all_ids = set(annotations.id)
+    all_absplice_scores.drop_duplicates(
+        subset=["chrom", "pos", "ref", "alt", "Gene"], inplace=True
+    )
     logger.info("Merging")
     annotations = pd.merge(
         annotations,
@@ -1626,7 +1635,6 @@ def merge_annotations(
     vcf_file: str,
     out_file: str,
     column_yaml: str,
-
 ):
     """
     Merge VEP, DeepRipe (parclip, hg2, k5), and variant files into one dataFrame and save result as parquet file
@@ -1649,11 +1657,11 @@ def merge_annotations(
     $ python annotations.py merge_annotations 1 vep_file.tsv deepripe_parclip.csv deepripe_hg2.csv deepripe_k5.csv variant_file.tsv merged_output.parquet --vepcols_to_retain="AlphaMissense,PolyPhen"
     """
     # load vep file
-    _,_,_,_,_,types_mapping = readYamlColumns(column_yaml)
+    _, _, _, _, _, types_mapping = readYamlColumns(column_yaml)
     vep_df = pd.read_csv(vep_file, header=vep_header_line, sep="\t", na_values="-")
 
     vep_df = process_vep(
-        vep_file=vep_df, vcf_file=vcf_file, types_mapping = types_mapping
+        vep_file=vep_df, vcf_file=vcf_file, types_mapping=types_mapping
     )
     logger.info(f"vep_df shape is {vep_df.shape}")
     logger.info("load deepripe_parclip")
@@ -1768,17 +1776,8 @@ def process_vep(
         lambda x: "{}{}".format("chr", x.split("chr")[-1])
     )
 
-    necessary_columns = (
-        [
-            "chrom",
-            "pos",
-            "ref",
-            "alt",
-            "Gene",
-            "Consequence"
-        ]
-        + list(types_mapping.keys())
-        
+    necessary_columns = ["chrom", "pos", "ref", "alt", "Gene", "Consequence"] + list(
+        types_mapping.keys()
     )
     necessary_columns_present = [i for i in necessary_columns if i in vep_file.columns]
     if "SpliceAI_pred" in vep_file.columns:
@@ -1790,7 +1789,7 @@ def process_vep(
         dummies = (
             vep_file["Consequence"].str.get_dummies(",").add_prefix("Consequence_")
         )
-        all_consequences = [i for i in types_mapping.keys() if 'Consequence' in i]
+        all_consequences = [i for i in types_mapping.keys() if "Consequence" in i]
         mask = pd.DataFrame(
             data=np.zeros(shape=(len(vep_file), len(all_consequences))),
             columns=all_consequences,
@@ -1800,14 +1799,16 @@ def process_vep(
         vep_file[mask.columns] = mask
     else:
         raise ValueError("'Consequence' column expected to be in VEP output")
-    vep_file = vep_file[list(set(necessary_columns_present+all_consequences))]
+    vep_file = vep_file[list(set(necessary_columns_present + all_consequences))]
 
-    types_present = dict((k, types_mapping[k]) for k in set(types_mapping.keys()).intersection(necessary_columns_present))
+    types_present = dict(
+        (k, types_mapping[k])
+        for k in set(types_mapping.keys()).intersection(necessary_columns_present)
+    )
     logger.info(vep_file.columns)
     logger.info(types_mapping.keys())
     logger.info(types_present)
     vep_file = vep_file.astype(types_present)
-
 
     return vep_file
 
@@ -1839,7 +1840,7 @@ def compute_plof(anno_df_in, anno_df_out):
     ]
 
     anno_df["is_plof"] = anno_df[PLOF_COLS].eq(1).any(axis=1).astype(int)
-    logger.info(f'writing to {anno_df_out}')
+    logger.info(f"writing to {anno_df_out}")
     anno_df.to_parquet(anno_df_out)
 
 
@@ -1953,7 +1954,7 @@ def calculate_maf(annotations_path: str, out_file: str):
     - annotations_path (str): Path to the annotations file containing allele frequency data.
     - out_file (str): Path to the output file to save the calculated MAF data.
     """
-    logger.info(f'reading annotation file {annotations_path}')
+    logger.info(f"reading annotation file {annotations_path}")
     annotation_file = pd.read_parquet(annotations_path)
     af = annotation_file["af"]
     annotation_file = annotation_file.drop(
@@ -1961,7 +1962,7 @@ def calculate_maf(annotations_path: str, out_file: str):
     )
     annotation_file["maf"] = af.apply(lambda x: min(x, 1 - x))
     annotation_file["maf_mb"] = (af * (1 - af) + 1e-8) ** (-0.5)
-    logger.info(f'saving file to {out_file}')
+    logger.info(f"saving file to {out_file}")
     annotation_file.to_parquet(out_file)
 
 
@@ -2036,7 +2037,7 @@ def select_rename_fill_annotations(
     logger.info(
         f"reading  in yaml file containing name and fill value mappings from {annotation_columns_yaml_file}"
     )
-    prior_names, _, _, column_name_mapping, fill_value_mapping,*_ = readYamlColumns(
+    prior_names, _, _, column_name_mapping, fill_value_mapping, *_ = readYamlColumns(
         annotation_columns_yaml_file
     )
     key_cols = ["id", "gene_id"]
