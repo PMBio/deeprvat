@@ -180,6 +180,16 @@ _Required when running training._ This set of parameters configures the selectio
 
 `correction method` specifies the multiple testing correction method to use on seed gene _p_-values, and `alpha_seed_genes` is the maximum threshold for corrected _p_-values to select seed genes.
 
+
+If you custom seed genes should be used, they can be stored like `baseline_results/{phenotype}/combined_baseline/eval/burden_associations.parquet` and setting
+```
+seed_gene_results: #baseline_results
+  result_dirs:
+    - base: baseline_results
+      type: combined_baseline
+```
+The `burden_associations.parquet` must be be provided for each `{phenotype}` in `phenotypes_for_training`, containing the columns `gene` (gene id as assigned in `gene_filename`) and `pval` (see `deeprvat/example/baseline_results`). To include all genes in `burden_associations.parquet` as seed genes, set `alpha_seed_genes` arbitraily high (e.g., `1000`). 
+
 ```
 #DeepRVAT training settings
 training:
@@ -217,6 +227,17 @@ evaluation:
 ```
 
 _Required._ Specifies the multiple-testing correction method and maximum corrected _p_-value for significance in evaluation of association testing results.
+
+```
+# Subsetting samples for training or association testing
+#sample_files:
+#  training: training_samples.pkl
+#  association_testing: association_testing_samples.pkl
+```
+_Optional._ 
+
+Subsetting of samples used during training and association testing. If no sample files are provided, all samples in the index of `phenotype_filename` are used for training and association testing. 
+Only `.pkl` files containing a list of sample IDs (string) are supported at the moment.
 
 ```
 #Additional settings if using the CV pipeline

@@ -23,7 +23,6 @@ These parameters specify options for running DeepRVAT. Those marked `(optional)`
 
 ```
 phenotypes_for_association_testing
-rare_variant_annotations
 covariates
 n_repeats
 evaluation
@@ -32,7 +31,7 @@ association_testing_data_thresholds (optional)
 cv_options (optional)
 ```
 
-Note that the file specified by `annotation_filename` must contain a column corresponding to each annotation in the list `rare_variant_annotations` in `config.yaml`. 
+Note that the file specified by `annotation_filename` must contain a column corresponding to each annotation in the list `rare_variant_annotations` from `deeprvat/pretrained_models/config.yaml`. 
 
 
 ## Executing the pipeline

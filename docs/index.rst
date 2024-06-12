@@ -59,10 +59,10 @@ To report a bug or make a feature request, please create an `issue <https://gith
    preprocessing.md
    annotations.md
    seed_gene_discovery.md
+   input_data.md
    precomputed_burdens.md
    pretrained_models.md
    training_association.md
-   input_data.md
    output_files.md
    cluster.md
    practical.md
