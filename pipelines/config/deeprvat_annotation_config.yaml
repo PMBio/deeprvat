@@ -4,7 +4,7 @@
 #perl_load_cmd : module load perl/5.20.2
 #vep_load_cmd : module load vep/108.1
 fasta_dir : reference
-fasta_file_name : hg38.fa
+fasta_file_name : GRCh38.primary_assembly.genome.fa
 gtf_file_name : gencode.v44.annotation.gtf.gz
 
 source_variant_file_pattern : test_vcf_data_c{chr}_b{block}
