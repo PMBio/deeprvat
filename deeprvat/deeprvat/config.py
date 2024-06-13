@@ -140,6 +140,11 @@ def create_main_config(
             for k in pretrained_config:
                 input_config[k] = deepcopy(pretrained_config[k])
 
+    if no_pretrain and "phenotypes_for_training" not in input_config:
+        logger.info("Unspecified phenotype list for training.")
+        logger.info("   Setting training phenotypes to be the same set as specified by phenotypes_for_association_testing.")
+        input_config["phenotypes_for_training"] = input_config["phenotypes_for_association_testing"]
+    
     if set(input_config.keys()) != set(expected_input_keys):
         if set(input_config.keys()) - set(expected_input_keys):
             raise KeyError(
