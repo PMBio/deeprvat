@@ -151,6 +151,15 @@ def create_main_config(
         logger.info("   Setting training phenotypes to be the same set as specified by phenotypes_for_association_testing.")
         input_config["phenotypes_for_training"] = input_config["phenotypes_for_association_testing"]
     
+    if "y_transformation" in input_config:
+        full_config["training_data"]["dataset_config"]["y_transformation"] = input_config[
+            "y_transformation"
+        ]
+        full_config["association_testing_data"]["dataset_config"]["y_transformation"] = (
+            input_config["y_transformation"]
+        )
+    else: expected_input_keys.remove("y_transformation")
+    
     if set(input_config.keys()) != set(expected_input_keys):
         if set(input_config.keys()) - set(expected_input_keys):
             raise KeyError(
@@ -184,12 +193,6 @@ def create_main_config(
     for pheno in input_config["phenotypes_for_association_testing"]:
         full_config["phenotypes"][pheno] = {}
         # Can optionally specify dictionary of = {"min_seed_genes": 3, "max_seed_genes": None, "pvalue_threshold": None}
-    full_config["training_data"]["dataset_config"]["y_transformation"] = input_config[
-        "y_transformation"
-    ]
-    full_config["association_testing_data"]["dataset_config"]["y_transformation"] = (
-        input_config["y_transformation"]
-    )
     # genotypes.h5
     full_config["training_data"]["gt_file"] = input_config["gt_filename"]
     full_config["association_testing_data"]["gt_file"] = input_config["gt_filename"]
@@ -421,9 +424,10 @@ def create_sg_discovery_config(
     full_config["data"]["dataset_config"]["standardize_xpheno"] = input_config[
         "dataset_config"
     ]["standardize_xpheno"]
-    full_config["data"]["dataset_config"]["y_transformation"] = input_config[
-        "dataset_config"
-    ]["y_transformation"]
+    if "y_transformation" in input_config["dataset_config"]:
+        full_config["data"]["dataset_config"]["y_transformation"] = input_config[
+            "dataset_config"
+        ]["y_transformation"]
     full_config["data"]["dataset_config"]["standardize_xpheno"] = input_config[
         "dataset_config"
     ]["standardize_xpheno"]
