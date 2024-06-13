@@ -71,8 +71,6 @@ def create_main_config(
         "gene_filename",
         "rare_variant_annotations",
         "covariates",
-        "association_testing_data_thresholds",
-        "training_data_thresholds",
         "seed_gene_results",
         "training",
         "n_repeats",
@@ -159,7 +157,13 @@ def create_main_config(
             input_config["y_transformation"]
         )
     else: expected_input_keys.remove("y_transformation")
+
+    if "training_data_thresholds" in input_config:
+        expected_input_keys.extend("training_data_thresholds")
+    if "association_testing_data_thresholds" in input_config:
+        expected_input_keys.extend("association_testing_data_thresholds")
     
+    # Final Check of Keys
     if set(input_config.keys()) != set(expected_input_keys):
         if set(input_config.keys()) - set(expected_input_keys):
             raise KeyError(
@@ -229,12 +233,6 @@ def create_main_config(
     full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
         "config"
     ]["annotations"] = input_config["rare_variant_annotations"]
-    # variant annotations
-    anno_list = deepcopy(input_config["rare_variant_annotations"])
-    for i, k in enumerate(input_config["training_data_thresholds"].keys()):
-        anno_list.insert(i + 1, k)
-    full_config["training_data"]["dataset_config"]["annotations"] = anno_list
-    full_config["association_testing_data"]["dataset_config"]["annotations"] = anno_list
     # covariates
     full_config["training_data"]["dataset_config"]["x_phenotypes"] = input_config[
         "covariates"
@@ -242,21 +240,32 @@ def create_main_config(
     full_config["association_testing_data"]["dataset_config"]["x_phenotypes"] = (
         input_config["covariates"]
     )
-    # Thresholds
-    full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
-        "thresholds"
-    ] = {}
-    full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
-        "config"
-    ]["thresholds"] = {}
-    for k, v in input_config["training_data_thresholds"].items():
-        full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
-            "thresholds"
-        ][k] = f"{k} {v}"
-    for k, v in input_config["association_testing_data_thresholds"].items():
-        full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
-            "config"
-        ]["thresholds"][k] = f"{k} {v}"
+    # Thresholds & variant annotations
+    anno_list = deepcopy(input_config["rare_variant_annotations"])
+    if "training_data_thresholds" in input_config:
+        full_config["training_data"]["dataset_config"]["rare_embedding"]["config"]["thresholds"] = {}
+        for k, v in input_config["training_data_thresholds"].items():
+            full_config["training_data"]["dataset_config"]["rare_embedding"]["config"]["thresholds"][k] = f"{k} {v}"
+        training_anno_list = anno_list
+        for i, k in enumerate(input_config["training_data_thresholds"].keys()):
+            training_anno_list.insert(i + 1, k)
+        full_config["training_data"]["dataset_config"]["annotations"] = training_anno_list
+    else: 
+        logger.info(" NOTE: No training_data_thresholds specified in input config for selecting variants for training.")
+        full_config["training_data"]["dataset_config"]["annotations"] = anno_list
+    
+    if "association_testing_data_thresholds" in input_config:
+        full_config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"]["thresholds"] = {}
+        for k, v in input_config["association_testing_data_thresholds"].items():
+            full_config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"]["thresholds"][k] = f"{k} {v}"
+        association_anno_list = anno_list
+        for i, k in enumerate(input_config["association_testing_data_thresholds"].keys()):
+            association_anno_list.insert(i + 1, k)
+        full_config["association_testing_data"]["dataset_config"]["annotations"] = association_anno_list
+    else: 
+        logger.info(" NOTE: No association_testing_data_thresholds specified in input config for selecting variants for association testing.")
+        full_config["association_testing_data"]["dataset_config"]["annotations"] = anno_list
+
     # Results evaluation parameters; alpha parameter for significance threshold
     if "evaluation" not in full_config:
         full_config["evaluation"] = {}
