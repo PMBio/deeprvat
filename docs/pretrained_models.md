@@ -5,7 +5,7 @@ For using the pretrained DeepRVAT model provided as part of the package, or a cu
 
 ## Configuration and input files
 
-Configuration parameters must be specified in `config.yaml`. For details on the meanings of the parameters and the format of input files, see [here](input_data).
+Configuration parameters must be specified in `deeprvat_input_pretrained_models_config.yaml`, see [example file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_pretrained_models_config.yaml). For details on the meanings of the parameters and the format of input files, see [here](input_data).
 
 To use pretrained models, you must specify `use_pretrained_models: True` in your configuration file. Additionally, provide the path to pretrained models (an output of the training pipeline) in the parameter `pretrained_model_path`. 
 

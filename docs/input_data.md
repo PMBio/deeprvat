@@ -3,9 +3,9 @@
 
 ## Configuration file
 
-Configuration for all pipelines is specified in the file `config.yaml`.
+Configuration for all pipelines is specified in the file `deeprvat_input_config.yaml`. When any pipeline is executed, a comprehensive `deeprvat_config.yaml` file is automatically generated based on the `deeprvat_input_config.yaml` input. 
 
-In the following, we describe the parameters (both optional and required) that can be specified in these files by way of an [example file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_config.yaml), which we explain block by block.
+In the following, we describe the parameters (both optional and required) that can be specified in the `deeprvat_input_config.yaml` by way of an [example file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_config.yaml), which we explain block by block.
 
 ```
 deeprvat_repo_dir: ../..
@@ -181,7 +181,7 @@ _Required when running training._ This set of parameters configures the selectio
 `correction method` specifies the multiple testing correction method to use on seed gene _p_-values, and `alpha_seed_genes` is the maximum threshold for corrected _p_-values to select seed genes.
 
 
-If you custom seed genes should be used, they can be stored like `baseline_results/{phenotype}/combined_baseline/eval/burden_associations.parquet` and setting
+If custom seed genes should be used, they can be stored like `baseline_results/{phenotype}/combined_baseline/eval/burden_associations.parquet` and set the respective `result_dirs`.
 ```
 seed_gene_results: #baseline_results
   result_dirs:
@@ -215,7 +215,7 @@ n_repeats: 30
 y_transformation: quantile_transform
 ```
 
-_Required._ `n_repeats` specifies the number of DeepRVAT models used in association testing and/or trained as part of the model ensemble.
+_Required._ `n_repeats` specifies the number of DeepRVAT models used in association testing and/or training as part of the model ensemble.
 
 _Optional._ `y_transformation` optionally specifies a transformation applied to phenotypes during association testing and (when executed) training. Possible values are `standardize` and `quantile_transform`.
 
@@ -249,7 +249,7 @@ cv_options:
 
 _Optional._
 
-`cv_exp` is a flag determining whether the cross-validation pipeline is run for training and association tresting. It defaults to `False`.
+`cv_exp` is a flag determining whether the cross-validation (CV) pipeline is run for training and association tresting. It defaults to `False`.
 
 `cv_path` must be specified if `cv_exp` is `True`. It specifies the path to sample files; see [Input data formats](#input-data-formats) for more.
 
@@ -287,12 +287,12 @@ In `step_1` and `step_2`, the parameters `bgen`, `snplist` and `bsize` control t
 
 ### Genotype file
 
-Contained in the file given by `gt_filename`. Output of the preprocessing pipeline. HDF5 format. The file has three datasets. `samples` is a byte-encoded array of sample ID strings. `variant_matrix` and `genotype_matrix` encode genotypes in a custom sparse format. Both matrices are the same size, with samples along the rows and variants along the columns. `variant_matrix` gives an integer variant ID (assigned by the preprocessing pipeline), and the corresponding cell of `genotype_matrix` is given by 1 or 2. To account for samples having different total number of variants, the rows of each matrix are padded with -1.
+Contained in the file given by `gt_filename`. Output of the preprocessing pipeline. HDF5 format. The file has three datasets. `samples` is a byte-encoded array of sample ID strings. `variant_matrix` and `genotype_matrix` encode genotypes in a custom sparse format. Both matrices are the same size, with samples along the rows and variants along the columns. `variant_matrix` gives an integer variant ID (assigned by the preprocessing pipeline), and the corresponding cell of `genotype_matrix` is given by 1 or 2. To account for samples having a different total number of variants, the rows of each matrix are padded with -1.
 
 
 ### Variant file
 
-Contained in the file given by `variant_filename`. Output of the preprocessing pipeline. Parquet format. The fiel contains metadata about variants, namely `id` (an integer variant ID assigned by the preprocessing pipeline and corresponding to those from the genotype file), `chrom`, `pos`, `ref` and `alt`. 
+Contained in the file given by `variant_filename`. Output of the preprocessing pipeline. Parquet format. The file contains metadata about variants, namely `id` (an integer variant ID assigned by the preprocessing pipeline and corresponding to those from the genotype file), `chrom`, `pos`, `ref` and `alt`. 
 
 
 ### Phenotype file

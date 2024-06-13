@@ -5,7 +5,7 @@ For using the pretrained DeepRVAT model provided as part of the package, or a cu
 
 ## Configuration and input files
 
-Configuration parameters must be specified in `config.yaml`. For details on the meanings of the parameters and the format of input files, see [here](input_data).
+Configuration parameters must be specified in `deeprvat_input_config.yaml`. For details on the meanings of the parameters and the format of input files, see [here](input_data).
 
 You must specify 
 ```
@@ -41,7 +41,7 @@ training_data_thresholds (optional)
 cv_options (required only when running cross validation)
 ```
 
-Note that the file specified by `annotation_filename` must contain a column corresponding to each annotation in the list `rare_variant_annotations` in `config.yaml`. 
+Note that the file specified by `annotation_filename` must contain a column corresponding to each annotation in the list `rare_variant_annotations` in `deeprvat_input_config.yaml`. 
 
 
 ## Executing the pipeline
