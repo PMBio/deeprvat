@@ -43,10 +43,14 @@ def create_main_config(
     :return: Joined configuration file saved to deeprvat_config.yaml.
     """
 
-    #Set stdout file
+    # Set stdout file
     file_handler = logging.FileHandler("config_generate.log", mode="a")
     file_handler.setLevel(logging.INFO)
-    file_handler.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s:%(name)s: %(message)s",))
+    file_handler.setFormatter(
+        logging.Formatter(
+            "[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
+        )
+    )
     logger.addHandler(file_handler)
 
     with open(config_file) as f:
@@ -146,23 +150,28 @@ def create_main_config(
 
     if no_pretrain and "phenotypes_for_training" not in input_config:
         logger.info("Unspecified phenotype list for training.")
-        logger.info("   Setting training phenotypes to be the same set as specified by phenotypes_for_association_testing.")
-        input_config["phenotypes_for_training"] = input_config["phenotypes_for_association_testing"]
-    
-    if "y_transformation" in input_config:
-        full_config["training_data"]["dataset_config"]["y_transformation"] = input_config[
-            "y_transformation"
+        logger.info(
+            "   Setting training phenotypes to be the same set as specified by phenotypes_for_association_testing."
+        )
+        input_config["phenotypes_for_training"] = input_config[
+            "phenotypes_for_association_testing"
         ]
-        full_config["association_testing_data"]["dataset_config"]["y_transformation"] = (
+
+    if "y_transformation" in input_config:
+        full_config["training_data"]["dataset_config"]["y_transformation"] = (
             input_config["y_transformation"]
         )
-    else: expected_input_keys.remove("y_transformation")
+        full_config["association_testing_data"]["dataset_config"][
+            "y_transformation"
+        ] = input_config["y_transformation"]
+    else:
+        expected_input_keys.remove("y_transformation")
 
     if "training_data_thresholds" in input_config:
         expected_input_keys.extend("training_data_thresholds")
     if "association_testing_data_thresholds" in input_config:
         expected_input_keys.extend("association_testing_data_thresholds")
-    
+
     # Final Check of Keys
     if set(input_config.keys()) != set(expected_input_keys):
         if set(input_config.keys()) - set(expected_input_keys):
@@ -243,28 +252,48 @@ def create_main_config(
     # Thresholds & variant annotations
     anno_list = deepcopy(input_config["rare_variant_annotations"])
     if "training_data_thresholds" in input_config:
-        full_config["training_data"]["dataset_config"]["rare_embedding"]["config"]["thresholds"] = {}
+        full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
+            "thresholds"
+        ] = {}
         for k, v in input_config["training_data_thresholds"].items():
-            full_config["training_data"]["dataset_config"]["rare_embedding"]["config"]["thresholds"][k] = f"{k} {v}"
+            full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
+                "thresholds"
+            ][k] = f"{k} {v}"
         training_anno_list = anno_list
         for i, k in enumerate(input_config["training_data_thresholds"].keys()):
             training_anno_list.insert(i + 1, k)
-        full_config["training_data"]["dataset_config"]["annotations"] = training_anno_list
-    else: 
-        logger.info(" NOTE: No training_data_thresholds specified in input config for selecting variants for training.")
+        full_config["training_data"]["dataset_config"][
+            "annotations"
+        ] = training_anno_list
+    else:
+        logger.info(
+            " NOTE: No training_data_thresholds specified in input config for selecting variants for training."
+        )
         full_config["training_data"]["dataset_config"]["annotations"] = anno_list
-    
+
     if "association_testing_data_thresholds" in input_config:
-        full_config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"]["thresholds"] = {}
+        full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
+            "config"
+        ]["thresholds"] = {}
         for k, v in input_config["association_testing_data_thresholds"].items():
-            full_config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"]["thresholds"][k] = f"{k} {v}"
+            full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
+                "config"
+            ]["thresholds"][k] = f"{k} {v}"
         association_anno_list = anno_list
-        for i, k in enumerate(input_config["association_testing_data_thresholds"].keys()):
+        for i, k in enumerate(
+            input_config["association_testing_data_thresholds"].keys()
+        ):
             association_anno_list.insert(i + 1, k)
-        full_config["association_testing_data"]["dataset_config"]["annotations"] = association_anno_list
-    else: 
-        logger.info(" NOTE: No association_testing_data_thresholds specified in input config for selecting variants for association testing.")
-        full_config["association_testing_data"]["dataset_config"]["annotations"] = anno_list
+        full_config["association_testing_data"]["dataset_config"][
+            "annotations"
+        ] = association_anno_list
+    else:
+        logger.info(
+            " NOTE: No association_testing_data_thresholds specified in input config for selecting variants for association testing."
+        )
+        full_config["association_testing_data"]["dataset_config"][
+            "annotations"
+        ] = anno_list
 
     # Results evaluation parameters; alpha parameter for significance threshold
     if "evaluation" not in full_config:
@@ -339,10 +368,14 @@ def create_sg_discovery_config(
     :type output_dir: str
     :return: Joined configuration file saved to sg_discovery_config.yaml.
     """
-    #Set stdout file
+    # Set stdout file
     file_handler = logging.FileHandler("config_generate.log", mode="a")
     file_handler.setLevel(logging.INFO)
-    file_handler.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s:%(name)s: %(message)s",))
+    file_handler.setFormatter(
+        logging.Formatter(
+            "[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
+        )
+    )
     logger.addHandler(file_handler)
 
     with open(config_file) as f:
@@ -449,7 +482,7 @@ def create_sg_discovery_config(
 
     with open(f"{output_dir}/sg_discovery_config.yaml", "w") as f:
         yaml.dump(full_config, f)
-    
+
     # close out config log file
     logger.removeHandler(file_handler)
     file_handler.close()
