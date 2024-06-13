@@ -94,63 +94,6 @@ list_outputs.append(
         tissue=absplice_main_conf["splicemap_tissues"],
     ),
 )
-
-if absplice_main_conf["AbSplice_RNA"] == True:
-
-    rule download_human_gtf:
-        params:
-            config_download["gtf"][genome]["url"],
-        output:
-            Path(absplice_download_dir) / config_download["gtf"][genome]["file"],
-        conda:
-            "./absplice.yaml"
-        shell:
-            "wget -O - {params} | gunzip -c > {output}"
-
-    list_outputs.append(
-        Path(absplice_download_dir) / config_download["gtf"][genome]["file"]
-    )
-
-    rule coding_genes:
-        input:
-            gtf_file=Path(absplice_download_dir)
-            / config_download["gtf"][genome]["file"],
-        output:
-            coding_genes=Path(absplice_download_dir)
-            / config_download["gtf"][genome]["coding_genes"],
-        conda:
-            "./absplice.yaml"
-        resources:
-            mem_mb=lambda wildcards, attempt: attempt * 16000,
-        script:
-            "./coding_genes.py"
-
-    list_outputs.append(
-        Path(absplice_download_dir) / config_download["gtf"][genome]["coding_genes"]
-    )
-
-    maf_version_mapper = {
-        "hg38": "3.1.2",
-        "hg19": "2.1.1",
-    }
-
-    rule download_gnomad_maf_db:
-        params:
-            version=maf_version_mapper[absplice_main_conf["genome"]],
-        conda:
-            "./environment_gnomad_rocksdb.yaml"
-        output:
-            gnomad_maf_db=directory(
-                Path(absplice_download_dir) / config_download["gnomad_rocksdb"][genome]
-            ),
-        shell:
-            "gnomad_rocksdb_download --version {params.version} --db_path {output.gnomad_maf_db}"
-
-    list_outputs.append(
-        Path(absplice_download_dir) / config_download["gnomad_rocksdb"][genome]
-    )
-
-
 if absplice_main_conf["use_rocksdb"] == True:
     genome_mapper = {
         "hg38": "grch38",
