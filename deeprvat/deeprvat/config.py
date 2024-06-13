@@ -43,6 +43,12 @@ def create_main_config(
     :return: Joined configuration file saved to deeprvat_config.yaml.
     """
 
+    #Set stdout file
+    file_handler = logging.FileHandler("config_generate.log", mode="a")
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s:%(name)s: %(message)s",))
+    logger.addHandler(file_handler)
+
     with open(config_file) as f:
         input_config = yaml.safe_load(f)
 
@@ -302,6 +308,9 @@ def create_main_config(
     with open(f"{output_dir}/deeprvat_config.yaml", "w") as f:
         yaml.dump(full_config, f)
 
+    logger.removeHandler(file_handler)
+    file_handler.close()
+
 
 def create_sg_discovery_config(
     config_file: str,
@@ -318,6 +327,11 @@ def create_sg_discovery_config(
     :type output_dir: str
     :return: Joined configuration file saved to sg_discovery_config.yaml.
     """
+    #Set stdout file
+    file_handler = logging.FileHandler("config_generate.log", mode="a")
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s:%(name)s: %(message)s",))
+    logger.addHandler(file_handler)
 
     with open(config_file) as f:
         input_config = yaml.safe_load(f)
@@ -422,6 +436,10 @@ def create_sg_discovery_config(
 
     with open(f"{output_dir}/sg_discovery_config.yaml", "w") as f:
         yaml.dump(full_config, f)
+    
+    # close out config log file
+    logger.removeHandler(file_handler)
+    file_handler.close()
 
 
 @cli.command()
