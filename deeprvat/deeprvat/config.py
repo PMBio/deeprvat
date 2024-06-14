@@ -75,6 +75,8 @@ def create_main_config(
         "gene_filename",
         "rare_variant_annotations",
         "covariates",
+        "association_testing_data_thresholds",
+        "training_data_thresholds",
         "seed_gene_results",
         "training",
         "n_repeats",
@@ -145,8 +147,15 @@ def create_main_config(
             with open(f"{pretrained_model_path}/config.yaml") as f:
                 pretrained_config = yaml.safe_load(f)
 
+            required_keys = ["model","rare_variant_annotations","training_data_thresholds"]
             for k in pretrained_config:
-                input_config[k] = deepcopy(pretrained_config[k])
+                if k not in required_keys:
+                    raise KeyError((
+                        f"Unexpected key in pretrained_model_path/config.yaml file : {k} "
+                        "Please review DEEPRVAT_DIR/pretrained_models/config.yaml for expected list of keys."
+                    ))
+                else:
+                    input_config[k] = deepcopy(pretrained_config[k])
 
     if no_pretrain and "phenotypes_for_training" not in input_config:
         logger.info("Unspecified phenotype list for training.")
@@ -167,10 +176,20 @@ def create_main_config(
     else:
         expected_input_keys.remove("y_transformation")
 
-    if "training_data_thresholds" in input_config:
-        expected_input_keys.extend("training_data_thresholds")
-    if "association_testing_data_thresholds" in input_config:
-        expected_input_keys.extend("association_testing_data_thresholds")
+    if "MAF" not in input_config["training_data_thresholds"]:
+        raise KeyError(
+            (
+                "Missing required MAF threshold in config['training_data_thresholds']. "
+                "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
+            )
+        )
+    if "MAF" not in input_config["association_testing_data_thresholds"]:
+        raise KeyError(
+            (
+                "Missing required MAF threshold in config['association_testing_data_thresholds']. "
+                "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
+            )
+        )
 
     # Final Check of Keys
     if set(input_config.keys()) != set(expected_input_keys):
@@ -251,49 +270,34 @@ def create_main_config(
     )
     # Thresholds & variant annotations
     anno_list = deepcopy(input_config["rare_variant_annotations"])
-    if "training_data_thresholds" in input_config:
-        full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
+    full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
             "thresholds"
         ] = {}
-        for k, v in input_config["training_data_thresholds"].items():
-            full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
-                "thresholds"
-            ][k] = f"{k} {v}"
-        training_anno_list = anno_list
-        for i, k in enumerate(input_config["training_data_thresholds"].keys()):
-            training_anno_list.insert(i + 1, k)
-        full_config["training_data"]["dataset_config"][
-            "annotations"
-        ] = training_anno_list
-    else:
-        logger.info(
-            " NOTE: No training_data_thresholds specified in input config for selecting variants for training."
-        )
-        full_config["training_data"]["dataset_config"]["annotations"] = anno_list
-
-    if "association_testing_data_thresholds" in input_config:
+    for k, v in input_config["training_data_thresholds"].items():
+        full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
+            "thresholds"
+        ][k] = f"{k} {v}"
+    training_anno_list = anno_list
+    for i, k in enumerate(input_config["training_data_thresholds"].keys()):
+        training_anno_list.insert(i + 1, k)
+    full_config["training_data"]["dataset_config"][
+        "annotations"
+    ] = training_anno_list
+    full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
+        "config"
+    ]["thresholds"] = {}
+    for k, v in input_config["association_testing_data_thresholds"].items():
         full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
             "config"
-        ]["thresholds"] = {}
-        for k, v in input_config["association_testing_data_thresholds"].items():
-            full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
-                "config"
-            ]["thresholds"][k] = f"{k} {v}"
-        association_anno_list = anno_list
-        for i, k in enumerate(
-            input_config["association_testing_data_thresholds"].keys()
-        ):
-            association_anno_list.insert(i + 1, k)
-        full_config["association_testing_data"]["dataset_config"][
-            "annotations"
-        ] = association_anno_list
-    else:
-        logger.info(
-            " NOTE: No association_testing_data_thresholds specified in input config for selecting variants for association testing."
-        )
-        full_config["association_testing_data"]["dataset_config"][
-            "annotations"
-        ] = anno_list
+        ]["thresholds"][k] = f"{k} {v}"
+    association_anno_list = anno_list
+    for i, k in enumerate(
+        input_config["association_testing_data_thresholds"].keys()
+    ):
+        association_anno_list.insert(i + 1, k)
+    full_config["association_testing_data"]["dataset_config"][
+        "annotations"
+    ] = association_anno_list
 
     # Results evaluation parameters; alpha parameter for significance threshold
     if "evaluation" not in full_config:
@@ -304,6 +308,19 @@ def create_main_config(
     full_config["evaluation"]["alpha"] = input_config["evaluation"]["alpha"]
     # DeepRVAT model
     full_config["n_repeats"] = input_config["n_repeats"]
+
+    # Subsetting samples [optional]
+    if "sample_files" in input_config:
+        if "training" in input_config["sample_files"]:
+            logger.info("Adding in subset sample file for DeepRVAT training.")
+            full_config["training_data"]["dataset_config"]["sample_file"] = (
+                input_config["sample_files"]["training"]
+            )
+        if "association_testing" in input_config["sample_files"]:
+            logger.info("Adding in subset sample file for association testing.")
+            full_config["association_testing_data"]["dataset_config"]["sample_file"] = (
+                input_config["sample_files"]["association_testing"]
+            )
 
     if no_pretrain:
         # PL trainer
@@ -330,24 +347,13 @@ def create_main_config(
         full_config["model"] = input_config["model"]
         full_config["pretrained_model_path"] = input_config["pretrained_model_path"]
         # need to also save deeprvat_config.yaml also to pretrained-model dir
+        logger.info(f"Saving deeprvat_config.yaml to -- {pretrained_model_path}/deeprvat_config.yaml --")
         with open(f"{pretrained_model_path}/deeprvat_config.yaml", "w") as f:
             yaml.dump(full_config, f)
 
-    # Subsetting samples [optional]
-    if "sample_files" in input_config:
-        if "training" in input_config["sample_files"]:
-            logger.info("Adding in subset sample file for DeepRVAT training.")
-            full_config["training_data"]["dataset_config"]["sample_file"] = (
-                input_config["sample_files"]["training"]
-            )
-        if "association_testing" in input_config["sample_files"]:
-            logger.info("Adding in subset sample file for association testing.")
-            full_config["association_testing_data"]["dataset_config"]["sample_file"] = (
-                input_config["sample_files"]["association_testing"]
-            )
-
     with open(f"{output_dir}/deeprvat_config.yaml", "w") as f:
         yaml.dump(full_config, f)
+        logger.info(f"Saving deeprvat_config.yaml to -- {output_dir}/deeprvat_config.yaml --")
 
     logger.removeHandler(file_handler)
     file_handler.close()
@@ -480,6 +486,7 @@ def create_sg_discovery_config(
             "sample_file"
         ]
 
+    logger.info(f"Saving sg_discovery_config.yaml to -- {output_dir}/sg_discovery_config.yaml --")
     with open(f"{output_dir}/sg_discovery_config.yaml", "w") as f:
         yaml.dump(full_config, f)
 
