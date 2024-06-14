@@ -75,7 +75,7 @@ def spread_config(
                 ]
             logger.info(config["baseline_results"])
         logger.info(f"Writing config for module {module}")
-        with open(f"{out_path}/{module_folder_dict[module]}/config.yaml", "w") as f:
+        with open(f"{out_path}/{module_folder_dict[module]}/deeprvat_config.yaml", "w") as f:
             yaml.dump(config, f)
 
 
