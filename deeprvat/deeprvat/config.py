@@ -99,8 +99,8 @@ def create_main_config(
                 "Missing keys cv_path or n_folds under config['cv_options'] "
                 "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
             )
-        full_config["cv_path"] = input_config["cv_path"]
-        full_config["n_folds"] = input_config["n_folds"]
+        full_config["cv_path"] = input_config["cv_options"]["cv_path"]
+        full_config["n_folds"] = input_config["cv_options"]["n_folds"]
         full_config["cv_exp"] = True
 
     # REGENIE setup parameters

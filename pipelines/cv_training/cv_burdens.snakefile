@@ -61,7 +61,7 @@ rule combine_test_burdens:
             for c in range(n_burden_chunks)
             for cv_split in range(cv_splits)
         ],
-        config="config.yaml",
+        config="deeprvat_config.yaml",
     output:
         "{phenotype}/deeprvat/burdens/merging.finished",
     params:
