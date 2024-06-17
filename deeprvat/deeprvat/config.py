@@ -147,13 +147,19 @@ def create_main_config(
             with open(f"{pretrained_model_path}/config.yaml") as f:
                 pretrained_config = yaml.safe_load(f)
 
-            required_keys = ["model","rare_variant_annotations","training_data_thresholds"]
+            required_keys = [
+                "model",
+                "rare_variant_annotations",
+                "training_data_thresholds",
+            ]
             for k in pretrained_config:
                 if k not in required_keys:
-                    raise KeyError((
-                        f"Unexpected key in pretrained_model_path/config.yaml file : {k} "
-                        "Please review DEEPRVAT_DIR/pretrained_models/config.yaml for expected list of keys."
-                    ))
+                    raise KeyError(
+                        (
+                            f"Unexpected key in pretrained_model_path/config.yaml file : {k} "
+                            "Please review DEEPRVAT_DIR/pretrained_models/config.yaml for expected list of keys."
+                        )
+                    )
                 else:
                     input_config[k] = deepcopy(pretrained_config[k])
 
@@ -344,13 +350,17 @@ def create_main_config(
         full_config["model"] = input_config["model"]
         full_config["pretrained_model_path"] = input_config["pretrained_model_path"]
         # need to also save deeprvat_config.yaml also to pretrained-model dir
-        logger.info(f"Saving deeprvat_config.yaml to -- {pretrained_model_path}/deeprvat_config.yaml --")
+        logger.info(
+            f"Saving deeprvat_config.yaml to -- {pretrained_model_path}/deeprvat_config.yaml --"
+        )
         with open(f"{pretrained_model_path}/deeprvat_config.yaml", "w") as f:
             yaml.dump(full_config, f)
 
     with open(f"{output_dir}/deeprvat_config.yaml", "w") as f:
         yaml.dump(full_config, f)
-        logger.info(f"Saving deeprvat_config.yaml to -- {output_dir}/deeprvat_config.yaml --")
+        logger.info(
+            f"Saving deeprvat_config.yaml to -- {output_dir}/deeprvat_config.yaml --"
+        )
 
     logger.removeHandler(file_handler)
     file_handler.close()
@@ -483,7 +493,9 @@ def create_sg_discovery_config(
             "sample_file"
         ]
 
-    logger.info(f"Saving sg_discovery_config.yaml to -- {output_dir}/sg_discovery_config.yaml --")
+    logger.info(
+        f"Saving sg_discovery_config.yaml to -- {output_dir}/sg_discovery_config.yaml --"
+    )
     with open(f"{output_dir}/sg_discovery_config.yaml", "w") as f:
         yaml.dump(full_config, f)
 
