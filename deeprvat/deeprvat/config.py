@@ -273,27 +273,24 @@ def create_main_config(
     full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
             "thresholds"
         ] = {}
-    for k, v in input_config["training_data_thresholds"].items():
+    training_anno_list = deepcopy(anno_list)
+    for i, (k, v) in enumerate(input_config["training_data_thresholds"].items()):
         full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
             "thresholds"
         ][k] = f"{k} {v}"
-    training_anno_list = anno_list
-    for i, k in enumerate(input_config["training_data_thresholds"].keys()):
         training_anno_list.insert(i + 1, k)
     full_config["training_data"]["dataset_config"][
         "annotations"
     ] = training_anno_list
+    
     full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
         "config"
     ]["thresholds"] = {}
-    for k, v in input_config["association_testing_data_thresholds"].items():
+    association_anno_list = deepcopy(anno_list)
+    for i, (k, v) in enumerate(input_config["association_testing_data_thresholds"].items()):
         full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
             "config"
         ]["thresholds"][k] = f"{k} {v}"
-    association_anno_list = anno_list
-    for i, k in enumerate(
-        input_config["association_testing_data_thresholds"].keys()
-    ):
         association_anno_list.insert(i + 1, k)
     full_config["association_testing_data"]["dataset_config"][
         "annotations"
