@@ -44,6 +44,8 @@ on:
 jobs:
   Run-Pipeline:
       runs-on: ubuntu-latest
+      env:
+        CUDA_VISIBLE_DEVICES: -1
       steps:
         - name: Check out repository code
           uses: actions/checkout@v4
@@ -71,11 +73,6 @@ jobs:
         - name: Run pre pipeline cmd
           if: inputs.prerun_cmd
           run: ${{inputs.prerun_cmd}}
-          shell: bash -el {0}
-        - name: Set to 0 GPUs in config
-          if: inputs.no_gpu
-          # There are no GPUs on the gh worker, so we can disable it in the config
-          run: "sed -i 's/gpus: 1/gpus: 0/' ${{inputs.pipeline_config}}"
           shell: bash -el {0}
         - name: "Running pipeline ${{ github.jobs[github.job].name }}"
           run: |
