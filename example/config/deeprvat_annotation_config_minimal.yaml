@@ -12,7 +12,7 @@ source_variant_file_type: 'bcf'
 
 # comment out / remove to run on all chromosomes
 included_chromosomes : ['3','4']
-annotation_columns_yaml_file: ../../pipelines/config/annotation_colnames_filling_values_minimal.yaml
+annotation_columns_yaml_file: ../../example/config/annotation_colnames_filling_values_minimal.yaml
 source_variant_dir : preprocessing_workdir/norm/bcf/
 anno_tmp_dir : output_dir/annotations/tmp
 anno_dir : output_dir/annotations

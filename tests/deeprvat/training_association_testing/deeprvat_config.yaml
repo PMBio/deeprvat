@@ -120,12 +120,23 @@ association_testing_data:
     y_transformation: quantile_transform
   gt_file: genotypes.h5
   variant_file: variants.parquet
+baseline_results:
+  alpha_seed_genes: 0.05
+  correction_method: Bonferroni
+  options:
+  - base: baseline_results
+    type: plof/burden
+  - base: baseline_results
+    type: missense/burden
+  - base: baseline_results
+    type: plof/skat
+  - base: baseline_results
+    type: missense/skat
 cv_exp: false
 do_scoretest: true
 evaluation:
   alpha: 0.05
   correction_method: Bonferroni
-gtf_file: gencode.v38.basic.annotation.gtf.gz
 hyperparameter_optimization:
   direction: maximize
   n_trials: 1
@@ -159,43 +170,14 @@ model:
 n_avg_chunks: 1
 n_burden_chunks: 5
 n_regression_chunks: 2
-n_repeats: 30
+n_repeats: 6
 phenotypes:
-  Apolipoprotein_A: {}
-  Apolipoprotein_B: {}
-  Calcium: {}
   Cholesterol: {}
   HDL_cholesterol: {}
-  IGF_1: {}
-  LDL_direct: {}
-  Lymphocyte_percentage: {}
-  Mean_corpuscular_volume: {}
   Mean_platelet_thrombocyte_volume: {}
-  Mean_reticulocyte_volume: {}
-  Neutrophill_count: {}
   Platelet_count: {}
-  Platelet_crit: {}
   Platelet_distribution_width: {}
-  Red_blood_cell_erythrocyte_count: {}
-  SHBG: {}
-  Standing_height: {}
-  Total_bilirubin: {}
-  Triglycerides: {}
-  Urate: {}
-pretrained_model_path: /home/k286r/dr-fix/deeprvat/pretrained_models
-regenie_exp: true
-regenie_options:
-  step_1:
-    bgen: imputation.bgen
-    bsize: 1000
-    options:
-    - --sample imputation.sample
-    - --qt
-    snplist: imputation.snplist
-  step_2:
-    bsize: 400
-    options:
-    - --qt
+regenie_exp: false
 training:
   dataloader_config:
     batch_size: 1024
@@ -204,9 +186,27 @@ training:
     num_workers: 0
     temp_dir: $TMPDIR/deeprvat_train
   drop_n_bags: 0
+  early_stopping:
+    min_delta: 1.0e-05
+    mode: min
+    patience: 3
+    verbose: true
   min_variant_count: 0
   n_bags: 1
   n_parallel_jobs: 6
+  phenotypes:
+    - Cholesterol
+    - HDL_cholesterol
+    - Mean_platelet_thrombocyte_volume
+    - Platelet_count
+    - Platelet_distribution_width
+  pl_trainer:
+    check_val_every_n_epoch: 1
+    gpus: 1
+    log_every_n_steps: 1
+    max_epochs: 1000
+    min_epochs: 50
+    precision: 16
   sample_with_replacement: false
   train_proportion: 0.8
 training_data:
