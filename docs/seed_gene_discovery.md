@@ -7,7 +7,7 @@ To run the pipeline, an experiment directory with the `seed_gene_discovery_input
 (input-data)=
 ## Input data
 
-The experiment directory in addition requires to have the same input data as specified for [DeepRVAT](input_data.md#input-data-formats), including
+The experiment directory in addition requires to have the same input data as specified for [DeepRVAT](#input-data-formats), including
 - `annotations.parquet`
 - `protein_coding_genes.parquet`
 - `genotypes.h5`

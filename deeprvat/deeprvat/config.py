@@ -34,7 +34,7 @@ def create_main_config(
     """
     Generates the necessary deeprvat_config.yaml file for running all pipelines.
     This function expects inputs as shown in the following config-file:
-        - DEEPRVAT_DIR/example/deeprvat_input_config.yaml
+    - DEEPRVAT_DIR/example/deeprvat_input_config.yaml
 
     :param config_file: Path to directory of relevant config yaml file
     :type config_file: str
@@ -373,7 +373,7 @@ def create_sg_discovery_config(
     """
     Generates the necessary sg_discovery_config.yaml file for running the seed_gene_discovery pipelines.
     This function expects inputs as shown in the following config-file:
-        - DEEPRVAT_DIR/example/seed_gene_discovery_input_config.yaml
+    - DEEPRVAT_DIR/example/seed_gene_discovery_input_config.yaml
 
     :param config_file: Path to directory of relevant config yaml file
     :type config_file: str

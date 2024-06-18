@@ -281,7 +281,7 @@ _Optional._
 
 In `step_1` and `step_2`, the parameters `bgen`, `snplist` and `bsize` control the corresponding options in REGENIE. Additional options for each step of REGENIE may (but need not be) specified as a list under `options`.
 
-
+(input-data-formats)=
 ## Input data formats
 
 

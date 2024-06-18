@@ -1,3 +1,6 @@
+---
+orphan: true
+---
 # Training and association testing with DeepRVAT
 
 We have developed multiple modes of running DeepRVAT to suit your needs. Below are listed various running setups that entail just training DeepRVAT, using pretrained DeepRVAT models for association testing, using precomputed burdens for association testing, including REGENIE in training and association testing and also combinations of these scenarios. The general procedure is to have the relevant input data for a given setup appropriately prepared, which may include having already completed the [preprocessing pipeline](https://deeprvat.readthedocs.io/en/latest/preprocessing.html) and [annotation pipeline](https://deeprvat.readthedocs.io/en/latest/annotations.html).
