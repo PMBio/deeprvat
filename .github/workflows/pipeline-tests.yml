@@ -9,8 +9,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/run_training.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cd ./example && cp ../tests/deeprvat/test_data/training/deeprvat_config.yaml .
-      pipeline_directory: ./example/
+      prerun_cmd: cp ./tests/deeprvat/test_data/training/deeprvat_config.yaml .
 
   Pipeline-Tests-RunTraining:
     needs: Smoke-RunTraining
@@ -18,8 +17,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/run_training.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cd ./example && cp ../tests/deeprvat/test_data/training/deeprvat_config.yaml .
-      pipeline_directory: ./example/
+      prerun_cmd: cp ./tests/deeprvat/test_data/training/deeprvat_config.yaml .
       dry_run: false
 
   # Association Testing Pretrained Pipeline
@@ -28,8 +26,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/association_testing_pretrained.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cd ./example && ln -s ../pretrained_models && cp ../tests/deeprvat/pretrained/deeprvat_config.yaml .
-      pipeline_directory: ./example/
+      prerun_cmd: cp ./tests/deeprvat/pretrained/deeprvat_config.yaml .
 
   Pipeline-Tests-Training-Association-Testing:
     needs: Smoke-Association-Testing-Pretrained
@@ -37,8 +34,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/association_testing_pretrained.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cd ./example && ln -s ../pretrained_models && cp ../tests/deeprvat/pretrained/deeprvat_config.yaml .
-      pipeline_directory: ./example/
+      prerun_cmd: cp ./tests/deeprvat/pretrained/deeprvat_config.yaml .
       dry_run: false
 
   # Association Testing Pretrained Regenie
@@ -47,8 +43,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/association_testing_pretrained_regenie.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cd ./example && ln -s ../pretrained_models && cp ../tests/deeprvat/regenie/pretrained/deeprvat_config.yaml .
-      pipeline_directory: ./example/
+      prerun_cmd: cp ./tests/deeprvat/regenie/pretrained/deeprvat_config.yaml .
 
   Pipeline-Tests-Association-Testing-Pretrained-Regenie:
     needs: Smoke-Association-Testing-Pretrained-Regenie
@@ -56,8 +51,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/association_testing_pretrained_regenie.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cd ./example && ln -s ../pretrained_models && cp ../tests/deeprvat/regenie/pretrained/deeprvat_config.yaml .
-      pipeline_directory: ./example/
+      prerun_cmd: cp ./tests/deeprvat/regenie/pretrained/deeprvat_config.yaml .
       dry_run: false
 
   # Association Testing Training
@@ -66,8 +60,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/training_association_testing.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cd ./example && cp ../tests/deeprvat/test_data/training/deeprvat_config.yaml .
-      pipeline_directory: ./example/
+      prerun_cmd: cp ./tests/deeprvat/test_data/training/deeprvat_config.yaml .
 
   Pipeline-Tests-Association-Testing-Training:
     needs: Smoke-Association-Testing-Training
@@ -75,8 +68,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/training_association_testing.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cd ./example && cp ../tests/deeprvat/test_data/training/deeprvat_config.yaml .
-      pipeline_directory: ./example/
+      prerun_cmd: cp ./tests/deeprvat/test_data/training/deeprvat_config.yaml .
       dry_run: false
 
   # Association Testing Training Regenie
@@ -85,8 +77,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/training_association_testing_regenie.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cd ./example && cp ../tests/deeprvat/regenie/training_association_testing/deeprvat_config.yaml .
-      pipeline_directory: ./example/
+      prerun_cmd: cp ./tests/deeprvat/regenie/training_association_testing/deeprvat_config.yaml .
 
   Pipeline-Tests-Training-Association-Testing-Regenie:
     needs: Smoke-Association-Testing-Training-Regenie
@@ -94,8 +85,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/training_association_testing_regenie.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cd ./example && cp ../tests/deeprvat/regenie/training_association_testing/deeprvat_config.yaml .
-      pipeline_directory: ./example/
+      prerun_cmd: cp ./tests/deeprvat/regenie/training_association_testing/deeprvat_config.yaml .
       dry_run: false
 
   # Seed Gene Discovery
@@ -104,8 +94,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/seed_gene_discovery.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cd ./example && cp ../tests/seed_gene_discovery/sg_discovery_config.yaml .
-      pipeline_config: ./sg_discovery_config.yaml
+      prerun_cmd: cp ./tests/seed_gene_discovery/sg_discovery_config.yaml .
 
   Pipeline-Tests-Seed-Gene-Discovery:
     needs: Smoke-Seed-Gene-Discovery
@@ -113,8 +102,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/seed_gene_discovery.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cd ./example && cp ../tests/seed_gene_discovery/sg_discovery_config.yaml .
-      pipeline_config: ./sg_discovery_config.yaml
+      prerun_cmd: cp ./tests/seed_gene_discovery/sg_discovery_config.yaml .
       dry_run: false
       
 

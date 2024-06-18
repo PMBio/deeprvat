@@ -124,13 +124,13 @@ baseline_results:
   alpha_seed_genes: 0.05
   correction_method: Bonferroni
   options:
-  - base: baseline_results
+  - base: example/baseline_results
     type: plof/burden
-  - base: baseline_results
+  - base: example/baseline_results
     type: missense/burden
-  - base: baseline_results
+  - base: example/baseline_results
     type: plof/skat
-  - base: baseline_results
+  - base: example/baseline_results
     type: missense/skat
 cv_exp: false
 do_scoretest: true

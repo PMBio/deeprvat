@@ -245,12 +245,12 @@ training_data:
 regenie_exp: true
 regenie_options:
   step_1:
-    bgen: imputation.bgen
+    bgen: example/imputation.bgen
     bsize: 1000
     options:
-    - --sample imputation.sample
+    - --sample example/imputation.sample
     - --qt
-    snplist: imputation.snplist
+    snplist: example/imputation.snplist
   step_2:
     bsize: 400
     options:
