@@ -39,6 +39,12 @@ include: "association_testing/association_dataset.snakefile"
 include: "association_testing/burdens.snakefile"
 include: "association_testing/regress_eval.snakefile"
 
+rule all:
+    input:
+        expand("{phenotype}/deeprvat/eval/significant.parquet",
+               phenotype=phenotypes),
+        expand("{phenotype}/deeprvat/eval/all_results.parquet",
+               phenotype=phenotypes)
 
 rule all_regression:  #regress_eval.snakefile
     input:
