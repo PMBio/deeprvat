@@ -9,6 +9,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/run_training.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
+      pipeline_config: ./tests/deeprvat/test_data/training/deeprvat_config.yaml
 
   Pipeline-Tests-RunTraining:
     needs: Smoke-RunTraining
@@ -16,6 +17,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/run_training.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
+      pipeline_config: ./tests/deeprvat/test_data/training/deeprvat_config.yaml
       dry_run: false
 
   # Association Testing Pretrained Pipeline
@@ -25,6 +27,7 @@ jobs:
       pipeline_file: ./pipelines/association_testing_pretrained.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
       prerun_cmd: cd ./example && ln -s ../pretrained_models
+      pipeline_config: ./tests/deeprvat/pretrained/deeprvat_config.yaml
 
   Pipeline-Tests-Training-Association-Testing:
     needs: Smoke-Association-Testing-Pretrained
@@ -33,6 +36,7 @@ jobs:
       pipeline_file: ./pipelines/association_testing_pretrained.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
       prerun_cmd: cd ./example && ln -s ../pretrained_models
+      pipeline_config: ./tests/deeprvat/pretrained/deeprvat_config.yaml
       dry_run: false
 
   # Association Testing Pretrained Regenie
@@ -42,6 +46,7 @@ jobs:
       pipeline_file: ./pipelines/association_testing_pretrained_regenie.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
       prerun_cmd: cd ./example && ln -s ../pretrained_models
+      pipeline_config: ./tests/deeprvat/regenie/pretrained/deeprvat_config.yaml
 
   Pipeline-Tests-Association-Testing-Pretrained-Regenie:
     needs: Smoke-Association-Testing-Pretrained-Regenie
@@ -50,6 +55,7 @@ jobs:
       pipeline_file: ./pipelines/association_testing_pretrained_regenie.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
       prerun_cmd: cd ./example && ln -s ../pretrained_models
+      pipeline_config: ./tests/deeprvat/regenie/pretrained/deeprvat_config.yaml
       dry_run: false
 
   # Association Testing Training
@@ -58,6 +64,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/training_association_testing.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
+      pipeline_config: ./tests/deeprvat/test_data/training/deeprvat_config.yaml
 
   Pipeline-Tests-Association-Testing-Training:
     needs: Smoke-Association-Testing-Training
@@ -65,6 +72,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/training_association_testing.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
+      pipeline_config: ./tests/deeprvat/test_data/training/deeprvat_config.yaml
       dry_run: false
 
   # Association Testing Training Regenie
@@ -73,6 +81,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/training_association_testing_regenie.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
+      pipeline_config: ./tests/deeprvat/regenie/training_association_testing/deeprvat_config.yaml
 
   Pipeline-Tests-Training-Association-Testing-Regenie:
     needs: Smoke-Association-Testing-Training-Regenie
@@ -80,6 +89,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/training_association_testing_regenie.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
+      pipeline_config: ./tests/deeprvat/regenie/training_association_testing/deeprvat_config.yaml
       dry_run: false
 
   # Seed Gene Discovery
@@ -88,7 +98,8 @@ jobs:
     with:
       pipeline_file: ./pipelines/seed_gene_discovery.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cd ./example && cp ../deeprvat/seed_gene_discovery/config.yaml .
+      prerun_cmd: cd ./example
+      pipeline_config: ./tests/seed_gene_discovery/sg_discovery_config.yaml
 
   Pipeline-Tests-Seed-Gene-Discovery:
     needs: Smoke-Seed-Gene-Discovery
@@ -96,8 +107,10 @@ jobs:
     with:
       pipeline_file: ./pipelines/seed_gene_discovery.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cd ./example && cp ../deeprvat/seed_gene_discovery/config.yaml .
+      prerun_cmd: cd ./example
+      pipeline_config: ./tests/seed_gene_discovery/sg_discovery_config.yaml
       dry_run: false
+      
 
   # Preprocessing With QC
   Smoke-Preprocessing-With-QC:
@@ -106,7 +119,7 @@ jobs:
       pipeline_file: ./pipelines/preprocess_with_qc.snakefile
       environment_file: ./deeprvat_preprocessing_env.yml
       pipeline_directory: ./example/preprocess
-      pipeline_config: ./pipelines/config/deeprvat_preprocess_config.yaml
+      pipeline_config: ./example/config/deeprvat_preprocess_config.yaml
       download_fasta_data: true
       fasta_download_path: ./example/preprocess/workdir/reference
 
@@ -117,7 +130,7 @@ jobs:
       pipeline_file: ./pipelines/preprocess_with_qc.snakefile
       environment_file: ./deeprvat_preprocessing_env.yml
       pipeline_directory: ./example/preprocess
-      pipeline_config: ./pipelines/config/deeprvat_preprocess_config.yaml
+      pipeline_config: ./example/config/deeprvat_preprocess_config.yaml
       dry_run: false
       download_fasta_data: true
       fasta_download_path: ./example/preprocess/workdir/reference
@@ -129,7 +142,7 @@ jobs:
       pipeline_file: ./pipelines/preprocess_no_qc.snakefile
       environment_file: ./deeprvat_preprocessing_env.yml
       pipeline_directory: ./example/preprocess
-      pipeline_config: ./pipelines/config/deeprvat_preprocess_config.yaml
+      pipeline_config: ./example/config/deeprvat_preprocess_config.yaml
       download_fasta_data: true
       fasta_download_path: ./example/preprocess/workdir/reference
 
@@ -140,7 +153,7 @@ jobs:
       pipeline_file: ./pipelines/preprocess_no_qc.snakefile
       environment_file: ./deeprvat_preprocessing_env.yml
       pipeline_directory: ./example/preprocess
-      pipeline_config: ./pipelines/config/deeprvat_preprocess_config.yaml
+      pipeline_config: ./example/config/deeprvat_preprocess_config.yaml
       dry_run: false
       download_fasta_data: true
       fasta_download_path: ./example/preprocess/workdir/reference
@@ -151,7 +164,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/annotations.snakefile
       environment_file: ./deeprvat_annotations.yml
-      pipeline_config: ./pipelines/config/deeprvat_annotation_config.yaml
+      pipeline_config: ./example/config/deeprvat_annotation_config.yaml
       pipeline_directory: ./example/annotations
       download_fasta_data: true
       fasta_download_path: ./example/annotations/reference
@@ -168,7 +181,7 @@ jobs:
         wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz \
         -O ./example/annotations/reference/gencode.v44.annotation.gtf.gz
       pipeline_directory: ./example/annotations
-      pipeline_config: ./pipelines/config/deeprvat_annotation_config_minimal.yaml
+      pipeline_config: ./example/config/deeprvat_annotation_config_minimal.yaml
       dry_run: false
       download_fasta_data: true
       fasta_download_path: ./example/annotations/reference

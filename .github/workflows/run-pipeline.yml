@@ -75,7 +75,7 @@ jobs:
         - name: Set to 0 GPUs in config
           if: inputs.no_gpu
           # There are no GPUs on the gh worker, so we can disable it in the config
-          run: "sed -i 's/gpus: 1/gpus: 0/' ./example/config.yaml"
+          run: "sed -i 's/gpus: 1/gpus: 0/' ${{inputs.pipeline_config}}"
           shell: bash -el {0}
         - name: "Running pipeline ${{ github.jobs[github.job].name }}"
           run: |

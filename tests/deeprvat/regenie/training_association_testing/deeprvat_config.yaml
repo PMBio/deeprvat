@@ -287,3 +287,17 @@ training_data:
     y_transformation: quantile_transform
   gt_file: example/genotypes.h5
   variant_file: example/variants.parquet
+regenie_exp: true
+regenie_options:
+  step_1:
+    bgen: imputation.bgen
+    bsize: 1000
+    options:
+    - --sample imputation.sample
+    - --qt
+    snplist: imputation.snplist
+  step_2:
+    bsize: 400
+    options:
+    - --qt
+gtf_file: example/gencode.v38.basic.annotation.gtf.gz
