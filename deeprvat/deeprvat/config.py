@@ -277,23 +277,23 @@ def create_main_config(
     # Thresholds & variant annotations
     anno_list = deepcopy(input_config["rare_variant_annotations"])
     full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
-            "thresholds"
-        ] = {}
+        "thresholds"
+    ] = {}
     training_anno_list = deepcopy(anno_list)
     for i, (k, v) in enumerate(input_config["training_data_thresholds"].items()):
         full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
             "thresholds"
         ][k] = f"{k} {v}"
         training_anno_list.insert(i + 1, k)
-    full_config["training_data"]["dataset_config"][
-        "annotations"
-    ] = training_anno_list
-    
+    full_config["training_data"]["dataset_config"]["annotations"] = training_anno_list
+
     full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
         "config"
     ]["thresholds"] = {}
     association_anno_list = deepcopy(anno_list)
-    for i, (k, v) in enumerate(input_config["association_testing_data_thresholds"].items()):
+    for i, (k, v) in enumerate(
+        input_config["association_testing_data_thresholds"].items()
+    ):
         full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
             "config"
         ]["thresholds"][k] = f"{k} {v}"
