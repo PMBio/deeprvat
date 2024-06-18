@@ -1,10 +1,11 @@
 from os.path import exists
 
 if not exists('./sg_discovery_config.yaml'):
-    print("Generating sg_discovery_config.yaml...")
-    from deeprvat.deeprvat.config import create_sg_discovery_config
-    create_sg_discovery_config('seed_gene_discovery_input_config.yaml') #Name your input config here
-    print("     Finished.")
+    if not config: #--configfile argument was not passed
+        print("Generating sg_discovery_config.yaml...")
+        from deeprvat.deeprvat.config import create_sg_discovery_config
+        create_sg_discovery_config('seed_gene_discovery_input_config.yaml') #Name your input config here
+        print("     Finished.")
 
 configfile: "sg_discovery_config.yaml"
 
