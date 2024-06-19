@@ -38,7 +38,7 @@ rule evaluate:
         mem_mb = 16000,
         load = 16000
     params:
-        use_baseline_results = '--use-baseline-results'
+        use_baseline_results = '--use-baseline-results' if 'baseline_results' in config else ''
     shell:
         'deeprvat_evaluate '
         + debug +
