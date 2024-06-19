@@ -86,7 +86,7 @@ rule all_training:  #cv_training.snakefile
             cv_split=range(cv_splits),
         ),
         expand(
-            "cv_split{cv_split}/deeprvat/models/repeat_{repeat}/deeprvat_config.yaml",
+            "cv_split{cv_split}/deeprvat/models/repeat_{repeat}/model_config.yaml",
             repeat=range(n_repeats),
             cv_split=range(cv_splits),
         ),
@@ -95,7 +95,7 @@ rule all_training:  #cv_training.snakefile
 rule all_config:  #cv_training.snakefile
     input:
         expand(
-            "cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/hpopt_config.yaml",
+            "cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/config.yaml",
             phenotype=phenotypes,
             cv_split=range(cv_splits),
         ),

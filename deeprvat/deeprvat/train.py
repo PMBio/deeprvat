@@ -772,7 +772,7 @@ def run_bagging(
         logger.info("Model hyperparameters this trial:")
         pprint(config["model"]["config"])
         Path(log_dir).mkdir(parents=True, exist_ok=True)
-        config_out = Path(log_dir) / "deeprvat_config.yaml"
+        config_out = Path(log_dir) / "model_config.yaml"
         logger.info(f"Writing config to {config_out}")
         with open(config_out, "w") as f:
             yaml.dump(config, f)
@@ -1135,7 +1135,7 @@ def best_training_run(
     )
 
     trials = study.trials_dataframe().query('state == "COMPLETE"')
-    with open("config.yaml") as f:
+    with open("deeprvat_config.yaml") as f:
         config = yaml.safe_load(f)
         ascending = (
             False
@@ -1148,7 +1148,7 @@ def best_training_run(
 
     logger.info(f"Best trial:\n{best_trial}")
 
-    with open(Path(log_dir) / f"trial{best_trial_id}/deeprvat_config.yaml") as f:
+    with open(Path(log_dir) / f"trial{best_trial_id}/model_config.yaml") as f:
         config = yaml.safe_load(f)
 
     with open(config_file_out, "w") as f:

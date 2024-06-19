@@ -23,9 +23,9 @@ module deeprvat_associate:
 
 rule make_deeprvat_test_config:
     input:
-        config_train="cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/hpopt_config.yaml",
+        data_config="cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/config.yaml",
     output:
-        config_test="cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/hpopt_config_test.yaml",
+        data_config_test="cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/config_test.yaml",
     shell:
         " && ".join(
         [
@@ -33,7 +33,7 @@ rule make_deeprvat_test_config:
         "deeprvat_cv_utils generate-test-config "
                 "--fold {wildcards.cv_split} "
                 f"--n-folds {cv_splits}"
-                " {input.config_train} {output.config_test}",
+                " {input.data_config} {output.data_config_test}",
             ]
         )
 
@@ -43,7 +43,7 @@ rule make_deeprvat_test_config:
 # then just use this data set nomrally for burden computation
 use rule association_dataset from deeprvat_associate as deeprvat_association_dataset with:
     input:
-        config="cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/hpopt_config_test.yaml",
+        data_config="cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/config_test.yaml",
     output:
         "cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/association_dataset.pkl",
     threads: 4
@@ -61,7 +61,7 @@ rule combine_test_burdens:
             for c in range(n_burden_chunks)
             for cv_split in range(cv_splits)
         ],
-        config="deeprvat_config.yaml",
+        data_config="deeprvat_config.yaml",
     output:
         "{phenotype}/deeprvat/burdens/merging.finished",
     params:
@@ -87,7 +87,7 @@ rule combine_test_burdens:
                 "{params.link} "
                 "{params.burden_paths} "
                 "{params.out_dir} "
-                "{input.config}",
+                "{input.data_config}",
                 "touch {output}",
             ]
         )

@@ -3,14 +3,14 @@ rule all_cv_training:
         expand('cv_split{cv_split}/deeprvat/models/repeat_{repeat}/best/bag_{bag}.ckpt',
                bag=range(n_bags), repeat=range(n_repeats),
                cv_split = range(cv_splits)),
-        expand('cv_split{cv_split}/deeprvat/models/repeat_{repeat}/deeprvat_config.yaml',
+        expand('cv_split{cv_split}/deeprvat/models/repeat_{repeat}/model_config.yaml',
                repeat=range(n_repeats),
                cv_split = range(cv_splits))
 
 # make a config for each cv_split (specifying the samples for the current fold)
 rule spread_config:
     input:
-        config = 'deeprvat_config.yaml'
+        data_config = 'deeprvat_config.yaml'
     output:
         train = 'cv_split{cv_split}/deeprvat/deeprvat_config.yaml',
     params:
@@ -26,7 +26,7 @@ rule spread_config:
             '--fold {wildcards.cv_split} '
             # '--fold-specific-baseline '
             f'--n-folds {cv_splits}'
-            ' {input.config} {params.out_path}'
+            ' {input.data_config} {params.out_path}'
         ])
 
 
@@ -67,7 +67,7 @@ use rule training_dataset_pickle from deeprvat_workflow as deeprvat_training_dat
 
 use rule config from deeprvat_workflow as deeprvat_config with:
     input:
-        config = 'cv_split{cv_split}/deeprvat/deeprvat_config.yaml', # TODO: change this into cv specific config
+        data_config = 'cv_split{cv_split}/deeprvat/deeprvat_config.yaml', # TODO: change this into cv specific config
         baseline = lambda wildcards: [
             str(Path(r['base']) /wildcards.phenotype / r['type'] /
                 'eval/burden_associations.parquet')

@@ -5,7 +5,7 @@ debug = '--debug ' if debug_flag else ''
 
 rule association_dataset:
     input:
-        config = '{phenotype}/deeprvat/hpopt_config.yaml'
+        data_config = '{phenotype}/deeprvat/config.yaml'
     output:
         '{phenotype}/deeprvat/association_dataset.pkl'
     threads: 4
@@ -15,5 +15,5 @@ rule association_dataset:
     shell:
         'deeprvat_associate make-dataset '
         + debug +
-        '{input.config} '
+        '{input.data_config} '
         '{output}'

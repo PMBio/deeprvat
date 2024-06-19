@@ -3,7 +3,7 @@ association_testing_data:
     batch_size: 16
     num_workers: 10
   dataset_config:
-    annotation_file: example/annotations.parquet
+    annotation_file: annotations.parquet
     annotations:
     - MAF_MB
     - MAF
@@ -41,10 +41,10 @@ association_testing_data:
     - DeepRipe_plus_QKI_parclip
     - SpliceAI_delta_score
     - alphamissense
-    gene_file: example/protein_coding_genes.parquet
+    gene_file: protein_coding_genes.parquet
     min_common_af:
       MAF: 0.01
-    phenotype_file: example/phenotypes.parquet
+    phenotype_file: phenotypes.parquet
     rare_embedding:
       config:
         annotations: &id001
@@ -82,7 +82,7 @@ association_testing_data:
         - DeepRipe_plus_QKI_parclip
         - SpliceAI_delta_score
         - alphamissense
-        gene_file: example/protein_coding_genes.parquet
+        gene_file: protein_coding_genes.parquet
         low_memory: true
         thresholds:
           CADD_PHRED: CADD_PHRED > 5
@@ -118,19 +118,19 @@ association_testing_data:
     - genetic_PC_19
     - genetic_PC_20
     y_transformation: quantile_transform
-  gt_file: example/genotypes.h5
-  variant_file: example/variants.parquet
+  gt_file: genotypes.h5
+  variant_file: variants.parquet
 baseline_results:
   alpha_seed_genes: 0.05
   correction_method: Bonferroni
   options:
-  - base: example/baseline_results
+  - base: baseline_results
     type: plof/burden
-  - base: example/baseline_results
+  - base: baseline_results
     type: missense/burden
-  - base: example/baseline_results
+  - base: baseline_results
     type: plof/skat
-  - base: example/baseline_results
+  - base: baseline_results
     type: missense/skat
 cv_exp: false
 do_scoretest: true
@@ -230,7 +230,7 @@ training_data:
     batch_size: 64
     num_workers: 8
   dataset_config:
-    annotation_file: example/annotations.parquet
+    annotation_file: annotations.parquet
     annotations:
     - MAF_MB
     - MAF
@@ -270,7 +270,7 @@ training_data:
     - alphamissense
     min_common_af:
       MAF: 0.01
-    phenotype_file: example/phenotypes.parquet
+    phenotype_file: phenotypes.parquet
     rare_embedding:
       config:
         annotations: *id001
@@ -285,19 +285,19 @@ training_data:
     verbose: true
     x_phenotypes: *id002
     y_transformation: quantile_transform
-  gt_file: example/genotypes.h5
-  variant_file: example/variants.parquet
+  gt_file: genotypes.h5
+  variant_file: variants.parquet
 regenie_exp: true
 regenie_options:
   step_1:
-    bgen: example/imputation.bgen
+    bgen: imputation.bgen
     bsize: 1000
     options:
-    - --sample example/imputation.sample
+    - --sample imputation.sample
     - --qt
-    snplist: example/imputation.snplist
+    snplist: imputation.snplist
   step_2:
     bsize: 400
     options:
     - --qt
-gtf_file: example/gencode.v38.basic.annotation.gtf.gz
+gtf_file: gencode.v38.basic.annotation.gtf.gz

@@ -66,6 +66,6 @@ rule all_average_burdens:  #burdens.snakefile
 rule all_config:  #cv_training.snakefile
     input:
         expand(
-            "{phenotype}/deeprvat/hpopt_config.yaml",
+            "{phenotype}/deeprvat/config.yaml",
             phenotype=phenotypes,
         ),

@@ -29,7 +29,7 @@ wildcard_constraints:
 rule evaluate:
     input:
         associations ='{phenotype}/deeprvat/average_regression_results/burden_associations.parquet',
-        config = f"{config_file_prefix}{{phenotype}}/deeprvat/hpopt_config.yaml"
+        data_config = f"{config_file_prefix}{{phenotype}}/deeprvat/config.yaml"
     output:
         "{phenotype}/deeprvat/eval/significant.parquet",
         "{phenotype}/deeprvat/eval/all_results.parquet"
@@ -45,7 +45,7 @@ rule evaluate:
         '{params.use_baseline_results} '
         '--phenotype {wildcards.phenotype} '
         '{input.associations} '
-        '{input.config} '
+        '{input.data_config} '
         '{wildcards.phenotype}/deeprvat/eval'
 
 rule all_regenie:

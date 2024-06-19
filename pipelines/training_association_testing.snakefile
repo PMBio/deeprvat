@@ -68,7 +68,7 @@ rule all_training:
     input:
         expand(model_path / 'repeat_{repeat}/best/bag_{bag}.ckpt',
                bag=range(n_bags), repeat=range(n_repeats)),
-        model_path / "deeprvat_config.yaml"
+        model_path / "model_config.yaml"
 
 rule all_training_dataset:
     input:
@@ -81,5 +81,5 @@ rule all_training_dataset:
 
 rule all_config:
     input:
-        config = expand('{phenotype}/deeprvat/hpopt_config.yaml',
+        data_config = expand('{phenotype}/deeprvat/config.yaml',
                         phenotype=phenotypes),

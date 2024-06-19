@@ -1,6 +1,6 @@
 rule config:
     input:
-        config="deeprvat_config.yaml",
+        data_config="deeprvat_config.yaml",
         baseline=lambda wildcards: [
             str(
                 Path(r["base"])
@@ -14,7 +14,7 @@ rule config:
         else [],
     output:
         # seed_genes = '{phenotype}/deeprvat/seed_genes.parquet',
-        config="{phenotype}/deeprvat/hpopt_config.yaml",
+        data_config="{phenotype}/deeprvat/config.yaml",
         # baseline = '{phenotype}/deeprvat/baseline_results.parquet',
     threads: 1
     resources:
@@ -43,6 +43,6 @@ rule config:
             "{params.baseline_results} "
             "{params.baseline_out} "
             "{params.seed_genes_out} "
-            "{input.config} "
-            "{output.config}"
+            "{input.data_config} "
+            "{output.data_config}"
         )

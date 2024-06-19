@@ -3,19 +3,19 @@ data:
   dataloader_config:
     num_workers: 10
   dataset_config:
-    annotation_file: example/annotations.parquet
+    annotation_file: annotations.parquet
     annotations: &id001
     - MAF
     - is_plof
     - Consequence_missense_variant
-    gene_file: example/protein_coding_genes.parquet
+    gene_file: protein_coding_genes.parquet
     min_common_af:
       MAF: 0.001
     phenotype_file: phenotypes.parquet
     rare_embedding:
       config:
         annotations: *id001
-        gene_file: example/protein_coding_genes.parquet
+        gene_file: protein_coding_genes.parquet
         verbose: true
       type: SparseGenotype
     standardize_xpheno: false
@@ -48,8 +48,8 @@ data:
     - genetic_PC_19
     - genetic_PC_20
     y_transformation: quantile_transform
-  gt_file: example/genotypes.h5
-  variant_file: example/variants.parquet
+  gt_file: genotypes.h5
+  variant_file: variants.parquet
 n_chunks: 15
 phenotypes:
   - Apolipoprotein_A
@@ -83,7 +83,7 @@ test_config:
 test_types:
 - skat
 - burden
-variant_file: example/variants.parquet
+variant_file: variants.parquet
 variant_types:
 - missense
 - plof

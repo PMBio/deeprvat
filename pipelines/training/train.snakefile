@@ -1,21 +1,21 @@
 rule link_config:
     input:
-        model_path / 'repeat_0/deeprvat_config.yaml'
+        model_path / 'repeat_0/model_config.yaml'
     output:
-        model_path / 'deeprvat_config.yaml'
+        model_path / 'model_config.yaml'
     threads: 1
     shell:
         "ln -rfs {input} {output}"
-        # "ln -s repeat_0/deeprvat_config.yaml {output}"
+        # "ln -s repeat_0/model_config.yaml {output}"
 
 rule best_training_run:
     input:
-        expand(model_path / 'repeat_{{repeat}}/trial{trial_number}/deeprvat_config.yaml',
+        expand(model_path / 'repeat_{{repeat}}/trial{trial_number}/model_config.yaml',
                trial_number=range(n_trials)),
     output:
         checkpoints = expand(model_path / 'repeat_{{repeat}}/best/bag_{bag}.ckpt',
                              bag=range(n_bags)),
-        config = model_path / 'repeat_{repeat}/deeprvat_config.yaml'
+        model_config = model_path / 'repeat_{repeat}/model_config.yaml'
     params:
         prefix = '.'
     threads: 1
@@ -28,12 +28,12 @@ rule best_training_run:
             '{params.prefix}/{model_path}/repeat_{wildcards.repeat} '
             '{params.prefix}/{model_path}/repeat_{wildcards.repeat}/best '
             '{params.prefix}/{model_path}/repeat_{wildcards.repeat}/hyperparameter_optimization.db '
-            '{output.config}'
+            '{output.model_config}'
         )
 
 rule train:
     input:
-        config = expand('{phenotype}/deeprvat/hpopt_config.yaml',
+        data_config = expand('{phenotype}/deeprvat/config.yaml',
                         phenotype=training_phenotypes),
         input_tensor = expand('{phenotype}/deeprvat/input_tensor.zarr',
                               phenotype=training_phenotypes),
@@ -42,7 +42,7 @@ rule train:
         y = expand('{phenotype}/deeprvat/y.zarr',
                    phenotype=training_phenotypes),
     output:
-        expand(model_path / 'repeat_{repeat}/trial{trial_number}/deeprvat_config.yaml',
+        expand(model_path / 'repeat_{repeat}/trial{trial_number}/model_config.yaml',
                repeat=range(n_repeats), trial_number=range(n_trials)),
         expand(model_path / 'repeat_{repeat}/trial{trial_number}/finished.tmp',
                repeat=range(n_repeats), trial_number=range(n_trials))
@@ -64,7 +64,7 @@ rule train:
         + debug +
         '--trial-id {{2}} '
         "{params.phenotypes} "
-        'deeprvat_config.yaml '
+        '{params.prefix}/deeprvat_config.yaml '
         '{params.prefix}/{model_path}/repeat_{{1}}/trial{{2}} '
         "{params.prefix}/{model_path}/repeat_{{1}}/hyperparameter_optimization.db '&&' "
         "touch {params.prefix}/{model_path}/repeat_{{1}}/trial{{2}}/finished.tmp "
