@@ -165,7 +165,7 @@ phenotypes:
   Mean_platelet_thrombocyte_volume: {}
   Platelet_count: {}
   Platelet_distribution_width: {}
-pretrained_model_path: pretrained_models
+pretrained_model_path: ../pretrained_models
 regenie_exp: false
 training:
   dataloader_config:
