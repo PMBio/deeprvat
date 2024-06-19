@@ -170,13 +170,10 @@ model:
 n_avg_chunks: 1
 n_burden_chunks: 5
 n_regression_chunks: 2
-n_repeats: 6
+n_repeats: 1
 phenotypes:
   Cholesterol: {}
-  HDL_cholesterol: {}
-  Mean_platelet_thrombocyte_volume: {}
   Platelet_count: {}
-  Platelet_distribution_width: {}
 regenie_exp: false
 training:
   dataloader_config:
@@ -196,10 +193,7 @@ training:
   n_parallel_jobs: 6
   phenotypes:
     - Cholesterol
-    - HDL_cholesterol
-    - Mean_platelet_thrombocyte_volume
     - Platelet_count
-    - Platelet_distribution_width
   pl_trainer:
     check_val_every_n_epoch: 1
     gpus: 0
