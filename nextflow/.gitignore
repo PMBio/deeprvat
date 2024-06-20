@@ -1,0 +1,4 @@
+.nextflow*
+.nextflow/**
+dag-*.html
+example/workdir/reference/GRCh38.primary_assembly.genome.fa
