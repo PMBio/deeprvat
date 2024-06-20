@@ -1,0 +1,19 @@
+name: deeprvat_preprocess
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.8
+  - click=8.1.3
+  - h5py=3.8.0
+  - numpy=1.21.2
+  - pandas=1.5.1
+  - tqdm=4.59.0
+  - pytest=8.2.0
+  - pyarrow=11.0.0
+  - snakemake=7.17.1
+  - bcftools=1.17
+  - samtools=1.17
+  - git
+  - pip:
+    - git+https://github.com/PMBio/deeprvat@main
