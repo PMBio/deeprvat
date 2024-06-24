@@ -256,7 +256,6 @@ def process_results(
     combine_pval: str = "Bonferroni",
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
-    # TODO change this query!
     deeprvat_results = results.query('experiment_group == "DeepRVAT"')
 
     assert (deeprvat_results.groupby("gene").size() == 1).all()
@@ -296,7 +295,6 @@ def evaluate_(
 
     logger.info("Evaluation results:")
     results = pd.DataFrame()
-    # TODO change this!
     n_repeats = (
         1  # TODO maybe completely drop this (we don't need any filtering any more
     )

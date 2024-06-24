@@ -71,6 +71,6 @@ rule regress:
         '--burden-file {params.burden_file} '
         + do_scoretest +
         '{input.data_config} '
-        '{params.burden_dir} ' #TODO make this w/o repeats
+        '{params.burden_dir} ' 
         '{params.out_dir}'
 

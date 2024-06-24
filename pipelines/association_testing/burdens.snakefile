@@ -22,7 +22,7 @@ rule average_burdens:
             '--n-chunks '+ str(n_avg_chunks) + ' '
             '--chunk {wildcards.chunk} '
             '{params.repeats} '
-            '--agg-fct mean  ' #TODO remove this
+            '--agg-fct mean  ' 
             '{params.burdens_in} '
             '{params.burdens_out}'),
             'touch {output}'

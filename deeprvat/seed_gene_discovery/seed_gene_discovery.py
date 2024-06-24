@@ -689,7 +689,6 @@ def run_association(
     logger.info("Reading variant file")
     logger.info(f"Genotype matrix shape: {G_full.shape}")
 
-    ### TODO: read this from config
     logger.info("Training split: Running tests for each gene")
 
     if chunk is not None:

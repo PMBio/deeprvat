@@ -143,7 +143,7 @@ rule regression_correct_common:
         '--genes-to-keep {input.genes_to_keep} '
         + do_scoretest +
         '{input.data_config} '
-        '{params.burden_dir} ' #TODO make this w/o repeats
+        '{params.burden_dir} ' 
         '{output}'
 
 rule all_data:
@@ -157,7 +157,7 @@ rule prepare_genotypes_per_gene:
         "prs" #TODO upgrade deeprvat environment pyarrow to version 6.0.1. to make DeepRVAT env work 
     input:
         significant_genes = '{phenotype}/deeprvat/eval/significant_genes_restest.parquet',
-        data_config = 'deeprvat_config.yaml', #TODO potentially make this phenotype specific,
+        data_config = 'deeprvat_config.yaml', 
         genotype_file = lambda wildcards: f'{genotype_base_dir}/GWAS_variants_clumped_mac_{phecode_dict[wildcards.phenotype]}.parquet',
         sample_file = '{phenotype}/deeprvat/burdens/sample_ids.finished'
     params: 
@@ -187,7 +187,7 @@ rule prepare_genotypes_per_gene:
 rule get_significant_genes:
     input:
         res_file = f"{{phenotype}}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/eval/{use_seed}/all_results.parquet",
-        data_config = 'deeprvat_config.yaml' #TODO potentially make this phenotype specific
+        data_config = 'deeprvat_config.yaml' 
     output:
         out_parquet = '{phenotype}/deeprvat/eval/significant_genes_restest.parquet',
         out_npy = '{phenotype}/deeprvat/burdens/significant_genes_restest.npy'

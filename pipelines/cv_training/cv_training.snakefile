@@ -54,7 +54,7 @@ use rule train from deeprvat_workflow as deeprvat_train with:
     priority: 1000
     params:
         prefix = 'cv_split{cv_split}/deeprvat',
-        phenotypes = " ".join( #TODO like need the prefix here as well
+        phenotypes = " ".join( 
             [f"--phenotype {p} "
              f"cv_split{{cv_split}}/deeprvat/{p}/deeprvat/input_tensor.zarr "
              f"cv_split{{cv_split}}/deeprvat/{p}/deeprvat/covariates.zarr "
@@ -67,7 +67,7 @@ use rule training_dataset_pickle from deeprvat_workflow as deeprvat_training_dat
 
 use rule config from deeprvat_workflow as deeprvat_config with:
     input:
-        data_config = 'cv_split{cv_split}/deeprvat/deeprvat_config.yaml', # TODO: change this into cv specific config
+        data_config = 'cv_split{cv_split}/deeprvat/deeprvat_config.yaml', 
         baseline = lambda wildcards: [
             str(Path(r['base']) /wildcards.phenotype / r['type'] /
                 'eval/burden_associations.parquet')
