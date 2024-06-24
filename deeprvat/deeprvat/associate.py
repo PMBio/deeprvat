@@ -958,7 +958,7 @@ def regress_on_gene_scoretest(
     :rtype: Tuple[List[str], List[float], List[float]]
     """
     burdens = burdens.reshape(burdens.shape[0], -1)
-    assert np.all(burdens != 0) #because DeepRVAT burdens are corrently all non-zero
+    assert np.all(burdens != 0)  # because DeepRVAT burdens are corrently all non-zero
     logger.info(f"Burdens shape: {burdens.shape}")
 
     if np.all(np.abs(burdens) < 1e-6):

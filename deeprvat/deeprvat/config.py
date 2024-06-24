@@ -611,7 +611,7 @@ def update_config(
                     )
                     baseline_df = baseline_df.drop_duplicates(subset="gene").head(
                         min_seed_genes
-                    ) 
+                    )
                 else:
                     baseline_df = baseline_df.query("significant")
             else:
