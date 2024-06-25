@@ -5,7 +5,7 @@ import re
 import yaml
 
 
-configfile: "config/deeprvat_annotation_config.yaml"
+configfile: "deeprvat_annotation_config.yaml"
 
 
 ## helper functions
@@ -51,11 +51,7 @@ annotation_python_file = (
     deeprvat_parent_path / "deeprvat" / "annotations" / "annotations.py"
 )
 annotation_columns_yaml_file = (
-    config.get("annotation_columns_yaml_file")
-    or deeprvat_parent_path
-    / "pipelines"
-    / "config"
-    / "annotation_colnames_filling_values.yaml"
+    config.get("annotation_columns_yaml_file") # "deeprvat_parent_path/example/config/annotation_colnames_filling_values.yaml"
 )
 included_chromosomes = config.get(
     "included_chromosomes", [f"{c}" for c in range(1, 23)] + ["X", "Y"]

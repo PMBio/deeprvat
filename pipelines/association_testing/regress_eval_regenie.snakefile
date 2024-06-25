@@ -1,4 +1,4 @@
-configfile: "config.yaml"
+configfile: "deeprvat_config.yaml"
 
 debug_flag = config.get('debug', False)
 debug = '--debug ' if debug_flag else ''
@@ -10,8 +10,8 @@ phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
 
 n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
 
-regenie_config_step1 = config["regenie"]["step_1"]
-regenie_config_step2 = config["regenie"]["step_2"]
+regenie_config_step1 = config["regenie_options"]["step_1"]
+regenie_config_step2 = config["regenie_options"]["step_2"]
 regenie_step1_bsize = regenie_config_step1["bsize"]
 regenie_step2_bsize = regenie_config_step2["bsize"]
 regenie_njobs = regenie_config_step1.get("njobs", 1)
@@ -29,7 +29,7 @@ wildcard_constraints:
 rule evaluate:
     input:
         associations ='{phenotype}/deeprvat/average_regression_results/burden_associations.parquet',
-        config = f"{config_file_prefix}{{phenotype}}/deeprvat/hpopt_config.yaml"
+        data_config = f"{config_file_prefix}{{phenotype}}/deeprvat/config.yaml"
     output:
         "{phenotype}/deeprvat/eval/significant.parquet",
         "{phenotype}/deeprvat/eval/all_results.parquet"
@@ -38,15 +38,14 @@ rule evaluate:
         mem_mb = 16000,
         load = 16000
     params:
-        use_baseline_results = '--use-baseline-results'
+        use_baseline_results = '--use-baseline-results' if 'baseline_results' in config else ''
     shell:
         'deeprvat_evaluate '
         + debug +
         '{params.use_baseline_results} '
-        '--correction-method Bonferroni '
         '--phenotype {wildcards.phenotype} '
         '{input.associations} '
-        '{input.config} '
+        '{input.data_config} '
         '{wildcards.phenotype}/deeprvat/eval'
 
 rule all_regenie:
@@ -66,7 +65,7 @@ rule convert_regenie_output:
             f"--phenotype {phenotype} regenie_output/step2/deeprvat_{phenotype}.regenie "
             f"{phenotype}/deeprvat/average_regression_results/burden_associations.parquet"
         for phenotype in phenotypes]),
-        gene_file = config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"]
+        gene_file = config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"]
     threads: 1
     resources:
         mem_mb = 2048
@@ -233,7 +232,7 @@ rule regenie_step1:
 
 rule make_regenie_burdens:
     input:
-        gene_file = config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"],
+        gene_file = config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"],
         gtf_file = config["gtf_file"],
         burdens = [f'{phenotype}/deeprvat/burdens/chunk{chunk}.' +
                    ("finished" if phenotype == phenotypes[0] else "linked")
@@ -265,7 +264,7 @@ rule make_regenie_burdens:
 
 rule make_regenie_metadata:
     input:
-        gene_file = config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"],
+        gene_file = config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"],
         gtf_file = config["gtf_file"],
         burdens = [f'{phenotype}/deeprvat/burdens/chunk{chunk}.' +
                    ("finished" if phenotype == phenotypes[0] else "linked")

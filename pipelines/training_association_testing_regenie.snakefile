@@ -1,6 +1,14 @@
 from pathlib import Path
+from os.path import exists
 
-configfile: 'config.yaml'
+if not exists('./deeprvat_config.yaml'):
+    if not config: #--configfile argument was not passed
+        print("Generating deeprvat_config.yaml...")
+        from deeprvat.deeprvat.config import create_main_config
+        create_main_config('deeprvat_input_config.yaml')
+        print("     Finished.")
+
+configfile: 'deeprvat_config.yaml'
 
 debug_flag = config.get('debug', False)
 phenotypes = config['phenotypes']
@@ -56,7 +64,7 @@ rule all_training:
     input:
         expand(model_path / 'repeat_{repeat}/best/bag_{bag}.ckpt',
                bag=range(n_bags), repeat=range(n_repeats)),
-        model_path / "config.yaml"
+        model_path / "model_config.yaml"
 
 rule all_training_dataset:
     input:
@@ -71,7 +79,7 @@ rule all_config:
     input:
         seed_genes = expand('{phenotype}/deeprvat/seed_genes.parquet',
                             phenotype=phenotypes),
-        config = expand('{phenotype}/deeprvat/hpopt_config.yaml',
+        data_config = expand('{phenotype}/deeprvat/config.yaml',
                         phenotype=phenotypes),
         baseline = expand('{phenotype}/deeprvat/baseline_results.parquet',
                           phenotype=phenotypes),

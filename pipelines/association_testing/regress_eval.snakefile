@@ -5,7 +5,7 @@ config_file_prefix = (
 rule evaluate:
     input:
         associations ='{phenotype}/deeprvat/average_regression_results/burden_associations.parquet',
-        config = f"{config_file_prefix}{{phenotype}}/deeprvat/hpopt_config.yaml"
+        data_config = f"{config_file_prefix}{{phenotype}}/deeprvat/config.yaml"
     output:
         "{phenotype}/deeprvat/eval/significant.parquet",
         "{phenotype}/deeprvat/eval/all_results.parquet"
@@ -14,15 +14,14 @@ rule evaluate:
         mem_mb = 16000,
     params:
         n_combis = 1,
-        use_baseline_results = '--use-baseline-results'
+        use_baseline_results = '--use-baseline-results' if 'baseline_results' in config else ''
     shell:
         'deeprvat_evaluate '
         + debug +
         '{params.use_baseline_results} '
-        '--correction-method Bonferroni '
         '--phenotype {wildcards.phenotype} '
         '{input.associations} '
-        '{input.config} '
+        '{input.data_config} '
         '{wildcards.phenotype}/deeprvat/eval'
 
 
@@ -43,7 +42,7 @@ rule combine_regression_chunks:
 
 rule regress:
     input:
-        config = f"{config_file_prefix}{{phenotype}}/deeprvat/hpopt_config.yaml",
+        data_config = f"{config_file_prefix}{{phenotype}}/deeprvat/config.yaml",
         chunks = lambda wildcards: (
             [] if wildcards.phenotype == phenotypes[0]
             else expand('{{phenotype}}/deeprvat/burdens/chunk{chunk}.linked',
@@ -71,7 +70,7 @@ rule regress:
         '--repeat 0 '
         '--burden-file {params.burden_file} '
         + do_scoretest +
-        '{input.config} '
-        '{params.burden_dir} ' #TODO make this w/o repeats
+        '{input.data_config} '
+        '{params.burden_dir} ' 
         '{params.out_dir}'
 

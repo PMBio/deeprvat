@@ -22,7 +22,7 @@ rule average_burdens:
             '--n-chunks '+ str(n_avg_chunks) + ' '
             '--chunk {wildcards.chunk} '
             '{params.repeats} '
-            '--agg-fct mean  ' #TODO remove this
+            '--agg-fct mean  ' 
             '{params.burdens_in} '
             '{params.burdens_out}'),
             'touch {output}'
@@ -36,8 +36,8 @@ rule link_burdens:
             for repeat in range(n_repeats) for bag in range(n_bags)
         ],
         dataset = '{phenotype}/deeprvat/association_dataset.pkl',
-        data_config = '{phenotype}/deeprvat/hpopt_config.yaml',
-        model_config = model_path / 'config.yaml',
+        data_config = '{phenotype}/deeprvat/config.yaml',
+        model_config = model_path / 'model_config.yaml',
     output:
         '{phenotype}/deeprvat/burdens/chunk{chunk}.linked'
     params:
@@ -69,8 +69,8 @@ rule compute_burdens:
             for repeat in range(n_repeats) for bag in range(n_bags)
         ],
         dataset = '{phenotype}/deeprvat/association_dataset.pkl',
-        data_config = '{phenotype}/deeprvat/hpopt_config.yaml',
-        model_config = model_path / 'config.yaml',
+        data_config = '{phenotype}/deeprvat/config.yaml',
+        model_config = model_path / 'model_config.yaml',
     output:
         '{phenotype}/deeprvat/burdens/chunk{chunk}.finished'
     params:
@@ -97,8 +97,8 @@ rule reverse_models:
     input:
         checkpoints = expand(model_path / 'repeat_{repeat}/best/bag_{bag}.ckpt',
                              bag=range(n_bags), repeat=range(n_repeats)),
-        model_config = model_path / 'config.yaml',
-        data_config = Path(phenotypes[0]) / "deeprvat/hpopt_config.yaml",
+        model_config = model_path / 'model_config.yaml',
+        data_config = Path(phenotypes[0]) / "deeprvat/config.yaml",
     output:
         model_path / "reverse_finished.tmp"
     threads: 4

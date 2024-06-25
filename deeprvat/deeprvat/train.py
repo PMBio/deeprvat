@@ -152,7 +152,7 @@ def make_dataset_(
             config[key]["dataset_config"]["y_phenotypes"] = y_phenotypes[:n_phenotypes]
 
         logger.info(f"Using {n_phenotypes} phenotypes:")
-        pprint(config["data"]["dataset_config"]["y_phenotypes"])
+        pprint(config["association_testing_data"]["dataset_config"]["y_phenotypes"])
 
     training_config = config["training"]
 
@@ -772,7 +772,7 @@ def run_bagging(
         logger.info("Model hyperparameters this trial:")
         pprint(config["model"]["config"])
         Path(log_dir).mkdir(parents=True, exist_ok=True)
-        config_out = Path(log_dir) / "config.yaml"
+        config_out = Path(log_dir) / "model_config.yaml"
         logger.info(f"Writing config to {config_out}")
         with open(config_out, "w") as f:
             yaml.dump(config, f)
@@ -838,18 +838,20 @@ def run_bagging(
         callbacks = [checkpoint_callback]
 
         # to prune underperforming trials we enable a pruning strategy that can be set in config
-        if "early_stopping" in config:
+        if "early_stopping" in config["training"]:
             callbacks.append(
-                EarlyStopping(monitor=objective, **config["early_stopping"])
+                EarlyStopping(monitor=objective, **config["training"]["early_stopping"])
             )
 
         if debug:
-            config["pl_trainer"]["min_epochs"] = 10
-            config["pl_trainer"]["max_epochs"] = 20
+            config["training"]["pl_trainer"]["min_epochs"] = 10
+            config["training"]["pl_trainer"]["max_epochs"] = 20
 
         # initialize trainer, which will call background functionality
         trainer = pl.Trainer(
-            logger=tb_logger, callbacks=callbacks, **config.get("pl_trainer", {})
+            logger=tb_logger,
+            callbacks=callbacks,
+            **config["training"].get("pl_trainer", {}),
         )
 
         while True:
@@ -992,8 +994,8 @@ def train(
         config = yaml.safe_load(f)
 
     if debug:
-        config["pl_trainer"].pop("gpus", None)
-        config["pl_trainer"].pop("precision", None)
+        config["training"]["pl_trainer"].pop("gpus", None)
+        config["training"]["pl_trainer"].pop("precision", None)
 
     logger.info(f"Running training using config:\n{pformat(config)}")
 
@@ -1133,7 +1135,7 @@ def best_training_run(
     )
 
     trials = study.trials_dataframe().query('state == "COMPLETE"')
-    with open("config.yaml") as f:
+    with open("deeprvat_config.yaml") as f:
         config = yaml.safe_load(f)
         ascending = (
             False
@@ -1146,7 +1148,7 @@ def best_training_run(
 
     logger.info(f"Best trial:\n{best_trial}")
 
-    with open(Path(log_dir) / f"trial{best_trial_id}/config.yaml") as f:
+    with open(Path(log_dir) / f"trial{best_trial_id}/model_config.yaml") as f:
         config = yaml.safe_load(f)
 
     with open(config_file_out, "w") as f:

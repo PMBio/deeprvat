@@ -55,7 +55,7 @@ def get_significant_genes(
     with open(config_file) as f:
         config = yaml.safe_load(f)
 
-    gene_file = config["data"]["dataset_config"]["gene_file"]
+    gene_file = config["association_testing_data"]["dataset_config"]["gene_file"]
     logger.info(f"reading gene file from {gene_file}")
 
     gene_df = pd.read_parquet(gene_file)

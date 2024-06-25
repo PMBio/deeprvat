@@ -1,7 +1,14 @@
 from pathlib import Path
+from os.path import exists
 
+if not exists('./deeprvat_config.yaml'):
+    if not config: #--configfile argument was not passed
+        print("Generating deeprvat_config.yaml...")
+        from deeprvat.deeprvat.config import create_main_config
+        create_main_config('deeprvat_input_config.yaml')
+        print("     Finished.")
 
-configfile: "config.yaml"
+configfile: "deeprvat_config.yaml"
 
 
 conda_check = 'conda info | grep "active environment"'
@@ -29,9 +36,8 @@ wildcard_constraints:
     repeat="\d+",
     trial="\d+",
 
-
+cv_exp = config.get('cv_exp',True)
 cv_splits = config.get("n_folds", 5)
-cv_exp = True
 
 include: "cv_training.snakefile"
 include: "cv_burdens.snakefile"
@@ -80,7 +86,7 @@ rule all_training:  #cv_training.snakefile
             cv_split=range(cv_splits),
         ),
         expand(
-            "cv_split{cv_split}/deeprvat/models/repeat_{repeat}/config.yaml",
+            "cv_split{cv_split}/deeprvat/models/repeat_{repeat}/model_config.yaml",
             repeat=range(n_repeats),
             cv_split=range(cv_splits),
         ),
@@ -89,7 +95,7 @@ rule all_training:  #cv_training.snakefile
 rule all_config:  #cv_training.snakefile
     input:
         expand(
-            "cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/hpopt_config.yaml",
+            "cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/config.yaml",
             phenotype=phenotypes,
             cv_split=range(cv_splits),
         ),

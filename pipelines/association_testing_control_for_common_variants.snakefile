@@ -1,6 +1,14 @@
 from pathlib import Path
+from os.path import exists
 
-configfile: 'config.yaml'
+if not exists('./deeprvat_config.yaml'):
+    if not config: #--configfile argument was not passed
+        print("Generating deeprvat_config.yaml...")
+        from deeprvat.deeprvat.config import create_main_config
+        create_main_config('deeprvat_input_config.yaml')
+        print("     Finished.")
+
+configfile: 'deeprvat_config.yaml'
 
 debug_flag = config.get('debug', False)
 phenotypes = config['phenotypes']
@@ -105,7 +113,7 @@ rule all_regression_correct_common:
 
 rule regression_correct_common:
     input:
-        config = f"{config_file_prefix}{{phenotype}}/deeprvat/hpopt_config.yaml",
+        data_config = f"{config_file_prefix}{{phenotype}}/deeprvat/config.yaml",
         chunks = lambda wildcards: (
             [] if wildcards.phenotype == phenotypes[0]
             else expand('{{phenotype}}/deeprvat/burdens/chunk{chunk}.linked',
@@ -134,8 +142,8 @@ rule regression_correct_common:
         '--common-genotype-prefix {params.common_genotype_prefix} '
         '--genes-to-keep {input.genes_to_keep} '
         + do_scoretest +
-        '{input.config} '
-        '{params.burden_dir} ' #TODO make this w/o repeats
+        '{input.data_config} '
+        '{params.burden_dir} ' 
         '{output}'
 
 rule all_data:
@@ -149,7 +157,7 @@ rule prepare_genotypes_per_gene:
         "prs" #TODO upgrade deeprvat environment pyarrow to version 6.0.1. to make DeepRVAT env work 
     input:
         significant_genes = '{phenotype}/deeprvat/eval/significant_genes_restest.parquet',
-        config = 'config.yaml', #TODO potentially make this phenotype specific,
+        data_config = 'deeprvat_config.yaml', 
         genotype_file = lambda wildcards: f'{genotype_base_dir}/GWAS_variants_clumped_mac_{phecode_dict[wildcards.phenotype]}.parquet',
         sample_file = '{phenotype}/deeprvat/burdens/sample_ids.finished'
     params: 
@@ -167,7 +175,7 @@ rule prepare_genotypes_per_gene:
             '--gtf-file '+ str(gtf_file) + ' '
             '--padding '+ str(padding) + ' '
             '--standardize '
-            '{input.config} '
+            '{input.data_config} '
             '{input.significant_genes} '
             '{input.genotype_file} '
             '{params.sample_file} '
@@ -179,7 +187,7 @@ rule prepare_genotypes_per_gene:
 rule get_significant_genes:
     input:
         res_file = f"{{phenotype}}/deeprvat/{burden_agg_fct}_agg_results/{n_avg_repeats}_repeats/eval/{use_seed}/all_results.parquet",
-        config = 'config.yaml' #TODO potentially make this phenotype specific
+        data_config = 'deeprvat_config.yaml' 
     output:
         out_parquet = '{phenotype}/deeprvat/eval/significant_genes_restest.parquet',
         out_npy = '{phenotype}/deeprvat/burdens/significant_genes_restest.npy'
@@ -190,7 +198,7 @@ rule get_significant_genes:
         py_deeprvat + '/common_variant_condition_utils.py get-significant-genes ' 
         '--pval-correction-method Bonferroni '
         # f'{debug_flag} '
-        '{input.config} '
+        '{input.data_config} '
         '{input.res_file} '
         '{output.out_parquet} '
         '{output.out_npy} '

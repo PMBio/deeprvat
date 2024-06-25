@@ -116,7 +116,7 @@ def cli():
 def make_dataset_(
     config: Dict,
     debug: bool = False,
-    data_key="data",
+    data_key="association_testing_data",
     samples: Optional[List[int]] = None,
 ) -> Dataset:
     """
@@ -126,7 +126,7 @@ def make_dataset_(
     :type config: Dict
     :param debug: Flag for debugging, defaults to False.
     :type debug: bool
-    :param data_key: Key for dataset configuration in the config dictionary, defaults to "data".
+    :param data_key: Key for dataset configuration in the config dictionary, defaults to "association_testing_data".
     :type data_key: str
     :param samples: List of sample indices to include in the dataset, defaults to None.
     :type samples: List[int]
@@ -163,7 +163,7 @@ def make_dataset_(
 
 @cli.command()
 @click.option("--debug", is_flag=True)
-@click.option("--data-key", type=str, default="data")
+@click.option("--data-key", type=str, default="association_testing_data")
 @click.argument("config-file", type=click.Path(exists=True))
 @click.argument("out-file", type=click.Path())
 def make_dataset(debug: bool, data_key: str, config_file: str, out_file: str):
@@ -172,7 +172,7 @@ def make_dataset(debug: bool, data_key: str, config_file: str, out_file: str):
 
     :param debug: Flag for debugging.
     :type debug: bool
-    :param data_key: Key for dataset configuration in the config dictionary, defaults to "data".
+    :param data_key: Key for dataset configuration in the config dictionary, defaults to "association_testing_data".
     :type data_key: str
     :param config_file: Path to the configuration file.
     :type config_file: str
@@ -245,7 +245,7 @@ def compute_burdens_(
             }
         )
 
-    data_config = config["data"]
+    data_config = config["association_testing_data"]
 
     ds_full = ds.dataset if isinstance(ds, Subset) else ds
     collate_fn = getattr(ds_full, "collate_fn", None)
@@ -700,7 +700,9 @@ def reverse_models(
     with open(data_config_file) as f:
         data_config = yaml.safe_load(f)
 
-    annotation_file = data_config["data"]["dataset_config"]["annotation_file"]
+    annotation_file = data_config["association_testing_data"]["dataset_config"][
+        "annotation_file"
+    ]
 
     if torch.cuda.is_available():
         logger.info("Using GPU")
@@ -712,7 +714,7 @@ def reverse_models(
     # plof_df = (
     #     dd.read_parquet(
     #         annotation_file,
-    #         columns=data_config["data"]["dataset_config"]["rare_embedding"]["config"][
+    #         columns=data_config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"][
     #             "annotations"
     #         ],
     #     )
@@ -722,9 +724,9 @@ def reverse_models(
 
     plof_df = pd.read_parquet(
         annotation_file,
-        columns=data_config["data"]["dataset_config"]["rare_embedding"]["config"][
-            "annotations"
-        ],
+        columns=data_config["association_testing_data"]["dataset_config"][
+            "rare_embedding"
+        ]["config"]["annotations"],
     )
     plof_df = plof_df[plof_df[PLOF_COLS].eq(1).any(axis=1)]
 
@@ -956,7 +958,7 @@ def regress_on_gene_scoretest(
     :rtype: Tuple[List[str], List[float], List[float]]
     """
     burdens = burdens.reshape(burdens.shape[0], -1)
-    assert np.all(burdens != 0)  # TODO check this!
+    assert np.all(burdens != 0)  # because DeepRVAT burdens are corrently all non-zero
     logger.info(f"Burdens shape: {burdens.shape}")
 
     if np.all(np.abs(burdens) < 1e-6):
@@ -1120,7 +1122,7 @@ def regress_(
 
     genes_betas_pvals = [x for x in genes_betas_pvals if x is not None]
     regressed_genes, betas, pvals = separate_parallel_results(genes_betas_pvals)
-    y_phenotypes = config["data"]["dataset_config"]["y_phenotypes"]
+    y_phenotypes = config["association_testing_data"]["dataset_config"]["y_phenotypes"]
     regressed_phenotypes = [y_phenotypes] * len(regressed_genes)
     result = pd.DataFrame(
         {
@@ -1579,7 +1581,7 @@ def regress_common_(
         genes_betas_pvals.append(gene_stats)
     genes_betas_pvals = [x for x in genes_betas_pvals if x is not None]
     regressed_genes, betas, pvals = separate_parallel_results(genes_betas_pvals)
-    y_phenotypes = config["data"]["dataset_config"]["y_phenotypes"]
+    y_phenotypes = config["association_testing_data"]["dataset_config"]["y_phenotypes"]
     regressed_phenotypes = [y_phenotypes] * len(regressed_genes)
     result = pd.DataFrame(
         {
