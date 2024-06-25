@@ -1270,14 +1270,15 @@ def regress(
     y = zarr.load(Path(xy_dir) / "y.zarr")
     x_pheno = zarr.load(Path(xy_dir) / "x.zarr")
 
-    # Make sure sample IDs agree
-    try:
-        assert np.array_equal(
-            zarr.load(Path(xy_dir) / "sample_ids.zarr"),
-            zarr.load(Path(burden_dir) / "sample_ids.zarr"),
-        )
-    except:
-        raise ValueError("Sample IDs in xy_dir and burden_dir disagree")
+    # Find overlap in sample IDs
+    xy_sample_ids = zarr.load(Path(xy_dir) / "sample_ids.zarr")
+    burden_sample_ids = zarr.load(Path(burden_dir) / "sample_ids.zarr")
+    if len(set(xy_sample_ids).intersection(set(burden_sample_ids))) == 0:
+        raise ValueError("No common sample IDs between xy_dir and burden_dir")
+    if len(set(xy_sample_ids)) != xy_sample_ids.shape[0]:
+        raise ValueError("Duplicate sample IDs in xy_dir")
+    if len(set(burden_sample_ids)) != burden_sample_ids.shape[0]:
+        raise ValueError("Duplicate sample IDs in burden_dir")
 
     if sample_file is not None:
         with open(sample_file, "rb") as f:
@@ -1296,24 +1297,31 @@ def regress(
         raise ValueError(
             "Inconsistent number of samples between covariates and targets"
         )
-    # assert len(genes) == burdens.shape[1]
 
-    nan_mask = ~np.isnan(y).squeeze()
-    y = y[nan_mask]
-    # burdens = burdens[nan_mask]
-    x_pheno = x_pheno[nan_mask]
+    x_pheno_cols = [f"xy_pheno_{i}" for i in range(x_pheno.shape[1])]
+    xy_dict = {
+        c: x.squeeze()
+        for c, x in zip(x_pheno_cols, np.split(x_pheno, x_pheno.shape[1], axis=1))
+    }
+    xy_dict["sample"] = xy_sample_ids
+    xy_dict["y"] = y.squeeze()
+    xy_df = pd.DataFrame(xy_dict)
+    burden_sample_df = pd.DataFrame({"sample": burden_sample_ids})
+    xy_df = pd.merge(burden_sample_df, xy_df, how="left", sort=False)
+    # Assert the rows of this DF correspond to rows of burden_dir/burdens.zarr
+    # (should be guaranteed by Pandas, this is just a sanity check)
+    assert np.array_equal(xy_df["sample"].to_numpy(), burden_sample_ids)
 
     with open(config_file) as f:
         config = yaml.safe_load(f)
 
+    logger.info(f"Loading saved burdens from {burden_dir}")
+    genes = pd.Series(np.load(Path(burden_dir) / "genes.npy"))
     if gene_file is not None:
         logger.info("Loading gene names")
         gene_df = pd.read_parquet(gene_file, engine="pyarrow")
         gene_df.set_index("id")
         genes = gene_df.loc[genes, "gene"].str.split(".").apply(lambda x: x[0])
-
-    logger.info(f"Loading saved burdens from {burden_dir}")
-    genes = pd.Series(np.load(Path(burden_dir) / "genes.npy"))
 
     chunk_size = math.ceil(len(genes) / n_chunks)
     chunk_start = chunk * chunk_size
@@ -1330,17 +1338,17 @@ def regress(
 
     if sample_file is not None:
         burdens = burdens[samples]
-    burdens = burdens[nan_mask]
+    # burdens = burdens[nan_mask]
     assert len(genes) == burdens.shape[1]
 
     associations = regress_(
         config,
         use_bias,
         burdens,
-        y,
+        xy_df["y"].to_numpy(),
         gene_indices,
         genes,
-        x_pheno,
+        xy_df[x_pheno_cols].to_numpy(),
         do_scoretest=do_scoretest,
     )
 

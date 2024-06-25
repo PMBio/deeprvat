@@ -12,7 +12,7 @@ configfile: 'deeprvat_config.yaml'
 
 debug_flag = config.get('debug', False)
 debug = '--debug ' if debug_flag else ''
-deterministic_flag = config.get('debug', False)
+deterministic_flag = config.get('deterministic', False)
 deterministic = '--deterministic ' if deterministic_flag else ''
 phenotypes = config['phenotypes']
 phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
