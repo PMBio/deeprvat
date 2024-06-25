@@ -62,9 +62,9 @@ rule train:
         gpus = 1
     shell:
         f"parallel --jobs {n_parallel_training_jobs} --halt now,fail=1 --results train_repeat{{{{1}}}}_trial{{{{2}}}}/ "
-        'deeprvat_train train '
-        + debug +
-        + deterministic +
+        'deeprvat_train train ' +
+        debug +
+        deterministic +
         '--trial-id {{2}} '
         "{params.phenotypes} "
         'config.yaml '
