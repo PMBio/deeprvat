@@ -421,65 +421,100 @@ else:
         shell: 
             'touch {output.chckpt}'
 
-rule calculate_allele_frequency:
-    input:
-        genotype_file=genotype_file,
-        variants=variant_pq,
-    output:
-        allele_frequencies = anno_tmp_dir / "af_df.parquet",
-    resources:
-        mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
-    shell:
-        " ".join(
-            [
-                f"deeprvat_annotations",
-                "get-af-from-gt",
-                "{input.genotype_file}",
-                "{input.variants}",
-                "{output.allele_frequencies}",
-            ]
-        )
+
+if (af_mode ==None):
+    rule calculate_allele_frequency:
+        input:
+            genotype_file=genotype_file,
+            variants=variant_pq,
+        output:
+            allele_frequencies = anno_tmp_dir / "af_df.parquet",
+        resources:
+            mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
+        shell:
+            " ".join(
+                [
+                    f"deeprvat_annotations",
+                    "get-af-from-gt",
+                    "{input.genotype_file}",
+                    "{input.variants}",
+                    "{output.allele_frequencies}",
+                ]
+            )
 
 
-rule merge_allele_frequency:
-    input:
-        allele_frequencies=rules.calculate_allele_frequency.output.allele_frequencies,
-        chckpt_absplice = anno_dir / 'chckpts' / 'merge_absplice_scores.chckpt',
-        chckpt_deepsea = anno_dir / 'chckpts' / 'merge_deepsea_pcas.chckpt',
-        ckckpt_concat_annotations = rules.concat_annotations.output.chckpt,
-        
-    output:
-        #annotations = anno_dir / "annotations.parquet",
-        chckpt = anno_dir / 'chckpts' / 'merge_allele_frequency.chckpt'
-    params:
-        annotations_in = anno_dir / "annotations.parquet",
-        annotations_out = anno_dir / "annotations.parquet",
-    resources:
-        mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
-    shell:
-        " ".join(
-            [
-                f"deeprvat_annotations",
-                "merge-af",
-                "{params.annotations_in}",
-                "{input.allele_frequencies}",
-                "{params.annotations_out}",
-            ]
-        )+" && touch {output.chckpt}"
+    rule merge_allele_frequency:
+        input:
+            allele_frequencies=rules.calculate_allele_frequency.output.allele_frequencies,
+            chckpt_absplice = anno_dir / 'chckpts' / 'merge_absplice_scores.chckpt',
+            chckpt_deepsea = anno_dir / 'chckpts' / 'merge_deepsea_pcas.chckpt',
+            ckckpt_concat_annotations = rules.concat_annotations.output.chckpt,
+            
+        output:
+            #annotations = anno_dir / "annotations.parquet",
+            chckpt = anno_dir / 'chckpts' / 'merge_allele_frequency.chckpt'
+        params:
+            annotations_in = anno_dir / "annotations.parquet",
+            annotations_out = anno_dir / "annotations.parquet",
+        resources:
+            mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
+        shell:
+            " ".join(
+                [
+                    f"deeprvat_annotations",
+                    "merge-af",
+                    "{params.annotations_in}",
+                    "{input.allele_frequencies}",
+                    "{params.annotations_out}",
+                ]
+            )+" && touch {output.chckpt}"
 
+    rule calculate_MAF:
+        input:
+            chckpt = rules.merge_allele_frequency.output.chckpt,
+        output:
+            chckpt = anno_dir / 'chckpts' / 'calculate_MAF.chckpt'
+        params: 
+            annotations_in = rules.merge_allele_frequency.params.annotations_out,
+            annotations_out = anno_dir / "annotations.parquet",
+        resources:
+            mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
+        shell:
+            " ".join([f"deeprvat_annotations", "calculate-maf", "{params.annotations_in}", "{params.annotations_out}"])+ " && touch {output.chckpt}"
 
-rule calculate_MAF:
-    input:
-        chckpt = rules.merge_allele_frequency.output.chckpt,
-    output:
-        chckpt = anno_dir / 'chckpts' / 'calculate_MAF.chckpt'
-    params: 
-        annotations_in = rules.merge_allele_frequency.params.annotations_out,
-        annotations_out = anno_dir / "annotations.parquet",
-    resources:
-        mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
-    shell:
-        " ".join([f"deeprvat_annotations", "calculate-maf", "{params.annotations_in}", "{params.annotations_out}"])+ " && touch {output.chckpt}"
+elif(af_mode == 'af_gnomade'):
+    rule calculate_MAF:
+        input:
+            chckpt_absplice = anno_dir / 'chckpts' / 'merge_absplice_scores.chckpt',
+            chckpt_deepsea = anno_dir / 'chckpts' / 'merge_deepsea_pcas.chckpt',
+            ckckpt_concat_annotations = rules.concat_annotations.output.chckpt,
+        output:
+            chckpt = anno_dir / 'chckpts' / 'calculate_MAF.chckpt'
+        params: 
+            annotations_in = anno_dir / "annotations.parquet",
+            annotations_out = anno_dir / "annotations.parquet",
+        resources:
+            mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
+        shell:
+            " ".join([f"deeprvat_annotations", "calculate-maf","--af-column-name gnomADe_AF" , "{params.annotations_in}", "{params.annotations_out}"])+ " && touch {output.chckpt}"
+
+elif(af_mode == 'af_gnomadg'):
+    rule calculate_MAF:
+        input:
+            chckpt_absplice = anno_dir / 'chckpts' / 'merge_absplice_scores.chckpt',
+            chckpt_deepsea = anno_dir / 'chckpts' / 'merge_deepsea_pcas.chckpt',
+            ckckpt_concat_annotations = rules.concat_annotations.output.chckpt,
+        output:
+            chckpt = anno_dir / 'chckpts' / 'calculate_MAF.chckpt'
+        params: 
+            annotations_in = anno_dir / "annotations.parquet",
+            annotations_out = anno_dir / "annotations.parquet",
+        resources:
+            mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
+        shell:
+            " ".join([f"deeprvat_annotations", "calculate-maf", "--af-column-name gnomADg_AF", "{params.annotations_in}", "{params.annotations_out}" ])+ " && touch {output.chckpt}"
+
+else: print('af_mode unknown')
 
 
 rule add_gene_ids:
