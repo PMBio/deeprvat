@@ -60,6 +60,7 @@ process variants {
 }
 
 process sparsify {
+
     input:
     path bcf_file
 
@@ -88,12 +89,15 @@ process concatenate_variants {
 }
 
 process create_parquet_variant_ids {
+
+    publishDir './example/workdir', mode: 'copy', overwrite: true
+
     input:
     path "variants_no_id.tsv.gz"
 
     output:
-    path "variants.parquet"
-    path "duplicates.parquet"
+    path "variants.parquet", emit: variants
+    path "duplicates.parquet", emit: duplicates
 
     shell:
     '''
@@ -104,14 +108,14 @@ process create_parquet_variant_ids {
 
 process add_variant_ids {
 
-    publishDir '/Users/b260-admin/Desktop', mode: 'copy', overwrite: false
+    publishDir './example/workdir', mode: 'copy', overwrite: true
 
     input:
     path "variants_no_id.tsv.gz"
 
     output:
-    path "variants.tsv.gz"
-    path "duplicates.tsv"
+    path "variants.tsv.gz", emit: variants
+    path "duplicates.tsv", emit: duplicates 
 
     shell:
     '''
@@ -119,21 +123,59 @@ process add_variant_ids {
     '''
 }
 
+process preprocess {
+    
+    
 
+    input:
+    path "variants.parquet"
+    path "duplicates.parquet"
+    path "samples_chr.csv"
+    path "sparse/sparse.tsv.gz"
+
+    output:
+    path "genotypes_chr*.h5"
+    shell:
+    '''
+   
+    deeprvat_preprocess process-sparse-gt variants.parquet samples_chr.csv sparse genotypes
+    
+    '''
+
+}
+
+process combine_genotypes{
+
+    publishDir './example/workdir', mode: 'copy', overwrite: true
+    
+    input: 
+    path 'genotype_files'
+
+    output:
+    path 'genotypes.h5'
+    shell:
+    '''
+    deeprvat_preprocess combine-genotypes  genotype_files* genotypes.h5
+    '''
+}
 
 workflow  {
     // Define the path to the text file containing the paths
     def pathFile = 'example/vcf_files_list.txt'
     def fasta_file = Channel.fromPath("example/workdir/reference/GRCh38.primary_assembly.genome.fa")
     def vcf_files = Channel.fromPath(pathFile).splitText().map{file(it.trim())}
-
-    def normalized = normalize(vcf_files, 
-                                extract_samples(vcf_files.first()),
-                                fasta_file,index_fasta(fasta_file))
     
-    def concatenated_variants = concatenate_variants(variants(normalized))
-
-    sparsify(normalized)    
-    create_parquet_variant_ids(concatenated_variants)
+    def samples = extract_samples(vcf_files.first())
+    def normalized = normalize(vcf_files, 
+                                samples,
+                                fasta_file.first(), index_fasta(fasta_file).first())
+    
+    def sparsified = sparsify(normalized)
+    def concatenated_variants = concatenate_variants(variants(normalized).collect())
+    def variants = create_parquet_variant_ids(concatenated_variants)
+    def preprocessed = preprocess(variants,samples, sparsified )
+    
     add_variant_ids(concatenated_variants)
+    combine_genotypes(preprocessed.collect())
+    
 }
