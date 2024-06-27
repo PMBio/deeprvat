@@ -1,3 +1,4 @@
+params.qc = false
 process extract_samples {
 
     input:
@@ -159,6 +160,41 @@ process combine_genotypes{
     '''
 }
 
+
+
+process qc_read_depth{
+    publishDir './example/workdir/qc', mode: 'copy', overwrite: true
+    input:
+    path 'infile.bcf'
+    output:
+    path 'read_depth.tsv.gz'
+    shell:
+    '''
+    bcftools query --format '[%CHROM\\t%POS\\t%REF\\t%ALT\\t%SAMPLE\\n]' --include '(GT!="RR" & GT!="mis" & TYPE="snp" & FORMAT/DP < 7) | (GT!="RR" & GT!="mis" & TYPE="indel" & FORMAT/DP < 10)' infile.bcf | gzip > read_depth.tsv.gz
+    '''
+
+}
+process preprocess_qc {
+    
+    input:
+    path "variants.parquet"
+    path "duplicates.parquet"
+    path "samples_chr.csv"
+    path "sparse/sparse.tsv.gz"
+    path "qc/read_depth/exclude?.tsv.gz"
+
+    output:
+    path "genotypes_chr*.h5"
+    shell:
+    '''
+    ls -lah qc/read_depth/
+    deeprvat_preprocess process-sparse-gt --exclude-variants qc/read_depth variants.parquet samples_chr.csv sparse genotypes
+    
+    '''
+
+}
+
+
 workflow  {
     // Define the path to the text file containing the paths
     def pathFile = 'example/vcf_files_list.txt'
@@ -173,8 +209,16 @@ workflow  {
     def sparsified = sparsify(normalized)
     def concatenated_variants = concatenate_variants(variants(normalized).collect())
     def variants = create_parquet_variant_ids(concatenated_variants)
-    def preprocessed = preprocess(variants,samples, sparsified )
-    
+
+    if ( params.qc ) {
+        def read_depth_exclude_files = qc_read_depth(normalized).collect()
+        preprocessed = preprocess_qc(variants,samples, sparsified, read_depth_exclude_files)
+    }
+    else {
+        preprocessed = preprocess(variants,samples, sparsified )
+
+        
+    }
     add_variant_ids(concatenated_variants)
     combine_genotypes(preprocessed.collect())
     
