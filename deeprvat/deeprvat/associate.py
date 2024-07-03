@@ -108,7 +108,8 @@ def cli():
 def make_dataset_(
     config: Dict,
     debug: bool = False,
-    data_key="association_testing_data",
+    data_key: str = "association_testing_data",
+    skip_genotypes: bool = False,
     samples: Optional[List[int]] = None,
 ) -> Dataset:
     """

@@ -64,15 +64,11 @@ rule combine_regression_chunks:
 
 rule regress:
     input:
-        data_config = f"{config_file_prefix}{{phenotype}}/deeprvat/config.yaml",
+        config = f"{config_file_prefix}{{phenotype}}/deeprvat/hpopt_config.yaml",
         chunks =  expand(
             'burdens/burdens_averaging_{chunk}.finished',
             chunk=range(n_avg_chunks)
         ) if not cv_exp  else 'burdens/merging.finished',
-        phenotype_0_chunks =  expand(
-            phenotypes[0] + '/deeprvat/burdens/logs/burdens_averaging_{chunk}.finished',
-            chunk=range(n_avg_chunks)
-        ),
         x = '{phenotype}/deeprvat/xy/x.zarr',
         y = '{phenotype}/deeprvat/xy/y.zarr',
     output:
