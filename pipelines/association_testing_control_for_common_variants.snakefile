@@ -91,7 +91,7 @@ phecode_dict = {'Apolipoprotein_A': 30630,
 
 gtf_file = 'gencode.v34lift37.annotation.gtf.gz'
 genotype_base_dir = 'genotypes/'
-padding = 500
+padding = 500000
 
 burden_phenotype = phenotypes[0]
 
