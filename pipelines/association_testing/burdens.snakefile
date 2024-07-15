@@ -19,6 +19,7 @@ rule average_burdens:
     shell:
         ' && '.join([
             ('deeprvat_associate  average-burdens '
+            + center_scale_burdens +
             '--n-chunks '+ str(n_avg_chunks) + ' '
             '--chunk {wildcards.chunk} '
             '{params.repeats} '
@@ -83,6 +84,7 @@ rule compute_burdens:
         ' && '.join([
             ('deeprvat_associate compute-burdens '
              + debug +
+             + center_scale_burdens +
              ' --n-chunks '+ str(n_burden_chunks) + ' '
              '--chunk {wildcards.chunk} '
              '--dataset-file {input.dataset} '
