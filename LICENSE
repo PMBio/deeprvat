@@ -1,7 +1,8 @@
-MIT License
+The scource code of DeepRVAT is under MIT license. The pre-trained DeepRVAT models are under the CC BY NC 4.0 license for academic and non-commercial use. This is because DeepRVAT makes use of SpliceAI and PrimateAI scores which are currently under the CC BY NC 4.0 by Illumina.
 
-Copyright (c) 2022, Eva Holtkamp, Brian Clarke, Hakime Öztürk, Felix Brechtmann,
-Florian Hölzlwimmer, Julien Gagneur, Oliver Stegle
+## MIT License
+
+Copyright (c) 2022, Brian Clarke, Eva Holtkamp, Hakime Öztürk, Marcel Mück, Magnus Wahlberg, Kayla Meyer, Felix Munzlinger, Felix Brechtmann, Florian R. Hölzlwimmer, Jonas Lindner, Zhifen Chen, Julien Gagneur, Oliver Stegle
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -20,3 +21,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
