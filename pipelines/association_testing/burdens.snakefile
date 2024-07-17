@@ -18,7 +18,7 @@ rule average_burdens:
     priority: 10,
     shell:
         ' && '.join([
-            ('deeprvat_associate  average-burdens '
+            ('deeprvat_associate average-burdens '
             + center_scale_burdens +
             '--n-chunks '+ str(n_avg_chunks) + ' '
             '--chunk {wildcards.chunk} '
@@ -84,10 +84,10 @@ rule compute_burdens:
         ' && '.join([
             ('deeprvat_associate compute-burdens '
              + debug +
-             + center_scale_burdens +
              ' --n-chunks '+ str(n_burden_chunks) + ' '
              '--chunk {wildcards.chunk} '
              '--dataset-file {input.dataset} '
+             + center_scale_burdens +
              '{input.data_config} '
              '{input.model_config} '
              '{input.checkpoints} '
