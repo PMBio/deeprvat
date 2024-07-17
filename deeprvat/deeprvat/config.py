@@ -309,6 +309,7 @@ def create_main_config(
         "correction_method"
     ]
     full_config["evaluation"]["alpha"] = input_config["evaluation"]["alpha"]
+    full_config["center_scale_burdens"] = input_config["evaluation"]["center_scale_burdens"]
     # DeepRVAT model
     full_config["n_repeats"] = input_config["n_repeats"]
 
