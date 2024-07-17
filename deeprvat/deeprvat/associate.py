@@ -940,21 +940,27 @@ def compute_burdens(
     if center_scale_burdens and not link_burdens:
         if (chunk == 0) or not chunk:
             empty_batch = {
-                "rare_variant_annotations": torch.zeros(1,1,34,1),
+                "rare_variant_annotations": torch.zeros(1, 1, 34, 1),
                 "y": None,
                 "x_phenotypes": None,
                 "sample": None,
             }
             this_mode, _, _, _ = get_burden(
-                    empty_batch, agg_models, device=device, skip_burdens=False, compute_mode=True
-                )
+                empty_batch,
+                agg_models,
+                device=device,
+                skip_burdens=False,
+                compute_mode=True,
+            )
             this_mode = this_mode.flatten()
-            center_scale_df = pd.DataFrame(columns=["max","mode"])
+            center_scale_df = pd.DataFrame(columns=["max", "mode"])
             for r in range(len(agg_models)):
-                center_scale_df.loc[r,"max"] = None
-                center_scale_df.loc[r,"mode"] = this_mode[r]
+                center_scale_df.loc[r, "max"] = None
+                center_scale_df.loc[r, "mode"] = this_mode[r]
             pprint(f"Calculated Zero-Effect Burden Score :\n {this_mode}")
-            center_scale_df.to_csv(f"{Path(out_dir)}/computed_burdens_stats.csv", index=False)   
+            center_scale_df.to_csv(
+                f"{Path(out_dir)}/computed_burdens_stats.csv", index=False
+            )
 
     logger.info("Saving computed burdens, corresponding genes, and targets")
     np.save(Path(out_dir) / "genes.npy", genes)
@@ -1344,19 +1350,25 @@ def average_burdens(
     logger.info(f"Reading burdens to aggregate from {burden_file}")
     burdens = zarr.open(burden_file)
     n_total_samples = burdens.shape[0]
-    
+
     if center_scale_burdens:
-        center_scale_params_file = Path(os.path.split(burden_out_file)[0]) / "computed_burdens_stats.csv"
+        center_scale_params_file = (
+            Path(os.path.split(burden_out_file)[0]) / "computed_burdens_stats.csv"
+        )
         center_scale_df = pd.read_csv(center_scale_params_file)
         if (chunk == 0) or not chunk:
-            xd = da.from_zarr(burden_file,chunks=(1000,1000,1))
+            xd = da.from_zarr(burden_file, chunks=(1000, 1000, 1))
             for r in range(len(repeats)):
-                repeat_max = xd[:,:,r].max().compute() # compute max across each repeat
-                center_scale_df.loc[r,"max"] = repeat_max
-                
-            pprint(f"Center and scaling values extracted from computed burdens :\n{center_scale_df}")
-            center_scale_df.to_csv(center_scale_params_file, index=False)   
-    
+                repeat_max = (
+                    xd[:, :, r].max().compute()
+                )  # compute max across each repeat
+                center_scale_df.loc[r, "max"] = repeat_max
+
+            pprint(
+                f"Center and scaling values extracted from computed burdens :\n{center_scale_df}"
+            )
+            center_scale_df.to_csv(center_scale_params_file, index=False)
+
     if chunk is not None:
         if n_chunks is None:
             raise ValueError("n_chunks must be specified if chunk is not None")
@@ -1404,22 +1416,22 @@ def average_burdens(
         end_idx = min(start_idx + batch_size, chunk_end)
         print(start_idx, end_idx)
         this_burdens = np.take(burdens[start_idx:end_idx, :, :], repeats, axis=2)
-        
-        #Double-check zarr creation - no computed burdens should equal zero
+
+        # Double-check zarr creation - no computed burdens should equal zero
         assert np.all(this_burdens != 0)
 
         if center_scale_burdens:
             print("Centering and Scaling Burdens before aggregating")
             for r in range(len(repeats)):
-                zero_effect_val = center_scale_df.loc[r,"mode"]
-                repeat_max = center_scale_df.loc[r,"max"]
+                zero_effect_val = center_scale_df.loc[r, "mode"]
+                repeat_max = center_scale_df.loc[r, "max"]
                 # Subtract off zero effect burden value (mode)
-                this_burdens[:,:,r] -= zero_effect_val
+                this_burdens[:, :, r] -= zero_effect_val
                 adjusted_max = repeat_max - zero_effect_val
                 # Scale only values >= mode. Scale between 0 and 1.
-                pos_mask = this_burdens[:,:,r] > 0
+                pos_mask = this_burdens[:, :, r] > 0
                 # (this_burdens[:,:,r][pos_mask] - this_burdens[:,:,r][pos_mask].min()) / (adjusted_max - this_burdens[:,:,r][pos_mask].min())
-                this_burdens[:,:,r][pos_mask] /= adjusted_max
+                this_burdens[:, :, r][pos_mask] /= adjusted_max
 
         this_burdens = AGG_FCT[agg_fct](this_burdens, axis=2)
 
