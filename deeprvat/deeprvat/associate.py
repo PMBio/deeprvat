@@ -954,7 +954,9 @@ def compute_burdens(
             this_mode = this_mode.flatten()
             center_scale_df = pd.DataFrame(columns=["max", "mode"])
             for r in range(len(agg_models)):
-                center_scale_df.loc[r, "max"] = 1.0 #Set to max DeepRVAT sigmoid output
+                center_scale_df.loc[r, "max"] = (
+                    1.0  # Set to max DeepRVAT sigmoid output
+                )
                 center_scale_df.loc[r, "mode"] = this_mode[r]
             pprint(f"Calculated Zero-Effect Burden Score :\n {this_mode}")
             center_scale_df.to_csv(
