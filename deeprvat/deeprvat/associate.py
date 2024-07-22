@@ -954,7 +954,7 @@ def compute_burdens(
             this_mode = this_mode.flatten()
             center_scale_df = pd.DataFrame(columns=["max", "mode"])
             for r in range(len(agg_models)):
-                center_scale_df.loc[r, "max"] = None
+                center_scale_df.loc[r, "max"] = 1.0 #Set to max DeepRVAT sigmoid output
                 center_scale_df.loc[r, "mode"] = this_mode[r]
             pprint(f"Calculated Zero-Effect Burden Score :\n {this_mode}")
             center_scale_df.to_csv(
@@ -1355,18 +1355,6 @@ def average_burdens(
             Path(os.path.split(burden_out_file)[0]) / "computed_burdens_stats.csv"
         )
         center_scale_df = pd.read_csv(center_scale_params_file)
-        if (chunk == 0) or not chunk:
-            xd = da.from_zarr(burden_file, chunks=(1000, 1000, 1))
-            for r in range(len(repeats)):
-                repeat_max = (
-                    xd[:, :, r].max().compute()
-                )  # compute max across each repeat
-                center_scale_df.loc[r, "max"] = repeat_max
-
-            pprint(
-                f"Center and scaling values extracted from computed burdens :\n{center_scale_df}"
-            )
-            center_scale_df.to_csv(center_scale_params_file, index=False)
 
     if chunk is not None:
         if n_chunks is None:
@@ -1386,7 +1374,7 @@ def average_burdens(
         f"Computing result for chunk {chunk} out of {n_chunks} in range {chunk_start}, {chunk_end}"
     )
 
-    batch_size = 100
+    batch_size = 1000
     logger.info(f"Batch size: {batch_size}")
     n_batches = n_samples // batch_size + (n_samples % batch_size != 0)
 
