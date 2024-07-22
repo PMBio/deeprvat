@@ -946,11 +946,11 @@ def compute_burdens(
                 "sample": None,
             }
             this_mode, _, _, _ = get_burden(
-                    empty_batch, 
-                    agg_models, 
-                    device=device, 
-                    skip_burdens=False,
-                )
+                empty_batch,
+                agg_models,
+                device=device,
+                skip_burdens=False,
+            )
             this_mode = this_mode.flatten()
             center_scale_df = pd.DataFrame(columns=["max", "mode"])
             for r in range(len(agg_models)):
