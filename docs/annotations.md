@@ -15,7 +15,7 @@ Furthermore, the pipeline outputs one annotation file for VEP, CADD, DeepRiPe, D
 
 The pipeline uses left-normalized bcf files containing variant information (e.g. the bcf files created by the[preprocessing pipeline](https://deeprvat.readthedocs.io/en/latest/preprocessing.html)) , a reference fasta file, and a gtf file for gene information. It is expected that the bcf files contain the columns "CHROM" "POS" "ID" "REF" and "ALT". 
 Any other columns, including genotype information, are stripped from the data before annotation tools are used on the data. The variants may be split into several vcf files for each chromosome and each "block" of data. 
-The filenames should then contain the corresponding chromosome and block number. The pattern of the file names, as well as file structure may be specified in the corresponding [config file](https://github.com/PMBio/deeprvat/blob/main/pipelines/config/deeprvat_annotation_config.yaml). The pipeline also requires input data and repositories descried in [requirements](#requirements).
+The filenames should then contain the corresponding chromosome and block number. The pattern of the file names, as well as file structure may be specified in the corresponding [config file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml). The pipeline also requires input data and repositories descried in [requirements](#requirements).
 
 (requirements)=
 ## Requirements
@@ -25,7 +25,7 @@ BCFtools as well as HTSlib should be installed on the machine,
 - [kipoi-veff2](https://github.com/kipoi/kipoi-veff2)
 - [vep-plugins repository](https://github.com/Ensembl/VEP_plugins/)
 
-should be installed for running the pipeline. The [faatpipe](https://github.com/HealthML/faatpipe) repo should be cloned. Annotation data for CADD, spliceAI and primateAI should be downloaded. The path to the data may be specified in the corresponding [config file](https://github.com/PMBio/deeprvat/blob/main/pipelines/config/deeprvat_annotation_config.yaml). 
+should be installed for running the pipeline. The [faatpipe](https://github.com/HealthML/faatpipe) repo should be cloned. Annotation data for CADD, spliceAI and primateAI should be downloaded. The path to the data may be specified in the corresponding [config file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml). 
 Download paths:
 - [CADD](https://cadd.bihealth.org/download): "All possible SNVs of GRCh38/hg38" and "gnomad.genomes.r3.0.indel.tsv.gz" incl. their Tabix Indices
 - [SpliceAI](https://basespace.illumina.com/s/otSPW8hnhaZR): "genome_scores_v1.3"/"spliceai_scores.raw.snv.hg38.vcf.gz" and "spliceai_scores.raw.indel.hg38.vcf.gz" 
@@ -35,7 +35,7 @@ Also a reference GTF file containing transcript annotations should be provided, 
 
 
 ## Configure the annotation pipeline
-The snakemake annotation pipeline is configured using a yaml file with the format akin to the [example file](https://github.com/PMBio/deeprvat/blob/main/pipelines/config/deeprvat_annotation_config.yaml).
+The snakemake annotation pipeline is configured using a yaml file with the format akin to the [example file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml).
 
 The config above would use the following directory structure:
 ```shell
@@ -97,7 +97,7 @@ Data for VEP plugins and the CADD cache are stored in `annotation data`.
     ```shell
     mamba env create -f repo_dir/kipoi-veff2/environment.minimal.linux.yml
     ```
-  If you already have some of the needed repositories on your machine you can edit the paths in the [config](https://github.com/PMBio/deeprvat/blob/main/pipelines/config/deeprvat_annotation_config.yaml).
+  If you already have some of the needed repositories on your machine you can edit the paths in the [config](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml).
   
 
 - Inside the annotation directory create a directory `annotation_data` and download/link the prescored files for CADD, SpliceAI, and PrimateAI (see [requirements](#requirements))
