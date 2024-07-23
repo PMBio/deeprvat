@@ -13,21 +13,19 @@ Furthermore, the pipeline outputs one annotation file for VEP, CADD, DeepRiPe, D
 
 ## Input
 
-The pipeline uses left-normalized bcf files containing variant information, a reference fasta file as well as a text file that maps data blocks to chromosomes as input. It is expected that the bcf files contain the columns "CHROM" "POS" "ID" "REF" and "ALT". 
-Any other columns, including genotype information are stripped from the data before annotation tools are used on the data. The variants may be split into several vcf files for each chromosome and each "block" of data. 
+The pipeline uses left-normalized bcf files containing variant information (e.g. the bcf files created by the[preprocessing pipeline](https://deeprvat.readthedocs.io/en/latest/preprocessing.html)) , a reference fasta file, and a gtf file for gene information. It is expected that the bcf files contain the columns "CHROM" "POS" "ID" "REF" and "ALT". 
+Any other columns, including genotype information, are stripped from the data before annotation tools are used on the data. The variants may be split into several vcf files for each chromosome and each "block" of data. 
 The filenames should then contain the corresponding chromosome and block number. The pattern of the file names, as well as file structure may be specified in the corresponding [config file](https://github.com/PMBio/deeprvat/blob/main/pipelines/config/deeprvat_annotation_config.yaml). The pipeline also requires input data and repositories descried in [requirements](#requirements).
 
 (requirements)=
 ## Requirements
 
-BCFtools as well as HTSlib should be installed on the machine, 
-- [CADD](https://github.com/kircherlab/CADD-scripts/tree/master/src/scripts) as well as 
+BCFtools as well as HTSlib should be installed on the machine,  
 - [VEP](http://www.ensembl.org/info/docs/tools/vep/script/vep_download.html),  
 - [kipoi-veff2](https://github.com/kipoi/kipoi-veff2)
-- [faatpipe](https://github.com/HealthML/faatpipe), and the
 - [vep-plugins repository](https://github.com/Ensembl/VEP_plugins/)
 
-should be installed for running the pipeline, together with the [plugins](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html) for primateAI and spliceAI. Annotation data for CADD, spliceAI and primateAI should be downloaded. The path to the data may be specified in the corresponding [config file](https://github.com/PMBio/deeprvat/blob/main/pipelines/config/deeprvat_annotation_config.yaml). 
+should be installed for running the pipeline. The [faatpipe](https://github.com/HealthML/faatpipe) repo should be cloned. Annotation data for CADD, spliceAI and primateAI should be downloaded. The path to the data may be specified in the corresponding [config file](https://github.com/PMBio/deeprvat/blob/main/pipelines/config/deeprvat_annotation_config.yaml). 
 Download paths:
 - [CADD](https://cadd.bihealth.org/download): "All possible SNVs of GRCh38/hg38" and "gnomad.genomes.r3.0.indel.tsv.gz" incl. their Tabix Indices
 - [SpliceAI](https://basespace.illumina.com/s/otSPW8hnhaZR): "genome_scores_v1.3"/"spliceai_scores.raw.snv.hg38.vcf.gz" and "spliceai_scores.raw.indel.hg38.vcf.gz" 
@@ -95,15 +93,14 @@ Data for VEP plugins and the CADD cache are stored in `annotation data`.
     mamba activate deeprvat_annotations
     pip install -e path/to/deeprvat
     ```
-- Clone the repositories mentioned in [requirements](#requirements) into `repo_dir` and install the needed conda environments with  
+- Clone the repositories mentioned in [requirements](#requirements) into `repo_dir` and install the required kipoi-veff2 conda environment with  
     ```shell
     mamba env create -f repo_dir/kipoi-veff2/environment.minimal.linux.yml
-    mamba env create -f deeprvat/deeprvat_annotations.yml
     ```
   If you already have some of the needed repositories on your machine you can edit the paths in the [config](https://github.com/PMBio/deeprvat/blob/main/pipelines/config/deeprvat_annotation_config.yaml).
   
 
-- Inside the annotation directory create a directory `annotation_dir` and download/link the prescored files for CADD, SpliceAI, and PrimateAI (see [requirements](#requirements))
+- Inside the annotation directory create a directory `annotation_data` and download/link the prescored files for CADD, SpliceAI, and PrimateAI (see [requirements](#requirements))
 
 
 ### Running the pipeline
