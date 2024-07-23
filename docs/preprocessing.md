@@ -44,7 +44,7 @@ pip install -e .
 ## Configure preprocessing
 
 The snakemake preprocessing is configured using a yaml file with the format below.
-An example file is included in this repo: [example config](https://github.com/PMBio/deeprvat/blob/main/pipelines/config/deeprvat_preprocess_config.yaml).
+An example file is included in this repo: [example config](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_preprocess_config.yaml).
 
 ```yaml
 # What chromosomes should be processed
@@ -198,7 +198,7 @@ gzip -d workdir/reference/GRCh38.primary_assembly.genome.fa.gz
 4. Run with the example config
 
 ```shell
-snakemake -j 1 --snakefile ../../pipelines/preprocess_no_qc.snakefile --configfile ../../pipelines/config/deeprvat_preprocess_config.yaml
+snakemake -j 1 --snakefile ../../pipelines/preprocess_no_qc.snakefile --configfile ../../example/config/deeprvat_preprocess_config.yaml
 ```
 
 5. Enjoy the preprocessed data 🎉
