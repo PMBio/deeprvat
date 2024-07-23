@@ -20,12 +20,7 @@ The filenames should then contain the corresponding chromosome and block number.
 (requirements)=
 ## Requirements
 
-BCFtools as well as HTSlib should be installed on the machine,  
-- [VEP](http://www.ensembl.org/info/docs/tools/vep/script/vep_download.html),  
-- [kipoi-veff2](https://github.com/kipoi/kipoi-veff2)
-- [vep-plugins repository](https://github.com/Ensembl/VEP_plugins/)
-
-should be installed for running the pipeline. The [faatpipe](https://github.com/HealthML/faatpipe) repo should be cloned. Annotation data for CADD, spliceAI and primateAI should be downloaded. The path to the data may be specified in the corresponding [config file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml). 
+BCFtools as well as HTSlib should be installed on the machine, [VEP](http://www.ensembl.org/info/docs/tools/vep/script/vep_download.html) should be installed for running the pipeline. The [faatpipe](https://github.com/HealthML/faatpipe) repo, [kipoi-veff2](https://github.com/kipoi/kipoi-veff2) repo and  [vep-plugins repository](https://github.com/Ensembl/VEP_plugins/) should be cloned. Annotation data for CADD, spliceAI and primateAI should be downloaded. The path to the data may be specified in the corresponding [config file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml). 
 Download paths:
 - [CADD](https://cadd.bihealth.org/download): "All possible SNVs of GRCh38/hg38" and "gnomad.genomes.r3.0.indel.tsv.gz" incl. their Tabix Indices
 - [SpliceAI](https://basespace.illumina.com/s/otSPW8hnhaZR): "genome_scores_v1.3"/"spliceai_scores.raw.snv.hg38.vcf.gz" and "spliceai_scores.raw.indel.hg38.vcf.gz" 
