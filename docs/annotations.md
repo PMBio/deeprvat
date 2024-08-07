@@ -77,9 +77,8 @@ The config above would use the following directory structure:
 Bcf files created by the [preprocessing pipeline](https://deeprvat.readthedocs.io/en/latest/preprocessing.html) are used as input data. The input data directory should only contain the files needed. 
 The pipeline also uses the variant.tsv file, the reference file and the genotypes file from the preprocessing pipeline. 
 A GTF file as described in [requirements](#requirements) and the FASTA file used for preprocessing is also necessary.
-The pipeline begins by installing the repositories needed for the annotations, it will automatically install all repositories in the `repo_dir` folder that can be specified in the config file relative to the annotation working directory.
-The text file mapping blocks to chromosomes is stored in `metadata` folder. The output is stored in the `output_dir/annotations` folder and any temporary files in the `tmp` subfolder. All repositories used including VEP with its corresponding cache as well as plugins are stored in `repo_dir/ensempl-vep`.
-Data for VEP plugins and the CADD cache are stored in `annotation data`. 
+The output is stored in the `output_dir/annotations` folder and any temporary files in the `tmp` subfolder. All repositories used including VEP with its corresponding cache as well as plugins are stored in `repo_dir`.
+Data for VEP plugins and the CADD cache are stored in `annotation_data`. 
 
 ## Running the annotation pipeline on example data
 
