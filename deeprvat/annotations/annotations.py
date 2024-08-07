@@ -1946,17 +1946,21 @@ def merge_af(annotations_path: str, af_df_path: str, out_file: str):
 @cli.command()
 @click.argument("annotations_path", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
-def calculate_maf(annotations_path: str, out_file: str):
+@click.option("--af-column-name", type=str, default="af")
+def calculate_maf(annotations_path: str, out_file: str, af_column_name: str):
     """
     Calculate minor allele frequency (MAF) from allele frequency data in annotations.
 
     Parameters:
+    - af-column-name(str): Name of the allele frequency column to calculate MAF from
     - annotations_path (str): Path to the annotations file containing allele frequency data.
     - out_file (str): Path to the output file to save the calculated MAF data.
+
+
     """
     logger.info(f"reading annotation file {annotations_path}")
     annotation_file = pd.read_parquet(annotations_path)
-    af = annotation_file["af"]
+    af = annotation_file[af_column_name]
     annotation_file = annotation_file.drop(
         columns=["UKB_AF_MB", "UKB_MAF"], errors="ignore"
     )
