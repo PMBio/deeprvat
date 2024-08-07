@@ -422,7 +422,7 @@ else:
             'touch {output.chckpt}'
 
 
-if (af_mode ==None):
+if af_mode is None:
     rule calculate_allele_frequency:
         input:
             genotype_file=genotype_file,
