@@ -110,7 +110,7 @@ Data for VEP plugins and the CADD cache are stored in `annotation data`.
     
 
 ## Running the pipeline on your own data 
-modify the path in the [config file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml) s.t. they point to the output directory of the preprocessing pipeline run on your data. 
+Modify the path in the [config file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml) s.t. they point to the output directory of the preprocessing pipeline run on your data. 
 You can add/remove VEP plugins in the `additional_vep_plugin_cmds` part of the config by adding /removing plugin commands to be added to the vep run command. You can omit absplice/deepSea by setting `include_absplice`/ `include_deepSEA` to `False`in the config. When you add/remove annotations you have to alter the values in `example/config/annotation_colnames_filling_values.yaml`. This file consist of  the names of the columns of the tool used, the name to be used in the output data frame, the default value replacing all `NA` values as well as the data type, for example:
 ```shell
   'CADD_RAW' : 
@@ -118,7 +118,17 @@ You can add/remove VEP plugins in the `additional_vep_plugin_cmds` part of the c
     - 0
     - float
 ```
-Here `CADD_RAW` is the name of the column of the VEP output when the plugin is used, it is then renamed in the final annotation dataframe to `CADD_raw`, all `NA` values are set to `0` and the values are of type `float`.
+Here `CADD_RAW` is the name of the column of the VEP output when the plugin is used, it is then renamed in the final annotation dataframe to `CADD_raw`, all `NA` values are set to `0` and the values are of type `float`. 
+
+You can also change the way the allele frequencies are calculated by adding `af_mode` key to the [config file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml). By default, the allele frequencies are calculated from the data the annotation pipeline is run with. To use gnomade or gnomadg allele frequncies (from VEP ) instead, add 
+```shell
+af_mode : 'af_gnomade'
+```
+or 
+```shell
+af_mode : 'af_gnomadg'
+```
+to the config file.
 
 ## References
 
