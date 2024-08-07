@@ -158,6 +158,11 @@ jobs:
     with:
       pipeline_file: ./pipelines/annotations.snakefile
       environment_file: ./deeprvat_annotations.yml
+      prerun_cmd: |
+        mkdir -pv ./example/preprocess/workdir/norm/variants && \
+        mkdir -pv ./example/preprocess/workdir/preprocessed && \
+        touch ./example/preprocess/workdir/preprocessed/genotypes.h5 && \
+        touch ./example/preprocess/workdir/norm/variants/variants.parquet
       pipeline_config: ./example/config/deeprvat_annotation_config.yaml
       pipeline_directory: ./example/annotations
       download_fasta_data: true
