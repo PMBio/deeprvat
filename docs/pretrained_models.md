@@ -7,7 +7,9 @@ For using the pretrained DeepRVAT model provided as part of the package, or a cu
 
 Configuration parameters must be specified in `deeprvat_input_pretrained_models_config.yaml`, see [example file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_pretrained_models_config.yaml). For details on the meanings of the parameters and the format of input files, see [here](input_data).
 
+
 To use pretrained models, you must specify `use_pretrained_models: True` in your `deeprvat_input_pretrained_models_config.yaml` configuration file. Additionally, provide the path to pretrained models (an output of the training pipeline) in the parameter `pretrained_model_path`. Within the `pretrained_model_path` directory, there must be a `config.yaml` file in that directory with the following set of specified keys that were used for training the pretrained models; `rare_variant_annotations`, `training_data_thresholds`, and `model` . See [example file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_pretrained_models_config.yaml).
+
 
 Below outlines the configuration parameters specified in `deeprvat_input_pretrained_models_config.yaml`.
 
@@ -33,7 +35,7 @@ association_testing_data_thresholds (optional)
 cv_options (optional)
 ```
 
-Note that the file specified by `annotation_filename` must contain a column corresponding to each annotation in the list `rare_variant_annotations` from `deeprvat/pretrained_models/config.yaml`. 
+Note that the file specified by `annotation_filename` must contain a column corresponding to each annotation in the list `rare_variant_annotations` from `deeprvat/pretrained_models/model_config.yaml`. 
 
 
 ## Executing the pipeline
