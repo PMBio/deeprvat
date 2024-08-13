@@ -160,11 +160,11 @@ n_burden_chunks: 5
 n_regression_chunks: 2
 n_repeats: 30
 phenotypes:
-  Cholesterol: {}
-  HDL_cholesterol: {}
-  Mean_platelet_thrombocyte_volume: {}
-  Platelet_count: {}
-  Platelet_distribution_width: {}
+  - Cholesterol
+  - HDL_cholesterol
+  - Mean_platelet_thrombocyte_volume
+  - Platelet_count
+  - Platelet_distribution_width
 pretrained_model_path: ../pretrained_models
 regenie_exp: false
 training:
