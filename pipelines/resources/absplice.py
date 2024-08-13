@@ -14,7 +14,6 @@ def cli():
 @click.argument("input", type=click.Path(exists=True))
 @click.argument("output", type=click.Path(exists=False))
 def codign_genes(input, output):
-    import pandas as pd
     import pyranges as pr
 
     gr = pr.read_gtf(input["gtf_file"])

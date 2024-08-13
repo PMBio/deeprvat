@@ -1,4 +1,3 @@
-import pandas as pd
 import pyranges as pr
 
 gr = pr.read_gtf(snakemake.input["gtf_file"])

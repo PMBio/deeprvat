@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from scipy.stats import beta
-from scipy.sparse import coo_matrix, spmatrix
+from scipy.sparse import spmatrix
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
@@ -553,7 +553,7 @@ def make_dataset_(
         logger.info("Debug mode: Using only 1000 samples")
         batch_size = 1000
     else:
-        logger.info(f"Setting batch size to length of dataset")
+        logger.info("Setting batch size to length of dataset")
         batch_size = len(dataset)
 
     if "batch_size" in data_config["dataloader_config"].keys():
@@ -709,7 +709,7 @@ def run_association(
     n_genes = len(genes)
     if n_genes == 0:
         logger.info(
-            f"Number of chunks is too large. The pipeline will throw an error beacause there are no genes to test"
+            "Number of chunks is too large. The pipeline will throw an error beacause there are no genes to test"
         )
     logger.info(f"Processing genes in {genes} from {n_total_genes} in total")
     this_gene_ids = [gene_ids[i] for i in genes]

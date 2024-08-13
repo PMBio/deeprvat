@@ -7,7 +7,6 @@ import random
 import sys
 import time
 from pathlib import Path
-from typing import Optional
 import dask.dataframe as dd
 import numpy as np
 import click
@@ -795,12 +794,12 @@ def deepsea_pca(
 
     del X_std
 
-    logger.info(f"Writing values to data frame")
+    logger.info("Writing values to data frame")
     pca_df = pd.DataFrame(
         X_pca, columns=[f"DeepSEA_PC_{i}" for i in range(1, n_components + 1)]
     )
     del X_pca
-    logger.info(f"adding key values to data frame")
+    logger.info("adding key values to data frame")
     pca_df = pd.concat([key_df, pca_df], axis=1)
 
     logger.info("Sanity check of results")

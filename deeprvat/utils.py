@@ -5,8 +5,7 @@ import math
 import shutil
 import sys
 import pickle
-from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Union
+from typing import Any, Callable, Dict, Iterable
 
 import optuna
 import numpy as np
