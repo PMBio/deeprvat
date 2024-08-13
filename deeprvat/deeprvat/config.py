@@ -1,5 +1,5 @@
 import logging
-import pprint
+from pprint import pprint
 import sys
 from typing import Optional, Tuple
 
