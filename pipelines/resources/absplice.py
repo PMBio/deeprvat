@@ -1,7 +1,7 @@
 # codign_genes.py
 # mmsplice_splicemap.py
 # absplice_dna.py
-
+import snakemake
 import click
 
 

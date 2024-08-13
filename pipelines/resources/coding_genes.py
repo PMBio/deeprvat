@@ -1,4 +1,5 @@
 import pyranges as pr
+import snakemake
 
 gr = pr.read_gtf(snakemake.input["gtf_file"])
 gr = gr[(gr.Feature == "gene") & (gr.gene_type == "protein_coding")]
