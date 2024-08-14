@@ -17,6 +17,7 @@ debug_flag = config.get("debug", False)
 phenotypes = config["phenotypes"]
 phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
 training_phenotypes = config["training"].get("phenotypes", phenotypes)
+training_phenotypes = list(training_phenotypes.keys()) if type(training_phenotypes) == dict else training_phenotypes
 burden_phenotype = phenotypes[0]
 
 n_burden_chunks = config.get("n_burden_chunks", 1) if not debug_flag else 2
