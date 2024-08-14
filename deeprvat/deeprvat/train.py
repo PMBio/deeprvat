@@ -3,8 +3,6 @@ import gc
 import itertools
 import logging
 import pickle
-import random
-import shutil
 import sys
 from pathlib import Path
 from pprint import pformat, pprint
@@ -864,7 +862,7 @@ def run_bagging(
                 if str(e).find("CUDA out of memory") != -1:
                     if dm.hparams.batch_size > 4:
                         logging.error(
-                            f"Retrying training with half the original batch size"
+                            "Retrying training with half the original batch size"
                         )
                         gc.collect()
                         torch.cuda.empty_cache()

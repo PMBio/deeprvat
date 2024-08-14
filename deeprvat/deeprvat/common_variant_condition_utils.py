@@ -2,10 +2,7 @@
 
 import pandas as pd
 import pyranges as pr
-import pandas as pd
 from pyarrow.parquet import ParquetFile
-import scipy as sp
-import pickle
 import numpy as np
 import zarr
 from pathlib import Path

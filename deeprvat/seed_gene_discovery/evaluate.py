@@ -52,13 +52,13 @@ def evaluate_(associations: Dict[str, pd.DataFrame], alpha: float):
             corrected_result = pval_correction(
                 result, alpha, correction_type=correction_type
             )
-            corrected_result[f"-log10pval_corrected"] = -np.log10(
-                corrected_result[f"pval_corrected"]
+            corrected_result["-log10pval_corrected"] = -np.log10(
+                corrected_result["pval_corrected"]
             )
             corrected_result["correction_method"] = correction_type
             corrected_results.append(corrected_result)
 
-            sig = corrected_result.query(f"significant")
+            sig = corrected_result.query("significant")
             n_sig = len(sig)
             logger.info(f"Significant genes: {n_sig}")
             metrics[f"significant{sig_col_suffix}"] = n_sig
@@ -70,7 +70,7 @@ def evaluate_(associations: Dict[str, pd.DataFrame], alpha: float):
         corrected_results = pd.concat(corrected_results)
         all_evaluations[pheno] = corrected_results
 
-        all_sig = corrected_results.query(f"significant")
+        all_sig = corrected_results.query("significant")
         all_significant[pheno] = all_sig
 
         print(all_sig)
@@ -128,7 +128,7 @@ def evaluate(
     out_dir = Path(out_dir)
     evaluations[pheno].to_parquet(out_file)
 
-    with open(out_dir / f"metrics.pkl", "wb") as f:
+    with open(out_dir / "metrics.pkl", "wb") as f:
         pickle.dump(metrics, f)
 
     all_associations.to_parquet(f"{out_dir}/all_associations.parquet")

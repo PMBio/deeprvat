@@ -1,9 +1,5 @@
-import pandas as pd
 import yaml
-import os
 import sys
-from typing import Optional
-import re
 
 # import pickle
 import logging
@@ -202,7 +198,7 @@ def combine_test_set_burdens(
                 for col in range(this_y.shape[1]):
                     this_y[:, col] = standardize_series(this_y[:, col])
             elif y_transformation == "quantile_transform":
-                logger.info(f"  Quantile transforming combined target phenotype (y)")
+                logger.info("  Quantile transforming combined target phenotype (y)")
                 for col in range(this_y.shape[1]):
                     this_y[:, col] = my_quantile_transform(this_y[:, col])
             y[:] = this_y

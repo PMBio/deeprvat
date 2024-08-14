@@ -2,8 +2,6 @@ import logging
 import sys
 from pathlib import Path
 from typing import Dict, Optional, Tuple
-from itertools import combinations
-import random
 import os
 
 import click
@@ -12,7 +10,7 @@ import pandas as pd
 import yaml
 from seak.cct import cct
 
-from deeprvat.utils import pval_correction, bfcorrect_df
+from deeprvat.utils import pval_correction
 
 logging.basicConfig(
     format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
@@ -384,8 +382,8 @@ def evaluate(
     logger.info(significant.query('Method == "DeepRVAT"'))
     logger.info("Saving results")
     out_path = Path(out_dir)
-    significant.to_parquet(out_path / f"significant.parquet", engine="pyarrow")
-    all_pvals.to_parquet(out_path / f"all_results.parquet", engine="pyarrow")
+    significant.to_parquet(out_path / "significant.parquet", engine="pyarrow")
+    all_pvals.to_parquet(out_path / "all_results.parquet", engine="pyarrow")
 
 
 if __name__ == "__main__":

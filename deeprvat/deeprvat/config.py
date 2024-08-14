@@ -1,17 +1,14 @@
 import logging
-import pprint
-import sys
 from pprint import pprint
+import sys
 from typing import Optional, Tuple
 
 import click
 import pandas as pd
-import torch.nn.functional as F
 import yaml
 
 from deeprvat.deeprvat.evaluate import pval_correction
 from pathlib import Path
-import os
 from copy import deepcopy
 
 logging.basicConfig(
@@ -575,7 +572,7 @@ def update_config(
             )
 
             baseline_columns = ["gene", "pval"]
-            logger.info(f"  Reading baseline results from:")
+            logger.info("  Reading baseline results from:")
             pprint(baseline_results)
             baseline_df = pd.concat(
                 [
@@ -616,7 +613,7 @@ def update_config(
                     baseline_df = baseline_df.query("significant")
             else:
                 if threshold is not None:
-                    baseline_temp = baseline_df.query(f"pval_corrected < @threshold")
+                    baseline_temp = baseline_df.query("pval_corrected < @threshold")
                     logger.info(
                         f"  {len(baseline_df)} genes "
                         "from baseline passed thresholding"
