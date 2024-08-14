@@ -227,10 +227,7 @@ def create_main_config(
             )
 
     # Phenotypes
-    full_config["phenotypes"] = {}
-    for pheno in input_config["phenotypes_for_association_testing"]:
-        full_config["phenotypes"][pheno] = {}
-        # Can optionally specify dictionary of = {"min_seed_genes": 3, "max_seed_genes": None, "pvalue_threshold": None}
+    full_config["phenotypes"] = input_config["phenotypes_for_association_testing"]
     # genotypes.h5
     full_config["training_data"]["gt_file"] = input_config["gt_filename"]
     full_config["association_testing_data"]["gt_file"] = input_config["gt_filename"]
@@ -333,7 +330,10 @@ def create_main_config(
             "early_stopping"
         ]
         # Training Phenotypes
-        full_config["training"]["phenotypes"] = input_config["phenotypes_for_training"]
+        full_config["training"]["phenotypes"] = {}
+        for pheno in input_config["phenotypes_for_training"]:
+            full_config["training"]["phenotypes"][pheno] = {}
+            # Can optionally specify dictionary of = {"min_seed_genes": 3, "max_seed_genes": None, "pvalue_threshold": None}
         # Baseline results
         if "baseline_results" not in full_config:
             full_config["baseline_results"] = {}
@@ -561,7 +561,7 @@ def update_config(
                     "--phenotype and --seed-genes-out must be "
                     "specified if --baseline-results is"
                 )
-            seed_config = config["phenotypes"][phenotype]
+            seed_config = config["training"]["phenotypes"][phenotype]
             correction_method = config["baseline_results"].get(
                 "correction_method", None
             )
