@@ -215,7 +215,7 @@ rule extract_with_header:
         (
             load_bfc
             + load_hts
-            + """ bcftools view  -s '' --force-samples {input} |bgzip  > {output}"""
+            + """ bcftools view  -G {input} |bgzip  > {output}"""
         )
 
 
