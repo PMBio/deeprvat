@@ -595,7 +595,6 @@ def test_add_gene_ids(
             "protein_coding_genes.parquet",
             "expected.parquet",
         ),
-
     ],
 )
 def test_filter_by_exon_distance(
@@ -625,15 +624,16 @@ def test_filter_by_exon_distance(
     assert written_results.shape == expected_results.shape
     assert_frame_equal(written_results, expected_results, check_exact=False)
 
+
 @pytest.mark.parametrize(
     "test_data_name_dir, gtf_file, annotations, gene_id_file, error_msg",
-    [        
+    [
         (
             "filter_by_exon_distance_filteroutall",
             "gencode.v44.annotation.gtf.gz",
             "annotations.parquet",
             "protein_coding_genes.parquet",
-            "Data frame is empty after filtering on exon distance, abort."
+            "Data frame is empty after filtering on exon distance, abort.",
         ),
     ],
 )
@@ -659,7 +659,8 @@ def test_filter_by_exon_distance_fail(
     result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=True)
     assert result.exit_code == 1
     assert type(result.exception) == AssertionError
-    assert result.exception.args[0]==error_msg
+    assert result.exception.args[0] == error_msg
+
 
 @pytest.mark.parametrize(
     "test_data_name_dir, yaml_file, annotations, expected",
