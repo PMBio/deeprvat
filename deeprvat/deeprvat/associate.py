@@ -358,16 +358,14 @@ def compute_burdens_(
         if not skip_burdens:
             burdens[chunk_start:chunk_end] = chunk_burden
 
-            #Calculate Max for this chunk and store for later
+            # Calculate Max for this chunk and store for later
             max_df = pd.DataFrame(columns=["max"])
             for r in range(len(agg_models)):
-                #print(chunk_burden.shape) #samples x genes x repeats
-                chunk_max = np.max(chunk_burden[:,:,r])
+                # print(chunk_burden.shape) #samples x genes x repeats
+                chunk_max = np.max(chunk_burden[:, :, r])
                 max_df.loc[r, "max"] = chunk_max
             print(f"Saving Burden Max Scores")
-            max_df.to_csv(
-                f"{Path(cache_dir)}/chunk{chunk}_max.csv", index=False
-            )
+            max_df.to_csv(f"{Path(cache_dir)}/chunk{chunk}_max.csv", index=False)
 
         y[chunk_start:chunk_end] = chunk_y
         x[chunk_start:chunk_end] = chunk_x
@@ -1371,9 +1369,8 @@ def average_burdens(
         max_files_path = Path(os.path.split(burden_out_file)[0]).glob("chunk*_max.csv")
         for i, filename in enumerate(max_files_path):
             max_dfs[f"Max_Chunk{i}"] = pd.read_csv(filename)["max"]
-        #compute max across all chunks
+        # compute max across all chunks
         max_dfs["max"] = max_dfs.max(axis=1)
-
 
     if chunk is not None:
         if n_chunks is None:
@@ -1434,9 +1431,12 @@ def average_burdens(
                 # Subtract off zero effect burden value (mode)
                 this_burdens[:, :, r] -= zero_effect_val
                 adjusted_max = repeat_max - zero_effect_val
-                min_val = this_burdens[:,:,r].min()
+                min_val = this_burdens[:, :, r].min()
                 # Scale values between -1 and 1
-                this_burdens[:, :, r] = 2*((this_burdens[:,:,r] - min_val) / (adjusted_max - min_val)) - 1
+                this_burdens[:, :, r] = (
+                    2 * ((this_burdens[:, :, r] - min_val) / (adjusted_max - min_val))
+                    - 1
+                )
 
         this_burdens = AGG_FCT[agg_fct](this_burdens, axis=2)
 
