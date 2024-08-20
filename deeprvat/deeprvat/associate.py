@@ -358,6 +358,17 @@ def compute_burdens_(
         if not skip_burdens:
             burdens[chunk_start:chunk_end] = chunk_burden
 
+            #Calculate Max for this chunk and store for later
+            max_df = pd.DataFrame(columns=["max"])
+            for r in range(len(agg_models)):
+                #print(chunk_burden.shape) #samples x genes x repeats
+                chunk_max = np.max(chunk_burden[:,:,r])
+                max_df.loc[r, "max"] = chunk_max
+            print(f"Saving Burden Max Scores")
+            max_df.to_csv(
+                f"{Path(cache_dir)}/chunk{chunk}_max.csv", index=False
+            )
+
         y[chunk_start:chunk_end] = chunk_y
         x[chunk_start:chunk_end] = chunk_x
         sample_ids[chunk_start:chunk_end] = chunk_sampleid
@@ -939,6 +950,7 @@ def compute_burdens(
 
     if center_scale_burdens and not link_burdens:
         if (chunk == 0) or not chunk:
+            # Calculate Mode
             empty_batch = {
                 "rare_variant_annotations": torch.zeros(1, 1, 34, 1),
                 "y": None,
@@ -952,11 +964,8 @@ def compute_burdens(
                 skip_burdens=False,
             )
             this_mode = this_mode.flatten()
-            center_scale_df = pd.DataFrame(columns=["max", "mode"])
+            center_scale_df = pd.DataFrame(columns=["mode"])
             for r in range(len(agg_models)):
-                center_scale_df.loc[r, "max"] = (
-                    1.0  # Set to max DeepRVAT sigmoid output
-                )
                 center_scale_df.loc[r, "mode"] = this_mode[r]
             pprint(f"Calculated Zero-Effect Burden Score :\n {this_mode}")
             center_scale_df.to_csv(
@@ -1358,6 +1367,14 @@ def average_burdens(
         )
         center_scale_df = pd.read_csv(center_scale_params_file)
 
+        max_dfs = pd.DataFrame()
+        max_files_path = Path(os.path.split(burden_out_file)[0]).glob("chunk*_max.csv")
+        for i, filename in enumerate(max_files_path):
+            max_dfs[f"Max_Chunk{i}"] = pd.read_csv(filename)["max"]
+        #compute max across all chunks
+        max_dfs["max"] = max_dfs.max(axis=1)
+
+
     if chunk is not None:
         if n_chunks is None:
             raise ValueError("n_chunks must be specified if chunk is not None")
@@ -1413,14 +1430,13 @@ def average_burdens(
             print("Centering and Scaling Burdens before aggregating")
             for r in range(len(repeats)):
                 zero_effect_val = center_scale_df.loc[r, "mode"]
-                repeat_max = center_scale_df.loc[r, "max"]
+                repeat_max = max_dfs.loc[r, "max"]
                 # Subtract off zero effect burden value (mode)
                 this_burdens[:, :, r] -= zero_effect_val
                 adjusted_max = repeat_max - zero_effect_val
-                # Scale only values >= mode. Scale between 0 and 1.
-                pos_mask = this_burdens[:, :, r] > 0
-                # (this_burdens[:,:,r][pos_mask] - this_burdens[:,:,r][pos_mask].min()) / (adjusted_max - this_burdens[:,:,r][pos_mask].min())
-                this_burdens[:, :, r][pos_mask] /= adjusted_max
+                min_val = this_burdens[:,:,r].min()
+                # Scale values between -1 and 1
+                this_burdens[:, :, r] = 2*((this_burdens[:,:,r] - min_val) / (adjusted_max - min_val)) - 1
 
         this_burdens = AGG_FCT[agg_fct](this_burdens, axis=2)
 
