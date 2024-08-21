@@ -626,6 +626,43 @@ def test_filter_by_exon_distance(
 
 
 @pytest.mark.parametrize(
+    "test_data_name_dir, gtf_file, annotations, gene_id_file, error_msg",
+    [
+        (
+            "filter_by_exon_distance_filteroutall",
+            "gencode.v44.annotation.gtf.gz",
+            "annotations.parquet",
+            "protein_coding_genes.parquet",
+            "Data frame is empty after filtering on exon distance, abort.",
+        ),
+    ],
+)
+def test_filter_by_exon_distance_fail(
+    test_data_name_dir, gtf_file, annotations, gene_id_file, error_msg, tmp_path
+):
+    current_test_data_dir = (
+        tests_data_dir / "filter_by_exon_distance" / test_data_name_dir
+    )
+    gtf_file_path = current_test_data_dir / "input" / gtf_file
+    annotations_path = current_test_data_dir / "input" / annotations
+    gene_id_path = current_test_data_dir / "input" / gene_id_file
+
+    output_path = tmp_path / "out.parquet"
+    cli_runner = CliRunner()
+    cli_parameters = [
+        "filter-annotations-by-exon-distance",
+        annotations_path.as_posix(),
+        gtf_file_path.as_posix(),
+        gene_id_path.as_posix(),
+        output_path.as_posix(),
+    ]
+    result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=True)
+    assert result.exit_code == 1
+    assert type(result.exception) == AssertionError
+    assert result.exception.args[0] == error_msg
+
+
+@pytest.mark.parametrize(
     "test_data_name_dir, yaml_file, annotations, expected",
     [
         (

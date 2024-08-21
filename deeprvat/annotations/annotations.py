@@ -670,6 +670,9 @@ def filter_annotations_by_exon_distance(
     )
     del merged
     len_after_filtering = len(filtered_merge)
+    assert (
+        len_after_filtering > 0
+    ), "Data frame is empty after filtering on exon distance, abort."
     logger.info(
         f"filtered rows by exon distance ({max_dist}bp), dropped({len_bf_filtering - len_after_filtering} rows / {np.round(100*(len_bf_filtering - len_after_filtering)/len_bf_filtering)}%)"
     )
