@@ -7,7 +7,6 @@ import random
 import sys
 import time
 from pathlib import Path
-from typing import Optional
 import dask.dataframe as dd
 import numpy as np
 import click
@@ -671,6 +670,9 @@ def filter_annotations_by_exon_distance(
     )
     del merged
     len_after_filtering = len(filtered_merge)
+    assert (
+        len_after_filtering > 0
+    ), "Data frame is empty after filtering on exon distance, abort."
     logger.info(
         f"filtered rows by exon distance ({max_dist}bp), dropped({len_bf_filtering - len_after_filtering} rows / {np.round(100*(len_bf_filtering - len_after_filtering)/len_bf_filtering)}%)"
     )
@@ -795,12 +797,12 @@ def deepsea_pca(
 
     del X_std
 
-    logger.info(f"Writing values to data frame")
+    logger.info("Writing values to data frame")
     pca_df = pd.DataFrame(
         X_pca, columns=[f"DeepSEA_PC_{i}" for i in range(1, n_components + 1)]
     )
     del X_pca
-    logger.info(f"adding key values to data frame")
+    logger.info("adding key values to data frame")
     pca_df = pd.concat([key_df, pca_df], axis=1)
 
     logger.info("Sanity check of results")
@@ -1946,17 +1948,21 @@ def merge_af(annotations_path: str, af_df_path: str, out_file: str):
 @cli.command()
 @click.argument("annotations_path", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
-def calculate_maf(annotations_path: str, out_file: str):
+@click.option("--af-column-name", type=str, default="af")
+def calculate_maf(annotations_path: str, out_file: str, af_column_name: str):
     """
     Calculate minor allele frequency (MAF) from allele frequency data in annotations.
 
     Parameters:
+    - af-column-name(str): Name of the allele frequency column to calculate MAF from
     - annotations_path (str): Path to the annotations file containing allele frequency data.
     - out_file (str): Path to the output file to save the calculated MAF data.
+
+
     """
     logger.info(f"reading annotation file {annotations_path}")
     annotation_file = pd.read_parquet(annotations_path)
-    af = annotation_file["af"]
+    af = annotation_file[af_column_name]
     annotation_file = annotation_file.drop(
         columns=["UKB_AF_MB", "UKB_MAF"], errors="ignore"
     )

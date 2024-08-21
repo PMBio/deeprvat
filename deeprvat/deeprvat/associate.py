@@ -10,7 +10,6 @@ from pprint import pprint
 from typing import Dict, List, Optional, Tuple
 
 import click
-import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 import pyranges as pr
@@ -1120,7 +1119,7 @@ def regress_(
     """
     assert len(gene_indices) == len(genes)
 
-    logger.info(f"Computing associations")
+    logger.info("Computing associations")
     logger.info(f"Covariates shape: {x_pheno.shape}, y shape: {y.shape}")
 
     regressed_genes = []
@@ -1325,7 +1324,7 @@ def combine_regression_results(
     :type model_name: Optional[str]
     :return: Concatenated regression results saved to a parquet file.
     """
-    logger.info(f"Concatenating results")
+    logger.info("Concatenating results")
     results = pd.concat([pd.read_parquet(f, engine="pyarrow") for f in result_files])
 
     if model_name is not None:
@@ -1602,7 +1601,7 @@ def regress_common_(
     assert len(gene_indices) == len(genes)
     logger.info(common_genotype_prefix)
 
-    logger.info(f"Computing associations")
+    logger.info("Computing associations")
     logger.info(f"Covariates shape: {x_pheno.shape}, y shape: {y.shape}")
 
     regressed_genes = []

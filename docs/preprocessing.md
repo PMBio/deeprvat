@@ -44,7 +44,7 @@ pip install -e .
 ## Configure preprocessing
 
 The snakemake preprocessing is configured using a yaml file with the format below.
-An example file is included in this repo: [example config](https://github.com/PMBio/deeprvat/blob/main/pipelines/config/deeprvat_preprocess_config.yaml).
+An example file is included in this repo: [example config](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_preprocess_config.yaml).
 
 ```yaml
 # What chromosomes should be processed
@@ -62,7 +62,7 @@ working_dir: workdir
 
 # These paths are all relative to the working dir
 # Here will the finished preprocessed files end up
-preprocessed_dir_name : preprocesed
+preprocessed_dir_name : preprocessed
 # Path to directory with fasta reference file
 reference_dir_name : reference
 # Here we will store normalized bcf files
@@ -86,7 +86,7 @@ parent_directory
     |   |-- bcf
     |   |-- sparse
     |   `-- variants
-    |-- preprocesed
+    |-- preprocessed
     |-- qc
     |   |-- allelic_imbalance
     |   |-- duplicate_vars
@@ -154,13 +154,13 @@ gzip -d workdir/reference/GRCh38.primary_assembly.genome.fa.gz
 4. Run with the example config
 
 ```shell
-snakemake -j 1 --snakefile ../../pipelines/preprocess_with_qc.snakefile --configfile ../../pipelines/config/deeprvat_preprocess_config.yaml
+snakemake -j 1 --snakefile ../../pipelines/preprocess_with_qc.snakefile --configfile ../config/deeprvat_preprocess_config.yaml
 ```
 
 5. Enjoy the preprocessed data 🎉
 
 ```shell
-ls -l workdir/preprocesed
+ls -l workdir/preprocessed
 total 48
 -rw-r--r--  1 user  staff  6404 Aug  2 14:06 genotypes.h5
 -rw-r--r--  1 user  staff  6354 Aug  2 14:06 genotypes_chr21.h5
@@ -198,13 +198,13 @@ gzip -d workdir/reference/GRCh38.primary_assembly.genome.fa.gz
 4. Run with the example config
 
 ```shell
-snakemake -j 1 --snakefile ../../pipelines/preprocess_no_qc.snakefile --configfile ../../pipelines/config/deeprvat_preprocess_config.yaml
+snakemake -j 1 --snakefile ../../pipelines/preprocess_no_qc.snakefile --configfile ../../example/config/deeprvat_preprocess_config.yaml
 ```
 
 5. Enjoy the preprocessed data 🎉
 
 ```shell
-ls -l workdir/preprocesed
+ls -l workdir/preprocessed
 total 48
 -rw-r--r--  1 user  staff  6404 Aug  2 14:06 genotypes.h5
 -rw-r--r--  1 user  staff  6354 Aug  2 14:06 genotypes_chr21.h5

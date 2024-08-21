@@ -14,7 +14,7 @@ working_dir: workdir
 
 # These paths are all relative to the working dir
 # Here will the finished preprocessed files end up
-preprocessed_dir_name : preprocesed
+preprocessed_dir_name : preprocessed
 # Path to directory with fasta reference file
 reference_dir_name : reference
 # Here we will store normalized bcf files

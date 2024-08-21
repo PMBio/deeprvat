@@ -1,17 +1,14 @@
 import logging
-import pprint
-import sys
 from pprint import pprint
+import sys
 from typing import Optional, Tuple
 
 import click
 import pandas as pd
-import torch.nn.functional as F
 import yaml
 
 from deeprvat.deeprvat.evaluate import pval_correction
 from pathlib import Path
-import os
 from copy import deepcopy
 
 logging.basicConfig(
@@ -227,10 +224,7 @@ def create_main_config(
             )
 
     # Phenotypes
-    full_config["phenotypes"] = {}
-    for pheno in input_config["phenotypes_for_association_testing"]:
-        full_config["phenotypes"][pheno] = {}
-        # Can optionally specify dictionary of = {"min_seed_genes": 3, "max_seed_genes": None, "pvalue_threshold": None}
+    full_config["phenotypes"] = input_config["phenotypes_for_association_testing"]
     # genotypes.h5
     full_config["training_data"]["gt_file"] = input_config["gt_filename"]
     full_config["association_testing_data"]["gt_file"] = input_config["gt_filename"]
@@ -336,7 +330,10 @@ def create_main_config(
             "early_stopping"
         ]
         # Training Phenotypes
-        full_config["training"]["phenotypes"] = input_config["phenotypes_for_training"]
+        full_config["training"]["phenotypes"] = {}
+        for pheno in input_config["phenotypes_for_training"]:
+            full_config["training"]["phenotypes"][pheno] = {}
+            # Can optionally specify dictionary of = {"min_seed_genes": 3, "max_seed_genes": None, "pvalue_threshold": None}
         # Baseline results
         if "baseline_results" not in full_config:
             full_config["baseline_results"] = {}
@@ -564,7 +561,7 @@ def update_config(
                     "--phenotype and --seed-genes-out must be "
                     "specified if --baseline-results is"
                 )
-            seed_config = config["phenotypes"][phenotype]
+            seed_config = config["training"]["phenotypes"][phenotype]
             correction_method = config["baseline_results"].get(
                 "correction_method", None
             )
@@ -578,7 +575,7 @@ def update_config(
             )
 
             baseline_columns = ["gene", "pval"]
-            logger.info(f"  Reading baseline results from:")
+            logger.info("  Reading baseline results from:")
             pprint(baseline_results)
             baseline_df = pd.concat(
                 [
@@ -619,7 +616,7 @@ def update_config(
                     baseline_df = baseline_df.query("significant")
             else:
                 if threshold is not None:
-                    baseline_temp = baseline_df.query(f"pval_corrected < @threshold")
+                    baseline_temp = baseline_df.query("pval_corrected < @threshold")
                     logger.info(
                         f"  {len(baseline_df)} genes "
                         "from baseline passed thresholding"
