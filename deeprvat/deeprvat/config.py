@@ -170,9 +170,9 @@ def create_main_config(
         ]
 
     if "y_transformation" in input_config:
-        full_config["training_data"]["dataset_config"]["y_transformation"] = (
-            input_config["y_transformation"]
-        )
+        full_config["training_data"]["dataset_config"][
+            "y_transformation"
+        ] = input_config["y_transformation"]
         full_config["association_testing_data"]["dataset_config"][
             "y_transformation"
         ] = input_config["y_transformation"]
@@ -237,20 +237,20 @@ def create_main_config(
     full_config["training_data"]["dataset_config"]["phenotype_file"] = input_config[
         "phenotype_filename"
     ]
-    full_config["association_testing_data"]["dataset_config"]["phenotype_file"] = (
-        input_config["phenotype_filename"]
-    )
+    full_config["association_testing_data"]["dataset_config"][
+        "phenotype_file"
+    ] = input_config["phenotype_filename"]
     # annotations.parquet
     full_config["training_data"]["dataset_config"]["annotation_file"] = input_config[
         "annotation_filename"
     ]
-    full_config["association_testing_data"]["dataset_config"]["annotation_file"] = (
-        input_config["annotation_filename"]
-    )
+    full_config["association_testing_data"]["dataset_config"][
+        "annotation_file"
+    ] = input_config["annotation_filename"]
     # protein_coding_genes.parquet
-    full_config["association_testing_data"]["dataset_config"]["gene_file"] = (
-        input_config["gene_filename"]
-    )
+    full_config["association_testing_data"]["dataset_config"][
+        "gene_file"
+    ] = input_config["gene_filename"]
     full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
         "config"
     ]["gene_file"] = input_config["gene_filename"]
@@ -265,9 +265,9 @@ def create_main_config(
     full_config["training_data"]["dataset_config"]["x_phenotypes"] = input_config[
         "covariates"
     ]
-    full_config["association_testing_data"]["dataset_config"]["x_phenotypes"] = (
-        input_config["covariates"]
-    )
+    full_config["association_testing_data"]["dataset_config"][
+        "x_phenotypes"
+    ] = input_config["covariates"]
     # Thresholds & variant annotations
     anno_list = deepcopy(input_config["rare_variant_annotations"])
     full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
@@ -310,14 +310,14 @@ def create_main_config(
     if "sample_files" in input_config:
         if "training" in input_config["sample_files"]:
             logger.info("Adding in subset sample file for DeepRVAT training.")
-            full_config["training_data"]["dataset_config"]["sample_file"] = (
-                input_config["sample_files"]["training"]
-            )
+            full_config["training_data"]["dataset_config"][
+                "sample_file"
+            ] = input_config["sample_files"]["training"]
         if "association_testing" in input_config["sample_files"]:
             logger.info("Adding in subset sample file for association testing.")
-            full_config["association_testing_data"]["dataset_config"]["sample_file"] = (
-                input_config["sample_files"]["association_testing"]
-            )
+            full_config["association_testing_data"]["dataset_config"][
+                "sample_file"
+            ] = input_config["sample_files"]["association_testing"]
 
     if no_pretrain:
         # PL trainer
@@ -446,16 +446,16 @@ def create_sg_discovery_config(
     ]
     # protein_coding_genes.parquet
     full_config["data"]["dataset_config"]["gene_file"] = input_config["gene_filename"]
-    full_config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"] = (
-        input_config["gene_filename"]
-    )
+    full_config["data"]["dataset_config"]["rare_embedding"]["config"][
+        "gene_file"
+    ] = input_config["gene_filename"]
     # X_phenotypes (covariates)
     full_config["data"]["dataset_config"]["x_phenotypes"] = input_config["covariates"]
     # Annotations
     full_config["data"]["dataset_config"]["annotations"] = input_config["annotations"]
-    full_config["data"]["dataset_config"]["rare_embedding"]["config"]["annotations"] = (
-        input_config["annotations"]
-    )
+    full_config["data"]["dataset_config"]["rare_embedding"]["config"][
+        "annotations"
+    ] = input_config["annotations"]
     # Test Types
     full_config["test_types"] = input_config["test_types"]
     # Variant Types
@@ -554,7 +554,6 @@ def update_config(
     #     config["regenie"]["step2"] = config["regenie"].get("step_2", {})
     #     config["regenie"]["step_2"]["options"] = existing_regenie_options + list(regenie_options)
 
-
     if phenotype is not None:
         logger.info(f"Updating config for phenotype {phenotype}")
         config["association_testing_data"]["dataset_config"]["y_phenotypes"] = [
@@ -610,7 +609,6 @@ def update_config(
             if baseline_results_out is not None:
                 baseline_df.to_parquet(baseline_results_out, engine="pyarrow")
             if correction_method is not None:
-
                 logger.info(f"Using significant genes with corrected pval < {alpha}")
                 if (
                     len(baseline_df.query("significant")["gene"].unique())
