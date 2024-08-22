@@ -27,7 +27,7 @@ n_bags = config['training']['n_bags'] if not debug_flag else 3
 n_repeats = config['n_repeats']
 do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
 tensor_compression_level = config['training'].get('tensor_compression_level', 1)
-model_path = Path("models")
+model_path = Path("pretrained_models")
 n_parallel_training_jobs = config["training"].get("n_parallel_jobs", 1)
 cv_exp = config.get('cv_exp', False)
 

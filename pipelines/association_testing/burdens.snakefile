@@ -10,7 +10,7 @@ n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
 n_avg_chunks = config.get('n_avg_chunks', 40)
 n_bags = config['training']['n_bags'] if not debug_flag else 3
 n_repeats = config['n_repeats']
-model_path = Path("models")
+model_path = Path("pretrained_models")
 
 if not "cv_exp" in globals():
     cv_exp = config.get("cv_exp", False)
@@ -57,7 +57,7 @@ rule compute_xy:
     priority: 1
     input:
         dataset = '{phenotype}/deeprvat/association_dataset.pkl',
-        data_config = '{phenotype}/deeprvat/hpopt_config.yaml',
+        data_config = '{phenotype}/deeprvat/config.yaml',
     output:
         samples = directory('{phenotype}/deeprvat/xy/sample_ids.zarr'),
         x = directory('{phenotype}/deeprvat/xy/x.zarr'),
@@ -86,8 +86,8 @@ rule compute_burdens:
             for repeat in range(n_repeats) for bag in range(n_bags)
         ],
         dataset = 'burdens/association_dataset.pkl',
-        data_config = f'{phenotypes[0]}/deeprvat/hpopt_config.yaml',
-        model_config = model_path / 'config.yaml',
+        data_config = f'{phenotypes[0]}/deeprvat/config.yaml',
+        model_config = model_path / 'model_config.yaml',
     output:
         temp('burdens/chunk{chunk}.finished')
     params:

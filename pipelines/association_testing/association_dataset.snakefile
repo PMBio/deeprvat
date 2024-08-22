@@ -26,7 +26,7 @@ rule association_dataset:
 
 rule association_dataset_burdens:
     input:
-        data_config = f'{phenotypes[0]}/deeprvat/hpopt_config.yaml'
+        data_config = f'{phenotypes[0]}/deeprvat/config.yaml'
     output:
         temp('burdens/association_dataset.pkl')
     threads: 4
