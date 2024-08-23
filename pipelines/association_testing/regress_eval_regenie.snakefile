@@ -21,10 +21,10 @@ regenie_step2_bsize = regenie_config_step2["bsize"]
 regenie_njobs = regenie_config_step1.get("njobs", 1)
 regenie_joblist = range(1, regenie_njobs)
 
+cv_exp = config.get("cv_exp", False)
 config_file_prefix = (
     "cv_split0/deeprvat/" if cv_exp else ""
 )
-
 
 wildcard_constraints:
     job="\d+"

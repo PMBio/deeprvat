@@ -22,7 +22,6 @@ include: "association_testing/config.snakefile"
 include: "association_testing/association_dataset.snakefile"
 include: "association_testing/burdens.snakefile"
 include: "association_testing/regress_eval_regenie.snakefile"
-include: "association_testing/eval.snakefile"
 
 rule all:
     input:
