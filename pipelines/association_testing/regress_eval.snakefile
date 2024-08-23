@@ -68,7 +68,7 @@ rule regress:
         chunks =  expand(
             'burdens/burdens_averaging_{chunk}.finished',
             chunk=range(n_avg_chunks)
-        ),
+        ) if not cv_exp  else 'burdens/merging.finished',
         x = '{phenotype}/deeprvat/xy/x.zarr',
         y = '{phenotype}/deeprvat/xy/y.zarr',
     output:
