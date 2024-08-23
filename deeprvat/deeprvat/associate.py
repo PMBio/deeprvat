@@ -1323,9 +1323,6 @@ def regress(
         gene_df.set_index("id")
         genes = gene_df.loc[genes, "gene"].str.split(".").apply(lambda x: x[0])
 
-    logger.info(f"Loading saved burdens from {burden_dir}")
-    genes = pd.Series(np.load(Path(burden_dir) / "genes.npy"))
-
     chunk_size = math.ceil(len(genes) / n_chunks)
     chunk_start = chunk * chunk_size
     chunk_end = min(len(genes), chunk_start + chunk_size)
