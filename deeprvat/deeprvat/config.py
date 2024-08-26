@@ -11,6 +11,9 @@ from deeprvat.deeprvat.evaluate import pval_correction
 from pathlib import Path
 from copy import deepcopy
 
+REPO_DIR = (Path(__file__).parent / "../..").resolve()
+
+
 logging.basicConfig(
     format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
     level="INFO",
@@ -54,15 +57,12 @@ def create_main_config(
         input_config = yaml.safe_load(f)
 
     # Base Config
-    with open(
-        f"{input_config['deeprvat_repo_dir']}/deeprvat/deeprvat/base_configurations.yaml"
-    ) as f:
+    with open(REPO_DIR / "deeprvat/deeprvat/base_configurations.yaml") as f:
         base_config = yaml.safe_load(f)
 
     full_config = base_config
 
     expected_input_keys = [
-        "deeprvat_repo_dir",
         "phenotypes_for_association_testing",
         "phenotypes_for_training",
         "gt_filename",
@@ -387,14 +387,13 @@ def create_sg_discovery_config(
 
     # Base Config
     with open(
-        f"{input_config['deeprvat_repo_dir']}/deeprvat/seed_gene_discovery/seed_gene_base_configurations.yaml"
+        REPO_DIR / "deeprvat/seed_gene_discovery/seed_gene_base_configurations.yaml"
     ) as f:
         base_config = yaml.safe_load(f)
 
     full_config = base_config
 
     expected_input_keys = [
-        "deeprvat_repo_dir",
         "phenotypes",
         "gt_filename",
         "variant_filename",
