@@ -28,11 +28,13 @@ Note that the example data used here is randomly generated, and so is only suite
 ### Run the association testing pipeline with pretrained models
 
 ```shell
+DEEPRVAT_REPO_PATH="[path_to_deeprvat]"
 mkdir deeprvat_associate
 cd deeprvat_associate
-ln -s [path_to_deeprvat]/example/* .
-ln -s [path_to_deeprvat]/pretrained_models
-snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/association_testing_pretrained.snakefile
+ln -s "$DEEPRVAT_REPO_PATH"/example/* .
+ln -s "$DEEPRVAT_REPO_PATH"/pretrained_models
+ln -s config/deeprvat_input_pretrained_models_config.yaml . # Get the corresponding config.
+snakemake -j 1 --snakefile "$DEEPRVAT_REPO_PATH"/pipelines/association_testing_pretrained.snakefile
 ```
 
 
@@ -60,8 +62,10 @@ snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/run_training.snakefile
 ### Run the full training and association testing pipeline on some example data
 
 ```shell
+DEEPRVAT_REPO_PATH="[path_to_deeprvat]"
 mkdir deeprvat_train_associate
 cd deeprvat_train_associate
-ln -s [path_to_deeprvat]/example/* .
-snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/training_association_testing.snakefile
+ln -s "$DEEPRVAT_REPO_PATH"/example/* .
+ln -s config/deeprvat_input_config.yaml .
+snakemake -j 1 --snakefile "$DEEPRVAT_REPO_PATH"/pipelines/training_association_testing.snakefile
 ```

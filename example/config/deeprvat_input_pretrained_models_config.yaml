@@ -1,7 +1,5 @@
-deeprvat_repo_dir: ../..
-
 use_pretrained_models: True
-pretrained_model_path : ../../pretrained_models
+pretrained_model_path : pretrained_models
 
 #Phenotypes to be used only for Association Testing
 phenotypes_for_association_testing:
