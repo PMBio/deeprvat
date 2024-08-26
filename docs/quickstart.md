@@ -62,8 +62,10 @@ snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/run_training.snakefile
 ### Run the full training and association testing pipeline on some example data
 
 ```shell
+DEEPRVAT_REPO_PATH="[path_to_deeprvat]"
 mkdir deeprvat_train_associate
 cd deeprvat_train_associate
-ln -s [path_to_deeprvat]/example/* .
-snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/training_association_testing.snakefile
+ln -s "$DEEPRVAT_REPO_PATH"/example/* .
+ln -s config/deeprvat_input_config.yaml .
+snakemake -j 1 --snakefile "$DEEPRVAT_REPO_PATH"/pipelines/training_association_testing.snakefile
 ```
