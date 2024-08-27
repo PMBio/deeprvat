@@ -23,7 +23,7 @@ jobs:
     with:
       pipeline_file: ./pipelines/association_testing_pretrained.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cp ./example/config/deeprvat_input_pretrained_models_config.yaml ./example/ && ln -s ./pretrained_models ./example/
+      prerun_cmd: cp ./example/config/deeprvat_input_pretrained_models_config.yaml ./example/ && ln -s ${{ github.workspace }}/pretrained_models ./example/
 
 
   # Training Pipeline
