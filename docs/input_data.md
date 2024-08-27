@@ -8,17 +8,11 @@ Configuration for all pipelines is specified in the file `deeprvat_input_config.
 In the following, we describe the parameters (both optional and required) that can be specified in the `deeprvat_input_config.yaml` by way of an [example file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_config.yaml), which we explain block by block.
 
 ```
-deeprvat_repo_dir: ../..
-```
-
-_Required._ This specifies the path to your copy of the DeepRVAT repository.
-
-```
 use_pretrained_models: True
-pretrained_model_path : ../../pretrained_models
+pretrained_model_path : pretrained_models
 ```
 
-These parameters are relevant when using pretrained models. `use_pretrained_models` defaults to `False` if not specified.
+These parameters are relevant when using pretrained models. `use_pretrained_models` defaults to `False` if not specified. Update the `pretrained_model_path` to the path where the `pretrained_models` directory is, if not in the same folder as your current experiment directory.
 
 ```
 phenotypes_for_association_testing:
