@@ -261,8 +261,8 @@ def create_main_config(
         "annotation_filename"
     ]  # annotations.parquet
     full_config["association_testing_data"]["dataset_config"]["gene_file"] = (
-            input_config["gene_filename"]
-        )  # protein_coding_genes.parquet
+        input_config["gene_filename"]
+    )  # protein_coding_genes.parquet
     full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
         "annotations"
     ] = input_config[
