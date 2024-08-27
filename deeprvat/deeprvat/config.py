@@ -84,14 +84,19 @@ def create_main_config(
     ]
 
     # Check if Training Only
-    if input_config.get("training_only", False): 
+    if input_config.get("training_only", False):
         train_only = True
-        to_remove = {"phenotypes_for_association_testing", "association_testing_data_thresholds","evaluation"}
+        to_remove = {
+            "phenotypes_for_association_testing",
+            "association_testing_data_thresholds",
+            "evaluation",
+        }
         expected_input_keys = [
             item for item in expected_input_keys if item not in to_remove
         ]
         input_config.pop("training_only", None)
-    else: train_only = False
+    else:
+        train_only = False
 
     # CV setup parameters
     if input_config.get("cv_options", {}).get("cv_exp", False):
@@ -106,14 +111,14 @@ def create_main_config(
         full_config["cv_path"] = input_config["cv_options"]["cv_path"]
         full_config["n_folds"] = input_config["cv_options"]["n_folds"]
         full_config["cv_exp"] = True
-    else:  
+    else:
         logger.info("Not CV setup...removing CV pipeline parameters from config")
         full_config["cv_exp"] = False
         expected_input_keys.remove("cv_options")
         input_config.pop("cv_options", None)
-    
+
     # REGENIE setup parameters
-    if input_config.get("regenie_options",{}).get("regenie_exp", False):
+    if input_config.get("regenie_options", {}).get("regenie_exp", False):
         if any(
             key not in input_config["regenie_options"]
             for key in ["regenie_exp", "step_1", "step_2"]
@@ -138,7 +143,6 @@ def create_main_config(
         full_config["regenie_exp"] = False
         expected_input_keys.remove("regenie_options")
         input_config.pop("regenie_options", None)
-
 
     no_pretrain = True
     if input_config.get("use_pretrained_models", False):
@@ -177,9 +181,7 @@ def create_main_config(
     if no_pretrain and "phenotypes_for_training" not in input_config:
         logger.info("Unspecified phenotype list for training.")
         if train_only:
-            raise KeyError((
-                "Must specify phenotypes_for_training in config file!"
-            ))
+            raise KeyError(("Must specify phenotypes_for_training in config file!"))
         else:
             logger.info(
                 "   Setting training phenotypes to be the same set as specified by phenotypes_for_association_testing."
@@ -206,7 +208,10 @@ def create_main_config(
                 "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
             )
         )
-    if not train_only and "MAF" not in input_config["association_testing_data_thresholds"]:
+    if (
+        not train_only
+        and "MAF" not in input_config["association_testing_data_thresholds"]
+    ):
         raise KeyError(
             (
                 "Missing required MAF threshold in config['association_testing_data_thresholds']. "
@@ -243,46 +248,59 @@ def create_main_config(
                 "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
             )
 
-    
-    full_config["training_data"]["gt_file"] = input_config["gt_filename"] # genotypes.h5
-    full_config["training_data"]["variant_file"] = input_config["variant_filename"] # variants.parquet
+    full_config["training_data"]["gt_file"] = input_config[
+        "gt_filename"
+    ]  # genotypes.h5
+    full_config["training_data"]["variant_file"] = input_config[
+        "variant_filename"
+    ]  # variants.parquet
     full_config["training_data"]["dataset_config"]["phenotype_file"] = input_config[
         "phenotype_filename"
-    ] # phenotypes.parquet
+    ]  # phenotypes.parquet
     full_config["training_data"]["dataset_config"]["annotation_file"] = input_config[
         "annotation_filename"
     ]  # annotations.parquet
     full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
         "annotations"
-    ] = input_config["rare_variant_annotations"] # rare_variant_annotations
+    ] = input_config[
+        "rare_variant_annotations"
+    ]  # rare_variant_annotations
     full_config["training_data"]["dataset_config"]["x_phenotypes"] = input_config[
         "covariates"
-    ] # covariates
+    ]  # covariates
     if not train_only:
-        full_config["phenotypes"] = input_config["phenotypes_for_association_testing"] # Phenotypes
-        full_config["association_testing_data"]["gt_file"] = input_config["gt_filename"] # genotypes.h5
+        full_config["phenotypes"] = input_config[
+            "phenotypes_for_association_testing"
+        ]  # Phenotypes
+        full_config["association_testing_data"]["gt_file"] = input_config[
+            "gt_filename"
+        ]  # genotypes.h5
         full_config["association_testing_data"]["variant_file"] = input_config[
             "variant_filename"
-        ] # variants.parquet
+        ]  # variants.parquet
         full_config["association_testing_data"]["dataset_config"]["phenotype_file"] = (
             input_config["phenotype_filename"]
-        ) # phenotypes.parquet
+        )  # phenotypes.parquet
         full_config["association_testing_data"]["dataset_config"]["annotation_file"] = (
             input_config["annotation_filename"]
-        ) #annotations.parquet
+        )  # annotations.parquet
         full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
             "config"
-        ]["gene_file"] = input_config["gene_filename"] # protein_coding_genes.parquet
+        ]["gene_file"] = input_config[
+            "gene_filename"
+        ]  # protein_coding_genes.parquet
         full_config["association_testing_data"]["dataset_config"]["gene_file"] = (
             input_config["gene_filename"]
-        ) # protein_coding_genes.parquet
+        )  # protein_coding_genes.parquet
         full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
             "config"
-        ]["annotations"] = input_config["rare_variant_annotations"]  # rare_variant_annotations
+        ]["annotations"] = input_config[
+            "rare_variant_annotations"
+        ]  # rare_variant_annotations
         full_config["association_testing_data"]["dataset_config"]["x_phenotypes"] = (
-            input_config["covariates"] # covariates
+            input_config["covariates"]  # covariates
         )
-    
+
     # Thresholds & variant annotations
     anno_list = deepcopy(input_config["rare_variant_annotations"])
     full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
@@ -317,7 +335,7 @@ def create_main_config(
             "correction_method"
         ]
         full_config["evaluation"]["alpha"] = input_config["evaluation"]["alpha"]
-   
+
     # DeepRVAT model
     full_config["n_repeats"] = input_config["n_repeats"]
 
