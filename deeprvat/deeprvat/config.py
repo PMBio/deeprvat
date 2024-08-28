@@ -54,10 +54,14 @@ def create_main_config(
         input_config = yaml.safe_load(f)
 
     # Base Config
-    with open(
-        f"{input_config['deeprvat_repo_dir']}/deeprvat/deeprvat/base_configurations.yaml"
-    ) as f:
-        base_config = yaml.safe_load(f)
+    base_config_file = f"{input_config['deeprvat_repo_dir']}/deeprvat/deeprvat/base_configurations.yaml"
+    try:
+        with open(            base_config_file        ) as f:
+            base_config = yaml.safe_load(f)
+    except:
+        logger.error(f"Could not find {base_config_file}")
+        logger.error("Did you specify the correct deeprvat_repo_dir in deeprvat_input_config.yaml ?")
+        raise
 
     full_config = base_config
 
