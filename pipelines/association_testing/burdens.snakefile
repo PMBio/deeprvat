@@ -1,25 +1,3 @@
-configfile: 'config.yaml'
-
-phenotypes = config['phenotypes']
-phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
-
-debug_flag = config.get('debug', False)
-debug = '--debug ' if debug_flag else ''
-
-n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
-n_avg_chunks = config.get('n_avg_chunks', 40)
-n_bags = config['training']['n_bags'] if not debug_flag else 3
-n_repeats = config['n_repeats']
-model_path = Path("pretrained_models")
-
-if not "cv_exp" in globals():
-    cv_exp = config.get("cv_exp", False)
-
-config_file_prefix = (
-    "cv_split0/deeprvat/" if cv_exp else ""
-)
-
-
 rule average_burdens:
     input:
         chunks = [

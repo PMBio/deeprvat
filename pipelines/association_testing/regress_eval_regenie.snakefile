@@ -1,35 +1,3 @@
-configfile: "deeprvat_config.yaml"
-
-debug_flag = config.get('debug', False)
-debug = '--debug ' if debug_flag else ''
-
-# n_repeats = config['n_repeats']
-
-phenotypes = config['phenotypes']
-phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
-
-burdens = Path('burdens/burdens_average.zarr')
-
-n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
-
-burdens = Path(config.get("burden_file", "burdens/burdens_average.zarr"))
-
-regenie_config_step1 = config["regenie_options"]["step_1"]
-regenie_config_step2 = config["regenie_options"]["step_2"]
-regenie_step1_bsize = regenie_config_step1["bsize"]
-regenie_step2_bsize = regenie_config_step2["bsize"]
-regenie_njobs = regenie_config_step1.get("njobs", 1)
-regenie_joblist = range(1, regenie_njobs)
-
-cv_exp = config.get("cv_exp", False)
-config_file_prefix = (
-    "cv_split0/deeprvat/" if cv_exp else ""
-)
-
-wildcard_constraints:
-    job="\d+"
-
-
 rule evaluate:
     input:
         associations ='{phenotype}/deeprvat/average_regression_results/burden_associations.parquet',
