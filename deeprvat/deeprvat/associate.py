@@ -107,7 +107,7 @@ def cli():
 def make_dataset_(
     config: Dict,
     debug: bool = False,
-    data_key="association_testing_data",
+    data_key: str = "association_testing_data",
     skip_genotypes: bool = False,
     samples: Optional[List[int]] = None,
 ) -> Dataset:
@@ -197,6 +197,7 @@ def make_dataset(
 def compute_xy_(
     config: Dict,
     ds: torch.utils.data.Dataset,
+    data_key="association_testing_data",
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute burdens using the PyTorch model for each repeat.
@@ -205,13 +206,15 @@ def compute_xy_(
     :type config: Dict
     :param ds: Torch dataset.
     :type ds: torch.utils.data.Dataset
+    :param data_key: Key for dataset configuration in the config dictionary, defaults to "association_testing_data".
+    :type data_key: str
     :return: Tuple containing sample IDs, covariates x, and target phenotypes y
     :rtype: Tuple[np.ndarray, np.ndarray, np.ndarray]
 
     .. note::
         Checkpoint models all corresponding to the same repeat are averaged for that repeat.
     """
-    data_config = config["data"]
+    data_config = config[data_key]
 
     ds_full = ds.dataset if isinstance(ds, Subset) else ds
     collate_fn = getattr(ds_full, "collate_fn", None)
@@ -243,12 +246,14 @@ def compute_xy_(
 
 @cli.command()
 @click.option("--dataset-file", type=click.Path(exists=True))
+@click.option("--data-key", type=str, default="association_testing_data")
 @click.argument("data-config-file", type=click.Path(exists=True))
 @click.argument("sample-file", type=click.Path(path_type=Path))
 @click.argument("x-file", type=click.Path(path_type=Path))
 @click.argument("y-file", type=click.Path(path_type=Path))
 def compute_xy(
     dataset_file: Optional[str],
+            data_key: str,
     data_config_file: str,
     sample_file: Path,
     x_file: Path,
@@ -257,10 +262,10 @@ def compute_xy(
     """
     Compute burdens based on the provided model and dataset.
 
-    :param debug: Flag for debugging.
-    :type debug: bool
     :param dataset_file: Path to the dataset file, i.e., association_dataset.pkl.
     :type dataset_file: Optional[str]
+    :param data_key: Key for dataset configuration in the config dictionary, defaults to "association_testing_data".
+    :type data_key: str
     :param data_config_file: Path to the data configuration file.
     :type data_config_file: str
     :param out_dir: Path to the output directory.
@@ -279,155 +284,13 @@ def compute_xy(
     sample_ids, x, y = compute_xy_(
         data_config,
         dataset,
+        data_key=data_key,
     )
 
     logger.info("Saving computed sample IDs, covariates, and targets")
     zarr.save_array(sample_file, sample_ids)
     zarr.save_array(x_file, x)
     zarr.save_array(y_file, y)
-
-
-def compute_burdens_(
-    debug: bool,
-    config: Dict,
-    ds: torch.utils.data.Dataset,
-    cache_dir: str,
-    agg_models: Dict[str, List[nn.Module]],
-    n_chunks: Optional[int] = None,
-    chunk: Optional[int] = None,
-    device: torch.device = torch.device("cpu"),
-    bottleneck: bool = False,
-    compression_level: int = 1,
-) -> Tuple[np.ndarray, zarr.core.Array, zarr.core.Array]:
-    """
-    Compute burdens using the PyTorch model for each repeat.
-
-    :param debug: Flag for debugging.
-    :type debug: bool
-    :param config: Configuration dictionary.
-    :type config: Dict
-    :param ds: Torch dataset.
-    :type ds: torch.utils.data.Dataset
-    :param cache_dir: Directory to cache zarr files of computed burdens, x phenotypes, and y phenotypes.
-    :type cache_dir: str
-    :param agg_models: Loaded PyTorch model(s) for each repeat used for burden computation.
-        Each key in the dictionary corresponds to a respective repeat.
-    :type agg_models: Dict[str, List[nn.Module]]
-    :param n_chunks: Number of chunks to split data for processing, defaults to None.
-    :type n_chunks: Optional[int]
-    :param chunk: Index of the chunk of data, defaults to None.
-    :type chunk: Optional[int]
-    :param device: Device to perform computations on, defaults to "cpu".
-    :type device: torch.device
-    :param bottleneck: Flag to enable bottlenecking number of batches, defaults to False.
-    :type bottleneck: bool
-    :param compression_level: Blosc compressor compression level for zarr files, defaults to 1.
-    :type compression_level: int
-    :param skip_burdens: Flag to skip burden computation, defaults to False.
-    :type skip_burdens: bool
-    :return: Tuple containing genes, burdens, target y phenotypes, x phenotypes and sample ids.
-    :rtype: Tuple[np.ndarray, zarr.core.Array, zarr.core.Array, zarr.core.Array, zarr.core.Array]
-
-    .. note::
-        Checkpoint models all corresponding to the same repeat are averaged for that repeat.
-    """
-    logger.info("agg_models[*][*].reverse:")
-    pprint(
-        {repeat: [m.reverse for m in models] for repeat, models in agg_models.items()}
-    )
-
-    data_config = config["association_testing_data"]
-
-    ds_full = ds.dataset if isinstance(ds, Subset) else ds
-    collate_fn = getattr(ds_full, "collate_fn", None)
-    n_total_samples = len(ds)
-    ds.rare_embedding.skip_embedding = False
-
-    if chunk is not None:
-        if n_chunks is None:
-            raise ValueError("n_chunks must be specified if chunk is not None")
-
-        chunk_length = math.ceil(n_total_samples / n_chunks)
-        chunk_start = chunk * chunk_length
-        chunk_end = min(n_total_samples, chunk_start + chunk_length)
-        samples = range(chunk_start, chunk_end)
-        n_samples = len(samples)
-        ds = Subset(ds, samples)
-
-        logger.info(f"Processing samples in {samples} from {n_total_samples} in total")
-    else:
-        n_samples = n_total_samples
-        chunk_start = 0
-        chunk_end = n_samples
-
-    dataloader_config = data_config["dataloader_config"]
-
-    if torch.cuda.is_available():
-        pin_memory = dataloader_config.get("pin_memory", True)
-
-        logger.info(f"CUDA is available, setting pin_memory={pin_memory}")
-        dataloader_config["pin_memory"] = pin_memory
-
-    dl = DataLoader(ds, collate_fn=collate_fn, **dataloader_config)
-
-    logger.info("Computing burden scores")
-    batch_size = data_config["dataloader_config"]["batch_size"]
-    with torch.no_grad():
-        for i, batch in tqdm(
-            enumerate(dl),
-            file=sys.stdout,
-            total=(n_samples // batch_size + (n_samples % batch_size != 0)),
-        ):
-            this_burdens, this_sampleid = get_burden(batch, agg_models, device=device)
-            if i == 0:
-                chunk_burden = np.zeros(shape=(n_samples,) + this_burdens.shape[1:])
-                chunk_sampleid = [""] * n_samples
-
-                logger.info(f"Batch size: {batch['rare_variant_annotations'].shape}")
-
-                burdens = zarr.open(
-                    Path(cache_dir) / "burdens.zarr",
-                    mode="a",
-                    shape=(n_total_samples,) + this_burdens.shape[1:],
-                    chunks=(1000, 1000, 1),
-                    dtype=np.float32,
-                    compressor=Blosc(clevel=compression_level),
-                )
-                logger.info(f"burdens shape: {burdens.shape}")
-
-                sample_ids = zarr.open(
-                    Path(cache_dir) / "sample_ids.zarr",
-                    mode="a",
-                    shape=(n_total_samples),
-                    chunks=(None),
-                    dtype=str,
-                    compressor=JSON(),
-                )
-
-            start_idx = i * batch_size
-            end_idx = min(start_idx + batch_size, chunk_end)  # read from chunk shape
-
-            chunk_burden[start_idx:end_idx] = this_burdens
-
-            chunk_sampleid[start_idx:end_idx] = this_sampleid
-
-            if debug:
-                logger.info(
-                    "Wrote results for batch indices " f"[{start_idx}, {end_idx - 1}]"
-                )
-
-            if bottleneck and i > 20:
-                break
-
-        burdens[chunk_start:chunk_end] = chunk_burden
-        sample_ids[chunk_start:chunk_end] = chunk_sampleid
-
-    if torch.cuda.is_available():
-        logger.info(
-            "Max GPU memory allocated: " f"{torch.cuda.max_memory_allocated(0)} bytes"
-        )
-
-    return ds_full.rare_embedding.genes, burdens, sample_ids
 
 
 def make_regenie_input_(
@@ -919,9 +782,156 @@ def load_models(
     return agg_models
 
 
+def compute_burdens_(
+    debug: bool,
+    config: Dict,
+    ds: torch.utils.data.Dataset,
+    cache_dir: str,
+    agg_models: Dict[str, List[nn.Module]],
+    data_key: str = "association_testing_data",
+    n_chunks: Optional[int] = None,
+    chunk: Optional[int] = None,
+    device: torch.device = torch.device("cpu"),
+    bottleneck: bool = False,
+    compression_level: int = 1,
+) -> Tuple[np.ndarray, zarr.core.Array, zarr.core.Array]:
+    """
+    Compute burdens using the PyTorch model for each repeat.
+
+    :param debug: Flag for debugging.
+    :type debug: bool
+    :param data_key: Key for dataset configuration in the config dictionary, defaults to "association_testing_data".
+    :type data_key: str
+    :param config: Configuration dictionary.
+    :type config: Dict
+    :param ds: Torch dataset.
+    :type ds: torch.utils.data.Dataset
+    :param cache_dir: Directory to cache zarr files of computed burdens, x phenotypes, and y phenotypes.
+    :type cache_dir: str
+    :param agg_models: Loaded PyTorch model(s) for each repeat used for burden computation.
+        Each key in the dictionary corresponds to a respective repeat.
+    :type agg_models: Dict[str, List[nn.Module]]
+    :param n_chunks: Number of chunks to split data for processing, defaults to None.
+    :type n_chunks: Optional[int]
+    :param chunk: Index of the chunk of data, defaults to None.
+    :type chunk: Optional[int]
+    :param device: Device to perform computations on, defaults to "cpu".
+    :type device: torch.device
+    :param bottleneck: Flag to enable bottlenecking number of batches, defaults to False.
+    :type bottleneck: bool
+    :param compression_level: Blosc compressor compression level for zarr files, defaults to 1.
+    :type compression_level: int
+    :param skip_burdens: Flag to skip burden computation, defaults to False.
+    :type skip_burdens: bool
+    :return: Tuple containing genes, burdens, target y phenotypes, x phenotypes and sample ids.
+    :rtype: Tuple[np.ndarray, zarr.core.Array, zarr.core.Array, zarr.core.Array, zarr.core.Array]
+
+    .. note::
+        Checkpoint models all corresponding to the same repeat are averaged for that repeat.
+    """
+    logger.info("agg_models[*][*].reverse:")
+    pprint(
+        {repeat: [m.reverse for m in models] for repeat, models in agg_models.items()}
+    )
+
+    data_config = config[data_key]
+
+    ds_full = ds.dataset if isinstance(ds, Subset) else ds
+    collate_fn = getattr(ds_full, "collate_fn", None)
+    n_total_samples = len(ds)
+    ds.rare_embedding.skip_embedding = False
+
+    if chunk is not None:
+        if n_chunks is None:
+            raise ValueError("n_chunks must be specified if chunk is not None")
+
+        chunk_length = math.ceil(n_total_samples / n_chunks)
+        chunk_start = chunk * chunk_length
+        chunk_end = min(n_total_samples, chunk_start + chunk_length)
+        samples = range(chunk_start, chunk_end)
+        n_samples = len(samples)
+        ds = Subset(ds, samples)
+
+        logger.info(f"Processing samples in {samples} from {n_total_samples} in total")
+    else:
+        n_samples = n_total_samples
+        chunk_start = 0
+        chunk_end = n_samples
+
+    dataloader_config = data_config["dataloader_config"]
+
+    if torch.cuda.is_available():
+        pin_memory = dataloader_config.get("pin_memory", True)
+
+        logger.info(f"CUDA is available, setting pin_memory={pin_memory}")
+        dataloader_config["pin_memory"] = pin_memory
+
+    dl = DataLoader(ds, collate_fn=collate_fn, **dataloader_config)
+
+    logger.info("Computing gene impairment scores")
+    batch_size = data_config["dataloader_config"]["batch_size"]
+    with torch.no_grad():
+        for i, batch in tqdm(
+            enumerate(dl),
+            file=sys.stdout,
+            total=(n_samples // batch_size + (n_samples % batch_size != 0)),
+        ):
+            this_burdens, this_sampleid = get_burden(batch, agg_models, device=device)
+            if i == 0:
+                chunk_burden = np.zeros(shape=(n_samples,) + this_burdens.shape[1:])
+                chunk_sampleid = [""] * n_samples
+
+                logger.info(f"Batch size: {batch['rare_variant_annotations'].shape}")
+
+                burdens = zarr.open(
+                    Path(cache_dir) / "burdens.zarr",
+                    mode="a",
+                    shape=(n_total_samples,) + this_burdens.shape[1:],
+                    chunks=(1000, 1000, 1),
+                    dtype=np.float32,
+                    compressor=Blosc(clevel=compression_level),
+                )
+                logger.info(f"burdens shape: {burdens.shape}")
+
+                sample_ids = zarr.open(
+                    Path(cache_dir) / "sample_ids.zarr",
+                    mode="a",
+                    shape=(n_total_samples),
+                    chunks=(None),
+                    dtype=str,
+                    compressor=JSON(),
+                )
+
+            start_idx = i * batch_size
+            end_idx = min(start_idx + batch_size, chunk_end)  # read from chunk shape
+
+            chunk_burden[start_idx:end_idx] = this_burdens
+
+            chunk_sampleid[start_idx:end_idx] = this_sampleid
+
+            if debug:
+                logger.info(
+                    "Wrote results for batch indices " f"[{start_idx}, {end_idx - 1}]"
+                )
+
+            if bottleneck and i > 20:
+                break
+
+        burdens[chunk_start:chunk_end] = chunk_burden
+        sample_ids[chunk_start:chunk_end] = chunk_sampleid
+
+    if torch.cuda.is_available():
+        logger.info(
+            "Max GPU memory allocated: " f"{torch.cuda.max_memory_allocated(0)} bytes"
+        )
+
+    return ds_full.rare_embedding.genes, burdens, sample_ids
+
+
 @cli.command()
 @click.option("--debug", is_flag=True)
 @click.option("--bottleneck", is_flag=True)
+@click.option("--data-key", type=str, default="association_testing_data")
 @click.option("--n-chunks", type=int)
 @click.option("--chunk", type=int)
 @click.option("--dataset-file", type=click.Path(exists=True))
@@ -932,6 +942,7 @@ def load_models(
 def compute_burdens(
     debug: bool,
     bottleneck: bool,
+        data_key: str,
     n_chunks: Optional[int],
     chunk: Optional[int],
     dataset_file: Optional[str],
@@ -947,6 +958,8 @@ def compute_burdens(
     :type debug: bool
     :param bottleneck: Flag to enable bottlenecking number of batches.
     :type bottleneck: bool
+    :param data_key: Key for dataset configuration in the config dictionary, defaults to "association_testing_data".
+    :type data_key: str
     :param n_chunks: Number of chunks to split data for processing, defaults to None.
     :type n_chunks: Optional[int]
     :param chunk: Index of the chunk of data, defaults to None.
@@ -998,6 +1011,7 @@ def compute_burdens(
         dataset,
         out_dir,
         agg_models,
+        data_key=data_key,
         n_chunks=n_chunks,
         chunk=chunk,
         device=device,
