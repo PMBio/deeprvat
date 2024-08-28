@@ -87,6 +87,10 @@ def create_main_config(
         "regenie_options",
     ]
 
+    optional_input_keys = [
+        "deterministic",
+    ]
+
     # CV setup parameters
     if not input_config["cv_options"]["cv_exp"]:
         logger.info("Not CV setup...removing CV pipeline parameters from config")
@@ -199,8 +203,9 @@ def create_main_config(
         )
 
     # Final Check of Keys
-    if set(input_config.keys()) != set(expected_input_keys):
-        if set(input_config.keys()) - set(expected_input_keys):
+    keys_to_check = set(input_config.keys()) - set(optional_input_keys)
+    if keys_to_check != set(expected_input_keys):
+        if keys_to_check - set(expected_input_keys):
             raise KeyError(
                 (
                     "Unspecified key(s) present in input YAML file. "
@@ -208,7 +213,7 @@ def create_main_config(
                     "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
                 )
             )
-        if set(expected_input_keys) - set(input_config.keys()):
+        if set(expected_input_keys) - keys_to_check:
             raise KeyError(
                 (
                     "Missing key(s) in input YAML file. "
@@ -227,6 +232,8 @@ def create_main_config(
                 "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
             )
 
+    # Determinism
+    full_config["deterministic"] = input_config.get("deterministic", False)
     # Phenotypes
     full_config["phenotypes"] = input_config["phenotypes_for_association_testing"]
     # genotypes.h5
