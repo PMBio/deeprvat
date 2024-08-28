@@ -128,7 +128,7 @@ def compare_training(
 @click.argument("results-dir", type=click.Path(exists=True, path_type=Path))
 @click.argument("reference-dir", type=click.Path(exists=True, path_type=Path))
 @click.argument("phenotype", type=str, nargs=-1)
-def compare_association(
+def compare_burdens(
     results_dir: Path,
     reference_dir: Path,
     phenotype: Tuple[str],
@@ -189,39 +189,55 @@ def compare_association(
         #         f"within tolerance"
         #     )
 
-    # for p in phenotype:
-    #     logger.info(f"Checking phenotype {p}")
+    logger.info("PASS! All tests successful")
 
-    #     results = pd.read_parquet(results_dir / p / "deeprvat/eval/all_results.parquet")
-    #     reference_results = pd.read_parquet(
-    #         reference_dir / p / "deeprvat/eval/all_results.parquet"
-    #     )
-    #     string_cols = ["phenotype", "Method", "Discovery type"]
-    #     for c in string_cols:
-    #         assert (
-    #             (results[c].isna() & results[c].isna())
-    #             | (results[c] == reference_results[c])
-    #         ).all()
 
-    #     numerical_cols = ["gene", "beta", "pval", "-log10pval", "pval_corrected"]
-    #     all_close = np.allclose(
-    #         results[numerical_cols].to_numpy(),
-    #         reference_results[numerical_cols].to_numpy(),
-    #         equal_nan=True,
-    #         rtol=rtol_assoc,
-    #         atol=atol_assoc,
-    #     )
+@cli.command()
+@click.option("--rtol-assoc", type=float, default=1e-2)
+@click.option("--atol-assoc", type=float, default=1e-2)
+@click.argument("results-dir", type=click.Path(exists=True, path_type=Path))
+@click.argument("reference-dir", type=click.Path(exists=True, path_type=Path))
+@click.argument("phenotype", type=str, nargs=-1)
+def compare_association(
+    results_dir: Path,
+    reference_dir: Path,
+    phenotype: Tuple[str],
+    rtol_assoc: float,
+    atol_assoc: float,
+):
+    for p in phenotype:
+        logger.info(f"Checking phenotype {p}")
 
-    #     if not all_close:
-    #         raise RuntimeError(
-    #             f"FAIL! Max difference between results and reference results (phenotype {p}) "
-    #             f"larger than tolerance"
-    #         )
-    #     # else:
-    #     #     logger.info(
-    #     #         f"PASS! Max difference between results and reference results (phenotype {p}) "
-    #     #         f"within tolerance"
-    #     #     )
+        results = pd.read_parquet(results_dir / p / "deeprvat/eval/all_results.parquet")
+        reference_results = pd.read_parquet(
+            reference_dir / p / "deeprvat/eval/all_results.parquet"
+        )
+        string_cols = ["phenotype", "Method", "Discovery type"]
+        for c in string_cols:
+            assert (
+                (results[c].isna() & results[c].isna())
+                | (results[c] == reference_results[c])
+            ).all()
+
+        numerical_cols = ["gene", "beta", "pval", "-log10pval", "pval_corrected"]
+        all_close = np.allclose(
+            results[numerical_cols].to_numpy(),
+            reference_results[numerical_cols].to_numpy(),
+            equal_nan=True,
+            rtol=rtol_assoc,
+            atol=atol_assoc,
+        )
+
+        if not all_close:
+            raise RuntimeError(
+                f"FAIL! Max difference between results and reference results (phenotype {p}) "
+                f"larger than tolerance"
+            )
+        # else:
+        #     logger.info(
+        #         f"PASS! Max difference between results and reference results (phenotype {p}) "
+        #         f"within tolerance"
+        #     )
 
     logger.info("PASS! All tests successful")
 
