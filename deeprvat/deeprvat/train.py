@@ -1,4 +1,5 @@
 import copy
+import random
 import gc
 import itertools
 import logging
@@ -1157,7 +1158,7 @@ def best_training_run(
         )
         f.close()
     best_trial = trials.sort_values("value", ascending=ascending).iloc[0]
-    best_trial_id = best_trial["user_attrs_user_id"]
+    best_trial_id = int(best_trial["user_attrs_user_id"])
 
     logger.info(f"Best trial:\n{best_trial}")
 
