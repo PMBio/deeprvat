@@ -1,6 +1,6 @@
 rule training_dataset:
     input:
-        config="{phenotype}/deeprvat/hpopt_config.yaml",
+        data_config="{phenotype}/deeprvat/config.yaml",
         training_dataset="{phenotype}/deeprvat/training_dataset.pkl",
     output:
         input_tensor=directory("{phenotype}/deeprvat/input_tensor.zarr"),
@@ -19,7 +19,7 @@ rule training_dataset:
             + str(tensor_compression_level)
             + " "
             "--training-dataset-file {input.training_dataset} "
-            "{input.config} "
+            "{input.data_config} "
             "{output.input_tensor} "
             "{output.covariates} "
             "{output.y}"
@@ -28,7 +28,7 @@ rule training_dataset:
 
 rule training_dataset_pickle:
     input:
-        "{phenotype}/deeprvat/hpopt_config.yaml",
+        "{phenotype}/deeprvat/config.yaml",
     output:
         "{phenotype}/deeprvat/training_dataset.pkl",
     threads: 1

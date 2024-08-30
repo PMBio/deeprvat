@@ -1,9 +1,9 @@
-# DeepRVAT Preprocessing pipeline
+# DeepRVAT preprocessing pipeline
 
-The DeepRVAT preprocessing pipeline is based on [snakemake](https://snakemake.readthedocs.io/en/stable/) it uses
-[bcftools+samstools](https://www.htslib.org/) and a [python script](https://github.com/PMBio/deeprvat/blob/main/deeprvat/preprocessing/preprocess.py) preprocessing.py.
+The DeepRVAT preprocessing pipeline is based on [snakemake](https://snakemake.readthedocs.io/en/stable/). It uses
+[bcftools+samtools](https://www.htslib.org/) and a [python script](https://github.com/PMBio/deeprvat/blob/main/deeprvat/preprocessing/preprocess.py) preprocessing.py.
 
-![DeepRVAT preprocessing pipeline](_static/preprocess_rulegraph_no_qc.svg)
+![DeepRVAT preprocessing pipeline](_static/preprocess_no_qc_rulegraph.svg)
 
 ## Output
 
@@ -11,7 +11,7 @@ The important files that this pipeline produces that are needed in DeepRVAT are:
 
 - **preprocessed/genotypes.h5** *The main sparse hdf5 file*
 
-- **norm/variants/variants.parquet** *List of variants i parquet format*
+- **norm/variants/variants.parquet** *List of variants in parquet format*
 
 ## Setup environment
 
@@ -44,7 +44,7 @@ pip install -e .
 ## Configure preprocessing
 
 The snakemake preprocessing is configured using a yaml file with the format below.
-An example file is included in this repo: [example config](https://github.com/PMBio/deeprvat/blob/main/pipelines/config/deeprvat_preprocess_config.yaml).
+An example file is included in this repo: [example config](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_preprocess_config.yaml).
 
 ```yaml
 # What chromosomes should be processed
@@ -52,9 +52,6 @@ included_chromosomes : [21,22]
 
 # The format of the name of the "raw" vcf files
 vcf_files_list: vcf_files_list.txt
-
-# Number of threads to use in the preprocessing script, separate from snakemake threads
-preprocess_threads: 16
 
 # If you need to run a cmd to load bcf and samtools specify it here, see example
 bcftools_load_cmd : # module load bcftools/1.10.2 &&
@@ -65,7 +62,7 @@ working_dir: workdir
 
 # These paths are all relative to the working dir
 # Here will the finished preprocessed files end up
-preprocessed_dir_name : preprocesed
+preprocessed_dir_name : preprocessed
 # Path to directory with fasta reference file
 reference_dir_name : reference
 # Here we will store normalized bcf files
@@ -89,7 +86,7 @@ parent_directory
     |   |-- bcf
     |   |-- sparse
     |   `-- variants
-    |-- preprocesed
+    |-- preprocessed
     |-- qc
     |   |-- allelic_imbalance
     |   |-- duplicate_vars
@@ -129,7 +126,7 @@ we used when we wrote the paper. The qc is specific to the UKBB data, so if you 
 pipeline without qc.
 
 ### Run the preprocess pipeline with example data and qc
-![DeepRVAT preprocessing pipeline](_static/preprocess_rulegraph_with_qc.svg)
+![DeepRVAT preprocessing pipeline](_static/preprocess_with_qc_rulegraph.svg)
 
 *The vcf files in the example data folder was generated using [fake-vcf](https://github.com/endast/fake-vcf) (with some
 manual editing).
@@ -157,13 +154,13 @@ gzip -d workdir/reference/GRCh38.primary_assembly.genome.fa.gz
 4. Run with the example config
 
 ```shell
-snakemake -j 1 --snakefile ../../pipelines/preprocess_with_qc.snakefile --configfile ../../pipelines/config/deeprvat_preprocess_config.yaml
+snakemake -j 1 --snakefile ../../pipelines/preprocess_with_qc.snakefile --configfile ../config/deeprvat_preprocess_config.yaml
 ```
 
 5. Enjoy the preprocessed data 🎉
 
 ```shell
-ls -l workdir/preprocesed
+ls -l workdir/preprocessed
 total 48
 -rw-r--r--  1 user  staff  6404 Aug  2 14:06 genotypes.h5
 -rw-r--r--  1 user  staff  6354 Aug  2 14:06 genotypes_chr21.h5
@@ -173,7 +170,7 @@ total 48
 
 ### Run the preprocess pipeline with example data and no qc
 
-![DeepRVAT preprocessing pipeline](_static/preprocess_rulegraph_no_qc.svg)
+![DeepRVAT preprocessing pipeline](_static/preprocess_no_qc_rulegraph.svg)
 
 *The vcf files in the example data folder was generated using [fake-vcf](https://github.com/endast/fake-vcf) (with some
 manual editing).
@@ -201,13 +198,13 @@ gzip -d workdir/reference/GRCh38.primary_assembly.genome.fa.gz
 4. Run with the example config
 
 ```shell
-snakemake -j 1 --snakefile ../../pipelines/preprocess_no_qc.snakefile --configfile ../../pipelines/config/deeprvat_preprocess_config.yaml
+snakemake -j 1 --snakefile ../../pipelines/preprocess_no_qc.snakefile --configfile ../../example/config/deeprvat_preprocess_config.yaml
 ```
 
 5. Enjoy the preprocessed data 🎉
 
 ```shell
-ls -l workdir/preprocesed
+ls -l workdir/preprocessed
 total 48
 -rw-r--r--  1 user  staff  6404 Aug  2 14:06 genotypes.h5
 -rw-r--r--  1 user  staff  6354 Aug  2 14:06 genotypes_chr21.h5

@@ -1,0 +1,33 @@
+# Uncomment to use module load for required tools
+#bcftools_load_cmd : module load bcftools/1.9
+#htslib_load_cmd : module load htslib/1.9
+#perl_load_cmd : module load perl/5.20.2
+#vep_load_cmd : module load vep/108.1
+fasta_dir : reference
+fasta_file_name : GRCh38.primary_assembly.genome.fa
+gtf_file_name : gencode.v44.annotation.gtf.gz
+
+source_variant_file_pattern : test_vcf_data_c{chr}_b{block}
+source_variant_file_type: 'bcf'
+
+# comment out / remove to run on all chromosomes
+included_chromosomes : ['21','22']
+annotation_columns_yaml_file: ../../example/config/annotation_colnames_filling_values.yaml
+
+source_variant_dir : ../preprocess/workdir/norm/bcf
+anno_tmp_dir : output_dir/annotations/tmp
+anno_dir : output_dir/annotations
+
+vep_cache_dir : repo_dir/ensembl-vep/cache/
+vep_plugin_dir : repo_dir/ensembl-vep/Plugins
+deeprvat_repo_dir : ../..
+kipoiveff_repo_dir : repo_dir/kipoi-veff2
+faatpipe_repo_dir : repo_dir/faatpipe
+vep_repo_dir : repo_dir/ensembl-vep
+preprocessing_workdir : ../preprocess/workdir
+additional_vep_plugin_cmds:
+  cadd : CADD,annotation_data/cadd/whole_genome_SNVs.tsv.gz,annotation_data/cadd/gnomad.genomes.r3.0.indel.tsv.gz
+  spliceAI : SpliceAI,snv=annotation_data/spliceAI/spliceai_scores.raw.snv.hg38.vcf.gz,indel=annotation_data/spliceAI/spliceai_scores.raw.indel.hg38.vcf.gz
+  primateAI : PrimateAI,annotation_data/primateAI/PrimateAI_scores_v0.2_GRCh38_sorted.tsv.bgz
+  condel: Condel,repo_dir/ensembl-vep/Plugin/config/Condel/config,s,2
+  alphamissense : AlphaMissense,file=annotation_data/AlphaMissense/AlphaMissense_hg38.tsv.gz

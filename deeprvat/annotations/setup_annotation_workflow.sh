@@ -1,46 +1,93 @@
-#prerequisites: mamba, git, Per with DBI, Bioperl, DBD::mysql modules
-VEP_CACHEDIR=$1
-VEP_PLUGINDIR=$2
-REPO_DIR=$3
+#!/usr/bin/env bash
 
-echo "downloading necessary repos and installing conda environments"
-perl -MCPAN -e 'install Bundle::DBI'
-echo "- vep"
-mkdir -p $REPO_DIR/ensembl-vep
-git clone https://github.com/Ensembl/ensembl-vep.git $REPO_DIR/ensembl-vep 
-cd $REPO_DIR/ensembl-vep
-git checkout release/111
-perl INSTALL.pl --AUTO acfp --ASSEMBLY GRCh38 --CACHEDIR $VEP_CACHEDIR --PLUGINS CADD, SpliceAI, PrimateAI --PLUGINSDIR $VEP_PLUGINDIR --species homo_sapiens
-cd ../..
+set -e
+set -o pipefail
 
-echo "- AbSplice"
-mkdir -p $REPO_DIR/absplice
-git clone https://github.com/gagneurlab/absplice.git $REPO_DIR/absplice
-cd $REPO_DIR/absplice
-mamba env create -f environment.yaml
-mamba activate absplice
-pip install -e .
-cd ../..
+# Prerequisites: mamba, git, Perl with DBI, Bioperl, DBD::mysql modules
 
-echo "- DeepSea(kipoi-veff2)"
-mkdir -p $REPO_DIR/kipoi-veff2
-git clone https://github.com/kipoi/kipoi-veff2.git $REPO_DIR/kipoi-veff2
-cd $REPO_DIR/kipoi-veff2
-mamba env create -f environment.minimal.linux.yml
-mamba activate kipoi-veff2
-python -m pip install .
-cd ../..
+REPO_DIR="$(cd "$(echo "$1")"; pwd)"
+TO_INSTALL="$2" # valid values: ensembl-vep absplice kipoi-veff2 faatpipe vep-plugins
+VEP_PLUGINDIR=$REPO_DIR/ensembl-vep/Plugins
+VEP_CACHEDIR=$REPO_DIR/ensembl-vep/cache
 
-echo "- DeepRiPe(faatpipe)"
-mkdir -p $REPO_DIR/faatpipe
-git clone https://github.com/HealthML/faatpipe.git $REPO_DIR/faatpipe
+if [ -z "$REPO_DIR" ]; then 
+    echo "You need to specify the repo base path $0 <REPO_DIR> <TO_INSTALL>"
+    exit 1
+fi
 
-echo vep plugins
-mkdir -p $REPO_DIR/VEP_plugins
-git clone https://github.com/Ensembl/VEP_plugins.git $REPO_DIR/VEP_plugins
-##returning to main environment
+if [ -z ""$TO_INSTALL"" ]; then 
+    echo "You need to specify the tools to install $0 $REPO_DIR <TO_INSTALL>"
+    echo "Example: $0 $REPO_DIR ensembl-vep,absplice,faatpipe,vep-plugins"
+    echo "Valid values for TO_INSTALL: ensembl-vep absplice kipoi-veff2 faatpipe vep-plugins"
+    exit 1
+fi
 
-mamba activate deeprvat_annotations
+if [ -z "$MAMBA_EXE" ]; then 
+    echo "You need mamba installed"
+    exit 1
+fi
 
-##create token output file
-touch $REPO_DIR/annotation-workflow-setup.done
+if ! command -v perl &> /dev/null
+then
+    echo "perl could not be found"
+    echo "Please install togheter with DBI, Bioperl, DBD::mysql modules"
+    exit 1
+fi
+
+if ! command -v git &> /dev/null
+then
+    echo "git could not be found"
+    exit 1
+fi
+
+echo "Downloading necessary repos and installing conda environments for: $TO_INSTALL"
+
+tool="ensembl-vep"
+if [[ "$TO_INSTALL" == *$tool* ]]; then
+    echo "Installing $tool"
+    
+    perl -MCPAN -e 'install Bundle::DBI'
+    git clone https://github.com/Ensembl/ensembl-vep.git "$REPO_DIR/ensembl-vep" 
+    cd "$REPO_DIR/ensembl-vep"
+    mkdir "$VEP_CACHEDIR"
+    perl INSTALL.pl --NO_HTSLIB --NO_TEST --AUTO c --ASSEMBLY GRCh38 --CACHEDIR "$VEP_CACHEDIR" --species homo_sapiens --CACHE_VERSION 110
+fi
+
+
+tool="absplice"
+if [[ "$TO_INSTALL" == *$tool* ]]; then
+    echo "Installing $tool"
+    mkdir -p $REPO_DIR/absplice
+    git clone https://github.com/gagneurlab/absplice.git $REPO_DIR/absplice
+    cd $REPO_DIR/absplice
+    $MAMBA_EXE env create -f environment.yaml
+    $MAMBA_EXE activate absplice
+    pip install -e .
+fi
+
+tool="kipoi-veff2"
+if [[ "$TO_INSTALL" == *$tool* ]]; then
+    echo "Installing $tool"
+    mkdir -p $REPO_DIR/kipoi-veff2
+    git clone https://github.com/kipoi/kipoi-veff2.git $REPO_DIR/kipoi-veff2
+    cd $REPO_DIR/kipoi-veff2
+    $MAMBA_EXE env create -f environment.minimal.linux.yml
+    $MAMBA_EXE activate kipoi-veff2
+    python -m pip install .
+fi
+
+tool="faatpipe"
+if [[ "$TO_INSTALL" == *$tool* ]]; then
+    echo "Installing $tool"
+    mkdir -p $REPO_DIR/faatpipe
+    git clone https://github.com/HealthML/faatpipe.git $REPO_DIR/faatpipe
+fi
+
+tool="vep-plugins"
+if [[ "$TO_INSTALL" == *$tool* ]]; then
+    echo "Installing $tool"
+    mkdir -p $VEP_PLUGINDIR
+    git clone https://github.com/Ensembl/VEP_plugins.git $VEP_PLUGINDIR
+fi
+
+echo "DONE!"

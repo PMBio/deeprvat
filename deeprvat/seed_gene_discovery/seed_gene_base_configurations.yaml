@@ -1,0 +1,18 @@
+
+n_chunks: 15
+
+#debug: True
+
+data:
+    dataset_config:
+        use_common_variants: False
+        use_rare_variants: True
+        rare_embedding:
+            config:
+                verbose: True
+            type: SparseGenotype
+        verbose: True
+        min_common_af:
+            MAF: 0.001
+    dataloader_config:
+        num_workers: 10

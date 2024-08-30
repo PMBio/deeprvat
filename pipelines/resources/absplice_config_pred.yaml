@@ -1,0 +1,9 @@
+splicing_pred:
+  mmsplice_splicemap: '{genome}/model_scores_from_absplice_features/{file_stem}_MMSplice_SpliceMap.csv'
+  spliceai_vcf: '{genome}/model_scores_from_absplice_features/{file_stem}_SpliceAI.vcf'
+  spliceai: '{genome}/model_scores_from_absplice_features/{file_stem}_SpliceAI.csv'
+  absplice_dna: '{genome}/dna/{file_stem}_AbSplice_DNA.csv'
+  delta_psi_inferred_from_cat: '{genome}/model_scores_from_absplice_features/{file_stem}_tissue_cat={tissue_cat}_delta_psi_inferred_from_cat.csv'
+  cat_outliers: '{genome}/model_scores_from_absplice_features/{file_stem}_tissue_cat={tissue_cat}_FRASER_pval.csv'
+  absplice_rna: '{genome}/{file_stem}_tissue_cat={tissue_cat}_AbSplice_RNA.csv'
+  absplice_rna_with_dna_info: '{genome}/{file_stem}_tissue_cat={tissue_cat}_AbSplice_all_info.csv'

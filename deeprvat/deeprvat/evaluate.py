@@ -2,8 +2,6 @@ import logging
 import sys
 from pathlib import Path
 from typing import Dict, Optional, Tuple
-from itertools import combinations
-import random
 import os
 
 import click
@@ -12,7 +10,7 @@ import pandas as pd
 import yaml
 from seak.cct import cct
 
-from deeprvat.utils import pval_correction, bfcorrect_df
+from deeprvat.utils import pval_correction
 
 logging.basicConfig(
     format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
@@ -82,7 +80,7 @@ def get_baseline_results(
             r["type"].split("/")[0],
             r["type"].split("/")[1],
         ): f"{r['base']}/{pheno}/{r['type']}/eval/burden_associations.parquet"
-        for r in config["baseline_results"]
+        for r in config["baseline_results"]["options"]
     }
     logger.info(f"reading baseline from {baseline_paths}")
     for (t, m), p in baseline_paths.items():
@@ -256,7 +254,6 @@ def process_results(
     combine_pval: str = "Bonferroni",
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
-    # TODO change this query!
     deeprvat_results = results.query('experiment_group == "DeepRVAT"')
 
     assert (deeprvat_results.groupby("gene").size() == 1).all()
@@ -296,7 +293,6 @@ def evaluate_(
 
     logger.info("Evaluation results:")
     results = pd.DataFrame()
-    # TODO change this!
     n_repeats = (
         1  # TODO maybe completely drop this (we don't need any filtering any more
     )
@@ -330,7 +326,6 @@ def evaluate_(
 @click.option("--debug", is_flag=True)
 @click.option("--phenotype", type=str)
 @click.option("--use-baseline-results", is_flag=True)
-@click.option("--correction-method", type=str, default="Bonferroni")
 @click.option(
     "--combine-pval", type=str, default="Bonferroni"
 )  # Bonferroni min pval per gene for multiple baseline tests
@@ -341,7 +336,6 @@ def evaluate(
     debug: bool,
     phenotype: Optional[str],
     use_baseline_results: bool,
-    correction_method: str,
     association_files: Tuple[str],
     config_file: str,
     out_dir: str,
@@ -357,11 +351,12 @@ def evaluate(
     pheno = (
         phenotype
         if phenotype is not None
-        else config["data"]["dataset_config"]["y_phenotypes"][0]
+        else config["association_testing_data"]["dataset_config"]["y_phenotypes"][0]
     )
     associations["phenotype"] = pheno
 
-    alpha = config["alpha"]
+    alpha = config["evaluation"]["alpha"]
+    correction_method = config["evaluation"]["correction_method"]
 
     if use_baseline_results:
         logger.info("Reading baseline results")
@@ -387,8 +382,8 @@ def evaluate(
     logger.info(significant.query('Method == "DeepRVAT"'))
     logger.info("Saving results")
     out_path = Path(out_dir)
-    significant.to_parquet(out_path / f"significant.parquet", engine="pyarrow")
-    all_pvals.to_parquet(out_path / f"all_results.parquet", engine="pyarrow")
+    significant.to_parquet(out_path / "significant.parquet", engine="pyarrow")
+    all_pvals.to_parquet(out_path / "all_results.parquet", engine="pyarrow")
 
 
 if __name__ == "__main__":

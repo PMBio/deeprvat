@@ -1,0 +1,87 @@
+name: Run snakemake pipeline
+
+on:
+  workflow_call:
+    inputs:
+      environment_file:
+        required: true
+        type: string
+      prerun_cmd:
+        required: false
+        type: string
+      pipeline_file:
+        required: true
+        type: string
+      pipeline_extra_flags:
+        required: false
+        type: string
+      no_gpu:
+        required: false
+        type: boolean
+        default: true
+      pipeline_directory:
+        required: false
+        type: string
+        default: ./example
+      pipeline_config:
+        required: false
+        type: string
+      dry_run:
+        required: false
+        default: true
+        type: boolean
+      download_fasta_data:
+        required: false
+        default: false
+        type: boolean
+      fasta_download_path:
+        required: false
+        type: string
+      postrun_cmd:
+        required: false
+        type: string
+
+jobs:
+  Run-Pipeline:
+      runs-on: ubuntu-latest
+      env:
+        CUDA_VISIBLE_DEVICES: -1
+      steps:
+        - name: Check out repository code
+          uses: actions/checkout@v4
+        - uses: mamba-org/setup-micromamba@v1.8.1
+          with:
+            environment-file: ${{inputs.environment_file}}
+            cache-environment: true
+            cache-downloads: true
+        - name: Install DeepRVAT
+          run: pip install -e ${{ github.workspace }}
+          shell: micromamba-shell {0}
+        - name: Cache Fasta file
+          if: inputs.download_fasta_data
+          id: cache-fasta
+          uses: actions/cache@v4
+          with:
+            path: ${{ inputs.fasta_download_path}}
+            key: cache-reference-fasta-${{ inputs.fasta_download_path}}
+        - name: Download and unpack fasta data
+          if: inputs.download_fasta_data && steps.cache-fasta.outputs.cache-hit != 'true'
+          run: |
+            wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38.primary_assembly.genome.fa.gz \
+            -O ${{ inputs.fasta_download_path}}/GRCh38.primary_assembly.genome.fa.gz \
+            && gzip -d ${{ inputs.fasta_download_path}}/GRCh38.primary_assembly.genome.fa.gz
+        - name: Run pre pipeline cmd
+          if: inputs.prerun_cmd
+          run: ${{inputs.prerun_cmd}}
+          shell: bash -el {0}
+        - name: "Running pipeline ${{ github.jobs[github.job].name }}"
+          run: |
+            python -m snakemake ${{ (inputs.dry_run && '-n') || '' }} \
+            -j 2 --directory ${{inputs.pipeline_directory}} \
+            ${{ (endsWith(inputs.pipeline_config, 'ml') && '--configfile')  || '' }}  ${{ inputs.pipeline_config }} \
+            --snakefile ${{inputs.pipeline_file}} --show-failed-logs -F -p ${{ inputs.pipeline_extra_flags }}
+          shell: micromamba-shell {0}
+        - name: Run post pipeline cmd
+          if: inputs.postrun_cmd
+          run: ${{inputs.postrun_cmd}}
+          shell: micromamba-shell {0}

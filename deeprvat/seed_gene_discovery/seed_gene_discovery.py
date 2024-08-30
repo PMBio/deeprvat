@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from scipy.stats import beta
-from scipy.sparse import coo_matrix, spmatrix
+from scipy.sparse import spmatrix
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
@@ -537,13 +537,12 @@ def make_dataset_(
             dataset = pickle.load(f)
     else:
         logger.info("Instantiating dataset")
-        variant_file = data_config.get(
-            "variant_file", f'{data_config["gt_file"][:-3]}_variants.parquet'
-        )
+
         dataset = DenseGTDataset(
             gt_file=data_config["gt_file"],
             skip_y_na=True,
             skip_x_na=True,
+            variant_file=data_config["variant_file"],
             **data_config["dataset_config"],
         )
         logger.info("Writing pickled data set")
@@ -554,12 +553,19 @@ def make_dataset_(
         logger.info("Debug mode: Using only 1000 samples")
         batch_size = 1000
     else:
+        logger.info("Setting batch size to length of dataset")
         batch_size = len(dataset)
 
-    logger.info(f"read dataset, batch size {batch_size}")
+    if "batch_size" in data_config["dataloader_config"].keys():
+        raise ValueError(
+            """You can't specify the batch_size in the 
+                         dataloader config for the seed gene discovery"""
+        )
+
+    logger.info(f"Read dataset, batch size {batch_size}")
     dataloader = DataLoader(
         dataset,
-        batch_size=batch_size,  # reading from dataloader config
+        batch_size=batch_size,
         collate_fn=dataset.collate_fn,
         **data_config["dataloader_config"],
     )
@@ -603,7 +609,6 @@ def make_dataset(
 @click.option("--debug", is_flag=True)
 @click.option("--n-chunks", type=int)
 @click.option("--chunk", type=int)
-@click.option("--sample-file", type=click.Path(exists=True))
 @click.option("--dataset-file", type=click.Path(exists=True))
 @click.option("--data-file", type=click.Path(exists=True))  # dataset_full
 @click.option("--persist-burdens", is_flag=True)
@@ -615,7 +620,6 @@ def run_association(
     debug: bool,
     dataset_file: Optional[DenseGTDataset],
     data_file: Optional[DenseGTDataset],
-    sample_file: Optional[str],
     config_file: str,
     var_type: str,
     test_type: str,
@@ -627,7 +631,7 @@ def run_association(
     logger.info(f"Saving burdens: {persist_burdens}")
 
     if test_type not in ["skat", "burden"]:
-        raise NotImplementedError("Test type {test_type} is invaldi/not implemented")
+        raise NotImplementedError(f"Test type {test_type} is invalid/not implemented")
 
     with open(config_file) as f:
         config = yaml.safe_load(f)
@@ -639,37 +643,8 @@ def run_association(
             data_full = pickle.load(f)
     else:
         dataset, data_full = make_dataset_(config, debug=debug)
-    all_samples = np.array([int(i) for i in data_full["sample"]])
-    if sample_file is not None:
-        logger.info(f"Using sample file {sample_file}")
-        with open(sample_file, "rb") as f:
-            samples = pickle.load(f)["training_samples"]
-        training_dataset_file = (
-            f"{'/'.join(sample_file.split('/')[:-2])}/training_dataset.pkl"
-        )
-        # load this file to remap the sample ids
-        with open(training_dataset_file, "rb") as f:
-            ref_training_datset = pickle.load(f)
 
-        # Gett actual sample ids (from dataset the splitting was based on)
-        this_sample_ids = ref_training_datset.samples[samples].astype("int").tolist()
-        if len(set(this_sample_ids) - set(all_samples)) > 0:
-            logger.info(
-                "Not all required sample ids are part of the data set \
-                Only selecting those samples that overlap"
-            )
-
-            this_sample_ids = list(set(this_sample_ids).intersection(set(all_samples)))
-
-        logger.info("Remapping sample indices")
-
-        # Remap to get array ids in our data set
-        this_data_idx = [
-            np.where(all_samples == this_id)[0][0] for this_id in this_sample_ids
-        ]
-
-    else:
-        this_data_idx = [i for i in range(len(data_full["sample"]))]
+    this_data_idx = [i for i in range(len(data_full["sample"]))]
 
     G_full = data_full["rare_variant_annotations"]
     all_variants = np.unique(G_full.col)  # SparseGenotype
@@ -681,7 +656,7 @@ def run_association(
 
     X = data_full["x_phenotypes"].numpy()[this_data_idx]
     logger.info(f"X shape: {X.shape}")
-    # don't add bias columns since
+    # Don't add bias columns since
     # ScoretestNoK automatically adds a bias column if not present
 
     Y = data_full["y"].numpy()[this_data_idx]
@@ -704,7 +679,7 @@ def run_association(
     )
 
     logger.info(f"Number of genes to test: {len(gene_ids)}")
-    # grouped annotations also contains non-coding gene ids
+    # Grouped annotations also contains non-coding gene ids
 
     if debug:
         logger.info("Debug mode: Using only 100 genes")
@@ -714,7 +689,6 @@ def run_association(
     logger.info("Reading variant file")
     logger.info(f"Genotype matrix shape: {G_full.shape}")
 
-    ### TODO: read this from config
     logger.info("Training split: Running tests for each gene")
 
     if chunk is not None:
@@ -735,7 +709,7 @@ def run_association(
     n_genes = len(genes)
     if n_genes == 0:
         logger.info(
-            f"Number of chunks is too large. The pipeline will throw an error beacause there are no genes to test"
+            "Number of chunks is too large. The pipeline will throw an error beacause there are no genes to test"
         )
     logger.info(f"Processing genes in {genes} from {n_total_genes} in total")
     this_gene_ids = [gene_ids[i] for i in genes]

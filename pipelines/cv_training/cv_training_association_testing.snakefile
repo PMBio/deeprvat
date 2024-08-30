@@ -1,7 +1,14 @@
 from pathlib import Path
+from os.path import exists
 
+if not exists('./deeprvat_config.yaml'):
+    if not config: #--configfile argument was not passed
+        print("Generating deeprvat_config.yaml...")
+        from deeprvat.deeprvat.config import create_main_config
+        create_main_config('deeprvat_input_config.yaml')
+        print("     Finished.")
 
-configfile: "config.yaml"
+configfile: "deeprvat_config.yaml"
 
 
 conda_check = 'conda info | grep "active environment"'
@@ -10,11 +17,12 @@ debug_flag = config.get("debug", False)
 phenotypes = config["phenotypes"]
 phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
 training_phenotypes = config["training"].get("phenotypes", phenotypes)
+training_phenotypes = list(training_phenotypes.keys()) if type(training_phenotypes) == dict else training_phenotypes
 burden_phenotype = phenotypes[0]
 
 n_burden_chunks = config.get("n_burden_chunks", 1) if not debug_flag else 2
 n_regression_chunks = config.get("n_regression_chunks", 40) if not debug_flag else 2
-n_avg_chunks = config.get('n_avg_chunks', 40)
+n_avg_chunks = config.get('n_avg_chunks', 1)
 n_trials = config["hyperparameter_optimization"]["n_trials"]
 n_bags = config["training"]["n_bags"] if not debug_flag else 3
 n_repeats = config["n_repeats"]
@@ -29,27 +37,16 @@ wildcard_constraints:
     repeat="\d+",
     trial="\d+",
 
-
+cv_exp = config.get('cv_exp',True)
 cv_splits = config.get("n_folds", 5)
-cv_exp = True
 
-
-
-include: "../association_testing/plot.snakefile"
 include: "cv_training.snakefile"
 include: "cv_burdens.snakefile"
 include: "../association_testing/burdens.snakefile"
 include: "../association_testing/regress_eval.snakefile"
 
 
-
-
-rule all_plot:  #plot.snakefile
-    input:
-        "dicovery_replication_plot.png",
-
-
-rule all_evaluate:  #plot.snakefile
+rule all_evaluate:  #regress_eval.snakefile
     input:
         significant=expand(
             "{phenotype}/deeprvat/eval/significant.parquet", phenotype=phenotypes
@@ -90,7 +87,7 @@ rule all_training:  #cv_training.snakefile
             cv_split=range(cv_splits),
         ),
         expand(
-            "cv_split{cv_split}/deeprvat/models/repeat_{repeat}/config.yaml",
+            "cv_split{cv_split}/deeprvat/models/repeat_{repeat}/model_config.yaml",
             repeat=range(n_repeats),
             cv_split=range(cv_splits),
         ),
@@ -99,7 +96,7 @@ rule all_training:  #cv_training.snakefile
 rule all_config:  #cv_training.snakefile
     input:
         expand(
-            "cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/hpopt_config.yaml",
+            "cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/config.yaml",
             phenotype=phenotypes,
             cv_split=range(cv_splits),
         ),

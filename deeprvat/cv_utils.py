@@ -1,9 +1,5 @@
-import pandas as pd
 import yaml
-import os
 import sys
-from typing import Optional
-import re
 
 # import pickle
 import logging
@@ -25,7 +21,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 DATA_SLOT_DICT = {
-    "deeprvat": ["data", "training_data"],
+    "deeprvat": ["association_testing_data", "training_data"],
     "seed_genes": ["data"],
 }
 
@@ -75,7 +71,9 @@ def spread_config(
                 ]
             logger.info(config["baseline_results"])
         logger.info(f"Writing config for module {module}")
-        with open(f"{out_path}/{module_folder_dict[module]}/config.yaml", "w") as f:
+        with open(
+            f"{out_path}/{module_folder_dict[module]}/deeprvat_config.yaml", "w"
+        ) as f:
             yaml.dump(config, f)
 
 
@@ -172,8 +170,10 @@ def combine_test_set_burdens(
         x[start_idx:end_idx] = this_x
         start_idx = end_idx
 
-    y_transformation = config["data"]["dataset_config"].get("y_transformation", None)
-    standardize_xpheno = config["data"]["dataset_config"].get(
+    y_transformation = config["association_testing_data"]["dataset_config"].get(
+        "y_transformation", None
+    )
+    standardize_xpheno = config["association_testing_data"]["dataset_config"].get(
         "standardize_xpheno", True
     )
 
@@ -198,7 +198,7 @@ def combine_test_set_burdens(
                 for col in range(this_y.shape[1]):
                     this_y[:, col] = standardize_series(this_y[:, col])
             elif y_transformation == "quantile_transform":
-                logger.info(f"  Quantile transforming combined target phenotype (y)")
+                logger.info("  Quantile transforming combined target phenotype (y)")
                 for col in range(this_y.shape[1]):
                     this_y[:, col] = my_quantile_transform(this_y[:, col])
             y[:] = this_y

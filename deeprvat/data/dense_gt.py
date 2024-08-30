@@ -112,7 +112,7 @@ class DenseGTDataset(Dataset):
         else:
             logger.setLevel(logging.INFO)
 
-        self.check_samples = True  # TODO undo
+        self.check_samples = False  # NOTE: Set to True for debugging
         self.split = split
         self.train_dataset = train_dataset
         self.chromosomes = (
@@ -363,7 +363,7 @@ class DenseGTDataset(Dataset):
                 mask_cols += self.x_phenotypes
             mask = (self.phenotype_df[mask_cols].notna()).all(axis=1)
             mask &= samples_to_keep_mask
-            samples_to_keep = self.phenotype_df.index[mask]
+            self.samples = self.phenotype_df.index[mask]
             self.n_samples = mask.sum()
             logger.info(f"Final number of kept samples: {self.n_samples}")
 
@@ -372,7 +372,7 @@ class DenseGTDataset(Dataset):
             # account for the fact that genotypes.h5 and phenotype_df can have different
             # orders of their samples
             self.index_map_geno, _ = get_matched_sample_indices(
-                samples_gt.astype(int), self.samples.astype(int)
+                samples_gt.astype(str), self.samples.astype(str)
             )
             # get_matched_sample_indices is a much, much faster implementation of the code below
             # self.index_map_geno = [np.where(samples_gt.astype(int) == i) for i in self.samples.astype(int)]

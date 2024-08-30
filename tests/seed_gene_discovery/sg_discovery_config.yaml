@@ -1,0 +1,73 @@
+alpha: 0.05
+data:
+  dataloader_config:
+    num_workers: 10
+  dataset_config:
+    annotation_file: annotations.parquet
+    annotations: &id001
+    - MAF
+    - is_plof
+    - Consequence_missense_variant
+    gene_file: protein_coding_genes.parquet
+    min_common_af:
+      MAF: 0.001
+    phenotype_file: phenotypes.parquet
+    rare_embedding:
+      config:
+        annotations: *id001
+        gene_file: protein_coding_genes.parquet
+        verbose: true
+      type: SparseGenotype
+    standardize_xpheno: false
+    use_common_variants: false
+    use_rare_variants: true
+    verbose: true
+    x_phenotypes:
+    - age
+    - age2
+    - age_sex
+    - genetic_sex
+    - genetic_PC_1
+    - genetic_PC_2
+    - genetic_PC_3
+    - genetic_PC_4
+    - genetic_PC_5
+    - genetic_PC_6
+    - genetic_PC_7
+    - genetic_PC_8
+    - genetic_PC_9
+    - genetic_PC_10
+    - genetic_PC_11
+    - genetic_PC_12
+    - genetic_PC_13
+    - genetic_PC_14
+    - genetic_PC_15
+    - genetic_PC_16
+    - genetic_PC_17
+    - genetic_PC_18
+    - genetic_PC_19
+    - genetic_PC_20
+    y_transformation: quantile_transform
+  gt_file: genotypes.h5
+  variant_file: variants.parquet
+n_chunks: 15
+phenotypes:
+  - Cholesterol
+  - HDL_cholesterol
+  - Mean_platelet_thrombocyte_volume
+  - Platelet_count
+  - Platelet_distribution_width
+rare_maf: 0.001
+test_config:
+  center_genotype: true
+  collapse_method: sum
+  min_mac: 10
+  neglect_homozygous: false
+  var_weight_function: beta_maf
+test_types:
+- skat
+- burden
+variant_file: variants.parquet
+variant_types:
+- missense
+- plof

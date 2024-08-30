@@ -2,10 +2,7 @@
 
 import pandas as pd
 import pyranges as pr
-import pandas as pd
 from pyarrow.parquet import ParquetFile
-import scipy as sp
-import pickle
 import numpy as np
 import zarr
 from pathlib import Path
@@ -55,7 +52,7 @@ def get_significant_genes(
     with open(config_file) as f:
         config = yaml.safe_load(f)
 
-    gene_file = config["data"]["dataset_config"]["gene_file"]
+    gene_file = config["association_testing_data"]["dataset_config"]["gene_file"]
     logger.info(f"reading gene file from {gene_file}")
 
     gene_df = pd.read_parquet(gene_file)

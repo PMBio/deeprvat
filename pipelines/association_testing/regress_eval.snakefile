@@ -1,51 +1,34 @@
-configfile: 'config.yaml'
-
-debug_flag = config.get('debug', False)
-debug = '--debug ' if debug_flag else ''
-
-phenotypes = config['phenotypes']
-phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
-
-n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
-n_regression_chunks = config.get('n_regression_chunks', 40) if not debug_flag else 2
-n_avg_chunks = config.get('n_avg_chunks', 40)
-
-do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
-
-cv_exp = config.get("cv_exp", False)
 config_file_prefix = (
     "cv_split0/deeprvat/" if cv_exp else ""
-)  
+)
 ########### Average regression 
-rule all_evaluate:
-    input:
-        expand("{phenotype}/deeprvat/eval/significant.parquet",
-               phenotype=phenotypes),
-        expand("{phenotype}/deeprvat/eval/all_results.parquet",
-               phenotype=phenotypes),
+# rule all_evaluate:
+#     input:
+#         expand("{phenotype}/deeprvat/eval/significant.parquet",
+#                phenotype=phenotypes),
+#         expand("{phenotype}/deeprvat/eval/all_results.parquet",
+#                phenotype=phenotypes),
 
 rule evaluate:
     input:
         associations ='{phenotype}/deeprvat/average_regression_results/burden_associations.parquet',
-        config = f"{config_file_prefix}{{phenotype}}/deeprvat/hpopt_config.yaml"
+        data_config = f"{config_file_prefix}{{phenotype}}/deeprvat/config.yaml"
     output:
         "{phenotype}/deeprvat/eval/significant.parquet",
         "{phenotype}/deeprvat/eval/all_results.parquet"
     threads: 1
     resources:
         mem_mb = 16000,
-        load = 16000
     params:
         n_combis = 1,
-        use_baseline_results = '--use-baseline-results'
+        use_baseline_results = '--use-baseline-results' if 'baseline_results' in config else ''
     shell:
         'deeprvat_evaluate '
         + debug +
         '{params.use_baseline_results} '
-        '--correction-method Bonferroni '
         '--phenotype {wildcards.phenotype} '
         '{input.associations} '
-        '{input.config} '
+        '{input.data_config} '
         '{wildcards.phenotype}/deeprvat/eval'
 
 
@@ -57,7 +40,6 @@ rule combine_regression_chunks:
     threads: 1
     resources:
         mem_mb = lambda wildcards, attempt: 12000 + (attempt - 1) * 4098,
-        load = 2000
     shell:
         'deeprvat_associate combine-regression-results '
         '--model-name repeat_0 ' 
@@ -67,26 +49,22 @@ rule combine_regression_chunks:
 
 rule regress:
     input:
-        config = f"{config_file_prefix}{{phenotype}}/deeprvat/hpopt_config.yaml",
-        chunks = lambda wildcards: (
-            [] if wildcards.phenotype == phenotypes[0]
-            else expand('{{phenotype}}/deeprvat/burdens/chunk{chunk}.linked',
-                        chunk=range(n_burden_chunks))
-        ) if not cv_exp  else '{phenotype}/deeprvat/burdens/merging.finished',
-        phenotype_0_chunks =  expand(
-            phenotypes[0] + '/deeprvat/burdens/logs/burdens_averaging_{chunk}.finished',
+        data_config = f"{config_file_prefix}{{phenotype}}/deeprvat/config.yaml",
+        chunks =  expand(
+            'burdens/burdens_averaging_{chunk}.finished',
             chunk=range(n_avg_chunks)
-        ),
+        ) if not cv_exp  else 'burdens/merging.finished',
+        x = '{phenotype}/deeprvat/xy/x.zarr',
+        y = '{phenotype}/deeprvat/xy/y.zarr',
     output:
         temp('{phenotype}/deeprvat/average_regression_results/burden_associations_{chunk}.parquet'),
     threads: 2
     resources:
         mem_mb = lambda wildcards, attempt: 28676  + (attempt - 1) * 4098,
-        # mem_mb = 16000,
-        load = lambda wildcards, attempt: 28000 + (attempt - 1) * 4000
     params:
-        burden_file = f'{phenotypes[0]}/deeprvat/burdens/burdens_average.zarr',
-        burden_dir = '{phenotype}/deeprvat/burdens',
+        burden_file = 'burdens/burdens_average.zarr',
+        xy_dir = "{phenotype}/deeprvat/xy",
+        # burden_dir = 'burdens',
         out_dir = '{phenotype}/deeprvat/average_regression_results'
     shell:
         'deeprvat_associate regress '
@@ -94,10 +72,9 @@ rule regress:
         '--chunk {wildcards.chunk} '
         '--n-chunks ' + str(n_regression_chunks) + ' '
         '--use-bias '
-        '--repeat 0 '
-        '--burden-file {params.burden_file} '
+        # '--repeat 0 '
         + do_scoretest +
-        '{input.config} '
-        '{params.burden_dir} ' #TODO make this w/o repeats
+        '{input.data_config} '
+        "{params.xy_dir} "
+        "{params.burden_file} "
         '{params.out_dir}'
-

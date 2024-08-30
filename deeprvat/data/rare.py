@@ -1,8 +1,5 @@
-import itertools
 import logging
-import random
 import sys
-from pathlib import Path
 from pprint import pformat
 from scipy.sparse import coo_matrix, vstack
 from typing import Dict, List, Optional, Union, Set
@@ -10,9 +7,6 @@ import numpy as np
 import pandas as pd
 import copy
 import torch
-import torch.nn.functional as F
-import zarr
-from torch.utils.data import Dataset
 
 from deeprvat.utils import calculate_mean_std, standardize_series_with_params
 
@@ -86,7 +80,7 @@ class PaddedAnnotations:
             self.setup_metadata()
 
         if self.low_memory:
-            logger.info(f"  Cleaning up to save memory")
+            logger.info("  Cleaning up to save memory")
             self.annotation_df = None
             if not self.gene_specific_anno:
                 self.exploded_annotations = None
@@ -273,7 +267,7 @@ class PaddedAnnotations:
             if self.gene_specific_anno
             else len(self.exploded_annotations)
         ) == 0:
-            raise RuntimeError(f"No rare variants found in provided genes")
+            raise RuntimeError("No rare variants found in provided genes")
 
     def apply_thresholds(self, thresholds: Optional[Dict[str, str]]):
         if thresholds is not None:
@@ -302,7 +296,7 @@ class PaddedAnnotations:
             )
 
             if self.kept_variants.shape[0] == 0:
-                raise RuntimeError(f"  No variants passed thresholding")
+                raise RuntimeError("  No variants passed thresholding")
 
             logger.info(f" {self.kept_variants.shape[0]} variants passed thresholding")
 
@@ -320,7 +314,7 @@ class PaddedAnnotations:
             self.variant_map[self.kept_variants] = np.arange(len(self.annotation_df))
 
             if len(self.annotation_df) == 0:
-                raise RuntimeError(f"  No variants passed thresholding")
+                raise RuntimeError("  No variants passed thresholding")
 
             logger.info(f" {len(self.annotation_df)} variants passed thresholding")
 
@@ -449,7 +443,7 @@ class SparseGenotype:
             self.setup_metadata()
 
         if self.low_memory:
-            logger.info(f"  Cleaning up to save memory")
+            logger.info("  Cleaning up to save memory")
             self.annotation_df = None
             if not self.gene_specific_anno:
                 self.exploded_annotations = None
@@ -594,7 +588,7 @@ class SparseGenotype:
             ].astype({self.grouping_column: np.int32})
 
         if len(self.annotation_df) == 0:
-            raise RuntimeError(f"No rare variants found in provided genes")
+            raise RuntimeError("No rare variants found in provided genes")
 
     def apply_thresholds(self, thresholds: Optional[Dict[str, str]]):
         if self.gene_specific_anno:
@@ -614,7 +608,7 @@ class SparseGenotype:
             )
 
             if self.kept_variants.shape[0] == 0:
-                raise RuntimeError(f"  No variants passed thresholding")
+                raise RuntimeError("  No variants passed thresholding")
 
             logger.info(f" {self.kept_variants.shape[0]} variants passed thresholding")
 

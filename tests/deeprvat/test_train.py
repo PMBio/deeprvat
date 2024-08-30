@@ -38,7 +38,8 @@ script_dir = Path(__file__).resolve().parent
 repo_base_dir = script_dir.parent.parent
 tests_data_dir = script_dir / "test_data" / "training"
 example_data_dir = script_dir.parent / "example"
-test_config_file = tests_data_dir / "config.yaml"
+test_config_file = tests_data_dir / "deeprvat_config.yaml"
+
 
 
 with open(tests_data_dir / "phenotypes.txt", "r") as f:
@@ -141,7 +142,7 @@ def test_make_dataset(phenotype: str, min_variant_count: int, tmp_path: Path):
     config["training_data"]["dataset_config"]["rare_embedding"]["config"][
         "gene_file"
     ] = seed_gene_file
-    config_file = tmp_path / "config.yaml"
+    config_file = tmp_path / "deeprvat_config.yaml"
     with open(config_file, "w") as f:
         yaml.dump(config, f)
 

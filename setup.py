@@ -29,6 +29,7 @@ setup(
             "deeprvat_train=deeprvat.deeprvat.train:cli",
             "deeprvat_associate=deeprvat.deeprvat.associate:cli",
             "deeprvat_preprocess=deeprvat.preprocessing.preprocess:cli",
+            "deeprvat_annotations=deeprvat.annotations.annotations:cli",
             "deeprvat_evaluate=deeprvat.deeprvat.evaluate:evaluate",
             "seed_gene_pipeline=deeprvat.seed_gene_discovery.seed_gene_discovery:cli",
             "seed_gene_evaluate=deeprvat.seed_gene_discovery.evaluate:cli",

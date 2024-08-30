@@ -1,7 +1,6 @@
-
 rule config:
     input:
-        config="config.yaml",
+        data_config="deeprvat_config.yaml",
         baseline=lambda wildcards: [
             str(
                 Path(r["base"])
@@ -9,13 +8,13 @@ rule config:
                 / r["type"]
                 / "eval/burden_associations.parquet"
             )
-            for r in config["baseline_results"]
+            for r in config["baseline_results"]["options"]
         ]
         if wildcards.phenotype in training_phenotypes
         else [],
     output:
         # seed_genes = '{phenotype}/deeprvat/seed_genes.parquet',
-        config="{phenotype}/deeprvat/hpopt_config.yaml",
+        data_config="{phenotype}/deeprvat/config.yaml",
         # baseline = '{phenotype}/deeprvat/baseline_results.parquet',
     threads: 1
     resources:
@@ -33,13 +32,17 @@ rule config:
         baseline_out=lambda wildcards: f"--baseline-results-out  {wildcards.phenotype}/deeprvat/baseline_results.parquet"
         if wildcards.phenotype in training_phenotypes
         else " ",
+        association_only=lambda wildcards: f"--association-only"
+        if wildcards.phenotype not in training_phenotypes
+        else " ",
     shell:
         (
             "deeprvat_config update-config "
             "--phenotype {wildcards.phenotype} "
-            "{params.baseline_results}"
+            "{params.association_only} "
+            "{params.baseline_results} "
             "{params.baseline_out} "
             "{params.seed_genes_out} "
-            "{input.config} "
-            "{output.config}"
+            "{input.data_config} "
+            "{output.data_config}"
         )

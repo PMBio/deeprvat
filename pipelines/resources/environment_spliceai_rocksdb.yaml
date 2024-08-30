@@ -1,0 +1,24 @@
+name: spliceai-rocksdb
+channels:
+  - conda-forge
+dependencies:
+  - python==3.9.15
+  - python-rocksdb==0.7.0
+  - rocksdb==6.29.5
+  - tensorflow-gpu==2.14.0
+  - cudnn==8.9.7.29
+  - cudatoolkit==11.8.0
+  - pyarrow==12.0.1
+  - tqdm==4.66.4
+  - pip==24.0
+  - pandas=2.2.2
+  - setuptools==70.0.0
+  - click==8.1.7
+  - pooch==1.8.1
+  - numpy=1.26.4
+  - bioconda::snakemake==7.32.4
+  - bioconda::kipoiseq==0.7.1
+  - bioconda::spliceai==1.3.1
+  - bioconda::cyvcf2==0.30.28
+  - pip:
+    - git+https://github.com/gagneurlab/spliceai_rocksdb.git@3c40d6e61b19e907e802c979c76d52ea5c41c1d5

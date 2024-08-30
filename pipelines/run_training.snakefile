@@ -1,18 +1,30 @@
 from pathlib import Path
+from os.path import exists
 
-configfile: 'config.yaml'
+if not exists('./deeprvat_config.yaml'):
+    if not config: #--configfile argument was not passed
+        print("Generating deeprvat_config.yaml...")
+        from deeprvat.deeprvat.config import create_main_config
+        create_main_config('deeprvat_input_config.yaml')
+        print("     Finished.")
+
+configfile: 'deeprvat_config.yaml'
 
 debug_flag = config.get('debug', False)
+debug = '--debug ' if debug_flag else ''
+deterministic_flag = config.get('deterministic', False)
+deterministic = '--deterministic ' if deterministic_flag else ''
+
 phenotypes = config['phenotypes']
 phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
 training_phenotypes = config["training"].get("phenotypes", phenotypes)
+training_phenotypes = list(training_phenotypes.keys()) if type(training_phenotypes) == dict else training_phenotypes
 
 n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
 n_regression_chunks = config.get('n_regression_chunks', 40) if not debug_flag else 2
 n_trials = config['hyperparameter_optimization']['n_trials']
 n_bags = config['training']['n_bags'] if not debug_flag else 3
 n_repeats = config['n_repeats']
-debug = '--debug ' if debug_flag else ''
 do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
 tensor_compression_level = config['training'].get('tensor_compression_level', 1)
 model_path = Path("models")
@@ -30,7 +42,7 @@ rule all:
     input:
         expand( model_path / 'repeat_{repeat}/best/bag_{bag}.ckpt',
                bag=range(n_bags), repeat=range(n_repeats)),
-        model_path / "config.yaml"
+        model_path / "model_config.yaml"
 
 rule all_training_dataset:
     input:
@@ -45,7 +57,7 @@ rule all_config:
     input:
         seed_genes = expand('{phenotype}/deeprvat/seed_genes.parquet',
                             phenotype=phenotypes),
-        config = expand('{phenotype}/deeprvat/hpopt_config.yaml',
+        data_config = expand('{phenotype}/deeprvat/config.yaml',
                         phenotype=phenotypes),
         baseline = expand('{phenotype}/deeprvat/baseline_results.parquet',
                           phenotype=phenotypes),
