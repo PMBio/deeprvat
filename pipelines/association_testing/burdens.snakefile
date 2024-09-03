@@ -1,11 +1,10 @@
 rule average_burdens:
     input:
-        burdens='deeprvat/burdens/burdens.zarr',
+        'burdens/burdens.zarr',
     output:
-        'deeprvat/burdens/logs/burdens_averaging_{chunk}.finished',
+        'burdens/logs/burdens_averaging_{chunk}.finished',
     params:
-        burdens_in = 'deeprvat/burdens/burdens.zarr',
-        burdens_out = 'deeprvat/burdens/burdens_average.zarr',
+        burdens_out = 'burdens/burdens_average.zarr',
         repeats = lambda wildcards: ''.join([f'--repeats {r} ' for r in range(int(n_repeats))])
     threads: 1
     resources:
@@ -18,7 +17,7 @@ rule average_burdens:
             '--chunk {wildcards.chunk} '
             '{params.repeats} '
             '--agg-fct mean  '  #TODO remove this
-            '{params.burdens_in} '
+            '{input} '
             '{params.burdens_out}'),
             'touch {output}'
         ])
@@ -57,24 +56,24 @@ rule compute_xy:
 rule combine_burdens:
     input:
         expand(
-            'deeprvat/burdens/chunks/chunk_{chunk}/burdens.zarr',
+            'burdens/chunks/chunk_{chunk}/burdens.zarr',
             chunk=[c for c in range(n_burden_chunks)],
           ),
         expand(
-            'deeprvat/burdens/chunks/chunk_{chunk}/sample_ids.zarr',
+            'burdens/chunks/chunk_{chunk}/sample_ids.zarr',
             chunk=[c for c in range(n_burden_chunks)],
           )
     output:
-        burdens=directory('deeprvat/burdens/burdens.zarr'),
-        sample_ids=directory('deeprvat/burdens/sample_ids.zarr'),
+        burdens=directory('burdens/burdens.zarr'),
+        sample_ids=directory('burdens/sample_ids.zarr'),
     params:
         prefix='.'
     shell:
         ' '.join([
             'deeprvat_associate combine-burden-chunks',
-            '{params.prefix}/deeprvat/burdens/chunks/',
+            '{params.prefix}/burdens/chunks/',
             ' --n-chunks ' + str(n_burden_chunks),
-            '{params.prefix}/deeprvat/burdens',
+            '{params.prefix}/burdens',
         ])
 
 rule compute_burdens:
@@ -89,8 +88,8 @@ rule compute_burdens:
         data_config = f'{phenotypes[0]}/deeprvat/config.yaml',
         model_config = model_path / 'model_config.yaml',
     output:
-        burdens=directory('deeprvat/burdens/chunks/chunk_{chunk}/burdens.zarr'),
-        sample_ids=directory('deeprvat/burdens/chunks/chunk_{chunk}/sample_ids.zarr'),
+        burdens=directory('burdens/chunks/chunk_{chunk}/burdens.zarr'),
+        sample_ids=directory('burdens/chunks/chunk_{chunk}/sample_ids.zarr'),
     params:
         prefix = '.'
     threads: 8
@@ -107,7 +106,7 @@ rule compute_burdens:
             '{input.data_config} '
             '{input.model_config} '
             '{input.checkpoints} '
-            '{params.prefix}/deeprvat/burdens'],
+            '{params.prefix}/burdens'],
         )
 
 
