@@ -821,8 +821,6 @@ def compute_burdens_(
     :type bottleneck: bool
     :param compression_level: Blosc compressor compression level for zarr files, defaults to 1.
     :type compression_level: int
-    :param skip_burdens: Flag to skip burden computation, defaults to False.
-    :type skip_burdens: bool
     :return: Tuple containing genes, burdens, target y phenotypes, x phenotypes and sample ids.
     :rtype: Tuple[np.ndarray, zarr.core.Array, zarr.core.Array, zarr.core.Array, zarr.core.Array]
 
@@ -849,14 +847,15 @@ def compute_burdens_(
         chunk_start = chunk * chunk_length
         chunk_end = min(n_total_samples, chunk_start + chunk_length)
         samples = range(chunk_start, chunk_end)
-        n_samples = len(samples)
+        n_samples_chunk = len(samples)
         ds = Subset(ds, samples)
 
         logger.info(f"Processing samples in {samples} from {n_total_samples} in total")
     else:
-        n_samples = n_total_samples
+        logger.info("Processing all samples as one chunk.")
+        n_samples_chunk = n_total_samples
         chunk_start = 0
-        chunk_end = n_samples
+        chunk_end = n_samples_chunk
 
     dataloader_config = data_config["dataloader_config"]
 
@@ -871,10 +870,15 @@ def compute_burdens_(
     logger.info("Computing gene impairment scores")
     batch_size = data_config["dataloader_config"]["batch_size"]
     with torch.no_grad():
+        burdens_chunk_path = Path(cache_dir) / "chunks" / f"chunk_{chunk}"
+        burdens_chunk_path.mkdir(exist_ok=True, parents=True)
+        logger.info(f"Writing chunks to {burdens_chunk_path}")
+        logger.info(f"Writing chunk to {burdens_chunk_path}")
+
         for i, batch in tqdm(
             enumerate(dl),
             file=sys.stdout,
-            total=(n_samples // batch_size + (n_samples % batch_size != 0)),
+            total=(n_samples_chunk // batch_size + (n_samples_chunk % batch_size != 0)),
         ):
             this_burdens, this_sampleid = get_burden(batch, agg_models, device=device)
             if i == 0:
@@ -884,23 +888,26 @@ def compute_burdens_(
                 logger.info(f"Batch size: {batch['rare_variant_annotations'].shape}")
 
                 burdens = zarr.open(
-                    Path(cache_dir) / "burdens.zarr",
+                    burdens_chunk_path / "burdens.zarr",
                     mode="a",
-                    shape=(n_total_samples,) + this_burdens.shape[1:],
+                    shape=chunk_burden.shape,
                     chunks=(1000, 1000, 1),
                     dtype=np.float32,
                     compressor=Blosc(clevel=compression_level),
                 )
+                burdens.attrs["chunk"] = chunk
                 logger.info(f"burdens shape: {burdens.shape}")
 
                 sample_ids = zarr.open(
-                    Path(cache_dir) / "sample_ids.zarr",
+                    burdens_chunk_path / "sample_ids.zarr",
                     mode="a",
-                    shape=(n_total_samples),
+                    shape=(n_samples_chunk),
                     chunks=(None),
-                    dtype=str,
-                    compressor=JSON(),
+                    dtype=np.float32,
+                    compressor=Blosc(clevel=compression_level),
                 )
+                sample_ids.attrs["n_total_samples"] = n_total_samples
+                sample_ids.attrs["chunk"] = chunk
 
             start_idx = i * batch_size
             end_idx = min(start_idx + batch_size, chunk_end)  # read from chunk shape
@@ -917,8 +924,8 @@ def compute_burdens_(
             if bottleneck and i > 20:
                 break
 
-        burdens[chunk_start:chunk_end] = chunk_burden
-        sample_ids[chunk_start:chunk_end] = chunk_sampleid
+        burdens[:] = chunk_burden[:]
+        sample_ids[:] = chunk_sampleid[:]
 
     if torch.cuda.is_available():
         logger.info(
@@ -1055,8 +1062,7 @@ def combine_burden_chunks_(
     compression_level = 1
     burdens_chunks_dir = Path(burdens_chunks_dir)
 
-    burdens, x, y, sample_ids = None, None, None, None
-    burdens, sample_ids = None, None, None, None
+    burdens, sample_ids = None, None
     start_id = None
     end_id = 0
 
