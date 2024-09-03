@@ -1056,6 +1056,7 @@ def combine_burden_chunks_(
     burdens_chunks_dir = Path(burdens_chunks_dir)
 
     burdens, x, y, sample_ids = None, None, None, None
+    burdens, sample_ids = None, None, None, None
     start_id = None
     end_id = 0
 
@@ -1068,22 +1069,15 @@ def combine_burden_chunks_(
             burdens_chunk = zarr.open((chunk_dir / "burdens.zarr").as_posix(), mode="r")
             assert burdens_chunk.attrs["chunk"] == chunk
 
-        y_chunk = zarr.open((chunk_dir / "y.zarr").as_posix(), mode="r")
-
-        x_chunk = zarr.open((chunk_dir / "x.zarr").as_posix(), mode="r")
         sample_ids_chunk = zarr.open(
             (chunk_dir / "sample_ids.zarr").as_posix(), mode="r"
         )
 
         total_samples = sample_ids_chunk.attrs["n_total_samples"]
 
-        assert y_chunk.attrs["chunk"] == chunk
-        assert x_chunk.attrs["chunk"] == chunk
         assert sample_ids_chunk.attrs["chunk"] == chunk
 
         burdens_path = result_dir / "burdens.zarr"
-        x_path = result_dir / "x.zarr"
-        y_path = result_dir / "y.zarr"
         sample_ids_path = result_dir / "sample_ids.zarr"
 
         if i == 0:
@@ -1106,24 +1100,6 @@ def combine_burden_chunks_(
                 )
                 assert burdens_path.exists()
 
-            logger.debug(f"Opening {y_path} in append mode")
-            y = zarr.open(
-                y_path,
-                mode="a",
-                shape=(total_samples,) + y_chunk.shape[1:],
-                chunks=(None, None),
-                dtype=np.float32,
-                compressor=Blosc(clevel=compression_level),
-            )
-            logger.debug(f"Opening {x_path} in append mode")
-            x = zarr.open(
-                x_path,
-                mode="a",
-                shape=(total_samples,) + x_chunk.shape[1:],
-                chunks=(None, None),
-                dtype=np.float32,
-                compressor=Blosc(clevel=compression_level),
-            )
             logger.debug(f"Opening {sample_ids_path} in append mode")
             sample_ids = zarr.open(
                 sample_ids_path,
@@ -1134,15 +1110,11 @@ def combine_burden_chunks_(
                 compressor=Blosc(clevel=compression_level),
             )
 
-            assert x_path.exists()
-            assert y_path.exists()
             assert sample_ids_path.exists()
 
         start_id = end_id
         end_id += len(sample_ids_chunk)
 
-        y[start_id:end_id] = y_chunk[:]
-        x[start_id:end_id] = x_chunk[:]
         sample_ids[start_id:end_id] = sample_ids_chunk[:]
 
         if not skip_burdens:

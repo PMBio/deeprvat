@@ -3,6 +3,29 @@ run-name: DeepRVAT Pipeline Tests 🧬🧪💻🧑‍🔬
 on: [ push ]
 
 jobs:
+  # Config Setup
+  Smoke-GenerateConfig-Training:
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      pipeline_file: ./pipelines/run_training.snakefile
+      environment_file: ./deeprvat_env_no_gpu.yml
+      prerun_cmd: cp ./example/config/deeprvat_input_training_config.yaml ./example/ 
+  
+  Smoke-GenerateConfig-Training-AssociationTesting:
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      pipeline_file: ./pipelines/training_association_testing.snakefile
+      environment_file: ./deeprvat_env_no_gpu.yml
+      prerun_cmd: cp ./example/config/deeprvat_input_config.yaml ./example/
+
+  Smoke-GenerateConfig-PreTrained:
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      pipeline_file: ./pipelines/association_testing_pretrained.snakefile
+      environment_file: ./deeprvat_env_no_gpu.yml
+      prerun_cmd: cp ./example/config/deeprvat_input_pretrained_models_config.yaml ./example/ && ln -s $GITHUB_WORKSPACE/pretrained_models ./example/
+
+
   # Training Pipeline
   Smoke-RunTraining:
     uses: ./.github/workflows/run-pipeline.yml

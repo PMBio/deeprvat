@@ -51,7 +51,7 @@ rule regress:
     input:
         data_config = f"{config_file_prefix}{{phenotype}}/deeprvat/config.yaml",
         chunks =  expand(
-            'burdens/burdens_averaging_{chunk}.finished',
+            'deeprvat/burdens/logs/burdens_averaging_{chunk}.finished',
             chunk=range(n_avg_chunks)
         ) if not cv_exp  else 'burdens/merging.finished',
         x = '{phenotype}/deeprvat/xy/x.zarr',

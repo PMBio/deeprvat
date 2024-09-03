@@ -1,14 +1,12 @@
 rule average_burdens:
     input:
-        chunks = [
-            f'burdens/chunk{chunk}.finished' for chunk in range(n_burden_chunks)
-        ] if not cv_exp else 'burdens/merging.finished'
+        burdens='deeprvat/burdens/burdens.zarr',
     output:
-        temp('burdens/burdens_averaging_{chunk}.finished'),
+        'deeprvat/burdens/logs/burdens_averaging_{chunk}.finished',
     params:
-        burdens_in = 'burdens/burdens.zarr',
-        burdens_out = 'burdens/burdens_average.zarr',
-        repeats = lambda wildcards: ''.join([f'--repeats {r} ' for r in  range(int(n_repeats))])
+        burdens_in = 'deeprvat/burdens/burdens.zarr',
+        burdens_out = 'deeprvat/burdens/burdens_average.zarr',
+        repeats = lambda wildcards: ''.join([f'--repeats {r} ' for r in range(int(n_repeats))])
     threads: 1
     resources:
         mem_mb = lambda wildcards, attempt: 4098 + (attempt - 1) * 4098,
@@ -16,10 +14,10 @@ rule average_burdens:
     shell:
         ' && '.join([
             ('deeprvat_associate  average-burdens '
-            '--n-chunks '+ str(n_avg_chunks) + ' '
+             '--n-chunks ' + str(n_avg_chunks) + ' '
             '--chunk {wildcards.chunk} '
             '{params.repeats} '
-            '--agg-fct mean  ' 
+            '--agg-fct mean  '  #TODO remove this
             '{params.burdens_in} '
             '{params.burdens_out}'),
             'touch {output}'
@@ -55,6 +53,30 @@ rule compute_xy:
              "{output.y}")
         ])
 
+
+rule combine_burdens:
+    input:
+        expand(
+            'deeprvat/burdens/chunks/chunk_{chunk}/burdens.zarr',
+            chunk=[c for c in range(n_burden_chunks)],
+          ),
+        expand(
+            'deeprvat/burdens/chunks/chunk_{chunk}/sample_ids.zarr',
+            chunk=[c for c in range(n_burden_chunks)],
+          )
+    output:
+        burdens=directory('deeprvat/burdens/burdens.zarr'),
+        sample_ids=directory('deeprvat/burdens/sample_ids.zarr'),
+    params:
+        prefix='.'
+    shell:
+        ' '.join([
+            'deeprvat_associate combine-burden-chunks',
+            '{params.prefix}/deeprvat/burdens/chunks/',
+            ' --n-chunks ' + str(n_burden_chunks),
+            '{params.prefix}/deeprvat/burdens',
+        ])
+
 rule compute_burdens:
     priority: 10
     input:
@@ -67,7 +89,8 @@ rule compute_burdens:
         data_config = f'{phenotypes[0]}/deeprvat/config.yaml',
         model_config = model_path / 'model_config.yaml',
     output:
-        temp('burdens/chunk{chunk}.finished')
+        burdens=directory('deeprvat/burdens/chunks/chunk_{chunk}/burdens.zarr'),
+        sample_ids=directory('deeprvat/burdens/chunks/chunk_{chunk}/sample_ids.zarr'),
     params:
         prefix = '.'
     threads: 8
@@ -75,18 +98,18 @@ rule compute_burdens:
         mem_mb = 32000,
         gpus = 1
     shell:
-        ' && '.join([
-            ('deeprvat_associate compute-burdens '
-             + debug +
-             ' --n-chunks ' + str(n_burden_chunks) + ' '
-             '--chunk {wildcards.chunk} '
-             '--dataset-file {input.dataset} '
-             '{input.data_config} '
-             '{input.model_config} '
-             '{input.checkpoints} '
-             'burdens'),
-            'touch {output}'
-        ])
+        ' '.join([
+            'deeprvat_associate compute-burdens '
+            + debug +
+            ' --n-chunks ' + str(n_burden_chunks) + ' '
+            '--chunk {wildcards.chunk} '
+            '--dataset-file {input.dataset} '
+            '{input.data_config} '
+            '{input.model_config} '
+            '{input.checkpoints} '
+            '{params.prefix}/deeprvat/burdens'],
+        )
+
 
 rule reverse_models:
     input:
