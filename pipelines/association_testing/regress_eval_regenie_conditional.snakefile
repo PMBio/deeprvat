@@ -1,4 +1,4 @@
-configfile: "config.yaml"
+#configfile: "config.yaml" # TODO SHOULD THIS BE HERE?
 
 debug_flag = config.get('debug', False)
 debug = '--debug ' if debug_flag else ''

@@ -23,6 +23,7 @@ n_repeats = config['n_repeats']
 debug = '--debug ' if debug_flag else ''
 do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
 model_path = Path(config.get("pretrained_model_path", "pretrained_models"))
+regenie_step2_bsize = regenie_config_step2["bsize"] # TODO SHOULD THIS BE HERE
 
 cv_exp = False
 config_file_prefix = (
