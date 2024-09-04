@@ -102,7 +102,7 @@ def test_combine_burden_chunks_data_same(
         result_dir=tmp_path,
     )
 
-    zarr_files = ["samples_ids.zarr", "burdens.zarr"]
+    zarr_files = ["sample_ids.zarr", "burdens.zarr"]
     if skip_burdens:
         zarr_files.remove("burdens.zarr")
 
