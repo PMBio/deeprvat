@@ -51,7 +51,7 @@ def expected_array(request, tmp_path) -> Path:
             tests_data_dir / f"combine_burden_chunks/input/chunks_{n_chunks}.zip",
             tests_data_dir / f"combine_burden_chunks/expected/burdens_{n_chunks}.zip",
         )
-        for n_chunks in range(2, 5)
+        for n_chunks in range(2, 6)
     ]
     + [
         (
@@ -61,7 +61,7 @@ def expected_array(request, tmp_path) -> Path:
             tests_data_dir / f"combine_burden_chunks/input/chunks_{n_chunks}.zip",
             tests_data_dir / f"combine_burden_chunks/expected/burdens_{n_chunks}.zip",
         )
-        for n_chunks in range(2, 5)
+        for n_chunks in range(2, 6)
     ]
     + [
         (
@@ -71,7 +71,7 @@ def expected_array(request, tmp_path) -> Path:
             tests_data_dir / f"combine_burden_chunks/input/chunks_{n_chunks}.zip",
             tests_data_dir / f"combine_burden_chunks/expected/burdens_{n_chunks}.zip",
         )
-        for n_chunks in range(2, 5)
+        for n_chunks in range(2, 6)
     ]
     + [
         (
@@ -81,7 +81,7 @@ def expected_array(request, tmp_path) -> Path:
             tests_data_dir / f"combine_burden_chunks/input/chunks_{n_chunks}.zip",
             tests_data_dir / f"combine_burden_chunks/expected/burdens_{n_chunks}.zip",
         )
-        for n_chunks in range(2, 5)
+        for n_chunks in range(2, 6)
     ],
     indirect=["chunks_data", "expected_array"],
 )
@@ -102,7 +102,7 @@ def test_combine_burden_chunks_data_same(
         result_dir=tmp_path,
     )
 
-    zarr_files = ["sample_ids.zarr", "burdens.zarr"]
+    zarr_files = ["samples_ids.zarr", "burdens.zarr"]
     if skip_burdens:
         zarr_files.remove("burdens.zarr")
 
@@ -113,7 +113,10 @@ def test_combine_burden_chunks_data_same(
         expected_data_arr, written_data_arr = expected_data[:], written_data[:]
         assert written_data_arr.dtype == expected_data.dtype
         assert expected_data_arr.shape == written_data_arr.shape
-        assert np.array_equal(expected_data_arr, written_data_arr, equal_nan=True)
+        if zarr_file == "sample_ids.zarr":
+            assert np.array_equal(expected_data_arr, written_data_arr, equal_nan=False)
+        else:
+            assert np.array_equal(expected_data_arr, written_data_arr, equal_nan=True)
 
         # No more than 10% zeros
         nr_zeros = np.count_nonzero(written_data_arr == 0)
@@ -130,7 +133,7 @@ def test_combine_burden_chunks_data_same(
             False,
             tests_data_dir / f"combine_burden_chunks/input/chunks_{n_chunks}.zip",
         )
-        for n_chunks in range(2, 5)
+        for n_chunks in range(2, 6)
     ]
     + [
         (
@@ -139,7 +142,7 @@ def test_combine_burden_chunks_data_same(
             True,
             tests_data_dir / f"combine_burden_chunks/input/chunks_{n_chunks}.zip",
         )
-        for n_chunks in range(2, 5)
+        for n_chunks in range(2, 6)
     ]
     + [
         (
@@ -148,7 +151,7 @@ def test_combine_burden_chunks_data_same(
             False,
             tests_data_dir / f"combine_burden_chunks/input/chunks_{n_chunks}.zip",
         )
-        for n_chunks in range(2, 5)
+        for n_chunks in range(2, 6)
     ]
     + [
         (
@@ -157,7 +160,7 @@ def test_combine_burden_chunks_data_same(
             True,
             tests_data_dir / f"combine_burden_chunks/input/chunks_{n_chunks}.zip",
         )
-        for n_chunks in range(2, 5)
+        for n_chunks in range(2, 6)
     ],
     indirect=["chunks_data"],
 )
