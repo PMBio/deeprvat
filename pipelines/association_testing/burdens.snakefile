@@ -1,3 +1,28 @@
+
+
+rule combine_burdens:
+    input:
+        expand(
+            'burdens/chunks/chunk_{chunk}/burdens.zarr',
+            chunk=[c for c in range(n_burden_chunks)],
+          ),
+        expand(
+            'burdens/chunks/chunk_{chunk}/sample_ids.zarr',
+            chunk=[c for c in range(n_burden_chunks)],
+          )
+    output:
+        burdens=directory('burdens/burdens.zarr'),
+        sample_ids=directory('burdens/sample_ids.zarr'),
+    params:
+        prefix='.'
+    shell:
+        ' '.join([
+            'deeprvat_associate combine-burden-chunks',
+            '{params.prefix}/burdens/chunks/',
+            ' --n-chunks ' + str(n_burden_chunks),
+            '{params.prefix}/burdens',
+        ])
+        
 rule average_burdens:
     input:
         'burdens/burdens.zarr',
@@ -52,29 +77,6 @@ rule compute_xy:
              "{output.y}")
         ])
 
-
-rule combine_burdens:
-    input:
-        expand(
-            'burdens/chunks/chunk_{chunk}/burdens.zarr',
-            chunk=[c for c in range(n_burden_chunks)],
-          ),
-        expand(
-            'burdens/chunks/chunk_{chunk}/sample_ids.zarr',
-            chunk=[c for c in range(n_burden_chunks)],
-          )
-    output:
-        burdens=directory('burdens/burdens.zarr'),
-        sample_ids=directory('burdens/sample_ids.zarr'),
-    params:
-        prefix='.'
-    shell:
-        ' '.join([
-            'deeprvat_associate combine-burden-chunks',
-            '{params.prefix}/burdens/chunks/',
-            ' --n-chunks ' + str(n_burden_chunks),
-            '{params.prefix}/burdens',
-        ])
 
 rule compute_burdens:
     priority: 10
