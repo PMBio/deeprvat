@@ -882,8 +882,8 @@ def compute_burdens_(
         ):
             this_burdens, this_sampleid = get_burden(batch, agg_models, device=device)
             if i == 0:
-                chunk_burden = np.zeros(shape=(n_samples,) + this_burdens.shape[1:])
-                chunk_sampleid = [""] * n_samples
+                chunk_burden = np.zeros(shape=(n_samples_chunk,) + this_burdens.shape[1:])
+                chunk_sampleid = [""] * n_samples_chunk
 
                 logger.info(f"Batch size: {batch['rare_variant_annotations'].shape}")
 
@@ -903,7 +903,7 @@ def compute_burdens_(
                     mode="a",
                     shape=(n_samples_chunk),
                     chunks=(None),
-                    dtype=np.float32,
+                    dtype='U200',
                     compressor=Blosc(clevel=compression_level),
                 )
                 sample_ids.attrs["n_total_samples"] = n_total_samples
@@ -1112,7 +1112,7 @@ def combine_burden_chunks_(
                 mode="a",
                 shape=(total_samples),
                 chunks=(None),
-                dtype=np.float32,
+                dtype='U200',
                 compressor=Blosc(clevel=compression_level),
             )
 
