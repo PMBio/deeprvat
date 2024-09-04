@@ -15,9 +15,10 @@ debug = '--debug ' if debug_flag else ''
 deterministic_flag = config.get('deterministic', False)
 deterministic = '--deterministic ' if deterministic_flag else ''
 
-phenotypes = config['phenotypes']
-phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
-training_phenotypes = config["training"].get("phenotypes", phenotypes)
+#phenotypes = config['phenotypes'] # TODO SHOULD THIS BE HERE?
+#phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
+
+training_phenotypes = config["training"].get("phenotypes")
 training_phenotypes = list(training_phenotypes.keys()) if type(training_phenotypes) == dict else training_phenotypes
 n_trials = config['hyperparameter_optimization']['n_trials']
 n_bags = config['training']['n_bags'] if not debug_flag else 3
