@@ -102,7 +102,7 @@ def test_combine_burden_chunks_data_same(
         result_dir=tmp_path,
     )
 
-    zarr_files = ["x.zarr", "y.zarr", "sample_ids.zarr", "burdens.zarr"]
+    zarr_files = ["sample_ids.zarr", "burdens.zarr"]
     if skip_burdens:
         zarr_files.remove("burdens.zarr")
 
@@ -177,6 +177,4 @@ def test_combine_burden_chunks_file_exists(
         assert (tmp_path / "burdens.zarr").exists()
     else:
         assert not (tmp_path / "burdens.zarr").exists()
-    assert (tmp_path / "x.zarr").exists()
-    assert (tmp_path / "y.zarr").exists()
     assert (tmp_path / "sample_ids.zarr").exists()
