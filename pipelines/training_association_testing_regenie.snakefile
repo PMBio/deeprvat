@@ -11,6 +11,8 @@ if not exists('./deeprvat_config.yaml'):
 configfile: 'deeprvat_config.yaml'
 
 debug_flag = config.get('debug', False)
+deterministic_flag = config.get('deterministic', False) # TODO SHOULD THIS BE HERE?
+deterministic = '--deterministic ' if deterministic_flag else ''
 phenotypes = config['phenotypes']
 phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
 training_phenotypes = config["training"].get("phenotypes", phenotypes)
@@ -38,7 +40,7 @@ include: "training/training_dataset.snakefile"
 include: "training/train.snakefile"
 include: "association_testing/association_dataset.snakefile"
 include: "association_testing/burdens.snakefile"
-include: "association_testing/regress_eval_regenie.snakefile"
+include: "association_testing/regress_eval_regenie_conditional.snakefile"
 
 rule all:
     input:
