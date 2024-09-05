@@ -12,8 +12,13 @@ RUN apt-get update \
         build-essential \
         cpanminus perl git default-libmysqlclient-dev  \
         perl-doc zlib1g-dev libbz2-dev liblzma-dev  \
-        ca-certificates wget curl dh-autoreconf && \
-    rm -rf /var/lib/apt/lists/*
+        ca-certificates wget curl dh-autoreconf \
+        && wget -qO-  https://micromamba.snakepit.net/api/micromamba/linux-aarch64  /latest | tar -xvj bin/micromamba \
+        && touch /root/.bashrc \
+        && ./bin/micromamba shell init -s bash -p /opt/conda  \
+        && grep -v '[ -z "\$PS1" ] && return' /root/.bashrc  > /opt/conda/bashrc   # this line has been modified \
+        && apt-get clean autoremove --yes \
+        && rm -rf /var/lib/{apt,dpkg,cache,log}
 
 #RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-aarch64/latest | tar -xvj bin/micromamba
 #RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
