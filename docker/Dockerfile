@@ -15,8 +15,8 @@ RUN apt-get update \
         ca-certificates wget curl dh-autoreconf && \
     rm -rf /var/lib/apt/lists/*
 
-RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-aarch64/latest | tar -xvj bin/micromamba
-# curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+#RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-aarch64/latest | tar -xvj bin/micromamba
+#RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
 
 
 RUN git clone --depth 1 --branch release/110 https://github.com/Ensembl/ensembl-vep.git 
@@ -46,8 +46,7 @@ RUN git clone --depth 1 --branch v0.1.0 https://github.com/HealthML/faatpipe && 
     git clone --depth 1 --branch v1.0.0 https://github.com/gagneurlab/absplice.git
 
 # TODO REMOVE :D
-RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-aarch64/latest | tar -xvj bin/micromamba
-
+RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-aarch64/latest | tar -xvj bin/micromamba && eval "$(micromamba shell hook --shell )"
 RUN cd absplice micromamba env create -f environment.yaml && micromamba activate absplice && pip install -e .
 
 RUN cd /kipoi-veff2 && micromamba  env create -f environment.minimal.linux.yml && micromamba activate kipoi-veff2 &&  python -m pip install .
