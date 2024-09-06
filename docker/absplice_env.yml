@@ -1,0 +1,33 @@
+name: absplice
+channels:
+  - conda-forge
+dependencies:
+  - python==3.8
+  - cython
+  - tensorflow
+  - pytest
+  - setuptools
+  - scipy
+  - pandas
+  - tqdm
+  - click
+  - pip
+  - pyarrow
+  - pandas
+  - numpy==1.23
+  # needed for splicemap
+  - seaborn
+  - scikit-learn
+  - bioconda::pyfaidx
+  - bioconda::pyranges>=0.0.71
+  - bioconda::cyvcf2==0.30.16
+  - bioconda::tabix
+  - bioconda::snakemake==7.26.0
+  - bioconda::spliceai
+  - bioconda::kipoiseq>=0.7
+  - deepdiff
+  - pip:
+    - mmsplice
+    - interpret == 0.2.7
+    - interpret-core == 0.2.7
+    - git+https://github.com/gagneurlab/splicemap.git
