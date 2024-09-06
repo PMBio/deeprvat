@@ -12,9 +12,11 @@ RUN apt-get update \
         build-essential \
         cpanminus perl git default-libmysqlclient-dev  \
         perl-doc zlib1g-dev libbz2-dev liblzma-dev  \
-        ca-certificates wget curl dh-autoreconf \
-        && wget -qO-  https://micromamba.snakepit.net/api/micromamba/linux-aarch64  /latest | tar -xvj bin/micromamba \
-        && touch /root/.bashrc \
+        ca-certificates wget curl dh-autoreconf --fix-missing
+
+RUN wget https://micro.mamba.pm/api/micromamba/linux-aarch64/latest  -O micromamba.tar.bz2
+RUN tar -xvf micromamba.tar.bz2 bin/micromamba
+RUN  touch /root/.bashrc \
         && ./bin/micromamba shell init -s bash -p /opt/conda  \
         && grep -v '[ -z "\$PS1" ] && return' /root/.bashrc  > /opt/conda/bashrc   # this line has been modified \
         && apt-get clean autoremove --yes \
@@ -51,8 +53,9 @@ RUN git clone --depth 1 --branch v0.1.0 https://github.com/HealthML/faatpipe && 
     git clone --depth 1 --branch v1.0.0 https://github.com/gagneurlab/absplice.git
 
 # TODO REMOVE :D
-RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-aarch64/latest | tar -xvj bin/micromamba && eval "$(micromamba shell hook --shell )"
-RUN cd absplice micromamba env create -f environment.yaml && micromamba activate absplice && pip install -e .
+#RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-aarch64/latest | tar -xvj bin/micromamba && eval "$(micromamba shell hook --shell )"
+
+RUN micromamba shell init --shell bash --root-prefix=~/micromamba && cd absplice micromamba env create -f environment.yaml && micromamba activate absplice && pip install -e .
 
 RUN cd /kipoi-veff2 && micromamba  env create -f environment.minimal.linux.yml && micromamba activate kipoi-veff2 &&  python -m pip install .
 
