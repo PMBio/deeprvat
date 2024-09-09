@@ -30,6 +30,7 @@ def cli():
 def create_main_config(
     config_file: str,
     output_dir: Optional[str] = ".",
+        clobber: Optional[bool] = False,
 ):
     """
     Generates the necessary deeprvat_config.yaml file for running all pipelines.
@@ -40,8 +41,24 @@ def create_main_config(
     :type config_file: str
     :param output_dir: Path to directory where created deeprvat_config.yaml will be saved.
     :type output_dir: str
+    :param clobber: Overwrite existing deeprvat_config.yaml, even if it is newer than config_file
+    :type clobber: bool
     :return: Joined configuration file saved to deeprvat_config.yaml.
     """
+
+    logger.info("Generating deeprvat_config.yaml")
+    config_path = Path(config_file)
+    output_path = Path(output_dir) / "deeprvat_config.yaml"
+    output_newer = config_path.stat().st_mtime < output_path.stat().st_mtime
+    if output_path.exists():
+        if not output_newer:
+            logger.info(f"{output_path} is older than {config_path}, regenerating")
+        else:
+            if clobber:
+                logger.warning(f"Overwriting newer file {output_path} as clobber=True")
+            else:
+                logger.info(f"{output_path} is newer than {config_path}, nothing to do")
+                return
 
     # Set stdout file
     file_handler = logging.FileHandler("config_generate.log", mode="a")
@@ -386,7 +403,7 @@ def create_main_config(
         full_config["model"] = input_config["model"]
         full_config["pretrained_model_path"] = input_config["pretrained_model_path"]
 
-    with open(f"{output_dir}/deeprvat_config.yaml", "w") as f:
+    with open(output_path, "w") as f:
         yaml.dump(full_config, f)
         logger.info(
             f"Saving deeprvat_config.yaml to -- {output_dir}/deeprvat_config.yaml --"

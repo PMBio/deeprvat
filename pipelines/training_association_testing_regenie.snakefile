@@ -1,12 +1,7 @@
 from pathlib import Path
-from os.path import exists
+from deeprvat.deeprvat.config import create_main_config
 
-if not exists('./deeprvat_config.yaml'):
-    if not config: #--configfile argument was not passed
-        print("Generating deeprvat_config.yaml...")
-        from deeprvat.deeprvat.config import create_main_config
-        create_main_config('deeprvat_input_config.yaml')
-        print("     Finished.")
+create_main_config("deeprvat_input_config.yaml")
 
 configfile: 'deeprvat_config.yaml'
 
@@ -29,6 +24,14 @@ do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
 tensor_compression_level = config['training'].get('tensor_compression_level', 1)
 model_path = Path("models")
 n_parallel_training_jobs = config["training"].get("n_parallel_jobs", 1)
+
+burdens = Path(config.get("burdens", "burdens/burdens.zarr"))
+
+regenie_config_step1 = config["regenie_options"]["step_1"]
+regenie_config_step2 = config["regenie_options"]["step_2"]
+regenie_step1_bsize = regenie_config_step1["bsize"]
+regenie_step2_bsize = regenie_config_step2["bsize"]
+
 cv_exp = False
 
 wildcard_constraints:
@@ -40,7 +43,7 @@ include: "training/training_dataset.snakefile"
 include: "training/train.snakefile"
 include: "association_testing/association_dataset.snakefile"
 include: "association_testing/burdens.snakefile"
-include: "association_testing/regress_eval_regenie_conditional.snakefile"
+include: "association_testing/regress_eval_regenie.snakefile"
 
 rule all:
     input:

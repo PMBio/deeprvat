@@ -1,3 +1,8 @@
+config_file_prefix = (
+    "cv_split0/deeprvat/" if cv_exp else ""
+)
+
+
 rule evaluate:
     input:
         associations ='{phenotype}/deeprvat/average_regression_results/burden_associations.parquet',
