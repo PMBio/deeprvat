@@ -96,7 +96,7 @@ def handle_pretrained_models(input_config, full_config, expected_input_keys):
         return False
     return True
 
-def handle_thresholds(input_config, full_config, train_only):
+def update_thresholds(input_config, full_config, train_only):
     if "MAF" not in input_config["training_data_thresholds"]:
         raise KeyError(f"Missing required MAF threshold in config['training_data_thresholds']")
     if not train_only and "MAF" not in input_config["association_testing_data_thresholds"]:
@@ -112,6 +112,9 @@ def handle_thresholds(input_config, full_config, train_only):
         for i, (k, v) in enumerate(input_config[threshold_key].items()):
             full_config[data_type]["dataset_config"]["rare_embedding"]["config"]["thresholds"][k] = f"{k} {v}"
             anno_list.insert(i + 1, k)
+            if k == "MAF":
+                numeric_value = v[2:] #v is string like "< 1e-3"
+                full_config[data_type]["dataset_config"]["min_common_af"]["MAF"] = numeric_value
         full_config[data_type]["dataset_config"]["annotations"] = anno_list
 
 def update_full_config(input_config, full_config, train_only):
@@ -210,7 +213,7 @@ def create_main_config(
         expected_input_keys.remove("y_transformation")
 
     validate_keys(input_config, expected_input_keys)
-    handle_thresholds(input_config, full_config, train_only)
+    update_thresholds(input_config, full_config, train_only)
     update_full_config(input_config, full_config, train_only)
 
     full_config["n_repeats"] = input_config["n_repeats"]
