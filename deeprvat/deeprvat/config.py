@@ -113,8 +113,7 @@ def update_thresholds(input_config, full_config, train_only):
             full_config[data_type]["dataset_config"]["rare_embedding"]["config"]["thresholds"][k] = f"{k} {v}"
             anno_list.insert(i + 1, k)
             if k == "MAF":
-                numeric_value = v[2:] #v is string like "< 1e-3"
-                full_config[data_type]["dataset_config"]["min_common_af"]["MAF"] = numeric_value
+                full_config[data_type]["dataset_config"]["min_common_af"]["MAF"] = float(v[2:]) #v is string like "< 1e-3"
         full_config[data_type]["dataset_config"]["annotations"] = anno_list
 
 def update_full_config(input_config, full_config, train_only):
