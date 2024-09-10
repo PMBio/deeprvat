@@ -103,7 +103,7 @@ def update_thresholds(input_config, full_config, train_only):
         raise KeyError(f"Missing required MAF threshold in config['association_testing_data_thresholds']")
     
     datasets = ["training_data", "association_testing_data"]
-    if train_only: datasets.pop("association_testing_data")
+    if train_only: datasets.remove("association_testing_data")
 
     for data_type in datasets:
         anno_list = deepcopy(input_config["rare_variant_annotations"])
