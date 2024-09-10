@@ -17,7 +17,13 @@ n_bags = config['training']['n_bags'] if not debug_flag else 3
 n_repeats = config['n_repeats']
 debug = '--debug ' if debug_flag else ''
 do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
-model_path = Path(config.get("pretrained_model_path", "pretrained_models"))
+model_path = Path("pretrained_models")
+
+burdens = Path(config.get("burdens", "burdens/burdens_average.zarr"))
+
+regenie_config_step1 = config["regenie_options"]["step_1"]
+regenie_config_step2 = config["regenie_options"]["step_2"]
+regenie_step1_bsize = regenie_config_step1["bsize"]
 regenie_step2_bsize = regenie_config_step2["bsize"]
 
 cv_exp = False

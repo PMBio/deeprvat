@@ -224,14 +224,20 @@ rule make_regenie_burdens:
     input:
         gene_file = config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"],
         gtf_file = config["gtf_file"],
-        burdens = burdens,
+        chunks =  expand(
+            'burdens/logs/burdens_averaging_{chunk}.finished',
+            chunk=range(n_avg_chunks)
+        ),
         genes = burdens.parent / "genes.npy",
         samples = burdens.parent / "sample_ids.zarr",
         datasets = expand("{phenotype}/deeprvat/association_dataset.pkl",
                           phenotype=phenotypes),
     params:
         phenotypes = " ".join([f"--phenotype {p} {p}/deeprvat/association_dataset.pkl {p}/deeprvat/xy"
-                               for p in phenotypes]) + " "
+                               for p in phenotypes]) + " ",
+        burdens = burdens,
+        genes = burdens.parent / "genes.npy",
+        samples = burdens.parent / "sample_ids.zarr",
     output:
         sample_file = "regenie_input/deeprvat_pseudovariants.sample",
         bgen = "regenie_input/deeprvat_pseudovariants.bgen",
@@ -249,7 +255,7 @@ rule make_regenie_burdens:
         # "{wildcards.phenotype}/deeprvat/burdens "
         "--sample-file {output.sample_file} "
         "--bgen {output.bgen} "
-        "--burdens-genes-samples {input.burdens} {input.genes} {input.samples} "
+        "--burdens-genes-samples {params.burdens} {params.genes} {params.samples} "
         "{input.gene_file} "
         "{input.gtf_file} "
 
@@ -283,10 +289,10 @@ rule make_regenie_step1_metadata:
     input:
         gene_file = config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"],
         gtf_file = config["gtf_file"],
-        burdens = [f'{phenotype}/deeprvat/burdens/chunk{chunk}.' +
-                   ("finished" if phenotype == phenotypes[0] else "linked")
-                   for phenotype in phenotypes
-                   for chunk in range(n_burden_chunks)],
+        chunks =  expand(
+            'burdens/logs/burdens_averaging_{chunk}.finished',
+            chunk=range(n_avg_chunks)
+        ),
         datasets = expand("{phenotype}/deeprvat/association_dataset.pkl",
                           phenotype=phenotypes),
     params:

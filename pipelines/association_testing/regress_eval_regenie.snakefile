@@ -213,7 +213,7 @@ rule make_regenie_burdens:
         datasets = expand("{phenotype}/deeprvat/association_dataset.pkl",
                           phenotype=phenotypes),
         chunks =  expand(
-            'burdens/burdens_averaging_{chunk}.finished',
+            'burdens/logs/burdens_averaging_{chunk}.finished',
             chunk=range(n_avg_chunks)
         ),
     params:
