@@ -38,6 +38,27 @@ def load_yaml(file_path: str):
     with open(file_path) as f:
         return yaml.safe_load(f)
 
+def update_defaults(base_config, input_config):
+    """
+    Updates base_config with values from input_config, for intersecting nested keys.
+
+    Args:
+        base_config (dict): base DeepRVAT configurations
+        input_config (dict): user input DeepRVAt configurations
+
+    Returns:
+        dict: updated base_config based on any intersecting inputs from input_config
+    """
+    common_keys = set(base_config.keys()).intersection(input_config.keys())
+
+    for k in common_keys:
+        if isinstance(base_config[k], dict) and isinstance(input_config[k], dict):
+            update_defaults(base_config[k], input_config[k])
+        else:
+            base_config[k] = input_config[k]
+
+    return base_config
+
 def handle_cv_options(input_config, full_config, expected_input_keys):
     if input_config.get("cv_options", {}).get("cv_exp", False):
         missing_keys = [key for key in ["cv_exp", "cv_path", "n_folds"] if key not in input_config["cv_options"]]
@@ -149,10 +170,12 @@ def update_full_config(input_config, full_config, train_only):
         full_config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"] = input_config["gene_filename"]
         full_config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"]["annotations"] = input_config["rare_variant_annotations"]
 
-def validate_keys(input_config, expected_input_keys):
+def validate_keys(input_config, expected_input_keys, base_config):
     input_keys_set = set(input_config.keys())
     expected_keys_set = set(expected_input_keys)
-    extra_keys = input_keys_set - expected_keys_set
+    updated_base_keys = set(base_config.keys()).intersection(input_config.keys())
+    
+    extra_keys = input_keys_set - expected_keys_set - updated_base_keys
     missing_keys = expected_keys_set - input_keys_set
 
     if extra_keys:
@@ -181,7 +204,7 @@ def create_main_config(
 
     input_config = load_yaml(config_file)
     base_config = load_yaml(REPO_DIR / "deeprvat/deeprvat/base_configurations.yaml")
-    full_config = deepcopy(base_config)
+    full_config = deepcopy(update_defaults(base_config, input_config))
 
     expected_input_keys = [
         "phenotypes_for_association_testing", "phenotypes_for_training", "gt_filename", 
@@ -216,7 +239,7 @@ def create_main_config(
     else:
         expected_input_keys.remove("y_transformation")
 
-    validate_keys(input_config, expected_input_keys)
+    validate_keys(input_config, expected_input_keys, base_config)
     update_thresholds(input_config, full_config, train_only)
     update_full_config(input_config, full_config, train_only)
 
