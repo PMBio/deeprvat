@@ -1,12 +1,7 @@
 from pathlib import Path
-from os.path import exists
+from deeprvat.deeprvat.config import create_main_config
 
-if not exists('./deeprvat_config.yaml'):
-    if not config: #--configfile argument was not passed
-        print("Generating deeprvat_config.yaml...")
-        from deeprvat.deeprvat.config import create_main_config
-        create_main_config('deeprvat_input_pretrained_models_config.yaml')
-        print("     Finished.")
+create_main_config("deeprvat_input_config.yaml")
 
 configfile: 'deeprvat_config.yaml'
 
