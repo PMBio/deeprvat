@@ -75,7 +75,7 @@ def handle_regenie_options(input_config, full_config, expected_input_keys):
         expected_input_keys.remove("regenie_options")
         input_config.pop("regenie_options", None)
 
-def handle_pretrained_models(input_config, full_config, expected_input_keys):
+def handle_pretrained_models(input_config, expected_input_keys):
     if input_config.get("use_pretrained_models", False):
         logger.info("Pretrained Model setup specified.")
         to_remove = {"training", "phenotypes_for_training", "seed_gene_results"}
@@ -87,14 +87,19 @@ def handle_pretrained_models(input_config, full_config, expected_input_keys):
 
         pretrained_config = load_yaml(f"{pretrained_model_path}/model_config.yaml")
 
-        required_keys = ["model", "rare_variant_annotations", "training_data_thresholds"]
-        for k in pretrained_config:
-            if k not in required_keys:
-                raise KeyError(f"Unexpected key in pretrained_model_path/model_config.yaml file : {k} \n\
-                                Please review DEEPRVAT_DIR/pretrained_models/model_config.yaml for expected list of keys.")
-            input_config[k] = deepcopy(pretrained_config[k])
-        return False
-    return True
+        required_keys = {"model", "rare_variant_annotations", "training_data_thresholds"}
+        extra_keys = set(pretrained_config.keys()) - required_keys
+        if extra_keys:
+            raise KeyError(f"Unexpected key in pretrained_model_path/model_config.yaml file : {extra_keys} \n\
+                            Please review DEEPRVAT_DIR/pretrained_models/model_config.yaml for expected list of keys.")
+        logger.info("   Updating input config with keys from pretrained model config.")
+        input_config.update({
+            "model": pretrained_config["model"],
+            "rare_variant_annotations": pretrained_config["rare_variant_annotations"],
+            "training_data_thresholds": pretrained_config["training_data_thresholds"]
+        })
+        return True
+    return False
 
 def update_thresholds(input_config, full_config, train_only):
     if "MAF" not in input_config["training_data_thresholds"]:
@@ -194,9 +199,9 @@ def create_main_config(
 
     handle_cv_options(input_config, full_config, expected_input_keys)
     handle_regenie_options(input_config, full_config, expected_input_keys)
-    no_pretrain = handle_pretrained_models(input_config, full_config, expected_input_keys)
+    pretrained_setup = handle_pretrained_models(input_config, expected_input_keys)
 
-    if no_pretrain and "phenotypes_for_training" not in input_config:
+    if not pretrained_setup and "phenotypes_for_training" not in input_config:
         if train_only:
             raise KeyError("Must specify phenotypes_for_training in config file!")
         logger.info(
@@ -229,7 +234,12 @@ def create_main_config(
             "alpha": input_config["evaluation"]["alpha"]
         }
 
-    if no_pretrain:
+    if pretrained_setup:
+        full_config.update({
+            "model": input_config["model"],
+            "pretrained_model_path": input_config["pretrained_model_path"]
+        })
+    else:
         full_config["training"]["pl_trainer"] = input_config["training"]["pl_trainer"]
         full_config["training"]["early_stopping"] = input_config["training"]["early_stopping"]
         full_config["training"]["phenotypes"] = {pheno: {} for pheno in input_config["phenotypes_for_training"]}
@@ -239,11 +249,6 @@ def create_main_config(
             "alpha_seed_genes": input_config["seed_gene_results"]["alpha_seed_genes"],
             "correction_method": input_config["seed_gene_results"]["correction_method"]
         }
-    else:
-        full_config.update({
-            "model": input_config["model"],
-            "pretrained_model_path": input_config["pretrained_model_path"]
-        })
 
     with open(f"{output_dir}/deeprvat_config.yaml", "w") as f:
         yaml.dump(full_config, f)
