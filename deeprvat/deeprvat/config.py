@@ -48,9 +48,11 @@ def create_main_config(
 
     logger.info("Generating deeprvat_config.yaml")
     config_path = Path(config_file)
+    if not config_path.exists():
+        raise ValueError(f"File {config_path} does not exist")
     output_path = Path(output_dir) / "deeprvat_config.yaml"
-    output_newer = config_path.stat().st_mtime < output_path.stat().st_mtime
     if output_path.exists():
+        output_newer = config_path.stat().st_mtime < output_path.stat().st_mtime
         if not output_newer:
             logger.info(f"{output_path} is older than {config_path}, regenerating")
         else:
