@@ -93,11 +93,6 @@ rule combine_test_burdens:
         )
 
 
-use rule link_burdens from deeprvat_workflow as deeprvat_link_burdens with:
-    params:
-        prefix="cv_split{cv_split}/deeprvat",
-
-
 use rule compute_burdens from deeprvat_workflow as deeprvat_compute_burdens with:
     params:
         prefix="cv_split{cv_split}/deeprvat",
