@@ -1,7 +1,7 @@
 from pathlib import Path
 from deeprvat.deeprvat.config import create_main_config
 
-create_main_config("deeprvat_input_config.yaml")
+create_main_config("deeprvat_input_training_config.yaml")
 
 configfile: 'deeprvat_config.yaml'
 
