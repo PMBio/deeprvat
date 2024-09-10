@@ -17,7 +17,7 @@ n_bags = config['training']['n_bags'] if not debug_flag else 3
 n_repeats = config['n_repeats']
 debug = '--debug ' if debug_flag else ''
 do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
-model_path = Path("pretrained_models")
+model_path = Path(config.get("pretrained_model_path", "pretrained_models"))
 
 burdens = Path(config.get("burdens", "burdens/burdens_average.zarr"))
 
