@@ -29,6 +29,7 @@ cv_exp = config.get('cv_exp', False)
 wildcard_constraints:
     repeat="\d+",
     trial="\d+",
+    phenotype="[\w\d\-]+",
 
 include: "training/config.snakefile"
 include: "training/training_dataset.snakefile"

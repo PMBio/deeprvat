@@ -106,6 +106,7 @@ class DenseGTDataset(Dataset):
         zarr_dir: Optional[str] = None,
         cache_matrices: bool = False,
         verbose: bool = False,
+        return_genotypes: bool = True,
     ):
         if verbose:
             logger.setLevel(logging.DEBUG)
@@ -137,13 +138,13 @@ class DenseGTDataset(Dataset):
         if phenotype_file is None:
             raise ValueError("phenotype_file must be specified")
         self.gt_filename = gt_file
-        if gt_file is None or variant_file is None:
-            logger.warning(
-                "gt_file or variant_file was not specified, no genetic information will be returned"
-            )
-            self.return_genotypes = False
-        else:
-            self.return_genotypes = True
+        # if gt_file is None or variant_file is None:
+        #     logger.warning(
+        #         "gt_file or variant_file was not specified, no genetic information will be returned"
+        #     )
+        #     self.return_genotypes = False
+        # else:
+        self.return_genotypes = return_genotypes
         self.variant_filename = variant_file
         self.variant_matrix = None
         self.genotype_matrix = None
@@ -224,6 +225,10 @@ class DenseGTDataset(Dataset):
             self.rare_embedding = None
 
     def __getitem__(self, idx: int) -> torch.tensor:
+        if self.check_samples:
+            # sanity check, can be removed in future
+            assert self.samples_gt[idx_geno] == self.samples[idx]
+
         if self.return_genotypes and self.variant_matrix is None:
             gt_file = h5py.File(self.gt_filename, "r")
             self.variant_matrix = gt_file["variant_matrix"]
@@ -233,10 +238,6 @@ class DenseGTDataset(Dataset):
                 self.genotype_matrix = self.genotype_matrix[:]
 
         if self.return_genotypes:
-            if self.check_samples:
-                # sanity check, can be removed in future
-                assert self.samples_gt[idx_geno] == self.samples[idx]
-
             # idx_pheno = self.index_map_pheno[idx] #samples and phenotype is already subset so can use idx
             idx_geno = self.index_map_geno[idx]
             sparse_variants = self.variant_matrix[idx_geno, :]
@@ -318,7 +319,7 @@ class DenseGTDataset(Dataset):
                 logger.warning(
                     "Some samples from the sample file were not found in the data"
                 )
-            sample_to_keep = shared_samples
+            samples_to_keep = shared_samples
             logger.info(
                 f"Number of samples in sample file and in phenotype_df: {len(samples_to_keep)}"
             )
@@ -326,65 +327,65 @@ class DenseGTDataset(Dataset):
             logger.info("Using all samples in phenotype df")
             samples_to_keep = copy.deepcopy(samples_phenotype_df)
 
-        if self.return_genotypes:
-            with h5py.File(self.gt_filename, "r") as f:
-                samples_gt = f["samples"][:]
-            samples_gt = np.array([item.decode("utf-8") for item in samples_gt])
-            if self.check_samples:
-                self.samples_gt = samples_gt
+        # if self.return_genotypes:
+        with h5py.File(self.gt_filename, "r") as f:
+            samples_gt = f["samples"][:]
+        samples_gt = np.array([item.decode("utf-8") for item in samples_gt])
+        if self.check_samples:
+            self.samples_gt = samples_gt
 
-            logger.info("Removing samples that are not in genotype file")
+        logger.info("Removing samples that are not in genotype file")
 
-            samples_to_keep = np.array(
-                list(set(samples_to_keep).intersection(set(samples_gt)))
-            )
-            binary_cols = [
-                c for c in self.y_phenotypes if self.phenotype_df[c].dtype == bool
-            ]
-            # samples_to_keep_mask = [
-            #     True if i in samples_to_keep else False
-            #     for i in self.phenotype_df.index
-            # ]
-            # much faster retrieval of the mask compared to commented out list operation above
-            samples_to_keep_df = (
-                pd.Series(samples_to_keep, name="sample").to_frame().assign(mask=True)
-            )
-            merged_mask = (
-                pd.Series(self.phenotype_df.index, name="sample")
-                .to_frame()
-                .merge(samples_to_keep_df, how="left", validate="1:1", on="sample")
-            )
-            samples_to_keep_mask = list(merged_mask["mask"].fillna(False))
-            assert sum(samples_to_keep_mask) == len(samples_to_keep)
-            mask_cols = copy.deepcopy(self.x_phenotypes)
-            if skip_y_na:
-                mask_cols += self.y_phenotypes
-            if skip_x_na:
-                mask_cols += self.x_phenotypes
-            mask = (self.phenotype_df[mask_cols].notna()).all(axis=1)
-            mask &= samples_to_keep_mask
-            self.samples = self.phenotype_df.index[mask]
-            self.n_samples = mask.sum()
-            logger.info(f"Final number of kept samples: {self.n_samples}")
+        samples_to_keep = np.array(
+            list(set(samples_to_keep).intersection(set(samples_gt)))
+        )
+        binary_cols = [
+            c for c in self.y_phenotypes if self.phenotype_df[c].dtype == bool
+        ]
+        # samples_to_keep_mask = [
+        #     True if i in samples_to_keep else False
+        #     for i in self.phenotype_df.index
+        # ]
+        # much faster retrieval of the mask compared to commented out list operation above
+        samples_to_keep_df = (
+            pd.Series(samples_to_keep, name="sample").to_frame().assign(mask=True)
+        )
+        merged_mask = (
+            pd.Series(self.phenotype_df.index, name="sample")
+            .to_frame()
+            .merge(samples_to_keep_df, how="left", validate="1:1", on="sample")
+        )
+        samples_to_keep_mask = list(merged_mask["mask"].fillna(False))
+        assert sum(samples_to_keep_mask) == len(samples_to_keep)
+        mask_cols = copy.deepcopy(self.x_phenotypes)
+        if skip_y_na:
+            mask_cols += self.y_phenotypes
+        if skip_x_na:
+            mask_cols += self.x_phenotypes
+        mask = (self.phenotype_df[mask_cols].notna()).all(axis=1)
+        mask &= samples_to_keep_mask
+        self.samples = self.phenotype_df.index[mask]
+        self.n_samples = mask.sum()
+        logger.info(f"Final number of kept samples: {self.n_samples}")
 
-            self.phenotype_df = self.phenotype_df[mask]
+        self.phenotype_df = self.phenotype_df[mask]
 
-            # account for the fact that genotypes.h5 and phenotype_df can have different
-            # orders of their samples
-            self.index_map_geno, _ = get_matched_sample_indices(
-                samples_gt.astype(str), self.samples.astype(str)
-            )
-            # get_matched_sample_indices is a much, much faster implementation of the code below
-            # self.index_map_geno = [np.where(samples_gt.astype(int) == i) for i in self.samples.astype(int)]
+        # account for the fact that genotypes.h5 and phenotype_df can have different
+        # orders of their samples
+        self.index_map_geno, _ = get_matched_sample_indices(
+            samples_gt.astype(str), self.samples.astype(str)
+        )
+        # get_matched_sample_indices is a much, much faster implementation of the code below
+        # self.index_map_geno = [np.where(samples_gt.astype(int) == i) for i in self.samples.astype(int)]
 
-            if self.check_samples:
-                # just a sanity check for get_matched_sample_indices, can be removed in future
-                for i in np.random.choice(len(self.samples), 100):
-                    # print(i)
-                    assert self.samples[i] == samples_gt[self.index_map_geno[i]]
-        else:
-            self.samples = self.phenotype_df.index.to_numpy()
-            self.n_samples = len(self.phenotype_df)
+        if self.check_samples:
+            # just a sanity check for get_matched_sample_indices, can be removed in future
+            for i in np.random.choice(len(self.samples), 100):
+                # print(i)
+                assert self.samples[i] == samples_gt[self.index_map_geno[i]]
+        # else:
+        #     self.samples = self.phenotype_df.index.to_numpy()
+        #     self.n_samples = len(self.phenotype_df)
 
     def get_variant_ids(self, matrix_indices: np.ndarray) -> np.ndarray:
         return self.variant_id_map.loc[matrix_indices, "id"].to_numpy()

@@ -24,20 +24,22 @@ n_repeats = config["n_repeats"]
 debug = "--debug " if debug_flag else ""
 do_scoretest = "--do-scoretest " if config.get("do_scoretest", False) else ""
 tensor_compression_level = config["training"].get("tensor_compression_level", 1)
-model_path = Path("models")
+model_path = Path("pretrained_models")
 n_parallel_training_jobs = config["training"].get("n_parallel_jobs", 1)
 
 
 wildcard_constraints:
     repeat="\d+",
     trial="\d+",
+    phenotype="[\w\d\-]+",
+    cv_split="\d+",
 
 cv_exp = config.get('cv_exp',True)
 cv_splits = config.get("n_folds", 5)
 
 include: "cv_training.snakefile"
 include: "cv_burdens.snakefile"
-include: "../association_testing/burdens.snakefile"
+# include: "../association_testing/burdens.snakefile"
 include: "../association_testing/regress_eval.snakefile"
 
 
@@ -70,19 +72,20 @@ rule all_average_burdens:  #burdens.snakefile
 
 rule all_burdens:  #cv_burdens.snakefile
     input:
-        expand("{phenotype}/deeprvat/burdens/merging.finished", phenotype=phenotypes),
+        expand("burdens/log/{phenotype}/merging.finished",
+               phenotype=phenotypes),
 
 
 rule all_training:  #cv_training.snakefile
     input:
         expand(
-            "cv_split{cv_split}/deeprvat/models/repeat_{repeat}/best/bag_{bag}.ckpt",
+            "cv_split{cv_split}/deeprvat" / model_path / "repeat_{repeat}/best/bag_{bag}.ckpt",
             bag=range(n_bags),
             repeat=range(n_repeats),
             cv_split=range(cv_splits),
         ),
         expand(
-            "cv_split{cv_split}/deeprvat/models/repeat_{repeat}/model_config.yaml",
+            "cv_split{cv_split}/deeprvat/" / model_path / "repeat_{repeat}/model_config.yaml",
             repeat=range(n_repeats),
             cv_split=range(cv_splits),
         ),

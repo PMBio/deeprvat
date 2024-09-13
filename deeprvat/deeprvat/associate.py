@@ -135,16 +135,19 @@ def make_dataset_(
         with open(ds_pickled, "rb") as f:
             ds = pickle.load(f)
     else:
-        gt_variant_args = (
-            (data_config["gt_file"], data_config["variant_file"])
-            if not skip_genotypes
-            else tuple()
-        )
+        # gt_variant_args = (
+        #     (data_config["gt_file"], data_config["variant_file"])
+        #     if not skip_genotypes
+        #     else tuple()
+        # )
         ds = DenseGTDataset(
-            *gt_variant_args,
+            # *gt_variant_args,
+            data_config["gt_file"],
+            data_config["variant_file"],
             split="",
             skip_y_na=False,
             **copy.deepcopy(data_config["dataset_config"]),
+            return_genotypes=(not skip_genotypes),
         )
 
         restrict_samples = config.get("restrict_samples", None)

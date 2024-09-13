@@ -11,7 +11,7 @@ rule association_dataset:
     input:
         data_config = '{phenotype}/deeprvat/config.yaml'
     output:
-        temp('{phenotype}/deeprvat/association_dataset.pkl')
+        '{phenotype}/deeprvat/association_dataset.pkl'
     threads: 4
     resources:
         mem_mb = lambda wildcards, attempt: 32000 * (attempt + 1),
@@ -28,7 +28,7 @@ rule association_dataset_burdens:
     input:
         data_config = f'{phenotypes[0]}/deeprvat/config.yaml'
     output:
-        temp('burdens/association_dataset.pkl')
+        'burdens/association_dataset.pkl'
     threads: 4
     resources:
         mem_mb = lambda wildcards, attempt: 32000 * (attempt + 1)

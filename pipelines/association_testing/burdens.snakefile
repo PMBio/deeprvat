@@ -1,6 +1,6 @@
 rule average_burdens:
     input:
-        'burdens/burdens.zarr',
+        'burdens/burdens.zarr' if not cv_exp else 'burdens/log/{phenotype}/merging.finished',
     output:
         'burdens/logs/burdens_averaging_{chunk}.finished',
     params:
@@ -60,8 +60,6 @@ rule compute_xy:
         samples = directory('{phenotype}/deeprvat/xy/sample_ids.zarr'),
         x = directory('{phenotype}/deeprvat/xy/x.zarr'),
         y = directory('{phenotype}/deeprvat/xy/y.zarr'),
-    params:
-        prefix = '.'
     threads: 8
     resources:
         mem_mb = lambda wildcards, attempt: 20480 + (attempt - 1) * 4098,
@@ -127,5 +125,5 @@ rule reverse_models:
              "{input.model_config} "
              "{input.data_config} "
              "{input.checkpoints}"),
-            "touch {output}"
+             "touch {output}"
         ])
