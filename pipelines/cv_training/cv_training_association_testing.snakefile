@@ -85,10 +85,13 @@ rule all_training:  #cv_training.snakefile
             cv_split=range(cv_splits),
         ),
         expand(
-            "cv_split{cv_split}/deeprvat/" / model_path / "repeat_{repeat}/model_config.yaml",
+            "cv_split{cv_split}/deeprvat" / model_path / "repeat_{repeat}/model_config.yaml",
             repeat=range(n_repeats),
             cv_split=range(cv_splits),
         ),
+        expand("cv_split{cv_split}/deeprvat" / model_path / "reverse_finished.tmp",
+               cv_split=range(cv_splits))
+
 
 
 rule all_config:  #cv_training.snakefile
