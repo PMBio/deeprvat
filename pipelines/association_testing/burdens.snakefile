@@ -25,7 +25,7 @@ rule average_burdens:
             'touch {output}'
         ])
 
- rule combine_burdens:
+rule combine_burdens:
     input:
         expand(
             'burdens/chunks/chunk_{chunk}/burdens.zarr',
