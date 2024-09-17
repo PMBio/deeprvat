@@ -1,27 +1,3 @@
-rule average_burdens:
-    input:
-        'burdens/burdens.zarr' if not cv_exp else 'burdens/log/{phenotype}/merging.finished',
-    output:
-        'burdens/logs/burdens_averaging_{chunk}.finished',
-    params:
-        burdens_out = 'burdens/burdens_average.zarr',
-        repeats = lambda wildcards: ''.join([f'--repeats {r} ' for r in range(int(n_repeats))])
-    threads: 1
-    resources:
-        mem_mb = lambda wildcards, attempt: 4098 + (attempt - 1) * 4098,
-    priority: 10,
-    shell:
-        ' && '.join([
-            ('deeprvat_associate  average-burdens '
-             '--n-chunks ' + str(n_avg_chunks) + ' '
-            '--chunk {wildcards.chunk} '
-            '{params.repeats} '
-            '--agg-fct mean  '  #TODO remove this
-            '{input} '
-            '{params.burdens_out}'),
-            'touch {output}'
-        ])
-
 rule combine_burdens:
     input:
         expand(
@@ -37,6 +13,9 @@ rule combine_burdens:
         sample_ids=directory('burdens/sample_ids.zarr'),
     params:
         prefix='.'
+    threads: 1
+    resources:
+        mem_mb = lambda wildcards, attempt: 4098 + (attempt - 1) * 4098,
     shell:
         ' '.join([
             'deeprvat_associate combine-burden-chunks',
