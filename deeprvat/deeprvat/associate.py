@@ -256,7 +256,7 @@ def compute_xy_(
 @click.argument("y-file", type=click.Path(path_type=Path))
 def compute_xy(
     dataset_file: Optional[str],
-            data_key: str,
+    data_key: str,
     data_config_file: str,
     sample_file: Path,
     x_file: Path,
@@ -885,7 +885,9 @@ def compute_burdens_(
         ):
             this_burdens, this_sampleid = get_burden(batch, agg_models, device=device)
             if i == 0:
-                chunk_burden = np.zeros(shape=(n_samples_chunk,) + this_burdens.shape[1:])
+                chunk_burden = np.zeros(
+                    shape=(n_samples_chunk,) + this_burdens.shape[1:]
+                )
                 chunk_sampleid = [""] * n_samples_chunk
 
                 logger.info(f"Batch size: {batch['rare_variant_annotations'].shape}")
@@ -906,7 +908,7 @@ def compute_burdens_(
                     mode="a",
                     shape=(n_samples_chunk),
                     chunks=(None),
-                    dtype='U200',
+                    dtype="U200",
                     compressor=Blosc(clevel=compression_level),
                 )
                 sample_ids.attrs["n_total_samples"] = n_total_samples
@@ -952,7 +954,7 @@ def compute_burdens_(
 def compute_burdens(
     debug: bool,
     bottleneck: bool,
-        data_key: str,
+    data_key: str,
     n_chunks: Optional[int],
     chunk: Optional[int],
     dataset_file: Optional[str],
@@ -1030,7 +1032,6 @@ def compute_burdens(
 
     logger.info("Saving computed burdens, corresponding genes, and targets")
     np.save(Path(out_dir) / "genes.npy", genes)
-
 
 
 @cli.command()
@@ -1115,7 +1116,7 @@ def combine_burden_chunks_(
                 mode="a",
                 shape=(total_samples),
                 chunks=(None),
-                dtype='U200',
+                dtype="U200",
                 compressor=Blosc(clevel=compression_level),
             )
 
@@ -1130,7 +1131,6 @@ def combine_burden_chunks_(
             burdens[start_id:end_id] = burdens_chunk[:]
 
     logger.info(f"Done merging {n_chunks} chunks.")
-
 
 
 def regress_on_gene_scoretest(

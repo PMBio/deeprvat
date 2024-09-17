@@ -116,7 +116,7 @@ def combine_test_set_burdens(
         config = yaml.safe_load(f)
     compression_level = 1
     n_total_samples = []
-    for (xy_dir, burden_dir) in zip(xy_dirs, burden_dirs):
+    for xy_dir, burden_dir in zip(xy_dirs, burden_dirs):
         print(xy_dir)
         this_y = zarr.open(f"{xy_dir}/y.zarr")
         this_x = zarr.open(f"{xy_dir}/x.zarr")
@@ -150,7 +150,7 @@ def combine_test_set_burdens(
             mode="a",
             shape=(n_total_samples),
             chunks=(None),
-            dtype='U200',
+            dtype="U200",
             compressor=Blosc(clevel=compression_level),
         )
 
@@ -175,7 +175,7 @@ def combine_test_set_burdens(
         mode="a",
         shape=(n_total_samples),
         chunks=(None),
-        dtype='U200',
+        dtype="U200",
         compressor=Blosc(clevel=compression_level),
     )
 
@@ -204,7 +204,6 @@ def combine_test_set_burdens(
         print(f"sample_ids_xy: {sample_ids_xy[:]}")
         print(f"sample_ids_burdens: {sample_ids_burdens[:]}")
         raise RuntimeError("sample_ids_xy, sample_ids_burdens do not match")
-
 
     y_transformation = config["association_testing_data"]["dataset_config"].get(
         "y_transformation", None
