@@ -46,7 +46,6 @@ def create_main_config(
     :return: Joined configuration file saved to deeprvat_config.yaml.
     """
 
-    logger.info("Generating deeprvat_config.yaml")
     config_path = Path(config_file)
     output_path = Path(output_dir) / "deeprvat_config.yaml"
     if not output_path.exists():
@@ -54,15 +53,15 @@ def create_main_config(
             raise ValueError(f"Neither input config {config_path} nor output config {output_path} exists")
     else:
         if not config_path.exists():
-            logger.info(f"{config_path} not present, nothing to do")
             return
         elif config_path.stat().st_mtime > output_path.stat().st_mtime:
+            logger.info("Generating deeprvat_config.yaml")
             logger.info(f"{output_path} is older than {config_path}, regenerating")
         else:
             if clobber:
+                logger.info("Generating deeprvat_config.yaml")
                 logger.warning(f"Overwriting newer file {output_path} as clobber=True")
             else:
-                logger.info(f"{output_path} is newer than {config_path}, nothing to do")
                 return
 
     # Set stdout file
