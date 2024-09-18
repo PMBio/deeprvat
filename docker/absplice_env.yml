@@ -27,6 +27,7 @@ dependencies:
   - bioconda::spliceai
   - bioconda::kipoiseq>=0.7
   - deepdiff
+  - gcc
   - pip:
     - mmsplice
     - interpret == 0.2.7
