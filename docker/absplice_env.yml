@@ -19,7 +19,7 @@ dependencies:
   - seaborn=0.12.2
   - scikit-learn=1.2.2
 
-  - bioconda::bioconda::pyfaidx=0.7.2.1
+  - bioconda::pyfaidx=0.7.2.1
   - bioconda::pyranges=0.0.125
   - bioconda::cyvcf2=0.30.15
   - bioconda::tabix=1.11
