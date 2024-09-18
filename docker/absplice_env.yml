@@ -29,6 +29,7 @@ dependencies:
   - wheel=0.44.0
   - deepdiff
   - libxcrypt
+  - libc6-dev
   - gcc
 
 
