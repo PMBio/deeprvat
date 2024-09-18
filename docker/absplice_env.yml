@@ -19,8 +19,7 @@ dependencies:
   - seaborn=0.12.2
   - scikit-learn=1.2.2
   - deepdiff=6.3.0
-  - git
-  
+
   - bioconda::pyfaidx=0.7.2.1
   - bioconda::pyranges=0.0.125
   - bioconda::cyvcf2=0.30.15
@@ -29,8 +28,10 @@ dependencies:
   - bioconda::kipoiseq=0.7.1
   - bioconda::spliceai=1.3.1
 
+  - git
+
   - pip:
       - mmsplice==2.4.0
       - interpret==0.2.7
       - interpret-core==0.2.7
-      - git+https://github.com/gagneurlab/splicemap/tree/v1.0.0
+      - git+https://github.com/gagneurlab/splicemap.git@v1.0.0
