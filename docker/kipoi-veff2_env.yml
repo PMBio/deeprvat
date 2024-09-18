@@ -4,7 +4,6 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - _libgcc_mutex=0.1
   - _openmp_mutex=4.5
   - snakemake
   - bedtools=2.30.0
@@ -28,9 +27,6 @@ dependencies:
   - libedit=3.1.20191231
   - libev=4.33
   - libffi=3.4.2
-  - libgcc-ng=11.2.0
-  - libgfortran-ng=11.2.0
-  - libgfortran5=11.2.0
   - libgomp=11.2.0
   - liblapack=3.9.0
   - libnghttp2=1.47.0
@@ -55,7 +51,7 @@ dependencies:
   - tensorflow=1.13.1
   - pybedtools
   - numpy=1.18.5
-  - gcc=11.2
+  - gcc=12
   - cryptlib
   - pip:
     - absl-py==1.0.0
