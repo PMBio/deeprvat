@@ -16,7 +16,7 @@ dependencies:
   - pybedtools
   - git
   - compilers
-  
+
   - pip:
     - gffutils==0.10.1
     - pytest
@@ -29,7 +29,7 @@ dependencies:
     - kipoi
     - kipoi-conda
     - kipoi-utils
-    - sorted-nearest==0.0.33
+    - sorted-nearest==0.0.35
     - kipoiseq
     - typing-extensions==4.1.1
     - attrs==21.4.0
