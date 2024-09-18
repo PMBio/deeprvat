@@ -26,6 +26,7 @@ dependencies:
   - bioconda::snakemake==7.26.0
   - bioconda::spliceai
   - bioconda::kipoiseq>=0.7
+  - wheel=0.44.0
   - deepdiff
   - libxcrypt
   - gcc
