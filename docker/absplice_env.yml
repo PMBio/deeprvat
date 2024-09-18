@@ -2,6 +2,7 @@ name: absplice
 channels:
   - conda-forge
 dependencies:
+  - git
   - python==3.8
   - cython
   - tensorflow
