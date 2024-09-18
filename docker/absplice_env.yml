@@ -34,4 +34,4 @@ dependencies:
       - mmsplice==2.4.0
       - interpret==0.2.7
       - interpret-core==0.2.7
-      - git+https://github.com/gagneurlab/splicemap.git@v1.0.0
+      - git+https://github.com/gagneurlab/splicemap.git
