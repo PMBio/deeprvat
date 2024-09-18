@@ -8,11 +8,11 @@ dependencies:
   - pytorch
   - cython=0.29.23
   - cyvcf2=0.30
-  - python=3.8
+  - python=3.7
   - bedtools=2.30.0
   - numpy=1.18.5
   - pip=20.2.4
-  - tensorflow=1.15.0
+  - tensorflow==1.13.1
   - pybedtools
   - git
   - setuptools=65.5.0
