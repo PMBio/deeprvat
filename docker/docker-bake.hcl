@@ -3,7 +3,7 @@
 
 group "build_annotations" {
   targets = [
-    "annotations_base"
+    "annotations_base", "annotations_absplice", "annotations_kipoi-veff2"
   ]
 }
 
