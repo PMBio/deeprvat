@@ -27,6 +27,7 @@ dependencies:
   - bioconda::spliceai
   - bioconda::kipoiseq>=0.7
   - deepdiff
+  - libxcrypt
   - gcc
   - pip:
     - mmsplice
