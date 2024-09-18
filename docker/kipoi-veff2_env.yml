@@ -14,11 +14,12 @@ dependencies:
   - pip=20.2.4
   - tensorflow==1.13.1
   - markdown==3.3.6
+  - setuptools=65.5.0
   - pybedtools
   - git
-  - setuptools=65.5.0
   - gcc
   - libxcrypt
+  - wheel=0.44.0
   - pip:
     - gffutils==0.10.1
     - pytest
