@@ -1,5 +1,5 @@
 FROM mambaorg/micromamba:1.5.9-bookworm-slim
 
 COPY --chown=$MAMBA_USER:$MAMBA_USER kipoi-veff2_env.yml /tmp/env.yml
-RUN micromamba create -y -f /tmp/env.yml && \
+RUN micromamba create -v -y -f /tmp/env.yml && \
     micromamba clean --all --yes
