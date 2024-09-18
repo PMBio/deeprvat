@@ -30,6 +30,18 @@ dependencies:
   - deepdiff
   - libxcrypt
   - gcc
+
+
+  - splicemap 
+  - pyranges 
+  - fastbetabino3 
+  - wget 
+  - dash-cytoscape 
+  - lime 
+  - termcolor 
+  - wrapt
+
+
   - pip:
     - mmsplice
     - interpret == 0.2.7
