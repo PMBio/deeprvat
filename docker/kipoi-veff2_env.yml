@@ -55,6 +55,7 @@ dependencies:
   - tensorflow=1.13.1
   - pybedtools
   - numpy=1.18.5
+  - gcc=14.1.0
   - pip:
     - absl-py==1.0.0
     - argcomplete==2.0.0
@@ -125,4 +126,3 @@ dependencies:
     - typing-extensions==4.1.1
     - urllib3==1.26.9
     - werkzeug==2.1.2
-#prefix: /opt/conda/envs/kipoi-veff2
