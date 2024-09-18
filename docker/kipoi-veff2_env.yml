@@ -15,7 +15,7 @@ dependencies:
   - tensorflow==1.13.1
   - pybedtools
   - git
-  - setup_tools=65.5.0
+  - setuptools=65.5.0
   - pip:
     - gffutils==0.10.1
     - pytest
