@@ -1,0 +1,33 @@
+name: kipoi-veff2
+channels:
+  - pytorch
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - pytorch
+  - cython=0.29.23
+  - cyvcf2=0.30
+  - python=3.7
+  - bedtools=2.30.0
+  - numpy=1.18.5
+  - pip=20.2.4
+  - tensorflow==1.13.1
+  - pybedtools
+  - git
+  - pip:
+    - gffutils==0.10.1
+    - pytest
+    - h5py==2.10.0
+    - keras==2.2.4
+    - mmsplice==2.2.0
+    - pysam==0.16.0.1
+    - scikit-learn==0.19.2
+    - scipy==1.5.4
+    - kipoi
+    - kipoi-conda
+    - kipoi-utils
+    - sorted-nearest==0.0.33
+    - kipoiseq
+    - typing-extensions==4.1.1
+    - attrs==21.4.0
