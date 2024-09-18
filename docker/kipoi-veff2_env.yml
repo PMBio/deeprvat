@@ -18,6 +18,7 @@ dependencies:
   - git
   - setuptools=65.5.0
   - gcc
+  - libxcrypt
   - pip:
     - gffutils==0.10.1
     - pytest
