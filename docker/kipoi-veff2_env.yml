@@ -1,4 +1,4 @@
-name: kipoi-veff2
+name: base
 channels:
   - pytorch
   - conda-forge

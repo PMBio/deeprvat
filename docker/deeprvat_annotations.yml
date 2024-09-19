@@ -1,4 +1,4 @@
-name: deeprvat_annotations
+name: base
 channels:
   - conda-forge
   - defaults
