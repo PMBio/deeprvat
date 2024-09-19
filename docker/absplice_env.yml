@@ -35,3 +35,4 @@ dependencies:
       - interpret==0.2.7
       - interpret-core==0.2.7
       - git+https://github.com/gagneurlab/splicemap.git
+      - git+https://github.com/gagneurlab/absplice.git
