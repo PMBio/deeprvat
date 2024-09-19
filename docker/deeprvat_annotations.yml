@@ -23,6 +23,7 @@ dependencies:
   - bcftools=1.17
   - samtools=1.17
   - ensembl-vep=110.1
-
+  - git
+  
   - pip:
       - git+https://github.com/PMBio/deeprvat.git
