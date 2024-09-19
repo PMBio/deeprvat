@@ -35,4 +35,4 @@ dependencies:
     - kipoi-conda
     - kipoi-utils
     - kipoiseq
-
+    - git+https://github.com/kipoi/kipoi-veff2.git
