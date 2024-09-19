@@ -1,3 +1,5 @@
+container: "docker://deeprvat/annotations_base"
+
 from pathlib import Path
 from glob import glob
 from itertools import chain
