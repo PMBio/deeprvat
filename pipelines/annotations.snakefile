@@ -1,4 +1,4 @@
-container: "docker://deeprvat/annotations_base"
+container: "docker://deeprvat/annotations_base:1.0"
 
 from pathlib import Path
 from glob import glob
