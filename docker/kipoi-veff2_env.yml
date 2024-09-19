@@ -13,26 +13,26 @@ dependencies:
   - numpy=1.18.5
   - pip=20.2.4
   - tensorflow==1.13.1
+  - setuptools=65.5.0
   - pybedtools
   - git
   - compilers
-  - setuptools=65.5.0
-  - Markdown=2.6.9
   
   - pip:
+    - Markdown==2.6.9
     - gffutils==0.10.1
-    - pytest
     - h5py==2.10.0
     - keras==2.2.4
     - mmsplice==2.2.0
     - pysam==0.16.0.1
     - scikit-learn==0.19.2
     - scipy==1.5.4
+    - sorted-nearest==0.0.35
+    - typing-extensions==4.1.1
+    - attrs==21.4.0
+    - pytest
     - kipoi
     - kipoi-conda
     - kipoi-utils
-    - sorted-nearest==0.0.35
     - kipoiseq
-    - typing-extensions==4.1.1
-    - attrs==21.4.0
 
