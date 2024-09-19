@@ -1,4 +1,4 @@
-container: "docker://ubuntu:latest"
+container: "docker-daemon://deeprvat/annotations_base:1.0"
 
 from pathlib import Path
 from glob import glob
