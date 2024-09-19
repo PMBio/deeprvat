@@ -16,6 +16,7 @@ dependencies:
   - pybedtools
   - git
   - compilers
+  - setuptools=65.5.0
 
   - pip:
     - gffutils==0.10.1
