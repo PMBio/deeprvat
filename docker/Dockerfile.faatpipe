@@ -1,5 +1,4 @@
-FROM mambaorg/micromamba:1.5.9-bookworm-slim
-
-COPY --chown=$MAMBA_USER:$MAMBA_USER faatpipe_env.yml /tmp/env.yml
-RUN micromamba create -y -f /tmp/env.yml && \
+FROM mambaorg/micromamba:1.5.9
+COPY --chown=$MAMBA_USER:$MAMBA_USER faatpipe_env.yml /tmp/env.yaml
+RUN micromamba install -y -n base -f /tmp/env.yaml && \
     micromamba clean --all --yes

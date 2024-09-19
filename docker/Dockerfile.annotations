@@ -1,9 +1,3 @@
-#FROM mambaorg/micromamba:1.5.9-bookworm-slim
-
-#COPY --chown=$MAMBA_USER:$MAMBA_USER deeprvat_annotations.yml /tmp/env.yml
-#RUN micromamba create -y -f /tmp/env.yml && \
-#    micromamba clean --all --yes
-
 FROM mambaorg/micromamba:1.5.9
 COPY --chown=$MAMBA_USER:$MAMBA_USER deeprvat_annotations.yml /tmp/env.yaml
 RUN micromamba install -y -n base -f /tmp/env.yaml && \
