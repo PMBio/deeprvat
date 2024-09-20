@@ -41,7 +41,6 @@ example_data_dir = script_dir.parent / "example"
 test_config_file = tests_data_dir / "deeprvat_config.yaml"
 
 
-
 with open(tests_data_dir / "phenotypes.txt", "r") as f:
     phenotypes = f.read().strip().split("\n")
 
