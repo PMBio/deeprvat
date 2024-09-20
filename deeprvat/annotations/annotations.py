@@ -1786,6 +1786,7 @@ def process_vep(
         vep_file["SpliceAI_delta_score"] = vep_file["SpliceAI_pred"].apply(
             calculate_scores_max
         )
+        necessary_columns_present.append("SpliceAI_delta_score")
 
     if "Consequence" in vep_file.columns:
         dummies = (
