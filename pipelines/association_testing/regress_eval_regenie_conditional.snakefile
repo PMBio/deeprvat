@@ -225,7 +225,7 @@ rule make_regenie_burdens:
         gene_file = config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"],
         gtf_file = config["gtf_file"],
         chunks =  expand(
-            'burdens/logs/burdens_averaging_{chunk}.finished',
+            'burdens/log/burdens_averaging_{chunk}.finished',
             chunk=range(n_avg_chunks)
         ),
         genes = burdens.parent / "genes.npy",
@@ -290,7 +290,7 @@ rule make_regenie_step1_metadata:
         gene_file = config["data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"],
         gtf_file = config["gtf_file"],
         chunks =  expand(
-            'burdens/logs/burdens_averaging_{chunk}.finished',
+            'burdens/log/burdens_averaging_{chunk}.finished',
             chunk=range(n_avg_chunks)
         ),
         datasets = expand("{phenotype}/deeprvat/association_dataset.pkl",
@@ -317,3 +317,31 @@ rule make_regenie_step1_metadata:
         "--phenotype-file {output.phenotype_file} "
         "{input.gene_file} "
         "{input.gtf_file} "
+
+
+rule average_burdens:
+    input:
+        'burdens/burdens.zarr'
+        if not cv_exp
+        else f'burdens/log/{phenotypes[0]}/merging.finished',
+    output:
+        'burdens/log/burdens_averaging_{chunk}.finished',
+    params:
+        burdens_in = 'burdens/burdens.zarr',
+        burdens_out = 'burdens/burdens_average.zarr',
+        repeats = lambda wildcards: ''.join([f'--repeats {r} ' for r in range(int(n_repeats))])
+    threads: 1
+    resources:
+        mem_mb = lambda wildcards, attempt: 4098 + (attempt - 1) * 4098,
+    priority: 10,
+    shell:
+        ' && '.join([
+            ('deeprvat_associate  average-burdens '
+             '--n-chunks ' + str(n_avg_chunks) + ' '
+             '--chunk {wildcards.chunk} '
+             '{params.repeats} '
+             '--agg-fct mean  '  #TODO remove this
+             '{params.burdens_in} '
+             '{params.burdens_out}'),
+            'touch {output}'
+        ])

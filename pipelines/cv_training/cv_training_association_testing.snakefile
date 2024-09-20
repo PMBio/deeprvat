@@ -64,7 +64,7 @@ rule all_regression:  #regress_eval.snakefile
 rule all_average_burdens:  #burdens.snakefile
     input:
         expand(
-            "{phenotype}/deeprvat/burdens/logs/burdens_averaging_{chunk}.finished",
+            "burdens/log/burdens_averaging_{chunk}.finished",
             chunk=range(n_avg_chunks),
             phenotype=phenotypes[0],
         ),
