@@ -1,4 +1,4 @@
-container: "docker-daemon://mambaorg/micromamba:1.5.9"
+container: "docker://mambaorg/micromamba:1.5.9"
 
 from pathlib import Path
 from glob import glob
