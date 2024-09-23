@@ -26,4 +26,6 @@ dependencies:
   - git
   
   - pip:
-      - git+https://github.com/PMBio/deeprvat.git
+    - git+https://github.com/PMBio/deeprvat.git
+    - git+https://github.com/HealthML/seak@v0.4.3
+    - bgen==1.6.3
