@@ -16,6 +16,8 @@ rule aggregate_absplice_scores:
     threads: ncores_agg_absplice
     resources:
         mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
+    conda:
+        "../../docker/absplice_env.yml"
     shell:
         " ".join(
             [
