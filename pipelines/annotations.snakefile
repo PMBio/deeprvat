@@ -203,6 +203,8 @@ if not gene_id_file:
             gene_id_file,
         resources:
             mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
+        conda:
+            "../deeprvat_annotations.yml"
         shell:
             " ".join(
                 [f"deeprvat_annotations", "create-gene-id-file", "{input}", "{output}"]
@@ -213,6 +215,8 @@ rule extract_with_header:
         source_variant_dir / f"{{file_stem}}.{source_variant_file_type}",
     output:
         anno_tmp_dir / "{file_stem}_variants_header.vcf.gz",
+    conda:
+        "../deeprvat_annotations.yml"
     shell:
         (
             load_bfc
@@ -226,6 +230,8 @@ rule extract_variants:
         source_variant_dir / f"{{file_stem}}.{source_variant_file_type}",
     output:
         anno_tmp_dir / "{file_stem}_variants.vcf",
+    conda:
+        "../deeprvat_annotations.yml"
     shell:
         " ".join(
             [
@@ -241,6 +247,8 @@ rule strip_chr_name:
         rules.extract_variants.output,
     output:
         anno_tmp_dir / "{file_stem}_stripped.vcf.gz",
+    conda:
+        "../deeprvat_annotations.yml"
     shell:
         load_hts + """ cut -c 4- {input} | awk -F'\\t' 'BEGIN {{OFS = FS}} {{$3 = "chr"$1"_"$2"_"$4"_"$5; print}}' |bgzip > {output} """
 
@@ -259,6 +267,8 @@ rule vep:
         dir_cache = lambda w: f'--dir_cache {str(vep_cache_dir)}' if not vep_no_cache else ''
     resources:
         mem_mb=lambda wildcards, attempt: 5_000 * (attempt + 1),
+    conda:
+        "../deeprvat_annotations.yml"
     shell:
         " ".join(
             [
@@ -320,6 +330,8 @@ rule merge_annotations:
         anno_dir / "{file_stem}_merged.parquet",
     resources:
         mem_mb=lambda wildcards, attempt: 5_000 * (attempt + 1),
+    conda:
+        "../deeprvat_annotations.yml"
     shell:
         (
             "HEADER=$(grep  -n  '#Uploaded_variation' "
@@ -343,6 +355,8 @@ rule concat_annotations:
         joined=lambda w, input: ",".join(input.vcf_files),
     resources:
         mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
+    conda:
+        "../deeprvat_annotations.yml"
     shell:
         " ".join(
             [
@@ -369,6 +383,8 @@ if(include_deepSEA):
         params: 
             annotations_in = anno_dir / "annotations.parquet",
             annotations_out = anno_dir / "annotations.parquet",
+        conda:
+            "../deeprvat_annotations.yml"
         shell:
             " ".join(
                 [
@@ -386,6 +402,8 @@ else:
             chckpt = rules.concat_annotations.output.chckpt,
         output: 
             chckpt = anno_dir / 'chckpts' / 'merge_deepsea_pcas.chckpt' 
+        conda:
+            "../deeprvat_annotations.yml"
         shell:
             'touch {output.chckpt}'
 
@@ -403,6 +421,8 @@ if (include_absplice):
             annotations_out = anno_dir / "annotations.parquet",
         resources:
             mem_mb=lambda wildcards, attempt: 19_000 * (attempt + 1),
+        conda:
+            "../deeprvat_annotations.yml"
         shell:
             " ".join(
                 [
@@ -433,6 +453,8 @@ if af_mode is None:
             allele_frequencies = anno_tmp_dir / "af_df.parquet",
         resources:
             mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
+        conda:
+            "../deeprvat_annotations.yml"
         shell:
             " ".join(
                 [
@@ -460,6 +482,10 @@ if af_mode is None:
             annotations_out = anno_dir / "annotations.parquet",
         resources:
             mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
+        conda:
+            "../deeprvat_annotations.yml"
+
+
         shell:
             " ".join(
                 [
@@ -481,6 +507,8 @@ if af_mode is None:
             annotations_out = anno_dir / "annotations.parquet",
         resources:
             mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
+        conda:
+            "../deeprvat_annotations.yml"
         shell:
             " ".join([f"deeprvat_annotations", "calculate-maf", "{params.annotations_in}", "{params.annotations_out}"])+ " && touch {output.chckpt}"
 
@@ -497,6 +525,8 @@ elif(af_mode == 'af_gnomade'):
             annotations_out = anno_dir / "annotations.parquet",
         resources:
             mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
+        conda:
+            "../deeprvat_annotations.yml"
         shell:
             " ".join([f"deeprvat_annotations", "calculate-maf","--af-column-name gnomADe_AF" , "{params.annotations_in}", "{params.annotations_out}"])+ " && touch {output.chckpt}"
 
@@ -513,6 +543,8 @@ elif(af_mode == 'af_gnomadg'):
             annotations_out = anno_dir / "annotations.parquet",
         resources:
             mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
+        conda:
+            "../deeprvat_annotations.yml"
         shell:
             " ".join([f"deeprvat_annotations", "calculate-maf", "--af-column-name gnomADg_AF", "{params.annotations_in}", "{params.annotations_out}" ])+ " && touch {output.chckpt}"
 
@@ -530,6 +562,8 @@ rule add_gene_ids:
         annotations_out = anno_dir / "annotations.parquet",
     resources:
         mem_mb=lambda wildcards, attempt: 19_000 * (attempt + 1),
+    conda:
+        "../deeprvat_annotations.yml"
     shell:
         " ".join(
             [
@@ -554,6 +588,8 @@ rule filter_by_exon_distance:
         annotations_out = anno_dir / "annotations.parquet",
     resources:
         mem_mb=lambda wildcards, attempt: 25_000 * (attempt + 1),
+    conda:
+        "../deeprvat_annotations.yml"
     shell:
         " ".join(
             [
@@ -575,6 +611,8 @@ rule compute_plof_column:
         annotations_in = rules.filter_by_exon_distance.params.annotations_out,
         annotations_out = anno_dir / "annotations.parquet",
     resources: mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
+    conda:
+        "../deeprvat_annotations.yml"
     shell: 'deeprvat_annotations compute-plof {params.annotations_in} {params.annotations_out} && touch {output.chckpt}'
 
 
@@ -591,6 +629,8 @@ rule select_rename_fill_columns:
         annotations_out = anno_dir / "annotations.parquet",
     resources:
         mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
+    conda:
+        "../deeprvat_annotations.yml"
     shell:
         " ".join(
             [
