@@ -1,4 +1,4 @@
-container: "docker://mambaorg/micromamba:1.5.9"
+container: "docker://deeprvat_annotations:1.0"
 
 from pathlib import Path
 from glob import glob
