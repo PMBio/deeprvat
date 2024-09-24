@@ -133,6 +133,7 @@ baseline_results:
   - base: baseline_results
     type: missense/skat
 cv_exp: false
+deterministic: true
 do_scoretest: true
 evaluation:
   alpha: 0.05

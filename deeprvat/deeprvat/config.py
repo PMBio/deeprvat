@@ -315,7 +315,7 @@ def create_main_config(
             "correction_method": input_config["seed_gene_results"]["correction_method"]
         }
 
-    with open(f"{output_dir}/deeprvat_config.yaml", "w") as f:
+    with open(output_path, "w") as f:
         yaml.dump(full_config, f)
         logger.info(f"Saving deeprvat_config.yaml to -- {output_dir}/deeprvat_config.yaml --")
 
@@ -466,6 +466,7 @@ def create_sg_discovery_config(
 @click.option("--baseline-results", type=click.Path(exists=True), multiple=True)
 @click.option("--baseline-results-out", type=click.Path())
 @click.option("--seed-genes-out", type=click.Path())
+# @click.option("--regenie-options", type=str, multiple=True)
 @click.argument("old_config_file", type=click.Path(exists=True))
 @click.argument("new_config_file", type=click.Path())
 def update_config(
@@ -473,6 +474,7 @@ def update_config(
     phenotype: Optional[str],
     baseline_results: Tuple[str],
     baseline_results_out: Optional[str],
+    # regenie_options: Optional[Tuple[str]],
     seed_genes_out: Optional[str],
     old_config_file: str,
     new_config_file: str,
@@ -563,7 +565,6 @@ def update_config(
             if baseline_results_out is not None:
                 baseline_df.to_parquet(baseline_results_out, engine="pyarrow")
             if correction_method is not None:
-
                 logger.info(f"Using significant genes with corrected pval < {alpha}")
                 if (
                     len(baseline_df.query("significant")["gene"].unique())

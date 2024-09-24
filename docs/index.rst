@@ -36,7 +36,7 @@ Citation
 
 If you use this package, please cite:
 
-Clarke, Holtkamp et al., “Integration of Variant Annotations Using Deep Set Networks Boosts Rare Variant Association Genetics.” bioRxiv. https://dx.doi.org/10.1101/2023.07.12.548506
+Clarke, Holtkamp et al., “Integration of Variant Annotations Using Deep Set Networks Boosts Rare Variant Association Testing.” Nature Genetics. https://www.nature.com/articles/s41588-024-01919-z
 
 
 Contact
