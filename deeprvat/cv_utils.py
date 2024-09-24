@@ -201,9 +201,9 @@ def combine_test_set_burdens(
     # sanity check
     if not skip_burdens and not np.array_equal(sample_ids_xy[:], sample_ids_burdens[:]):
         logger.error(
-            "sample_ids_xy, sample_ids_burdens do not match:\n" +
-            f"sample_ids_xy: {sample_ids_xy[:]}" +
-            f"sample_ids_burdens: {sample_ids_burdens[:]}"
+            "sample_ids_xy, sample_ids_burdens do not match:\n"
+            + f"sample_ids_xy: {sample_ids_xy[:]}"
+            + f"sample_ids_burdens: {sample_ids_burdens[:]}"
         )
         raise RuntimeError("sample_ids_xy, sample_ids_burdens do not match")
 
