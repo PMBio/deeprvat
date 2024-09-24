@@ -1,4 +1,5 @@
 from absplice import SpliceOutlier, SpliceOutlierDataloader
+import snakemake
 
 dl = SpliceOutlierDataloader(
     snakemake.input["fasta"],

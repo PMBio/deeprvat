@@ -1,12 +1,7 @@
 from pathlib import Path
-from os.path import exists
+from deeprvat.deeprvat.config import create_main_config
 
-if not exists('./deeprvat_config.yaml'):
-    if not config: #--configfile argument was not passed
-        print("Generating deeprvat_config.yaml...")
-        from deeprvat.deeprvat.config import create_main_config
-        create_main_config('deeprvat_input_config.yaml')
-        print("     Finished.")
+create_main_config("deeprvat_input_config.yaml")
 
 configfile: 'deeprvat_config.yaml'
 
@@ -14,7 +9,7 @@ debug_flag = config.get('debug', False)
 phenotypes = config['phenotypes']
 phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
 training_phenotypes = config["training"].get("phenotypes", phenotypes)
-
+training_phenotypes = list(training_phenotypes.keys()) if type(training_phenotypes) == dict else training_phenotypes
 
 n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
 

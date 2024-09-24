@@ -1,9 +1,5 @@
-import pandas as pd
 import yaml
-import os
 import sys
-from typing import Optional
-import re
 
 # import pickle
 import logging
@@ -100,50 +96,66 @@ def generate_test_config(input_config, out_file, fold, n_folds):
 
 
 @cli.command()
-@click.option("--link-burdens", type=click.Path())
+@click.option("--skip-burdens", is_flag=True)
 @click.option("--burden-dirs", "-b", multiple=True)
-@click.argument("out_dir", type=click.Path(), default="./")
+@click.option("--xy-dirs", "-b", multiple=True)
+@click.argument("out_dir_burdens", type=click.Path(), default="./")
+@click.argument("out_dir_xy", type=click.Path(), default="./")
 @click.argument("config_file", type=click.Path(exists=True))
 def combine_test_set_burdens(
-    out_dir,
-    link_burdens,
+    out_dir_burdens,
+    out_dir_xy,
+    skip_burdens,
     burden_dirs,
+    xy_dirs,
     config_file,
 ):
+    assert len(burden_dirs) == len(xy_dirs)
+
     with open(config_file) as f:
         config = yaml.safe_load(f)
     compression_level = 1
-    skip_burdens = link_burdens is not None
     n_total_samples = []
-    for burden_dir in burden_dirs:
-        print(burden_dir)
-        this_y = zarr.open(f"{burden_dir}/y.zarr")
-        this_x = zarr.open(f"{burden_dir}/x.zarr")
+    for xy_dir, burden_dir in zip(xy_dirs, burden_dirs):
+        logger.debug(xy_dir)
+        this_y = zarr.open(f"{xy_dir}/y.zarr")
+        this_x = zarr.open(f"{xy_dir}/x.zarr")
+        this_sample_ids_xy = zarr.load(f"{xy_dir}/sample_ids.zarr")
         # this_burdens = zarr.open(f'{burden_dir}/burdens.zarr')
 
-        assert this_y.shape[0] == this_x.shape[0]  # == this_burdens.shape[0]
+        assert this_y.shape[0] == this_x.shape[0]
         n_total_samples.append(this_y.shape[0])
 
+        if not skip_burdens:
+            this_burdens = zarr.open(f"{burden_dir}/burdens.zarr")
+            this_sample_ids_burdens = zarr.load(f"{burden_dir}/sample_ids.zarr")
+            assert this_y.shape[0] == this_burdens.shape[0]
+            logger.debug(this_sample_ids_xy, this_sample_ids_burdens)
+            assert np.array_equal(this_sample_ids_xy, this_sample_ids_burdens)
+
     n_total_samples = np.sum(n_total_samples)
-    print(f"Total number of samples {n_total_samples}")
+    logger.info(f"Total number of samples: {n_total_samples}")
     if not skip_burdens:
-        this_burdens = zarr.open(
-            f"{burden_dir}/burdens.zarr"
-        )  # any burden tensor (here from the last file to get dims 1 -n)
         burdens = zarr.open(
-            Path(out_dir) / "burdens.zarr",
+            Path(out_dir_burdens) / "burdens.zarr",
             mode="a",
             shape=(n_total_samples,) + this_burdens.shape[1:],
             chunks=(1000, 1000),
             dtype=np.float32,
             compressor=Blosc(clevel=compression_level),
         )
-        print(f"burdens shape: {burdens.shape}")
-    else:
-        burdens = None
+        logger.info(f"burdens shape: {burdens.shape}")
+        sample_ids_burdens = zarr.open(
+            Path(out_dir_burdens) / "sample_ids.zarr",
+            mode="a",
+            shape=(n_total_samples),
+            chunks=(None),
+            dtype="U200",
+            compressor=Blosc(clevel=compression_level),
+        )
 
     y = zarr.open(
-        Path(out_dir) / "y.zarr",
+        Path(out_dir_xy) / "y.zarr",
         mode="a",
         shape=(n_total_samples,) + this_y.shape[1:],
         chunks=(None, None),
@@ -151,28 +163,49 @@ def combine_test_set_burdens(
         compressor=Blosc(clevel=compression_level),
     )
     x = zarr.open(
-        Path(out_dir) / "x.zarr",
+        Path(out_dir_xy) / "x.zarr",
         mode="a",
         shape=(n_total_samples,) + this_x.shape[1:],
         chunks=(None, None),
         dtype=np.float32,
         compressor=Blosc(clevel=compression_level),
     )
+    sample_ids_xy = zarr.open(
+        Path(out_dir_xy) / "sample_ids.zarr",
+        mode="a",
+        shape=(n_total_samples),
+        chunks=(None),
+        dtype="U200",
+        compressor=Blosc(clevel=compression_level),
+    )
 
     start_idx = 0
 
-    for burden_dir in burden_dirs:
-        this_y = zarr.open(f"{burden_dir}/y.zarr")[:]
+    for xy_dir, burden_dir in zip(xy_dirs, burden_dirs):
+        this_y = zarr.load(f"{xy_dir}/y.zarr")
         end_idx = start_idx + this_y.shape[0]
-        this_x = zarr.open(f"{burden_dir}/x.zarr")[:]
-        if not skip_burdens:
-            logger.info("writing burdens")
-            this_burdens = zarr.open(f"{burden_dir}/burdens.zarr")[:]
-            burdens[start_idx:end_idx] = this_burdens
         print((start_idx, end_idx))
+        this_x = zarr.load(f"{xy_dir}/x.zarr")
+        this_sample_ids_xy = zarr.load(f"{xy_dir}/sample_ids.zarr")
         y[start_idx:end_idx] = this_y
         x[start_idx:end_idx] = this_x
+        sample_ids_xy[start_idx:end_idx] = this_sample_ids_xy
+        if not skip_burdens:
+            logger.info("writing burdens")
+            this_burdens = zarr.load(f"{burden_dir}/burdens.zarr")
+            burdens[start_idx:end_idx] = this_burdens
+            this_sample_ids_burdens = zarr.load(f"{burden_dir}/sample_ids.zarr")
+            sample_ids_burdens[start_idx:end_idx] = this_sample_ids_burdens
         start_idx = end_idx
+
+    # sanity check
+    if not skip_burdens and not np.array_equal(sample_ids_xy[:], sample_ids_burdens[:]):
+        logger.error(
+            "sample_ids_xy, sample_ids_burdens do not match:\n"
+            + f"sample_ids_xy: {sample_ids_xy[:]}"
+            + f"sample_ids_burdens: {sample_ids_burdens[:]}"
+        )
+        raise RuntimeError("sample_ids_xy, sample_ids_burdens do not match")
 
     y_transformation = config["association_testing_data"]["dataset_config"].get(
         "y_transformation", None
@@ -202,17 +235,16 @@ def combine_test_set_burdens(
                 for col in range(this_y.shape[1]):
                     this_y[:, col] = standardize_series(this_y[:, col])
             elif y_transformation == "quantile_transform":
-                logger.info(f"  Quantile transforming combined target phenotype (y)")
+                logger.info("  Quantile transforming combined target phenotype (y)")
                 for col in range(this_y.shape[1]):
                     this_y[:, col] = my_quantile_transform(this_y[:, col])
             y[:] = this_y
+
+    if not skip_burdens:
+        genes = np.load(f"{burden_dirs[0]}/genes.npy")
+        np.save(Path(out_dir_burdens) / "genes.npy", genes)
+
     print("done")
-    if link_burdens is not None:
-        source_path = Path(out_dir) / "burdens.zarr"
-        source_path.unlink(missing_ok=True)
-        source_path.symlink_to(link_burdens)
-    genes = np.load(f"{burden_dirs[0]}/genes.npy")
-    np.save(Path(out_dir) / "genes.npy", genes)
 
 
 if __name__ == "__main__":

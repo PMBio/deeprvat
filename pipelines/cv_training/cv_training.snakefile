@@ -73,6 +73,10 @@ use rule config from deeprvat_workflow as deeprvat_config with:
                 'eval/burden_associations.parquet')
             for r in config['baseline_results']['options'] 
         ] if wildcards.phenotype in training_phenotypes else []
+    output:
+        # seed_genes = '{phenotype}/deeprvat/seed_genes.parquet',
+        data_config="cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/config.yaml",
+        # baseline = '{phenotype}/deeprvat/baseline_results.parquet',
     params:
         baseline_results = lambda wildcards, input: ''.join([
             f'--baseline-results {b} '

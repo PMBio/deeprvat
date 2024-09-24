@@ -133,6 +133,7 @@ baseline_results:
   - base: baseline_results
     type: missense/skat
 cv_exp: false
+deterministic: true
 do_scoretest: true
 evaluation:
   alpha: 0.05
@@ -172,8 +173,8 @@ n_burden_chunks: 5
 n_regression_chunks: 2
 n_repeats: 1
 phenotypes:
-  Cholesterol: {}
-  Platelet_count: {}
+  - Cholesterol
+  - Platelet_count
 regenie_exp: false
 training:
   dataloader_config:
@@ -192,8 +193,8 @@ training:
   n_bags: 1
   n_parallel_jobs: 6
   phenotypes:
-    - Cholesterol
-    - Platelet_count
+    Cholesterol: {}
+    Platelet_count: {}
   pl_trainer:
     check_val_every_n_epoch: 1
     gpus: 0

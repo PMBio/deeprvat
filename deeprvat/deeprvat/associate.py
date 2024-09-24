@@ -10,7 +10,6 @@ from pprint import pprint
 from typing import Dict, List, Optional, Tuple
 
 import click
-import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 import pyranges as pr
@@ -53,8 +52,7 @@ def get_burden(
     batch: Dict,
     agg_models: Dict[str, List[nn.Module]],
     device: torch.device = torch.device("cpu"),
-    skip_burdens=False,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Compute burden scores for rare variants.
 
@@ -76,24 +74,17 @@ def get_burden(
     with torch.no_grad():
         X = batch["rare_variant_annotations"].to(device)
         burden = []
-        if not skip_burdens:
-            for key in sorted(
-                list(agg_models.keys()), key=lambda x: int(x.split("_")[1])
-            ):
-                this_agg_models = agg_models[key]
-                this_burden: torch.Tensor = sum([m(X) for m in this_agg_models]) / len(
-                    this_agg_models
-                )
-                burden.append(this_burden.cpu().numpy())
-            burden = np.concatenate(burden, axis=2)
-        else:
-            burden = None
+        for key in sorted(list(agg_models.keys()), key=lambda x: int(x.split("_")[1])):
+            this_agg_models = agg_models[key]
+            this_burden: torch.Tensor = sum([m(X) for m in this_agg_models]) / len(
+                this_agg_models
+            )
+            burden.append(this_burden.cpu().numpy())
+        burden = np.concatenate(burden, axis=2)
 
-    y = batch["y"]
-    x = batch["x_phenotypes"]
     sample_ids = batch["sample"]
 
-    return burden, y, x, sample_ids
+    return burden, sample_ids
 
 
 def separate_parallel_results(results: List) -> Tuple[List, ...]:
@@ -116,7 +107,8 @@ def cli():
 def make_dataset_(
     config: Dict,
     debug: bool = False,
-    data_key="association_testing_data",
+    data_key: str = "association_testing_data",
+    skip_genotypes: bool = False,
     samples: Optional[List[int]] = None,
 ) -> Dataset:
     """
@@ -128,6 +120,8 @@ def make_dataset_(
     :type debug: bool
     :param data_key: Key for dataset configuration in the config dictionary, defaults to "association_testing_data".
     :type data_key: str
+    :param skip_genotypes: Retrieve only covariates and phenotypes, not genotypes
+    :type skip_genotypes: bool
     :param samples: List of sample indices to include in the dataset, defaults to None.
     :type samples: List[int]
     :return: Loaded instance of the created dataset.
@@ -143,10 +137,11 @@ def make_dataset_(
     else:
         ds = DenseGTDataset(
             data_config["gt_file"],
-            variant_file=data_config["variant_file"],
+            data_config["variant_file"],
             split="",
             skip_y_na=False,
             **copy.deepcopy(data_config["dataset_config"]),
+            return_genotypes=(not skip_genotypes),
         )
 
         restrict_samples = config.get("restrict_samples", None)
@@ -164,9 +159,12 @@ def make_dataset_(
 @cli.command()
 @click.option("--debug", is_flag=True)
 @click.option("--data-key", type=str, default="association_testing_data")
+@click.option("--skip-genotypes", is_flag=True)
 @click.argument("config-file", type=click.Path(exists=True))
 @click.argument("out-file", type=click.Path())
-def make_dataset(debug: bool, data_key: str, config_file: str, out_file: str):
+def make_dataset(
+    debug: bool, data_key: str, skip_genotypes: bool, config_file: str, out_file: str
+):
     """
     Create a dataset based on the provided configuration and save to a pickle file.
 
@@ -174,6 +172,8 @@ def make_dataset(debug: bool, data_key: str, config_file: str, out_file: str):
     :type debug: bool
     :param data_key: Key for dataset configuration in the config dictionary, defaults to "association_testing_data".
     :type data_key: str
+    :param skip_genotypes: Retrieve only covariates and phenotypes, not genotypes
+    :type skip_genotypes: bool
     :param config_file: Path to the configuration file.
     :type config_file: str
     :param out_file: Path to the output file.
@@ -183,215 +183,134 @@ def make_dataset(debug: bool, data_key: str, config_file: str, out_file: str):
     with open(config_file) as f:
         config = yaml.safe_load(f)
 
-    ds = make_dataset_(config, debug=debug, data_key=data_key)
+    ds = make_dataset_(
+        config, debug=debug, data_key=data_key, skip_genotypes=skip_genotypes
+    )
 
     with open(out_file, "wb") as f:
         pickle.dump(ds, f)
 
 
-def compute_burdens_(
-    debug: bool,
+def compute_xy_(
     config: Dict,
     ds: torch.utils.data.Dataset,
-    cache_dir: str,
-    agg_models: Dict[str, List[nn.Module]],
-    n_chunks: Optional[int] = None,
-    chunk: Optional[int] = None,
-    device: torch.device = torch.device("cpu"),
-    bottleneck: bool = False,
-    compression_level: int = 1,
-    skip_burdens: bool = False,
-) -> Tuple[
-    np.ndarray, zarr.core.Array, zarr.core.Array, zarr.core.Array, zarr.core.Array
-]:
+    data_key="association_testing_data",
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute burdens using the PyTorch model for each repeat.
 
-    :param debug: Flag for debugging.
-    :type debug: bool
     :param config: Configuration dictionary.
     :type config: Dict
     :param ds: Torch dataset.
     :type ds: torch.utils.data.Dataset
-    :param cache_dir: Directory to cache zarr files of computed burdens, x phenotypes, and y phenotypes.
-    :type cache_dir: str
-    :param agg_models: Loaded PyTorch model(s) for each repeat used for burden computation.
-        Each key in the dictionary corresponds to a respective repeat.
-    :type agg_models: Dict[str, List[nn.Module]]
-    :param n_chunks: Number of chunks to split data for processing, defaults to None.
-    :type n_chunks: Optional[int]
-    :param chunk: Index of the chunk of data, defaults to None.
-    :type chunk: Optional[int]
-    :param device: Device to perform computations on, defaults to "cpu".
-    :type device: torch.device
-    :param bottleneck: Flag to enable bottlenecking number of batches, defaults to False.
-    :type bottleneck: bool
-    :param compression_level: Blosc compressor compression level for zarr files, defaults to 1.
-    :type compression_level: int
-    :param skip_burdens: Flag to skip burden computation, defaults to False.
-    :type skip_burdens: bool
-    :return: Tuple containing genes, burdens, target y phenotypes, x phenotypes and sample ids.
-    :rtype: Tuple[np.ndarray, zarr.core.Array, zarr.core.Array, zarr.core.Array, zarr.core.Array]
+    :param data_key: Key for dataset configuration in the config dictionary, defaults to "association_testing_data".
+    :type data_key: str
+    :return: Tuple containing sample IDs, covariates x, and target phenotypes y
+    :rtype: Tuple[np.ndarray, np.ndarray, np.ndarray]
 
     .. note::
         Checkpoint models all corresponding to the same repeat are averaged for that repeat.
     """
-    if not skip_burdens:
-        logger.info("agg_models[*][*].reverse:")
-        pprint(
-            {
-                repeat: [m.reverse for m in models]
-                for repeat, models in agg_models.items()
-            }
-        )
-
-    data_config = config["association_testing_data"]
+    data_config = config[data_key]
 
     ds_full = ds.dataset if isinstance(ds, Subset) else ds
     collate_fn = getattr(ds_full, "collate_fn", None)
-    n_total_samples = len(ds)
-    ds.rare_embedding.skip_embedding = skip_burdens
-
-    if chunk is not None:
-        if n_chunks is None:
-            raise ValueError("n_chunks must be specified if chunk is not None")
-
-        chunk_length = math.ceil(n_total_samples / n_chunks)
-        chunk_start = chunk * chunk_length
-        chunk_end = min(n_total_samples, chunk_start + chunk_length)
-        samples = range(chunk_start, chunk_end)
-        n_samples = len(samples)
-        ds = Subset(ds, samples)
-
-        logger.info(f"Processing samples in {samples} from {n_total_samples} in total")
-    else:
-        n_samples = n_total_samples
-        chunk_start = 0
-        chunk_end = n_samples
+    ds_full.return_genotypes = False
+    n_samples = len(ds)
 
     dataloader_config = data_config["dataloader_config"]
-
-    if torch.cuda.is_available():
-        pin_memory = dataloader_config.get("pin_memory", True)
-
-        logger.info(f"CUDA is available, setting pin_memory={pin_memory}")
-        dataloader_config["pin_memory"] = pin_memory
+    batch_size = n_samples // 100
+    dataloader_config["batch_size"] = batch_size
+    # dataloader_config["num_workers"] = 0
 
     dl = DataLoader(ds, collate_fn=collate_fn, **dataloader_config)
 
-    logger.info("Computing burden scores")
-    batch_size = data_config["dataloader_config"]["batch_size"]
-    with torch.no_grad():
-        for i, batch in tqdm(
-            enumerate(dl),
-            file=sys.stdout,
-            total=(n_samples // batch_size + (n_samples % batch_size != 0)),
-        ):
-            this_burdens, this_y, this_x, this_sampleid = get_burden(
-                batch, agg_models, device=device, skip_burdens=skip_burdens
-            )
-            if i == 0:
-                if not skip_burdens:
-                    chunk_burden = np.zeros(shape=(n_samples,) + this_burdens.shape[1:])
-                chunk_y = np.zeros(shape=(n_samples,) + this_y.shape[1:])
-                chunk_x = np.zeros(shape=(n_samples,) + this_x.shape[1:])
-                chunk_sampleid = [""] * n_samples
+    logger.info("Computing covariates and target phenotypes")
+    data_lists = {"sample": [], "x": [], "y": []}
+    for batch in tqdm(
+        dl,
+        file=sys.stdout,
+        total=(n_samples // batch_size + (n_samples % batch_size != 0)),
+    ):
+        data_lists["sample"].append(batch["sample"])
+        data_lists["x"].append(batch["x_phenotypes"])
+        data_lists["y"].append(batch["y"])
 
-                logger.info(f"Batch size: {batch['rare_variant_annotations'].shape}")
+    data = {k: np.concatenate(v) for k, v in data_lists.items()}
 
-                if not skip_burdens:
-                    burdens = zarr.open(
-                        Path(cache_dir) / "burdens.zarr",
-                        mode="a",
-                        shape=(n_total_samples,) + this_burdens.shape[1:],
-                        chunks=(1000, 1000, 1),
-                        dtype=np.float32,
-                        compressor=Blosc(clevel=compression_level),
-                    )
-                    logger.info(f"burdens shape: {burdens.shape}")
-                else:
-                    burdens = None
+    return data["sample"], data["x"], data["y"]
 
-                y = zarr.open(
-                    Path(cache_dir) / "y.zarr",
-                    mode="a",
-                    shape=(n_total_samples,) + this_y.shape[1:],
-                    chunks=(None, None),
-                    dtype=np.float32,
-                    compressor=Blosc(clevel=compression_level),
-                )
-                x = zarr.open(
-                    Path(cache_dir) / "x.zarr",
-                    mode="a",
-                    shape=(n_total_samples,) + this_x.shape[1:],
-                    chunks=(None, None),
-                    dtype=np.float32,
-                    compressor=Blosc(clevel=compression_level),
-                )
-                sample_ids = zarr.open(
-                    Path(cache_dir) / "sample_ids.zarr",
-                    mode="a",
-                    shape=(n_total_samples),
-                    chunks=(None),
-                    dtype=object,
-                    object_codec=JSON(),
-                )
-            start_idx = i * batch_size
-            end_idx = min(start_idx + batch_size, chunk_end)  # read from chunk shape
 
-            if not skip_burdens:
-                chunk_burden[start_idx:end_idx] = this_burdens
+@cli.command()
+@click.option("--dataset-file", type=click.Path(exists=True))
+@click.option("--data-key", type=str, default="association_testing_data")
+@click.argument("data-config-file", type=click.Path(exists=True))
+@click.argument("sample-file", type=click.Path(path_type=Path))
+@click.argument("x-file", type=click.Path(path_type=Path))
+@click.argument("y-file", type=click.Path(path_type=Path))
+def compute_xy(
+    dataset_file: Optional[str],
+    data_key: str,
+    data_config_file: str,
+    sample_file: Path,
+    x_file: Path,
+    y_file: Path,
+):
+    """
+    Compute burdens based on the provided model and dataset.
 
-            chunk_y[start_idx:end_idx] = this_y
-            chunk_x[start_idx:end_idx] = this_x
-            chunk_sampleid[start_idx:end_idx] = this_sampleid
+    :param dataset_file: Path to the dataset file, i.e., association_dataset.pkl.
+    :type dataset_file: Optional[str]
+    :param data_key: Key for dataset configuration in the config dictionary, defaults to "association_testing_data".
+    :type data_key: str
+    :param data_config_file: Path to the data configuration file.
+    :type data_config_file: str
+    :param out_dir: Path to the output directory.
+    :type out_dir: str
+    """
+    with open(data_config_file) as f:
+        data_config = yaml.safe_load(f)
 
-            if debug:
-                logger.info(
-                    "Wrote results for batch indices " f"[{start_idx}, {end_idx - 1}]"
-                )
+    if dataset_file is not None:
+        logger.info("Loading pickled dataset")
+        with open(dataset_file, "rb") as f:
+            dataset = pickle.load(f)
+    else:
+        dataset = make_dataset_(data_config, skip_genotypes=True)
 
-            if bottleneck and i > 20:
-                break
+    sample_ids, x, y = compute_xy_(
+        data_config,
+        dataset,
+        data_key=data_key,
+    )
 
-        if not skip_burdens:
-            burdens[chunk_start:chunk_end] = chunk_burden
-
-        y[chunk_start:chunk_end] = chunk_y
-        x[chunk_start:chunk_end] = chunk_x
-        sample_ids[chunk_start:chunk_end] = chunk_sampleid
-
-    if torch.cuda.is_available():
-        logger.info(
-            "Max GPU memory allocated: " f"{torch.cuda.max_memory_allocated(0)} bytes"
-        )
-
-    return ds_full.rare_embedding.genes, burdens, y, x, sample_ids
+    logger.info("Saving computed sample IDs, covariates, and targets")
+    zarr.save_array(sample_file, sample_ids)
+    zarr.save_array(x_file, x)
+    zarr.save_array(y_file, y)
 
 
 def make_regenie_input_(
     debug: bool,
-    skip_samples: bool,
     skip_covariates: bool,
     skip_phenotypes: bool,
     skip_burdens: bool,
+    burdens_genes_samples: Optional[Tuple[Path, Path, Path]],
     repeat: int,
     average_repeats: bool,
-    phenotype: Tuple[Tuple[str, Path, Path]],
+    phenotype: Tuple[Tuple[str, Path, Path, Path]],
     sample_file: Optional[Path],
     covariate_file: Optional[Path],
     phenotype_file: Optional[Path],
     bgen: Optional[Path],
-    gene_file: Path,
+    gene_metadata_file: Path,
     gtf: Path,
 ):
+    logger.setLevel(logging.INFO)
+
     ## Check options
-    if (repeat >= 0) + average_repeats + skip_burdens != 1:
-        raise ValueError(
-            "Exactly one of --repeat or --average-repeats or --skip-burdens must be specified"
-        )
-    if not skip_samples and sample_file is None:
-        raise ValueError("Either sample_file or skip_samples must be specified")
+    if not skip_burdens and burdens_genes_samples is None:
+        raise ValueError("--burdens-genes must be specified if --skip-burdens is not")
     if not skip_covariates and covariate_file is None:
         raise ValueError("Either covariate_file or skip_covariates must be specified")
     if not skip_phenotypes and phenotype_file is None:
@@ -406,12 +325,12 @@ def make_regenie_input_(
 
     phenotype_names = [p[0] for p in phenotype]
     dataset_files = [p[1] for p in phenotype]
-    burden_dirs = [p[2] for p in phenotype]
+    xy_dirs = [p[2] for p in phenotype]
 
-    sample_ids = zarr.load(burden_dirs[0] / "sample_ids.zarr")
-    covariates = zarr.load(burden_dirs[0] / "x.zarr")
-    ys = [zarr.load(b / "y.zarr") for b in burden_dirs]
-    genes = np.load(burden_dirs[0] / "genes.npy")
+    # load only first sample_ids zarr here
+    sample_ids = zarr.load(xy_dirs[0] / "sample_ids.zarr")
+    covariates = zarr.load(xy_dirs[0] / "x.zarr")
+    ys = [zarr.load(b / "y.zarr") for b in xy_dirs]
 
     if debug:
         sample_ids = sample_ids[:1000]
@@ -419,39 +338,31 @@ def make_regenie_input_(
         ys = [y[:1000] for y in ys]
 
     n_samples = sample_ids.shape[0]
-    n_genes = genes.shape[0]
     assert covariates.shape[0] == n_samples
+    # assert that ALL y.zarrs are the same lengths as the single sample_ids zarr loaded above
     assert all([y.shape[0] == n_samples for y in ys])
 
-    # Sanity check: sample_ids, covariates, and genes should be consistent for all phenotypes
-    # TODO: Check burdens as well (though this will be slow)
+    # Sanity check: sample_ids and covariates should be consistent for all phenotypes
     if not debug:
         for i in range(1, len(phenotype)):
-            assert np.array_equal(
-                sample_ids, zarr.load(burden_dirs[i] / "sample_ids.zarr")
+            assert np.array_equal(sample_ids, zarr.load(xy_dirs[i] / "sample_ids.zarr"))
+
+            this_cov = zarr.load(xy_dirs[i] / "x.zarr")
+            assert this_cov.shape == covariates.shape
+            unequal_rows = np.array(
+                [
+                    i
+                    for i in range(covariates.shape[0])
+                    if not np.array_equal(covariates[i], this_cov[i])
+                ]
             )
-            assert np.array_equal(
-                covariates, zarr.load(burden_dirs[i] / "x.zarr")
-            )  # TODO: Phenotype-specific covariates
-            assert np.array_equal(genes, np.load(burden_dirs[i] / "genes.npy"))
+            for i in unequal_rows:
+                assert np.all(
+                    (np.abs(covariates[i] - this_cov[i]) < 1e-6)
+                    | (np.isnan(covariates[i]) & np.isnan(this_cov[i]))
+                )
 
     sample_df = pd.DataFrame({"FID": sample_ids, "IID": sample_ids})
-
-    if not skip_samples:
-        ## Make sample file
-        logger.info(f"Creating sample file {sample_file}")
-        samples_out = pd.concat(
-            [
-                pd.DataFrame({"ID_1": 0, "ID_2": 0}, index=[0]),
-                sample_df.rename(
-                    columns={
-                        "FID": "ID_1",
-                        "IID": "ID_2",
-                    }
-                ),
-            ]
-        )
-        samples_out.to_csv(sample_file, sep=" ", index=False)
 
     if not skip_covariates:
         ## Make covariate file
@@ -475,11 +386,33 @@ def make_regenie_input_(
         pheno_df.to_csv(phenotype_file, sep=" ", index=False, na_rep="NA")
 
     if not skip_burdens:
-        logger.warning(
-            "Using burdens from first phenotype passed. "
-            "Burdens from other phenotypes will be ignored."
+        burden_file, gene_file, b_sample_file = burdens_genes_samples
+
+        genes = np.load(gene_file)
+        n_genes = genes.shape[0]
+
+        sample_ids = zarr.load(
+            b_sample_file
+        )  # Might be different from those for the phenotypes
+        n_samples = sample_ids.shape[0]
+
+        ## Make sample file
+        logger.info(f"Creating sample file {sample_file}")
+        sample_df = pd.DataFrame({"FID": sample_ids, "IID": sample_ids})
+        samples_out = pd.concat(
+            [
+                pd.DataFrame({"ID_1": 0, "ID_2": 0}, index=[0]),
+                sample_df.rename(
+                    columns={
+                        "FID": "ID_1",
+                        "IID": "ID_2",
+                    }
+                ),
+            ]
         )
-        burdens_zarr = zarr.open(burden_dirs[0] / "burdens.zarr")
+        samples_out.to_csv(sample_file, sep=" ", index=False)
+
+        burdens_zarr = zarr.open(burden_file)
         if not debug:
             assert burdens_zarr.shape[0] == n_samples
             assert burdens_zarr.shape[1] == n_genes
@@ -504,7 +437,7 @@ def make_regenie_input_(
             (gene_pos.Feature == "gene") & (gene_pos.gene_type == "protein_coding")
         ][["Chromosome", "Start", "End", "gene_id"]].as_df()
         gene_pos = gene_pos.set_index("gene_id")
-        gene_metadata = pd.read_parquet(gene_file).set_index("id")
+        gene_metadata = pd.read_parquet(gene_metadata_file).set_index("id")
         this_gene_pos = gene_pos.loc[gene_metadata.loc[genes, "gene"]]
         pseudovar_pos = (this_gene_pos.End - this_gene_pos.Start).to_numpy().astype(int)
         ensgids = this_gene_pos.index.to_numpy()
@@ -541,10 +474,17 @@ def make_regenie_input_(
 
 @cli.command()
 @click.option("--debug", is_flag=True)
-@click.option("--skip-samples", is_flag=True)
 @click.option("--skip-covariates", is_flag=True)
 @click.option("--skip-phenotypes", is_flag=True)
 @click.option("--skip-burdens", is_flag=True)
+@click.option(
+    "--burdens-genes-samples",
+    type=(
+        click.Path(path_type=Path, exists=True),
+        click.Path(path_type=Path, exists=True),
+        click.Path(path_type=Path, exists=True),
+    ),
+)
 @click.option("--repeat", type=int, default=-1)
 @click.option("--average-repeats", is_flag=True)
 @click.option(
@@ -562,14 +502,14 @@ def make_regenie_input_(
 @click.option("--phenotype-file", type=click.Path(path_type=Path))
 # @click.argument("dataset-file", type=click.Path(exists=True, path_type=Path))
 # @click.argument("burden-dir", type=click.Path(exists=True, path_type=Path))
-@click.argument("gene-file", type=click.Path(exists=True, path_type=Path))
+@click.argument("gene-metadata-file", type=click.Path(exists=True, path_type=Path))
 @click.argument("gtf", type=click.Path(exists=True, path_type=Path))
 def make_regenie_input(
     debug: bool,
-    skip_samples: bool,
     skip_covariates: bool,
     skip_phenotypes: bool,
     skip_burdens: bool,
+    burdens_genes_samples: Optional[Tuple[Path, Path, Path]],
     repeat: int,
     average_repeats: bool,
     phenotype: Tuple[Tuple[str, Path, Path]],
@@ -577,15 +517,15 @@ def make_regenie_input(
     covariate_file: Optional[Path],
     phenotype_file: Optional[Path],
     bgen: Optional[Path],
-    gene_file: Path,
+    gene_metadata_file: Path,
     gtf: Path,
 ):
     make_regenie_input_(
         debug=debug,
-        skip_samples=skip_samples,
         skip_covariates=skip_covariates,
         skip_phenotypes=skip_phenotypes,
         skip_burdens=skip_burdens,
+        burdens_genes_samples=burdens_genes_samples,
         repeat=repeat,
         average_repeats=average_repeats,
         phenotype=phenotype,
@@ -593,7 +533,7 @@ def make_regenie_input(
         covariate_file=covariate_file,
         phenotype_file=phenotype_file,
         bgen=bgen,
-        gene_file=gene_file,
+        gene_metadata_file=gene_metadata_file,
         gtf=gtf,
     )
 
@@ -839,13 +779,168 @@ def load_models(
     return agg_models
 
 
+def compute_burdens_(
+    debug: bool,
+    config: Dict,
+    ds: torch.utils.data.Dataset,
+    cache_dir: str,
+    agg_models: Dict[str, List[nn.Module]],
+    data_key: str = "association_testing_data",
+    n_chunks: Optional[int] = None,
+    chunk: Optional[int] = None,
+    device: torch.device = torch.device("cpu"),
+    bottleneck: bool = False,
+    compression_level: int = 1,
+) -> Tuple[np.ndarray, zarr.core.Array, zarr.core.Array]:
+    """
+    Compute burdens using the PyTorch model for each repeat.
+
+    :param debug: Flag for debugging.
+    :type debug: bool
+    :param data_key: Key for dataset configuration in the config dictionary, defaults to "association_testing_data".
+    :type data_key: str
+    :param config: Configuration dictionary.
+    :type config: Dict
+    :param ds: Torch dataset.
+    :type ds: torch.utils.data.Dataset
+    :param cache_dir: Directory to cache zarr files of computed burdens, x phenotypes, and y phenotypes.
+    :type cache_dir: str
+    :param agg_models: Loaded PyTorch model(s) for each repeat used for burden computation.
+        Each key in the dictionary corresponds to a respective repeat.
+    :type agg_models: Dict[str, List[nn.Module]]
+    :param n_chunks: Number of chunks to split data for processing, defaults to None.
+    :type n_chunks: Optional[int]
+    :param chunk: Index of the chunk of data, defaults to None.
+    :type chunk: Optional[int]
+    :param device: Device to perform computations on, defaults to "cpu".
+    :type device: torch.device
+    :param bottleneck: Flag to enable bottlenecking number of batches, defaults to False.
+    :type bottleneck: bool
+    :param compression_level: Blosc compressor compression level for zarr files, defaults to 1.
+    :type compression_level: int
+    :return: Tuple containing genes, burdens, target y phenotypes, x phenotypes and sample ids.
+    :rtype: Tuple[np.ndarray, zarr.core.Array, zarr.core.Array, zarr.core.Array, zarr.core.Array]
+
+    .. note::
+        Checkpoint models all corresponding to the same repeat are averaged for that repeat.
+    """
+    logger.info("agg_models[*][*].reverse:")
+    pprint(
+        {repeat: [m.reverse for m in models] for repeat, models in agg_models.items()}
+    )
+
+    data_config = config[data_key]
+
+    ds_full = ds.dataset if isinstance(ds, Subset) else ds
+    collate_fn = getattr(ds_full, "collate_fn", None)
+    n_total_samples = len(ds)
+    ds.rare_embedding.skip_embedding = False
+
+    if chunk is not None:
+        if n_chunks is None:
+            raise ValueError("n_chunks must be specified if chunk is not None")
+
+        chunk_length = math.ceil(n_total_samples / n_chunks)
+        chunk_start = chunk * chunk_length
+        chunk_end = min(n_total_samples, chunk_start + chunk_length)
+        samples = range(chunk_start, chunk_end)
+        n_samples_chunk = len(samples)
+        ds = Subset(ds, samples)
+
+        logger.info(f"Processing samples in {samples} from {n_total_samples} in total")
+    else:
+        logger.info("Processing all samples as one chunk.")
+        n_samples_chunk = n_total_samples
+        chunk_start = 0
+        chunk_end = n_samples_chunk
+
+    dataloader_config = data_config["dataloader_config"]
+
+    if torch.cuda.is_available():
+        pin_memory = dataloader_config.get("pin_memory", True)
+
+        logger.info(f"CUDA is available, setting pin_memory={pin_memory}")
+        dataloader_config["pin_memory"] = pin_memory
+
+    dl = DataLoader(ds, collate_fn=collate_fn, **dataloader_config)
+
+    logger.info("Computing gene impairment scores")
+    batch_size = data_config["dataloader_config"]["batch_size"]
+    with torch.no_grad():
+        burdens_chunk_path = Path(cache_dir) / "chunks" / f"chunk_{chunk}"
+        burdens_chunk_path.mkdir(exist_ok=True, parents=True)
+        logger.info(f"Writing chunks to {burdens_chunk_path}")
+        logger.info(f"Writing chunk to {burdens_chunk_path}")
+
+        for i, batch in tqdm(
+            enumerate(dl),
+            file=sys.stdout,
+            total=(n_samples_chunk // batch_size + (n_samples_chunk % batch_size != 0)),
+        ):
+            this_burdens, this_sampleid = get_burden(batch, agg_models, device=device)
+            if i == 0:
+                chunk_burden = np.zeros(
+                    shape=(n_samples_chunk,) + this_burdens.shape[1:]
+                )
+                chunk_sampleid = [""] * n_samples_chunk
+
+                logger.info(f"Batch size: {batch['rare_variant_annotations'].shape}")
+
+                burdens = zarr.open(
+                    burdens_chunk_path / "burdens.zarr",
+                    mode="a",
+                    shape=chunk_burden.shape,
+                    chunks=(1000, 1000, 1),
+                    dtype=np.float32,
+                    compressor=Blosc(clevel=compression_level),
+                )
+                burdens.attrs["chunk"] = chunk
+                logger.info(f"burdens shape: {burdens.shape}")
+
+                sample_ids = zarr.open(
+                    burdens_chunk_path / "sample_ids.zarr",
+                    mode="a",
+                    shape=(n_samples_chunk),
+                    chunks=(None),
+                    dtype="U200",
+                    compressor=Blosc(clevel=compression_level),
+                )
+                sample_ids.attrs["n_total_samples"] = n_total_samples
+                sample_ids.attrs["chunk"] = chunk
+
+            start_idx = i * batch_size
+            end_idx = min(start_idx + batch_size, chunk_end)  # read from chunk shape
+
+            chunk_burden[start_idx:end_idx] = this_burdens
+
+            chunk_sampleid[start_idx:end_idx] = this_sampleid
+
+            if debug:
+                logger.info(
+                    "Wrote results for batch indices " f"[{start_idx}, {end_idx - 1}]"
+                )
+
+            if bottleneck and i > 20:
+                break
+
+        burdens[:] = chunk_burden[:]
+        sample_ids[:] = chunk_sampleid[:]
+
+    if torch.cuda.is_available():
+        logger.info(
+            "Max GPU memory allocated: " f"{torch.cuda.max_memory_allocated(0)} bytes"
+        )
+
+    return ds_full.rare_embedding.genes, burdens, sample_ids
+
+
 @cli.command()
 @click.option("--debug", is_flag=True)
 @click.option("--bottleneck", is_flag=True)
+@click.option("--data-key", type=str, default="association_testing_data")
 @click.option("--n-chunks", type=int)
 @click.option("--chunk", type=int)
 @click.option("--dataset-file", type=click.Path(exists=True))
-@click.option("--link-burdens", type=click.Path())
 @click.argument("data-config-file", type=click.Path(exists=True))
 @click.argument("model-config-file", type=click.Path(exists=True))
 @click.argument("checkpoint-files", type=click.Path(exists=True), nargs=-1)
@@ -853,10 +948,10 @@ def load_models(
 def compute_burdens(
     debug: bool,
     bottleneck: bool,
+    data_key: str,
     n_chunks: Optional[int],
     chunk: Optional[int],
     dataset_file: Optional[str],
-    link_burdens: Optional[str],
     data_config_file: str,
     model_config_file: str,
     checkpoint_files: Tuple[str],
@@ -869,14 +964,14 @@ def compute_burdens(
     :type debug: bool
     :param bottleneck: Flag to enable bottlenecking number of batches.
     :type bottleneck: bool
+    :param data_key: Key for dataset configuration in the config dictionary, defaults to "association_testing_data".
+    :type data_key: str
     :param n_chunks: Number of chunks to split data for processing, defaults to None.
     :type n_chunks: Optional[int]
     :param chunk: Index of the chunk of data, defaults to None.
     :type chunk: Optional[int]
     :param dataset_file: Path to the dataset file, i.e., association_dataset.pkl.
     :type dataset_file: Optional[str]
-    :param link_burdens: Path to burden.zarr file to link.
-    :type link_burdens: Optional[str]
     :param data_config_file: Path to the data configuration file.
     :type data_config_file: str
     :param model_config_file: Path to the model configuration file.
@@ -905,7 +1000,7 @@ def compute_burdens(
         with open(dataset_file, "rb") as f:
             dataset = pickle.load(f)
     else:
-        dataset = make_dataset_(config)
+        dataset = make_dataset_(data_config)
 
     if torch.cuda.is_available():
         logger.info("Using GPU")
@@ -914,30 +1009,122 @@ def compute_burdens(
         logger.info("Using CPU")
         device = torch.device("cpu")
 
-    if link_burdens is None:
-        agg_models = load_models(model_config, checkpoint_files, device=device)
-    else:
-        agg_models = None
+    agg_models = load_models(model_config, checkpoint_files, device=device)
 
-    genes, _, _, _, _ = compute_burdens_(
+    genes, _, _ = compute_burdens_(
         debug,
         data_config,
         dataset,
         out_dir,
         agg_models,
+        data_key=data_key,
         n_chunks=n_chunks,
         chunk=chunk,
         device=device,
         bottleneck=bottleneck,
-        skip_burdens=(link_burdens is not None),
     )
 
     logger.info("Saving computed burdens, corresponding genes, and targets")
     np.save(Path(out_dir) / "genes.npy", genes)
-    if link_burdens is not None:
-        source_path = Path(out_dir) / "burdens.zarr"
-        source_path.unlink(missing_ok=True)
-        source_path.symlink_to(link_burdens)
+
+
+@cli.command()
+@click.option("--n-chunks", type=int, required=True)
+@click.option("--skip-burdens", is_flag=True, default=False)
+@click.option("--overwrite", is_flag=True, default=False)
+@click.argument("burdens-chunks-dir", type=click.Path(exists=True))
+@click.argument("result-dir", type=click.Path(exists=True))
+def combine_burden_chunks(
+    n_chunks: int,
+    skip_burdens: bool,
+    overwrite: bool,
+    burdens_chunks_dir: Path,
+    result_dir: Path,
+):
+    combine_burden_chunks_(
+        n_chunks=n_chunks,
+        skip_burdens=skip_burdens,
+        overwrite=overwrite,
+        burdens_chunks_dir=Path(burdens_chunks_dir),
+        result_dir=Path(result_dir),
+    )
+
+
+def combine_burden_chunks_(
+    n_chunks: int,
+    burdens_chunks_dir: Path,
+    skip_burdens: bool,
+    overwrite: bool,
+    result_dir: Path,
+):
+    compression_level = 1
+    burdens_chunks_dir = Path(burdens_chunks_dir)
+
+    burdens, sample_ids = None, None
+    start_id = None
+    end_id = 0
+
+    for i, chunk in tqdm(
+        enumerate(range(0, n_chunks)), desc=f"Merging {n_chunks} chunks"
+    ):
+        chunk_dir = burdens_chunks_dir / f"chunk_{chunk}"
+
+        if not skip_burdens:
+            burdens_chunk = zarr.open((chunk_dir / "burdens.zarr").as_posix(), mode="r")
+            assert burdens_chunk.attrs["chunk"] == chunk
+
+        sample_ids_chunk = zarr.open(
+            (chunk_dir / "sample_ids.zarr").as_posix(), mode="r"
+        )
+
+        total_samples = sample_ids_chunk.attrs["n_total_samples"]
+
+        assert sample_ids_chunk.attrs["chunk"] == chunk
+
+        burdens_path = result_dir / "burdens.zarr"
+        sample_ids_path = result_dir / "sample_ids.zarr"
+
+        if i == 0:
+            if not skip_burdens:
+                burdens_shape = (total_samples,) + burdens_chunk.shape[1:]
+
+                if not overwrite:
+                    assert not burdens_path.exists()
+                else:
+                    logger.debug("Overwriting existing files")
+
+                logger.debug(f"Opening {burdens_path} in append mode")
+                burdens = zarr.open(
+                    burdens_path.as_posix(),
+                    mode="a",
+                    shape=burdens_shape,
+                    chunks=(1000, 1000, 1),
+                    dtype=np.float32,
+                    compressor=Blosc(clevel=compression_level),
+                )
+                assert burdens_path.exists()
+
+            logger.debug(f"Opening {sample_ids_path} in append mode")
+            sample_ids = zarr.open(
+                sample_ids_path,
+                mode="a",
+                shape=(total_samples),
+                chunks=(None),
+                dtype="U200",
+                compressor=Blosc(clevel=compression_level),
+            )
+
+            assert sample_ids_path.exists()
+
+        start_id = end_id
+        end_id += len(sample_ids_chunk)
+
+        sample_ids[start_id:end_id] = sample_ids_chunk[:]
+
+        if not skip_burdens:
+            burdens[start_id:end_id] = burdens_chunk[:]
+
+    logger.info(f"Done merging {n_chunks} chunks.")
 
 
 def regress_on_gene_scoretest(
@@ -1083,7 +1270,7 @@ def regress_(
     """
     assert len(gene_indices) == len(genes)
 
-    logger.info(f"Computing associations")
+    logger.info("Computing associations")
     logger.info(f"Covariates shape: {x_pheno.shape}, y shape: {y.shape}")
 
     regressed_genes = []
@@ -1141,12 +1328,11 @@ def regress_(
 @click.option("--n-chunks", type=int, default=1)
 @click.option("--use-bias", is_flag=True)
 @click.option("--gene-file", type=click.Path(exists=True))
-@click.option("--repeat", type=int, default=0)
 @click.option("--do-scoretest", is_flag=True)
 @click.option("--sample-file", type=click.Path(exists=True))
-@click.option("--burden-file", type=click.Path(exists=True))
 @click.argument("config-file", type=click.Path(exists=True))
-@click.argument("burden-dir", type=click.Path(exists=True))
+@click.argument("xy-dir", type=click.Path(exists=True))
+@click.argument("burden-file", type=click.Path(exists=True))
 @click.argument("out-dir", type=click.Path())
 def regress(
     debug: bool,
@@ -1154,13 +1340,12 @@ def regress(
     n_chunks: int,
     use_bias: bool,
     gene_file: str,
-    repeat: int,
     config_file: str,
-    burden_dir: str,
+    xy_dir: str,
+    burden_file: str,
     out_dir: str,
     do_scoretest: bool,
     sample_file: Optional[str],
-    burden_file: Optional[str],
 ):
     """
     Perform regression analysis.
@@ -1175,12 +1360,12 @@ def regress(
     :type use_bias: bool
     :param gene_file: Path to the gene file.
     :type gene_file: str
-    :param repeat: Index of the repeat, defaults to 0.
-    :type repeat: int
     :param config_file: Path to the configuration file.
     :type config_file: str
-    :param burden_dir: Path to the directory containing burdens.zarr file.
-    :type burden_dir: str
+    :param xy_dir: Path to the directory containing the x.zarr and y.zarr files.
+    :type xy_dir: str
+    :param burden_file: Path to the burdens.zarr file.
+    :type burden_file: str
     :param out_dir: Path to the output directory.
     :type out_dir: str
     :param do_scoretest: Flag to use the scoretest from SEAK.
@@ -1189,16 +1374,25 @@ def regress(
     :type sample_file: Optional[str]
     :return: Regression results saved to out_dir as "burden_associations_{chunk}.parquet"
     """
-    logger.info("Loading saved burdens")
+    burden_dir = Path(burden_file).parent
     # if burden_file is not None:
     #     logger.info(f'Loading burdens from {burden_file}')
     #     burdens = zarr.open(burden_file)[:, :, repeat]
     # else:
     #     burdens = zarr.open(Path(burden_dir) / "burdens.zarr")[:, :, repeat]
-    logger.info(f"Loading x, y, genes from {burden_dir}")
-    y = zarr.open(Path(burden_dir) / "y.zarr")[:]
-    x_pheno = zarr.open(Path(burden_dir) / "x.zarr")[:]
-    genes = pd.Series(np.load(Path(burden_dir) / "genes.npy"))
+    logger.info(f"Loading covariates and targets from {xy_dir}")
+    y = zarr.load(Path(xy_dir) / "y.zarr")
+    x_pheno = zarr.load(Path(xy_dir) / "x.zarr")
+
+    # Find overlap in sample IDs
+    xy_sample_ids = zarr.load(Path(xy_dir) / "sample_ids.zarr")
+    burden_sample_ids = zarr.load(Path(burden_dir) / "sample_ids.zarr")
+    if len(set(xy_sample_ids).intersection(set(burden_sample_ids))) == 0:
+        raise ValueError("No common sample IDs between xy_dir and burden_dir")
+    if len(set(xy_sample_ids)) != xy_sample_ids.shape[0]:
+        raise ValueError("Duplicate sample IDs in xy_dir")
+    if len(set(burden_sample_ids)) != burden_sample_ids.shape[0]:
+        raise ValueError("Duplicate sample IDs in burden_dir")
 
     if sample_file is not None:
         with open(sample_file, "rb") as f:
@@ -1210,18 +1404,33 @@ def regress(
         x_pheno = x_pheno[samples]
 
     n_samples = y.shape[0]
-    assert y.shape[0] == n_samples
-    assert x_pheno.shape[0] == n_samples
-    # assert len(genes) == burdens.shape[1]
+    try:
+        assert y.shape[0] == n_samples
+        assert x_pheno.shape[0] == n_samples
+    except:
+        raise ValueError(
+            "Inconsistent number of samples between covariates and targets"
+        )
 
-    nan_mask = ~np.isnan(y).squeeze()
-    y = y[nan_mask]
-    # burdens = burdens[nan_mask]
-    x_pheno = x_pheno[nan_mask]
+    x_pheno_cols = [f"xy_pheno_{i}" for i in range(x_pheno.shape[1])]
+    xy_dict = {
+        c: x.squeeze()
+        for c, x in zip(x_pheno_cols, np.split(x_pheno, x_pheno.shape[1], axis=1))
+    }
+    xy_dict["sample"] = xy_sample_ids
+    xy_dict["y"] = y.squeeze()
+    xy_df = pd.DataFrame(xy_dict)
+    burden_sample_df = pd.DataFrame({"sample": burden_sample_ids})
+    xy_df = pd.merge(burden_sample_df, xy_df, how="left", sort=False)
+    # Assert the rows of this DF correspond to rows of burden_dir/burdens.zarr
+    # (should be guaranteed by Pandas, this is just a sanity check)
+    assert np.array_equal(xy_df["sample"].to_numpy(), burden_sample_ids)
 
     with open(config_file) as f:
         config = yaml.safe_load(f)
 
+    logger.info(f"Loading saved burdens from {burden_dir}")
+    genes = pd.Series(np.load(Path(burden_dir) / "genes.npy"))
     if gene_file is not None:
         logger.info("Loading gene names")
         gene_df = pd.read_parquet(gene_file, engine="pyarrow")
@@ -1237,28 +1446,23 @@ def regress(
 
     genes = genes.iloc[chunk_start:chunk_end]
     gene_indices = np.arange(len(genes))
+
     logger.info(f"Only extracting genes in range {chunk_start, chunk_end}")
-    if burden_file is not None:
-        logger.info(f"Loading burdens from {burden_file}")
-        burdens = zarr.open(burden_file)[:, chunk_start:chunk_end, repeat]
-    else:
-        burdens = zarr.open(Path(burden_dir) / "burdens.zarr")[
-            :, chunk_start:chunk_end, repeat
-        ]
+    burdens = zarr.open(burden_file)[:, chunk_start:chunk_end, 0]
 
     if sample_file is not None:
         burdens = burdens[samples]
-    burdens = burdens[nan_mask]
+    # burdens = burdens[nan_mask]
     assert len(genes) == burdens.shape[1]
 
     associations = regress_(
         config,
         use_bias,
         burdens,
-        y,
+        xy_df["y"].to_numpy(),
         gene_indices,
         genes,
-        x_pheno,
+        xy_df[x_pheno_cols].to_numpy(),
         do_scoretest=do_scoretest,
     )
 
@@ -1288,7 +1492,7 @@ def combine_regression_results(
     :type model_name: Optional[str]
     :return: Concatenated regression results saved to a parquet file.
     """
-    logger.info(f"Concatenating results")
+    logger.info("Concatenating results")
     results = pd.concat([pd.read_parquet(f, engine="pyarrow") for f in result_files])
 
     if model_name is not None:
@@ -1530,7 +1734,7 @@ def regress_common_(
     assert len(gene_indices) == len(genes)
     logger.info(common_genotype_prefix)
 
-    logger.info(f"Computing associations")
+    logger.info("Computing associations")
     logger.info(f"Covariates shape: {x_pheno.shape}, y shape: {y.shape}")
 
     regressed_genes = []
