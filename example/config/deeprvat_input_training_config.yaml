@@ -4,9 +4,6 @@ training_only: True
 phenotypes_for_training:
   - Apolipoprotein_A
   - Apolipoprotein_B
-  - Calcium
-  - Cholesterol
-  - Red_blood_cell_erythrocyte_count
 
 # File paths of necessary input files to DeepRVAT
 gt_filename: genotypes.h5

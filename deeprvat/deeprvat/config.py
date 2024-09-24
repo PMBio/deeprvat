@@ -30,6 +30,7 @@ def cli():
 def create_main_config(
     config_file: str,
     output_dir: Optional[str] = ".",
+    clobber: Optional[bool] = False,
 ):
     """
     Generates the necessary deeprvat_config.yaml file for running all pipelines.
@@ -40,8 +41,30 @@ def create_main_config(
     :type config_file: str
     :param output_dir: Path to directory where created deeprvat_config.yaml will be saved.
     :type output_dir: str
+    :param clobber: Overwrite existing deeprvat_config.yaml, even if it is newer than config_file
+    :type clobber: bool
     :return: Joined configuration file saved to deeprvat_config.yaml.
     """
+
+    config_path = Path(config_file)
+    output_path = Path(output_dir) / "deeprvat_config.yaml"
+    if not output_path.exists():
+        if not config_path.exists():
+            raise ValueError(
+                f"Neither input config {config_path} nor output config {output_path} exists"
+            )
+    else:
+        if not config_path.exists():
+            return
+        elif config_path.stat().st_mtime > output_path.stat().st_mtime:
+            logger.info("Generating deeprvat_config.yaml")
+            logger.info(f"{output_path} is older than {config_path}, regenerating")
+        else:
+            if clobber:
+                logger.info("Generating deeprvat_config.yaml")
+                logger.warning(f"Overwriting newer file {output_path} as clobber=True")
+            else:
+                return
 
     # Set stdout file
     file_handler = logging.FileHandler("config_generate.log", mode="a")
@@ -83,6 +106,9 @@ def create_main_config(
         "regenie_options",
     ]
 
+    optional_input_keys = [
+        "deterministic",
+    ]
     # Check if Training Only
     if input_config.get("training_only", False):
         train_only = True
@@ -220,8 +246,9 @@ def create_main_config(
         )
 
     # Final Check of Keys
-    if set(input_config.keys()) != set(expected_input_keys):
-        if set(input_config.keys()) - set(expected_input_keys):
+    keys_to_check = set(input_config.keys()) - set(optional_input_keys)
+    if keys_to_check != set(expected_input_keys):
+        if keys_to_check - set(expected_input_keys):
             raise KeyError(
                 (
                     "Unspecified key(s) present in input YAML file. "
@@ -229,7 +256,7 @@ def create_main_config(
                     "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
                 )
             )
-        if set(expected_input_keys) - set(input_config.keys()):
+        if set(expected_input_keys) - keys_to_check:
             raise KeyError(
                 (
                     "Missing key(s) in input YAML file. "
@@ -248,6 +275,8 @@ def create_main_config(
                 "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
             )
 
+    # Determinism
+    full_config["deterministic"] = input_config.get("deterministic", False)
     full_config["training_data"]["gt_file"] = input_config[
         "gt_filename"
     ]  # genotypes.h5
@@ -298,8 +327,8 @@ def create_main_config(
             "rare_variant_annotations"
         ]  # rare_variant_annotations
         full_config["association_testing_data"]["dataset_config"]["x_phenotypes"] = (
-            input_config["covariates"]  # covariates
-        )
+            input_config["covariates"]
+        )  # covariates
 
     # Thresholds & variant annotations
     anno_list = deepcopy(input_config["rare_variant_annotations"])
@@ -380,7 +409,7 @@ def create_main_config(
         full_config["model"] = input_config["model"]
         full_config["pretrained_model_path"] = input_config["pretrained_model_path"]
 
-    with open(f"{output_dir}/deeprvat_config.yaml", "w") as f:
+    with open(output_path, "w") as f:
         yaml.dump(full_config, f)
         logger.info(
             f"Saving deeprvat_config.yaml to -- {output_dir}/deeprvat_config.yaml --"
@@ -533,6 +562,7 @@ def create_sg_discovery_config(
 @click.option("--baseline-results", type=click.Path(exists=True), multiple=True)
 @click.option("--baseline-results-out", type=click.Path())
 @click.option("--seed-genes-out", type=click.Path())
+# @click.option("--regenie-options", type=str, multiple=True)
 @click.argument("old_config_file", type=click.Path(exists=True))
 @click.argument("new_config_file", type=click.Path())
 def update_config(
@@ -540,6 +570,7 @@ def update_config(
     phenotype: Optional[str],
     baseline_results: Tuple[str],
     baseline_results_out: Optional[str],
+    # regenie_options: Optional[Tuple[str]],
     seed_genes_out: Optional[str],
     old_config_file: str,
     new_config_file: str,
@@ -630,7 +661,6 @@ def update_config(
             if baseline_results_out is not None:
                 baseline_df.to_parquet(baseline_results_out, engine="pyarrow")
             if correction_method is not None:
-
                 logger.info(f"Using significant genes with corrected pval < {alpha}")
                 if (
                     len(baseline_df.query("significant")["gene"].unique())
