@@ -1,22 +1,23 @@
 from pathlib import Path
-from os.path import exists
+from deeprvat.deeprvat.config import create_main_config
 
-if not exists('./deeprvat_config.yaml'):
-    if not config: #--configfile argument was not passed
-        print("Generating deeprvat_config.yaml...")
-        from deeprvat.deeprvat.config import create_main_config
-        create_main_config('deeprvat_input_training_config.yaml')
-        print("     Finished.")
+create_main_config("deeprvat_input_training_config.yaml")
 
 configfile: 'deeprvat_config.yaml'
 
 debug_flag = config.get('debug', False)
-training_phenotypes = config["training"]["phenotypes"]
+debug = '--debug ' if debug_flag else ''
+deterministic_flag = config.get('deterministic', False)
+deterministic = '--deterministic ' if deterministic_flag else ''
+
+#phenotypes = config['phenotypes'] # TODO SHOULD THIS BE HERE?
+#phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
+
+training_phenotypes = config["training"].get("phenotypes")
 training_phenotypes = list(training_phenotypes.keys()) if type(training_phenotypes) == dict else training_phenotypes
 n_trials = config['hyperparameter_optimization']['n_trials']
 n_bags = config['training']['n_bags'] if not debug_flag else 3
 n_repeats = config['n_repeats']
-debug = '--debug ' if debug_flag else ''
 tensor_compression_level = config['training'].get('tensor_compression_level', 1)
 model_path = Path("models")
 n_parallel_training_jobs = config["training"].get("n_parallel_jobs", 1)

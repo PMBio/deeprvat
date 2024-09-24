@@ -1,29 +1,6 @@
-configfile: "deeprvat_config.yaml"
-
-debug_flag = config.get('debug', False)
-debug = '--debug ' if debug_flag else ''
-
-# n_repeats = config['n_repeats']
-
-phenotypes = config['phenotypes']
-phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
-
-n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
-
-regenie_config_step1 = config["regenie_options"]["step_1"]
-regenie_config_step2 = config["regenie_options"]["step_2"]
-regenie_step1_bsize = regenie_config_step1["bsize"]
-regenie_step2_bsize = regenie_config_step2["bsize"]
-regenie_njobs = regenie_config_step1.get("njobs", 1)
-regenie_joblist = range(1, regenie_njobs)
-
 config_file_prefix = (
     "cv_split0/deeprvat/" if cv_exp else ""
 )
-
-
-wildcard_constraints:
-    job="\d+"
 
 
 rule evaluate:
@@ -36,7 +13,6 @@ rule evaluate:
     threads: 1
     resources:
         mem_mb = 16000,
-        load = 16000
     params:
         use_baseline_results = '--use-baseline-results' if 'baseline_results' in config else ''
     shell:
@@ -80,8 +56,8 @@ rule regenie_step2:
         bgen = "regenie_input/deeprvat_pseudovariants.bgen",
         covariate_file = "regenie_input/covariates.txt",
         phenotype_file = "regenie_input/phenotypes.txt",
-        step1_loco = expand("regenie_output/step1/deeprvat_{pheno_num}.loco",
-                            pheno_num=range(1, len(phenotypes) + 1)),
+        # step1_loco = expand("regenie_output/step1/deeprvat_{pheno_num}.loco",
+        #                     pheno_num=range(1, len(phenotypes) + 1)),
         step1_predlist = "regenie_output/step1/deeprvat_pred.list"
         # step1_loco = expand("regenie_output/step1/deeprvat_l1_{pheno_number}.loco",
         #                     pheno_number=range(len(phenotypes))),
@@ -91,7 +67,7 @@ rule regenie_step2:
                phenotype=phenotypes)
     threads: 16
     resources:
-        mem_mb = 4096
+        mem_mb = 16384
     shell:
         "regenie "
         "--step 2 "
@@ -114,8 +90,8 @@ rule regenie_step1:
         covariate_file = "regenie_input/covariates.txt",
         phenotype_file = "regenie_input/phenotypes.txt",
     output:
-        expand("regenie_output/step1/deeprvat_{pheno_num}.loco",
-               pheno_num=range(1, len(phenotypes) + 1)),
+        # expand("regenie_output/step1/deeprvat_{pheno_num}.loco",
+        #        pheno_num=range(1, len(phenotypes) + 1)),
         "regenie_output/step1/deeprvat_pred.list"
     threads: 24
     resources:
@@ -234,16 +210,20 @@ rule make_regenie_burdens:
     input:
         gene_file = config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"],
         gtf_file = config["gtf_file"],
-        burdens = [f'{phenotype}/deeprvat/burdens/chunk{chunk}.' +
-                   ("finished" if phenotype == phenotypes[0] else "linked")
-                   for phenotype in phenotypes
-                   for chunk in range(n_burden_chunks)],
         datasets = expand("{phenotype}/deeprvat/association_dataset.pkl",
                           phenotype=phenotypes),
+        chunks =  expand(
+            'burdens/log/burdens_averaging_{chunk}.finished',
+            chunk=range(n_avg_chunks)
+        ),
     params:
-        phenotypes = " ".join([f"--phenotype {p} {p}/deeprvat/association_dataset.pkl {p}/deeprvat/burdens"
-                               for p in phenotypes]) + " "
+        phenotypes = " ".join([f"--phenotype {p} {p}/deeprvat/association_dataset.pkl {p}/deeprvat/xy"
+                               for p in phenotypes]) + " ",
+        burdens = burdens,
+        genes = burdens.parent / "genes.npy",
+        samples = burdens.parent / "sample_ids.zarr",
     output:
+        sample_file = "regenie_input/deeprvat_pseudovariants.sample",
         bgen = "regenie_input/deeprvat_pseudovariants.bgen",
     threads: 8
     resources:
@@ -251,14 +231,15 @@ rule make_regenie_burdens:
     shell:
         "deeprvat_associate make-regenie-input "
         + debug +
-        "--skip-samples "
         "--skip-covariates "
         "--skip-phenotypes "
         "--average-repeats "
-        "{params.phenotypes}"
+        "{params.phenotypes} "
         # "{input.dataset} "
         # "{wildcards.phenotype}/deeprvat/burdens "
+        "--sample-file {output.sample_file} "
         "--bgen {output.bgen} "
+        "--burdens-genes-samples {params.burdens} {params.genes} {params.samples} "
         "{input.gene_file} "
         "{input.gtf_file} "
 
@@ -266,17 +247,16 @@ rule make_regenie_metadata:
     input:
         gene_file = config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"],
         gtf_file = config["gtf_file"],
-        burdens = [f'{phenotype}/deeprvat/burdens/chunk{chunk}.' +
-                   ("finished" if phenotype == phenotypes[0] else "linked")
-                   for phenotype in phenotypes
-                   for chunk in range(n_burden_chunks)],
+        samples = expand('{phenotype}/deeprvat/xy/sample_ids.zarr', phenotype=phenotypes),
+        x = expand('{phenotype}/deeprvat/xy/x.zarr', phenotype=phenotypes),
+        y = expand('{phenotype}/deeprvat/xy/y.zarr', phenotype=phenotypes),
         datasets = expand("{phenotype}/deeprvat/association_dataset.pkl",
                           phenotype=phenotypes),
     params:
-        phenotypes = " ".join([f"--phenotype {p} {p}/deeprvat/association_dataset.pkl {p}/deeprvat/burdens"
+        phenotypes = " ".join([f"--phenotype {p} {p}/deeprvat/association_dataset.pkl "
+                               f"{p}/deeprvat/xy"
                                for p in phenotypes]) + " "
     output:
-        sample_file = "regenie_input/deeprvat_pseudovariants.sample",
         covariate_file = "regenie_input/covariates.txt",
         phenotype_file = "regenie_input/phenotypes.txt",
     threads: 1
@@ -289,8 +269,35 @@ rule make_regenie_metadata:
         "{params.phenotypes}"
         # "{input.dataset} "
         # "{wildcards.phenotype}/deeprvat/burdens "
-        "--sample-file {output.sample_file} "
         "--covariate-file {output.covariate_file} "
         "--phenotype-file {output.phenotype_file} "
         "{input.gene_file} "
         "{input.gtf_file} "
+
+
+rule average_burdens:
+    input:
+        'burdens/burdens.zarr'
+        if not cv_exp
+        else f'burdens/log/{phenotypes[0]}/merging.finished',
+    output:
+        'burdens/log/burdens_averaging_{chunk}.finished',
+    params:
+        burdens_in = 'burdens/burdens.zarr',
+        burdens_out = 'burdens/burdens_average.zarr',
+        repeats = lambda wildcards: ''.join([f'--repeats {r} ' for r in range(int(n_repeats))])
+    threads: 1
+    resources:
+        mem_mb = lambda wildcards, attempt: 4098 + (attempt - 1) * 4098,
+    priority: 10,
+    shell:
+        ' && '.join([
+            ('deeprvat_associate  average-burdens '
+             '--n-chunks ' + str(n_avg_chunks) + ' '
+             '--chunk {wildcards.chunk} '
+             '{params.repeats} '
+             '--agg-fct mean  '  #TODO remove this
+             '{params.burdens_in} '
+             '{params.burdens_out}'),
+            'touch {output}'
+        ])
