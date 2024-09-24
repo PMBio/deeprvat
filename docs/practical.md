@@ -4,7 +4,7 @@ For users wishing to train a custom DeepRVAT model, we provide here some practic
 
 ## Model architecture
 
-We found no benefit to using architectures larger than that used in the [DeepRVAT pupblication](https://www.nature.com/articles/s41588-024-01919-z) which can be found here `deeprvat/pretrained_models/config.yaml`. Though we conjecture that larger architectures may provide some benefit with larger training data and more annotations. We performed limited experimentation with the aggregation function used and found the maximum to give better results than the sum. However, exploring other choices or a learned aggregation remains open.
+We found no benefit to using architectures larger than that used in the [DeepRVAT publication](https://www.nature.com/articles/s41588-024-01919-z) which can be found here `deeprvat/pretrained_models/config.yaml`. Though we conjecture that larger architectures may provide some benefit with larger training data and more annotations. We performed limited experimentation with the aggregation function used and found the maximum to give better results than the sum. However, exploring other choices or a learned aggregation remains open.
 
 ## Training traits and seed genes
 
