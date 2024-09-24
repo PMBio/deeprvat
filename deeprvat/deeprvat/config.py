@@ -170,8 +170,8 @@ def update_full_config(input_config, full_config, train_only):
         full_config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"]["gene_file"] = input_config["gene_filename"]
         full_config["association_testing_data"]["dataset_config"]["rare_embedding"]["config"]["annotations"] = input_config["rare_variant_annotations"]
 
-def validate_keys(input_config, expected_input_keys, base_config):
-    input_keys_set = set(input_config.keys())
+def validate_keys(input_config, expected_input_keys, optional_input_keys, base_config):
+    input_keys_set = set(input_config.keys()) - set(optional_input_keys)
     expected_keys_set = set(expected_input_keys)
     updated_base_keys = set(base_config.keys()).intersection(input_config.keys())
     
@@ -188,6 +188,7 @@ def validate_keys(input_config, expected_input_keys, base_config):
 def create_main_config(
     config_file: str,
     output_dir: Optional[str] = ".",
+    clobber: Optional[bool] = False,
 ):
     """
     Generates the necessary deeprvat_config.yaml file for running all pipelines.
@@ -198,8 +199,31 @@ def create_main_config(
     :type config_file: str
     :param output_dir: Path to directory where created deeprvat_config.yaml will be saved.
     :type output_dir: str
+    :param clobber: Overwrite existing deeprvat_config.yaml, even if it is newer than config_file
+    :type clobber: bool
     :return: Joined configuration file saved to deeprvat_config.yaml.
     """
+
+    config_path = Path(config_file)
+    output_path = Path(output_dir) / "deeprvat_config.yaml"
+    if not output_path.exists():
+        if not config_path.exists():
+            raise ValueError(
+                f"Neither input config {config_path} nor output config {output_path} exists"
+            )
+    else:
+        if not config_path.exists():
+            return
+        elif config_path.stat().st_mtime > output_path.stat().st_mtime:
+            logger.info("Generating deeprvat_config.yaml")
+            logger.info(f"{output_path} is older than {config_path}, regenerating")
+        else:
+            if clobber:
+                logger.info("Generating deeprvat_config.yaml")
+                logger.warning(f"Overwriting newer file {output_path} as clobber=True")
+            else:
+                return
+
     file_handler = setup_logging()
 
     input_config = load_yaml(config_file)
@@ -207,11 +231,28 @@ def create_main_config(
     full_config = deepcopy(update_defaults(base_config, input_config))
 
     expected_input_keys = [
-        "phenotypes_for_association_testing", "phenotypes_for_training", "gt_filename", 
-        "variant_filename", "phenotype_filename", "annotation_filename", "gene_filename", 
-        "rare_variant_annotations", "covariates", "association_testing_data_thresholds", 
-        "training_data_thresholds", "seed_gene_results", "training", "n_repeats", 
-        "y_transformation", "evaluation", "cv_options", "regenie_options"
+        "phenotypes_for_association_testing",
+        "phenotypes_for_training",
+        "gt_filename",
+        "variant_filename",
+        "phenotype_filename",
+        "annotation_filename",
+        "gene_filename",
+        "rare_variant_annotations",
+        "covariates",
+        "association_testing_data_thresholds",
+        "training_data_thresholds",
+        "seed_gene_results",
+        "training",
+        "n_repeats",
+        "y_transformation",
+        "evaluation",
+        "cv_options",
+        "regenie_options",
+    ]
+
+    optional_input_keys = [
+        "deterministic",
     ]
 
     train_only = input_config.pop("training_only", False)
@@ -239,11 +280,12 @@ def create_main_config(
     else:
         expected_input_keys.remove("y_transformation")
 
-    validate_keys(input_config, expected_input_keys, base_config)
+    validate_keys(input_config, expected_input_keys, optional_input_keys, base_config)
     update_thresholds(input_config, full_config, train_only)
     update_full_config(input_config, full_config, train_only)
 
     full_config["n_repeats"] = input_config["n_repeats"]
+    full_config["deterministic"] = input_config.get("deterministic", False)
 
     if "sample_files" in input_config:
         for key in ["training", "association_testing"]:
