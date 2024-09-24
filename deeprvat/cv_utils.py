@@ -117,7 +117,7 @@ def combine_test_set_burdens(
     compression_level = 1
     n_total_samples = []
     for xy_dir, burden_dir in zip(xy_dirs, burden_dirs):
-        print(xy_dir)
+        logger.debug(xy_dir)
         this_y = zarr.open(f"{xy_dir}/y.zarr")
         this_x = zarr.open(f"{xy_dir}/x.zarr")
         this_sample_ids_xy = zarr.load(f"{xy_dir}/sample_ids.zarr")
@@ -130,11 +130,11 @@ def combine_test_set_burdens(
             this_burdens = zarr.open(f"{burden_dir}/burdens.zarr")
             this_sample_ids_burdens = zarr.load(f"{burden_dir}/sample_ids.zarr")
             assert this_y.shape[0] == this_burdens.shape[0]
-            print(this_sample_ids_xy, this_sample_ids_burdens)
+            logger.debug(this_sample_ids_xy, this_sample_ids_burdens)
             assert np.array_equal(this_sample_ids_xy, this_sample_ids_burdens)
 
     n_total_samples = np.sum(n_total_samples)
-    print(f"Total number of samples {n_total_samples}")
+    logger.info(f"Total number of samples: {n_total_samples}")
     if not skip_burdens:
         burdens = zarr.open(
             Path(out_dir_burdens) / "burdens.zarr",
@@ -200,9 +200,11 @@ def combine_test_set_burdens(
 
     # sanity check
     if not skip_burdens and not np.array_equal(sample_ids_xy[:], sample_ids_burdens[:]):
-        logger.error("sample_ids_xy, sample_ids_burdens do not match:")
-        print(f"sample_ids_xy: {sample_ids_xy[:]}")
-        print(f"sample_ids_burdens: {sample_ids_burdens[:]}")
+        logger.error(
+            "sample_ids_xy, sample_ids_burdens do not match:\n" +
+            f"sample_ids_xy: {sample_ids_xy[:]}" +
+            f"sample_ids_burdens: {sample_ids_burdens[:]}"
+        )
         raise RuntimeError("sample_ids_xy, sample_ids_burdens do not match")
 
     y_transformation = config["association_testing_data"]["dataset_config"].get(

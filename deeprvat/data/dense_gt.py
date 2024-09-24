@@ -65,7 +65,7 @@ class DenseGTDataset(Dataset):
         split: str = "",
         train_dataset: Optional[Dataset] = None,
         chromosomes: List[str] = None,
-        phenotype_file: str = None,
+        phenotype_file: Optional[str] = None,
         standardize_xpheno: bool = True,
         standardize_anno: bool = False,
         standardize_rare_anno: bool = False,
@@ -138,12 +138,6 @@ class DenseGTDataset(Dataset):
         if phenotype_file is None:
             raise ValueError("phenotype_file must be specified")
         self.gt_filename = gt_file
-        # if gt_file is None or variant_file is None:
-        #     logger.warning(
-        #         "gt_file or variant_file was not specified, no genetic information will be returned"
-        #     )
-        #     self.return_genotypes = False
-        # else:
         self.return_genotypes = return_genotypes
         self.variant_filename = variant_file
         self.variant_matrix = None
@@ -225,21 +219,20 @@ class DenseGTDataset(Dataset):
             self.rare_embedding = None
 
     def __getitem__(self, idx: int) -> torch.tensor:
-        if self.check_samples:
-            # sanity check, can be removed in future
-            assert self.samples_gt[idx_geno] == self.samples[idx]
-
-        if self.return_genotypes and self.variant_matrix is None:
-            gt_file = h5py.File(self.gt_filename, "r")
-            self.variant_matrix = gt_file["variant_matrix"]
-            self.genotype_matrix = gt_file["genotype_matrix"]
-            if self.cache_matrices:
-                self.variant_matrix = self.variant_matrix[:]
-                self.genotype_matrix = self.genotype_matrix[:]
-
         if self.return_genotypes:
-            # idx_pheno = self.index_map_pheno[idx] #samples and phenotype is already subset so can use idx
+            if self.variant_matrix is None or self.genotype_matrix is None:
+                gt_file = h5py.File(self.gt_filename, "r")
+                self.variant_matrix = gt_file["variant_matrix"]
+                self.genotype_matrix = gt_file["genotype_matrix"]
+                if self.cache_matrices:
+                    self.variant_matrix = self.variant_matrix[:]
+                    self.genotype_matrix = self.genotype_matrix[:]
+
             idx_geno = self.index_map_geno[idx]
+            if self.check_samples:
+                # sanity check, can be removed in future
+                assert self.samples_gt[idx_geno] == self.samples[idx]
+
             sparse_variants = self.variant_matrix[idx_geno, :]
             sparse_genotype = self.genotype_matrix[idx_geno, :]
             (
@@ -383,9 +376,6 @@ class DenseGTDataset(Dataset):
             for i in np.random.choice(len(self.samples), 100):
                 # print(i)
                 assert self.samples[i] == samples_gt[self.index_map_geno[i]]
-        # else:
-        #     self.samples = self.phenotype_df.index.to_numpy()
-        #     self.n_samples = len(self.phenotype_df)
 
     def get_variant_ids(self, matrix_indices: np.ndarray) -> np.ndarray:
         return self.variant_id_map.loc[matrix_indices, "id"].to_numpy()

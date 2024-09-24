@@ -135,13 +135,7 @@ def make_dataset_(
         with open(ds_pickled, "rb") as f:
             ds = pickle.load(f)
     else:
-        # gt_variant_args = (
-        #     (data_config["gt_file"], data_config["variant_file"])
-        #     if not skip_genotypes
-        #     else tuple()
-        # )
         ds = DenseGTDataset(
-            # *gt_variant_args,
             data_config["gt_file"],
             data_config["variant_file"],
             split="",
@@ -1334,12 +1328,10 @@ def regress_(
 @click.option("--n-chunks", type=int, default=1)
 @click.option("--use-bias", is_flag=True)
 @click.option("--gene-file", type=click.Path(exists=True))
-# @click.option("--repeat", type=int, default=0)
 @click.option("--do-scoretest", is_flag=True)
 @click.option("--sample-file", type=click.Path(exists=True))
 @click.argument("config-file", type=click.Path(exists=True))
 @click.argument("xy-dir", type=click.Path(exists=True))
-# @click.argument("burden-dir", type=click.Path(exists=True))
 @click.argument("burden-file", type=click.Path(exists=True))
 @click.argument("out-dir", type=click.Path())
 def regress(
@@ -1348,15 +1340,12 @@ def regress(
     n_chunks: int,
     use_bias: bool,
     gene_file: str,
-    # repeat: int,
     config_file: str,
     xy_dir: str,
-    # burden_dir: str,
     burden_file: str,
     out_dir: str,
     do_scoretest: bool,
     sample_file: Optional[str],
-    # burden_file: Optional[str],
 ):
     """
     Perform regression analysis.
@@ -1371,12 +1360,12 @@ def regress(
     :type use_bias: bool
     :param gene_file: Path to the gene file.
     :type gene_file: str
-    # :param repeat: Index of the repeat, defaults to 0.
-    # :type repeat: int
     :param config_file: Path to the configuration file.
     :type config_file: str
-    :param burden_dir: Path to the directory containing burdens.zarr file.
-    :type burden_dir: str
+    :param xy_dir: Path to the directory containing the x.zarr and y.zarr files.
+    :type xy_dir: str
+    :param burden_file: Path to the burdens.zarr file.
+    :type burden_file: str
     :param out_dir: Path to the output directory.
     :type out_dir: str
     :param do_scoretest: Flag to use the scoretest from SEAK.

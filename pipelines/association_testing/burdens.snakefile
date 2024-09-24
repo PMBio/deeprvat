@@ -65,8 +65,8 @@ rule compute_burdens:
         data_config = f'{phenotypes[0]}/deeprvat/config.yaml',
         model_config = model_path / 'model_config.yaml',
     output:
-        burdens=directory('burdens/chunks/chunk_{chunk}/burdens.zarr'),
-        sample_ids=directory('burdens/chunks/chunk_{chunk}/sample_ids.zarr'),
+        burdens=temp(directory('burdens/chunks/chunk_{chunk}/burdens.zarr')),
+        sample_ids=temp(directory('burdens/chunks/chunk_{chunk}/sample_ids.zarr')),
     params:
         prefix = '.'
     threads: 8

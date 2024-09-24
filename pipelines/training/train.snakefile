@@ -12,6 +12,8 @@ rule best_training_run:
     input:
         expand(model_path / 'repeat_{{repeat}}/trial{trial_number}/model_config.yaml',
                trial_number=range(n_trials)),
+        expand(model_path / 'repeat_{{repeat}}/trial{trial_number}/finished.tmp',
+               trial_number=range(n_trials))
     output:
         checkpoints = expand(model_path / 'repeat_{{repeat}}/best/bag_{bag}.ckpt',
                              bag=range(n_bags)),

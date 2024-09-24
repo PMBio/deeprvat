@@ -605,16 +605,6 @@ def update_config(
     with open(old_config_file) as f:
         config = yaml.safe_load(f)
 
-    # if regenie_options is not None:
-    #     try:
-    #         existing_regenie_options = config["regenie"]["step_2"]["options"]
-    #     except KeyError:
-    #         existing_regenie_options = []
-
-    #     config["regenie"] = config.get("regenie", {})
-    #     config["regenie"]["step2"] = config["regenie"].get("step_2", {})
-    #     config["regenie"]["step_2"]["options"] = existing_regenie_options + list(regenie_options)
-
     if phenotype is not None:
         logger.info(f"Updating config for phenotype {phenotype}")
         config["association_testing_data"]["dataset_config"]["y_phenotypes"] = [
