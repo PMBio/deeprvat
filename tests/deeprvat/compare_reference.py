@@ -83,10 +83,10 @@ def compare_training(
     model_dir = results_dir / "models"
     model_reference_dir = reference_dir / "models"
 
-    with open(model_dir / "config.yaml") as f:
+    with open(model_dir / "model_config.yaml") as f:
         config = yaml.safe_load(f)
 
-    with open(model_reference_dir / "config.yaml") as f:
+    with open(model_reference_dir / "model_config.yaml") as f:
         reference_config = yaml.safe_load(f)
 
     for r in range(n_repeats):
@@ -157,8 +157,10 @@ def compare_burdens(
         if not all_close:
             raise RuntimeError(
                 f"FAIL! Max difference between results and reference results "
-                f"(array '{a}') larger than tolerance.\n"
-                f"{np.max(np.abs(reference_array - array))=}"
+                f"(array {a}) larger than tolerance.\n"
+                f"{reference_array}\n"
+                f"{array}"
+                #f"{np.max(np.abs(reference_array - array))=}"
             )
 
     for p in phenotype:
@@ -180,7 +182,7 @@ def compare_burdens(
             if not all_close:
                 raise RuntimeError(
                     f"FAIL! Max difference between results and reference results "
-                    f"(phenotype {p}, array '{a}') larger than tolerance"
+                    f"(phenotype {p}, array {a}) larger than tolerance"
                 )
 
         # else:

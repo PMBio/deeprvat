@@ -6,6 +6,10 @@ on:
       environment_file:
         required: true
         type: string
+      branch:
+        required: false
+        default: ${{ github.ref_name }}
+        type: string
       prerun_cmd:
         required: false
         type: string
@@ -40,6 +44,34 @@ on:
       postrun_cmd:
         required: false
         type: string
+      upload_training_outputs:
+        required: false
+        default: false
+        type: boolean
+      upload_pretrained_outputs:
+        required: false
+        default: false
+        type: boolean
+      download_training_outputs:
+        required: false
+        default: false
+        type: boolean
+      download_pretrained_outputs:
+        required: false
+        default: false
+        type: boolean
+      run_training_results_check:
+        required: false
+        default: false
+        type: boolean
+      run_burden_results_check:
+        required: false
+        default: false
+        type: boolean
+      run_association_results_check:
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   Run-Pipeline:
@@ -49,6 +81,8 @@ jobs:
       steps:
         - name: Check out repository code
           uses: actions/checkout@v4
+          with:
+            ref: ${{inputs.branch}}
         - uses: mamba-org/setup-micromamba@v1.8.1
           with:
             environment-file: ${{inputs.environment_file}}
@@ -85,3 +119,69 @@ jobs:
           if: inputs.postrun_cmd
           run: ${{inputs.postrun_cmd}}
           shell: micromamba-shell {0}
+        - name: Upload Training Outputs
+          id: uploaded_training_outputs
+          if: inputs.upload_training_outputs
+          uses: actions/upload-artifact@v4
+          with:
+            name: completed_training_outputs
+            path: |
+              ./example/**/seed_genes.parquet
+              ./example/**/covariates.zarr/
+              ./example/**/y.zarr/
+              ./example/**/input_tensor.zarr/
+              ./example/**/models/
+            include-hidden-files: true #for .zarr needed
+            retention-days: 1
+        - name: Upload Pretrained Outputs
+          id: uploaded_pretrained_outputs
+          if: inputs.upload_pretrained_outputs
+          uses: actions/upload-artifact@v4
+          with:
+            name: completed_pretrained_outputs
+            path: |
+              ./example/**/sample_ids.zarr/
+              ./example/**/burdens.zarr/
+              ./example/**/genes.npy
+              ./example/**/all_results.parquet
+            include-hidden-files: true #for .zarr needed
+            retention-days: 1
+        - name: Download Previous Training Outputs
+          id: downloaded_training_outputs
+          if: inputs.download_training_outputs
+          uses: actions/download-artifact@v4
+          with:
+            name: completed_training_outputs
+            path: ./tests/completed_training_outputs
+        - name: Download Previous Pretrained Outputs
+          id: downloaded_pretrained_outputs
+          if: inputs.download_pretrained_outputs
+          uses: actions/download-artifact@v4
+          with:
+            name: completed_pretrained_outputs
+            path: ./tests/completed_pretrained_outputs
+        # - name: Display structure of downloaded files
+        #   if: inputs.download_outputs
+        #   run: ls -R ./tests/completed_run_output
+        - name: Run Training Results Check
+          if: inputs.run_training_results_check
+          run: |
+            python $GITHUB_WORKSPACE/tests/deeprvat/compare_reference.py compare-training \
+            ./example/ ./tests/completed_training_outputs/ \
+            "Cholesterol" "Platelet_count"
+          shell: micromamba-shell {0}
+        - name: Run Burden Score Results Check
+          if: inputs.run_burden_results_check
+          run: |
+            python $GITHUB_WORKSPACE/tests/deeprvat/compare_reference.py compare-burdens \
+            ./example/ ./tests/completed_pretrained_outputs/ \
+            "Cholesterol" "Platelet_count"
+          shell: micromamba-shell {0}
+        - name: Run Association Results Check
+          if: inputs.run_association_results_check
+          run: |
+            python $GITHUB_WORKSPACE/tests/deeprvat/compare_reference.py compare-association \
+            ./example/ ./tests/completed_pretrained_outputs/ \
+            "Cholesterol" "Platelet_count"
+          shell: micromamba-shell {0}
+
