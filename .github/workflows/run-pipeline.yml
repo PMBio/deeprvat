@@ -141,6 +141,8 @@ jobs:
             name: completed_pretrained_outputs
             path: |
               ./example/**/sample_ids.zarr/
+              ./example/**/y.zarr/
+              ./example/**/x.zarr/
               ./example/**/burdens.zarr/
               ./example/**/genes.npy
               ./example/**/all_results.parquet

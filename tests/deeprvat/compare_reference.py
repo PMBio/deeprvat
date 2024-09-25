@@ -170,8 +170,8 @@ def compare_burdens(
                 all_close = np.array_equal(array, reference_array)
             else:
                 all_close = np.allclose(
-                    array.astype('float32'),
-                    reference_array.astype('float32'),
+                    array,
+                    reference_array,
                     equal_nan=True,
                     rtol=rtol_xy,
                     atol=atol_xy,
