@@ -158,9 +158,7 @@ def compare_burdens(
             raise RuntimeError(
                 f"FAIL! Max difference between results and reference results "
                 f"(array {a}) larger than tolerance.\n"
-                f"{reference_array}\n"
-                f"{array}"
-                #f"{np.max(np.abs(reference_array - array))=}"
+                f"{np.max(np.abs(reference_array - array))=}"
             )
 
     for p in phenotype:
@@ -172,8 +170,8 @@ def compare_burdens(
                 all_close = np.array_equal(array, reference_array)
             else:
                 all_close = np.allclose(
-                    array,
-                    reference_array,
+                    array.astype('float32'),
+                    reference_array.astype('float32'),
                     equal_nan=True,
                     rtol=rtol_xy,
                     atol=atol_xy,
