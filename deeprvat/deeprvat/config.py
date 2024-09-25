@@ -204,6 +204,8 @@ def create_main_config(
     :return: Joined configuration file saved to deeprvat_config.yaml.
     """
 
+    file_handler = setup_logging()
+
     config_path = Path(config_file)
     output_path = Path(output_dir) / "deeprvat_config.yaml"
     if not output_path.exists():
@@ -223,8 +225,6 @@ def create_main_config(
                 logger.warning(f"Overwriting newer file {output_path} as clobber=True")
             else:
                 return
-
-    file_handler = setup_logging()
 
     input_config = load_yaml(config_file)
     base_config = load_yaml(REPO_DIR / "deeprvat/deeprvat/base_configurations.yaml")
