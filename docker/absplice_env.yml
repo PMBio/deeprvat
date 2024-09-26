@@ -1,4 +1,4 @@
-name: base
+name: absplice
 channels:
   - conda-forge
   - bioconda

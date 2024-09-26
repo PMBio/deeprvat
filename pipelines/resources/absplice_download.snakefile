@@ -53,7 +53,7 @@ rule download_human_fasta:
     output:
         Path(absplice_download_dir) / config_download["fasta"][genome]["file"],
     conda:
-        "./absplice.yaml"
+        "absplice"
     shell:
         "wget -O - {params} | gunzip -c > {output}"
 
@@ -75,7 +75,7 @@ rule download_splicemaps:
         splicemap_psi5=Path(absplice_download_dir)
         / config_download["splicemap"]["psi5"],
     conda:
-        "./absplice.yaml"
+        "absplice"
     shell:
         "splicemap_download --version {params.version} --splicemap_dir {params.dirname} --tissues {wildcards.tissue}"
 

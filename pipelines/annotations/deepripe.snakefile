@@ -7,8 +7,6 @@ rule deepRiPe_parclip:
     threads: n_jobs_deepripe
     resources:
         mem_mb=lambda wildcards, attempt: 5_000 * (attempt + 1),
-    conda:
-        "../../docker/deeprvat_annotations.yml"
     shell:
         f"mkdir -p {pybedtools_tmp_path/ 'parclip'} && deeprvat_annotations scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/ 'parclip'} {saved_deepripe_models_path} {{threads}} 'parclip'"
 
@@ -22,8 +20,6 @@ rule deepRiPe_eclip_hg2:
     threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
     resources:
         mem_mb=lambda wildcards, attempt: 5_000 * (attempt + 1),
-    conda:
-        "../../docker/deeprvat_annotations.yml"
     shell:
         f"mkdir -p {pybedtools_tmp_path/ 'hg2'} && deeprvat_annotations scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/ 'hg2'} {saved_deepripe_models_path} {{threads}} 'eclip_hg2'"
 
@@ -37,8 +33,6 @@ rule deepRiPe_eclip_k5:
     threads: lambda wildcards, attempt: n_jobs_deepripe * attempt
     resources:
         mem_mb=lambda wildcards, attempt: 5_000 * (attempt + 1),
-    conda:
-        "../../docker/deeprvat_annotations.yml"
     shell:
         f"mkdir -p {pybedtools_tmp_path/ 'k5'} && deeprvat_annotations scorevariants-deepripe {{input.variants}} {anno_dir}  {{input.fasta}} {pybedtools_tmp_path/ 'k5'} {saved_deepripe_models_path} {{threads}} 'eclip_k5'"
 

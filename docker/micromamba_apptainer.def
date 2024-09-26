@@ -1,0 +1,35 @@
+Bootstrap: docker
+From: mambaorg/micromamba:latest
+
+%files
+deeprvat_annotations.yml /opt
+absplice_env.yml /opt
+faatpipe_env.yml /opt
+kipoi-veff2_env.yml /opt
+
+%post
+    micromamba create -q -y -f /opt/absplice_env.yml 
+    micromamba create -q -y -f /opt/kipoi-veff2_env.yml 
+    micromamba install -q -y -n base -f /opt/deeprvat_annotations.yml
+#    micromamba install -q -y -n faatpipe_env -f /opt/faatpipe_env.yml 
+
+    micromamba clean --all --yes
+
+%labels
+    EnvironmentFile: /opt/deeprvat_annotations.yml
+
+%help
+    This container containes a Python environment created
+    from an environment file.
+
+    To run Python from the environment:
+
+        apptainer run my_environment.sif python
+
+    To see the environment file used to create the environment:
+
+        apptainer run my_environment.sif cat /opt/deeprvat_annotations.yml
+
+    To see what packags are in the environment:
+
+        apptainer run micromamba list

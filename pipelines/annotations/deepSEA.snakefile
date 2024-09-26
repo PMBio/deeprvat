@@ -9,8 +9,7 @@ rule deepSea:
     resources:
         mem_mb=lambda wildcards, attempt: 5_000 * (attempt + 1),
     conda:
-        "../../docker/kipoi-veff2_env.yml"
-#        "kipoi-veff2"
+        "kipoi_veff2"
     shell:
         "kipoi_veff2_predict {input.variants} {input.fasta} {output} -l 1000 -m 'DeepSEA/predict' -s 'diff'"
 
@@ -25,8 +24,6 @@ rule concat_deepSea:
         mem_mb=lambda wildcards, attempt: 50_000 * (attempt + 1),
     output:
         anno_dir / "all_variants.deepSea.parquet",
-    conda:
-        "../../docker/deeprvat_annotations.yml"
     shell:
         " ".join(
             [
@@ -46,8 +43,6 @@ rule deepSea_PCA:
         deepSEA_tmp_dir / "deepsea_pca.parquet",
     resources:
         mem_mb=lambda wildcards, attempt: 50_000 * (attempt + 1),
-    conda:
-        "../../docker/deeprvat_annotations.yml"
     shell:
         " ".join(
             [
