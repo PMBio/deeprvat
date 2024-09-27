@@ -133,7 +133,9 @@ def handle_pretrained_models(input_config, expected_input_keys):
             ["use_pretrained_models", "model", "pretrained_model_path"]
         )
 
-        pretrained_config_path = Path(pretrained_model_path / "model_config.yaml").resolve()
+        pretrained_config_path = Path(
+            pretrained_model_path / "model_config.yaml"
+        ).resolve()
         pretrained_config = load_yaml(pretrained_config_path)
 
         required_keys = {
@@ -323,10 +325,7 @@ def create_main_config(
         "regenie_options",
     ]
 
-    optional_input_keys = [
-        "deterministic",
-        "sample_files"
-    ]
+    optional_input_keys = ["deterministic", "sample_files"]
 
     train_only = input_config.pop("training_only", False)
     if train_only:
@@ -469,9 +468,7 @@ def create_sg_discovery_config(
         "dataset_config",
     ]
 
-    optional_input_keys = [
-        "sample_file"
-    ]
+    optional_input_keys = ["sample_file"]
 
     input_keys_set = set(input_config.keys()) - set(optional_input_keys)
     expected_keys_set = set(expected_input_keys)
