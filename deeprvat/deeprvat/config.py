@@ -133,7 +133,8 @@ def handle_pretrained_models(input_config, expected_input_keys):
             ["use_pretrained_models", "model", "pretrained_model_path"]
         )
 
-        pretrained_config = load_yaml(f"{pretrained_model_path}/model_config.yaml")
+        pretrained_config_path = Path(pretrained_model_path / "model_config.yaml").resolve()
+        pretrained_config = load_yaml(pretrained_config_path)
 
         required_keys = {
             "model",
@@ -324,6 +325,7 @@ def create_main_config(
 
     optional_input_keys = [
         "deterministic",
+        "sample_files"
     ]
 
     train_only = input_config.pop("training_only", False)
@@ -467,23 +469,31 @@ def create_sg_discovery_config(
         "dataset_config",
     ]
 
-    if set(input_config.keys()) != set(expected_input_keys):
-        if set(input_config.keys()) - set(expected_input_keys):
-            raise KeyError(
-                (
-                    "Unspecified key(s) present in input YAML file. "
-                    f"The follow extra keys are present: {set(input_config.keys()) - set(expected_input_keys)} "
-                    "Please review DEEPRVAT_DIR/example/config/seed_gene_discovery_input_config.yaml for list of keys."
-                )
+    optional_input_keys = [
+        "sample_file"
+    ]
+
+    input_keys_set = set(input_config.keys()) - set(optional_input_keys)
+    expected_keys_set = set(expected_input_keys)
+    extra_keys = input_keys_set - expected_keys_set
+    missing_keys = expected_keys_set - input_keys_set
+
+    if extra_keys:
+        raise KeyError(
+            (
+                "Unspecified key(s) present in input YAML file. "
+                f"The follow extra keys are present: {extra_keys} "
+                "Please review DEEPRVAT_DIR/example/config/seed_gene_discovery_input_config.yaml for list of keys."
             )
-        if set(expected_input_keys) - set(input_config.keys()):
-            raise KeyError(
-                (
-                    "Missing key(s) in input YAML file. "
-                    f"The follow keys are missing: {set(expected_input_keys) - set(input_config.keys())} "
-                    "Please review DEEPRVAT_DIR/example/config/seed_gene_discovery_input_config.yaml for list of keys."
-                )
+        )
+    if missing_keys:
+        raise KeyError(
+            (
+                "Missing key(s) in input YAML file. "
+                f"The follow keys are missing: {missing_keys} "
+                "Please review DEEPRVAT_DIR/example/config/seed_gene_discovery_input_config.yaml for list of keys."
             )
+        )
 
     # Phenotypes
     full_config["phenotypes"] = input_config["phenotypes"]
