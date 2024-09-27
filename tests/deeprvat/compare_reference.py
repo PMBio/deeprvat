@@ -107,7 +107,9 @@ def compare_training(
         if max_difference > tolerance:
             raise RuntimeError(
                 f"FAIL! Max difference between model and reference parameters (repeat {r}) "
-                f"differs by {max_difference} > {tolerance=}"
+                f"differs by {max_difference} > {tolerance=}\n"
+                f"REFERENCE Model Params: {reference_model.parameters()}\n\n"
+                f"Current Test Model Params; {model.parameters()}"
             )
         else:
             logger.info(
@@ -214,9 +216,11 @@ def compare_association(
         )
         string_cols = ["phenotype", "Method", "Discovery type"]
         for c in string_cols:
+            ref = reference_results[c].reset_index(drop=True)
+            test = results[c].reset_index(drop=True)
             assert (
-                (results[c].isna() & results[c].isna())
-                | (results[c] == reference_results[c])
+                (test.isna() & ref.isna())
+                | (test == ref)
             ).all()
 
         numerical_cols = ["gene", "beta", "pval", "-log10pval", "pval_corrected"]
