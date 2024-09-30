@@ -105,11 +105,11 @@ def compare_training(
         )
 
         if max_difference > tolerance:
+            params_pairs = [(p1, p2) for p1, p2 in zip(model.parameters(), reference_model.parameters())]
+            logger.info("Model and reference model parameter pairs:\n %s", params_pairs)
             raise RuntimeError(
                 f"FAIL! Max difference between model and reference parameters (repeat {r}) "
-                f"differs by {max_difference} > {tolerance=}\n"
-                f"REFERENCE Model Params: {reference_model.parameters()}\n\n"
-                f"Current Test Model Params; {model.parameters()}"
+                f"differs by {max_difference} > {tolerance=}\n"                
             )
         else:
             logger.info(

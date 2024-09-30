@@ -52,11 +52,19 @@ on:
         required: false
         default: false
         type: boolean
+      upload_regenie_outputs:
+        required: false
+        default: false
+        type: boolean
       download_training_outputs:
         required: false
         default: false
         type: boolean
       download_pretrained_outputs:
+        required: false
+        default: false
+        type: boolean
+      download_regenie_outputs:
         required: false
         default: false
         type: boolean
@@ -69,6 +77,10 @@ on:
         default: false
         type: boolean
       run_association_results_check:
+        required: false
+        default: false
+        type: boolean
+      run_regenie_association_results_check:
         required: false
         default: false
         type: boolean
@@ -148,6 +160,15 @@ jobs:
               ./example/**/all_results.parquet
             include-hidden-files: true #for .zarr needed
             retention-days: 1
+        - name: Upload Regenie Outputs
+          id: uploaded_regenie_outputs
+          if: inputs.upload_regenie_outputs
+          uses: actions/upload-artifact@v4
+          with:
+            name: completed_regenie_outputs
+            path: |
+              ./example/**/all_results.parquet
+            retention-days: 1
         - name: Download Previous Training Outputs
           id: downloaded_training_outputs
           if: inputs.download_training_outputs
@@ -162,6 +183,13 @@ jobs:
           with:
             name: completed_pretrained_outputs
             path: ./tests/completed_pretrained_outputs
+        - name: Download Previous Regenie Outputs
+          id: downloaded_regenie_outputs
+          if: inputs.download_regenie_outputs
+          uses: actions/download-artifact@v4
+          with:
+            name: completed_regenie_outputs
+            path: ./tests/completed_regenie_outputs
         # - name: Display structure of downloaded files
         #   if: inputs.download_outputs
         #   run: ls -R ./tests/completed_run_output
@@ -184,6 +212,13 @@ jobs:
           run: |
             python $GITHUB_WORKSPACE/tests/deeprvat/compare_reference.py compare-association \
             ./example/ ./tests/completed_pretrained_outputs/ \
+            "Cholesterol" "Platelet_count"
+          shell: micromamba-shell {0}
+        - name: Run REGENIE Association Results Check
+          if: inputs.run_regenie_association_results_check
+          run: |
+            python $GITHUB_WORKSPACE/tests/deeprvat/compare_reference.py compare-association \
+            ./example/ ./tests/completed_regenie_outputs/ \
             "Cholesterol" "Platelet_count"
           shell: micromamba-shell {0}
 
