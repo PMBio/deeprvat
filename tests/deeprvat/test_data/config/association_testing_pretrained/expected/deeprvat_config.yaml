@@ -43,7 +43,7 @@ association_testing_data:
     - alphamissense
     gene_file: protein_coding_genes.parquet
     min_common_af:
-      MAF: 0.01
+      MAF: 0.001
     phenotype_file: phenotypes.parquet
     rare_embedding:
       config:
@@ -120,20 +120,8 @@ association_testing_data:
     y_transformation: quantile_transform
   gt_file: genotypes.h5
   variant_file: variants.parquet
-baseline_results:
-  alpha_seed_genes: 0.05
-  correction_method: Bonferroni
-  options:
-  - base: baseline_results
-    type: plof/burden
-  - base: baseline_results
-    type: missense/burden
-  - base: baseline_results
-    type: plof/skat
-  - base: baseline_results
-    type: missense/skat
 cv_exp: false
-deterministic: true
+deterministic: false
 do_scoretest: true
 evaluation:
   alpha: 0.05
@@ -171,10 +159,12 @@ model:
 n_avg_chunks: 1
 n_burden_chunks: 5
 n_regression_chunks: 2
-n_repeats: 1
+n_repeats: 30
 phenotypes:
-  - Cholesterol
-  - Platelet_count
+  - Apolipoprotein_A
+  - Apolipoprotein_B
+  - Calcium
+pretrained_model_path: pretrained_models
 regenie_exp: false
 training:
   dataloader_config:
@@ -184,24 +174,9 @@ training:
     num_workers: 0
     temp_dir: $TMPDIR/deeprvat_train
   drop_n_bags: 0
-  early_stopping:
-    min_delta: 1.0e-05
-    mode: min
-    patience: 3
-    verbose: true
   min_variant_count: 0
   n_bags: 1
   n_parallel_jobs: 6
-  phenotypes:
-    Cholesterol: {}
-    Platelet_count: {}
-  pl_trainer:
-    check_val_every_n_epoch: 1
-    gpus: 0
-    log_every_n_steps: 1
-    max_epochs: 1000
-    min_epochs: 50
-    precision: 16
   sample_with_replacement: false
   train_proportion: 0.8
 training_data:

@@ -27,6 +27,238 @@ def cli():
     pass
 
 
+def setup_logging(log_filename: str = "config_generate.log"):
+    file_handler = logging.FileHandler(log_filename, mode="a")
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(
+        logging.Formatter("[%(asctime)s] %(levelname)s:%(name)s: %(message)s")
+    )
+    logger.addHandler(file_handler)
+    return file_handler
+
+
+def load_yaml(file_path: str):
+    with open(file_path) as f:
+        return yaml.safe_load(f)
+
+
+def update_defaults(base_config, input_config):
+    """
+    Updates base_config with values from input_config, for intersecting nested keys.
+
+    Args:
+        base_config (dict): base DeepRVAT configurations
+        input_config (dict): user input DeepRVAt configurations
+
+    Returns:
+        dict: updated base_config based on any intersecting inputs from input_config
+    """
+    common_keys = set(base_config.keys()).intersection(input_config.keys())
+
+    for k in common_keys:
+        if isinstance(base_config[k], dict) and isinstance(input_config[k], dict):
+            update_defaults(base_config[k], input_config[k])
+        else:
+            base_config[k] = input_config[k]
+
+    return base_config
+
+
+def handle_cv_options(input_config, full_config, expected_input_keys):
+    if input_config.get("cv_options", {}).get("cv_exp", False):
+        missing_keys = [
+            key
+            for key in ["cv_exp", "cv_path", "n_folds"]
+            if key not in input_config["cv_options"]
+        ]
+        if missing_keys:
+            raise KeyError(
+                f"Missing keys {missing_keys} under config['cv_options'] \n\
+                           Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
+            )
+        full_config.update(
+            {
+                "cv_path": input_config["cv_options"]["cv_path"],
+                "n_folds": input_config["cv_options"]["n_folds"],
+                "cv_exp": True,
+            }
+        )
+    else:
+        logger.info("Not CV setup...removing CV pipeline parameters from config")
+        full_config["cv_exp"] = False
+        expected_input_keys.remove("cv_options")
+        input_config.pop("cv_options", None)
+
+
+def handle_regenie_options(input_config, full_config, expected_input_keys):
+    if input_config.get("regenie_options", {}).get("regenie_exp", False):
+        missing_keys = [
+            key
+            for key in ["regenie_exp", "step_1", "step_2"]
+            if key not in input_config["regenie_options"]
+        ]
+        if missing_keys:
+            raise KeyError(
+                f"Missing keys {missing_keys} under config['regenie_options'] \n\
+                           Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
+            )
+        full_config.update(
+            {
+                "regenie_exp": True,
+                "regenie_options": {
+                    "step_1": input_config["regenie_options"]["step_1"],
+                    "step_2": input_config["regenie_options"]["step_2"],
+                },
+                "gtf_file": input_config["regenie_options"]["gtf_file"],
+            }
+        )
+    else:
+        logger.info(
+            "Not using REGENIE integration...removing REGENIE parameters from config"
+        )
+        full_config["regenie_exp"] = False
+        expected_input_keys.remove("regenie_options")
+        input_config.pop("regenie_options", None)
+
+
+def handle_pretrained_models(input_config, expected_input_keys):
+    if input_config.get("use_pretrained_models", False):
+        logger.info("Pretrained Model setup specified.")
+        to_remove = {"training", "phenotypes_for_training", "seed_gene_results"}
+        for item in to_remove:
+            expected_input_keys.remove(item)
+
+        pretrained_model_path = Path(input_config["pretrained_model_path"])
+        expected_input_keys.extend(
+            ["use_pretrained_models", "model", "pretrained_model_path"]
+        )
+
+        pretrained_config_path = Path(
+            pretrained_model_path / "model_config.yaml"
+        ).resolve()
+        pretrained_config = load_yaml(pretrained_config_path)
+
+        required_keys = {
+            "model",
+            "rare_variant_annotations",
+            "training_data_thresholds",
+        }
+        extra_keys = set(pretrained_config.keys()) - required_keys
+        if extra_keys:
+            raise KeyError(
+                f"Unexpected key in pretrained_model_path/model_config.yaml file : {extra_keys} \n\
+                            Please review DEEPRVAT_DIR/pretrained_models/model_config.yaml for expected list of keys."
+            )
+        logger.info("   Updating input config with keys from pretrained model config.")
+        input_config.update(
+            {
+                "model": pretrained_config["model"],
+                "rare_variant_annotations": pretrained_config[
+                    "rare_variant_annotations"
+                ],
+                "training_data_thresholds": pretrained_config[
+                    "training_data_thresholds"
+                ],
+            }
+        )
+        return True
+    return False
+
+
+def update_thresholds(input_config, full_config, train_only):
+    if "MAF" not in input_config["training_data_thresholds"]:
+        raise KeyError(
+            f"Missing required MAF threshold in config['training_data_thresholds']"
+        )
+    if (
+        not train_only
+        and "MAF" not in input_config["association_testing_data_thresholds"]
+    ):
+        raise KeyError(
+            f"Missing required MAF threshold in config['association_testing_data_thresholds']"
+        )
+
+    datasets = ["training_data", "association_testing_data"]
+    if train_only:
+        datasets.remove("association_testing_data")
+
+    for data_type in datasets:
+        anno_list = deepcopy(input_config["rare_variant_annotations"])
+        full_config[data_type]["dataset_config"]["rare_embedding"]["config"][
+            "thresholds"
+        ] = {}
+        threshold_key = f"{data_type}_thresholds"
+        for i, (k, v) in enumerate(input_config[threshold_key].items()):
+            full_config[data_type]["dataset_config"]["rare_embedding"]["config"][
+                "thresholds"
+            ][k] = f"{k} {v}"
+            anno_list.insert(i + 1, k)
+            if k == "MAF":
+                full_config[data_type]["dataset_config"]["min_common_af"]["MAF"] = (
+                    float(v[2:])
+                )  # v is string like "< 1e-3"
+        full_config[data_type]["dataset_config"]["annotations"] = anno_list
+
+
+def update_full_config(input_config, full_config, train_only):
+    base_mapping = {
+        "gt_filename": "gt_file",  # genotypes.h5
+        "variant_filename": "variant_file",
+    }
+    dataset_mapping = {
+        "phenotype_filename": "phenotype_file",  # phenotypes.parquet
+        "annotation_filename": "annotation_file",  # annotations.parquet
+        "covariates": "x_phenotypes",
+    }
+
+    for key, value in base_mapping.items():
+        full_config["training_data"][value] = input_config[key]
+        if not train_only:
+            full_config["association_testing_data"][value] = input_config[key]
+
+    for key, value in dataset_mapping.items():
+        full_config["training_data"]["dataset_config"][value] = input_config[key]
+        if not train_only:
+            full_config["association_testing_data"]["dataset_config"][value] = (
+                input_config[key]
+            )
+
+    full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
+        "annotations"
+    ] = input_config["rare_variant_annotations"]
+    full_config["association_testing_data"]["dataset_config"]["gene_file"] = (
+        input_config["gene_filename"]
+    )  # protein_coding_genes.parquet
+    if not train_only:
+        full_config["phenotypes"] = input_config["phenotypes_for_association_testing"]
+        full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
+            "config"
+        ]["gene_file"] = input_config["gene_filename"]
+        full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
+            "config"
+        ]["annotations"] = input_config["rare_variant_annotations"]
+
+
+def validate_keys(input_config, expected_input_keys, optional_input_keys, base_config):
+    input_keys_set = set(input_config.keys()) - set(optional_input_keys)
+    expected_keys_set = set(expected_input_keys)
+    updated_base_keys = set(base_config.keys()).intersection(input_config.keys())
+
+    extra_keys = input_keys_set - expected_keys_set - updated_base_keys
+    missing_keys = expected_keys_set - input_keys_set
+
+    if extra_keys:
+        raise KeyError(
+            f"Extra key(s) present in input YAML file: {extra_keys} \n\
+                        Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
+        )
+    if missing_keys:
+        raise KeyError(
+            f"Missing key(s) in input YAML file: {missing_keys} \n\
+                        Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
+        )
+
+
 def create_main_config(
     config_file: str,
     output_dir: Optional[str] = ".",
@@ -45,6 +277,8 @@ def create_main_config(
     :type clobber: bool
     :return: Joined configuration file saved to deeprvat_config.yaml.
     """
+
+    file_handler = setup_logging()
 
     config_path = Path(config_file)
     output_path = Path(output_dir) / "deeprvat_config.yaml"
@@ -66,24 +300,9 @@ def create_main_config(
             else:
                 return
 
-    # Set stdout file
-    file_handler = logging.FileHandler("config_generate.log", mode="a")
-    file_handler.setLevel(logging.INFO)
-    file_handler.setFormatter(
-        logging.Formatter(
-            "[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
-        )
-    )
-    logger.addHandler(file_handler)
-
-    with open(config_file) as f:
-        input_config = yaml.safe_load(f)
-
-    # Base Config
-    with open(REPO_DIR / "deeprvat/deeprvat/base_configurations.yaml") as f:
-        base_config = yaml.safe_load(f)
-
-    full_config = base_config
+    input_config = load_yaml(config_file)
+    base_config = load_yaml(REPO_DIR / "deeprvat/deeprvat/base_configurations.yaml")
+    full_config = deepcopy(update_defaults(base_config, input_config))
 
     expected_input_keys = [
         "phenotypes_for_association_testing",
@@ -106,115 +325,31 @@ def create_main_config(
         "regenie_options",
     ]
 
-    optional_input_keys = [
-        "deterministic",
-    ]
-    # Check if Training Only
-    if input_config.get("training_only", False):
-        train_only = True
-        to_remove = {
+    optional_input_keys = ["deterministic", "sample_files"]
+
+    train_only = input_config.pop("training_only", False)
+    if train_only:
+        to_remove = [
             "phenotypes_for_association_testing",
             "association_testing_data_thresholds",
             "evaluation",
-        }
-        expected_input_keys = [
-            item for item in expected_input_keys if item not in to_remove
         ]
-        input_config.pop("training_only", None)
-    else:
-        train_only = False
+        for item in to_remove:
+            expected_input_keys.remove(item)
 
-    # CV setup parameters
-    if input_config.get("cv_options", {}).get("cv_exp", False):
-        if any(
-            key not in input_config["cv_options"]
-            for key in ["cv_exp", "cv_path", "n_folds"]
-        ):
-            raise KeyError(
-                "Missing keys cv_path or n_folds under config['cv_options'] "
-                "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
-            )
-        full_config["cv_path"] = input_config["cv_options"]["cv_path"]
-        full_config["n_folds"] = input_config["cv_options"]["n_folds"]
-        full_config["cv_exp"] = True
-    else:
-        logger.info("Not CV setup...removing CV pipeline parameters from config")
-        full_config["cv_exp"] = False
-        expected_input_keys.remove("cv_options")
-        input_config.pop("cv_options", None)
+    handle_cv_options(input_config, full_config, expected_input_keys)
+    handle_regenie_options(input_config, full_config, expected_input_keys)
+    pretrained_setup = handle_pretrained_models(input_config, expected_input_keys)
 
-    # REGENIE setup parameters
-    if input_config.get("regenie_options", {}).get("regenie_exp", False):
-        if any(
-            key not in input_config["regenie_options"]
-            for key in ["regenie_exp", "step_1", "step_2"]
-        ):
-            raise KeyError(
-                "Missing keys step_1 or step_2 under config['regenie_options'] "
-                "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
-            )
-        full_config["regenie_exp"] = True
-        full_config["regenie_options"] = {}
-        full_config["gtf_file"] = input_config["regenie_options"]["gtf_file"]
-        full_config["regenie_options"]["step_1"] = input_config["regenie_options"][
-            "step_1"
-        ]
-        full_config["regenie_options"]["step_2"] = input_config["regenie_options"][
-            "step_2"
-        ]
-    else:
-        logger.info(
-            "Not using REGENIE integration...removing REGENIE parameters from config"
-        )
-        full_config["regenie_exp"] = False
-        expected_input_keys.remove("regenie_options")
-        input_config.pop("regenie_options", None)
-
-    no_pretrain = True
-    if input_config.get("use_pretrained_models", False):
-        no_pretrain = False
-        logger.info("Pretrained Model setup specified.")
-        to_remove = {"training", "phenotypes_for_training", "seed_gene_results"}
-        expected_input_keys = [
-            item for item in expected_input_keys if item not in to_remove
-        ]
-
-        pretrained_model_path = Path(input_config["pretrained_model_path"])
-
-        expected_input_keys.extend(
-            ["use_pretrained_models", "model", "pretrained_model_path"]
-        )
-
-        with open(f"{pretrained_model_path}/model_config.yaml") as f:
-            pretrained_config = yaml.safe_load(f)
-
-        required_keys = [
-            "model",
-            "rare_variant_annotations",
-            "training_data_thresholds",
-        ]
-        for k in pretrained_config:
-            if k not in required_keys:
-                raise KeyError(
-                    (
-                        f"Unexpected key in pretrained_model_path/model_config.yaml file : {k} "
-                        "Please review DEEPRVAT_DIR/pretrained_models/model_config.yaml for expected list of keys."
-                    )
-                )
-            else:
-                input_config[k] = deepcopy(pretrained_config[k])
-
-    if no_pretrain and "phenotypes_for_training" not in input_config:
-        logger.info("Unspecified phenotype list for training.")
+    if not pretrained_setup and "phenotypes_for_training" not in input_config:
         if train_only:
-            raise KeyError(("Must specify phenotypes_for_training in config file!"))
-        else:
-            logger.info(
-                "   Setting training phenotypes to be the same set as specified by phenotypes_for_association_testing."
-            )
-            input_config["phenotypes_for_training"] = input_config[
-                "phenotypes_for_association_testing"
-            ]
+            raise KeyError("Must specify phenotypes_for_training in config file!")
+        logger.info(
+            "   Setting training phenotypes to be the same set as specified by phenotypes_for_association_testing."
+        )
+        input_config["phenotypes_for_training"] = input_config[
+            "phenotypes_for_association_testing"
+        ]
 
     if "y_transformation" in input_config:
         full_config["training_data"]["dataset_config"]["y_transformation"] = (
@@ -227,187 +362,48 @@ def create_main_config(
     else:
         expected_input_keys.remove("y_transformation")
 
-    if "MAF" not in input_config["training_data_thresholds"]:
-        raise KeyError(
-            (
-                "Missing required MAF threshold in config['training_data_thresholds']. "
-                "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
-            )
-        )
-    if (
-        not train_only
-        and "MAF" not in input_config["association_testing_data_thresholds"]
-    ):
-        raise KeyError(
-            (
-                "Missing required MAF threshold in config['association_testing_data_thresholds']. "
-                "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
-            )
-        )
+    validate_keys(input_config, expected_input_keys, optional_input_keys, base_config)
+    update_thresholds(input_config, full_config, train_only)
+    update_full_config(input_config, full_config, train_only)
 
-    # Final Check of Keys
-    keys_to_check = set(input_config.keys()) - set(optional_input_keys)
-    if keys_to_check != set(expected_input_keys):
-        if keys_to_check - set(expected_input_keys):
-            raise KeyError(
-                (
-                    "Unspecified key(s) present in input YAML file. "
-                    f"The follow extra keys are present: {set(input_config.keys()) - set(expected_input_keys)} "
-                    "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
-                )
-            )
-        if set(expected_input_keys) - keys_to_check:
-            raise KeyError(
-                (
-                    "Missing key(s) in input YAML file. "
-                    f"The follow keys are missing: {set(expected_input_keys) - set(input_config.keys())} "
-                    "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
-                )
-            )
-
-    if no_pretrain:
-        if any(
-            key not in input_config["training"]
-            for key in ["pl_trainer", "early_stopping"]
-        ):
-            raise KeyError(
-                "Missing keys pl_trainer and/or early_stopping under config['training'] "
-                "Please review DEEPRVAT_DIR/example/config/deeprvat_input_config.yaml for list of keys."
-            )
-
-    # Determinism
-    full_config["deterministic"] = input_config.get("deterministic", False)
-    full_config["training_data"]["gt_file"] = input_config[
-        "gt_filename"
-    ]  # genotypes.h5
-    full_config["training_data"]["variant_file"] = input_config[
-        "variant_filename"
-    ]  # variants.parquet
-    full_config["training_data"]["dataset_config"]["phenotype_file"] = input_config[
-        "phenotype_filename"
-    ]  # phenotypes.parquet
-    full_config["training_data"]["dataset_config"]["annotation_file"] = input_config[
-        "annotation_filename"
-    ]  # annotations.parquet
-    full_config["association_testing_data"]["dataset_config"]["gene_file"] = (
-        input_config["gene_filename"]
-    )  # protein_coding_genes.parquet
-    full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
-        "annotations"
-    ] = input_config[
-        "rare_variant_annotations"
-    ]  # rare_variant_annotations
-    full_config["training_data"]["dataset_config"]["x_phenotypes"] = input_config[
-        "covariates"
-    ]  # covariates
-    if not train_only:
-        full_config["phenotypes"] = input_config[
-            "phenotypes_for_association_testing"
-        ]  # Phenotypes
-        full_config["association_testing_data"]["gt_file"] = input_config[
-            "gt_filename"
-        ]  # genotypes.h5
-        full_config["association_testing_data"]["variant_file"] = input_config[
-            "variant_filename"
-        ]  # variants.parquet
-        full_config["association_testing_data"]["dataset_config"]["phenotype_file"] = (
-            input_config["phenotype_filename"]
-        )  # phenotypes.parquet
-        full_config["association_testing_data"]["dataset_config"]["annotation_file"] = (
-            input_config["annotation_filename"]
-        )  # annotations.parquet
-        full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
-            "config"
-        ]["gene_file"] = input_config[
-            "gene_filename"
-        ]  # protein_coding_genes.parquet
-        full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
-            "config"
-        ]["annotations"] = input_config[
-            "rare_variant_annotations"
-        ]  # rare_variant_annotations
-        full_config["association_testing_data"]["dataset_config"]["x_phenotypes"] = (
-            input_config["covariates"]
-        )  # covariates
-
-    # Thresholds & variant annotations
-    anno_list = deepcopy(input_config["rare_variant_annotations"])
-    full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
-        "thresholds"
-    ] = {}
-    training_anno_list = deepcopy(anno_list)
-    for i, (k, v) in enumerate(input_config["training_data_thresholds"].items()):
-        full_config["training_data"]["dataset_config"]["rare_embedding"]["config"][
-            "thresholds"
-        ][k] = f"{k} {v}"
-        training_anno_list.insert(i + 1, k)
-    full_config["training_data"]["dataset_config"]["annotations"] = training_anno_list
-    if not train_only:
-        full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
-            "config"
-        ]["thresholds"] = {}
-        association_anno_list = deepcopy(anno_list)
-        for i, (k, v) in enumerate(
-            input_config["association_testing_data_thresholds"].items()
-        ):
-            full_config["association_testing_data"]["dataset_config"]["rare_embedding"][
-                "config"
-            ]["thresholds"][k] = f"{k} {v}"
-            association_anno_list.insert(i + 1, k)
-        full_config["association_testing_data"]["dataset_config"][
-            "annotations"
-        ] = association_anno_list
-        # Results evaluation parameters; alpha parameter for significance threshold
-        if "evaluation" not in full_config:
-            full_config["evaluation"] = {}
-        full_config["evaluation"]["correction_method"] = input_config["evaluation"][
-            "correction_method"
-        ]
-        full_config["evaluation"]["alpha"] = input_config["evaluation"]["alpha"]
-
-    # DeepRVAT model
     full_config["n_repeats"] = input_config["n_repeats"]
+    full_config["deterministic"] = input_config.get("deterministic", False)
 
-    # Subsetting samples [optional]
     if "sample_files" in input_config:
-        if "training" in input_config["sample_files"]:
-            logger.info("Adding in subset sample file for DeepRVAT training.")
-            full_config["training_data"]["dataset_config"]["sample_file"] = (
-                input_config["sample_files"]["training"]
-            )
-        if "association_testing" in input_config["sample_files"]:
-            logger.info("Adding in subset sample file for association testing.")
-            full_config["association_testing_data"]["dataset_config"]["sample_file"] = (
-                input_config["sample_files"]["association_testing"]
-            )
+        for key in ["training", "association_testing"]:
+            if key in input_config["sample_files"]:
+                full_config[f"{key}_data"]["dataset_config"]["sample_file"] = (
+                    input_config["sample_files"][key]
+                )
 
-    if no_pretrain:
-        # PL trainer
+    # Results evaluation parameters; alpha parameter for significance threshold
+    if not train_only:
+        full_config["evaluation"] = {
+            "correction_method": input_config["evaluation"]["correction_method"],
+            "alpha": input_config["evaluation"]["alpha"],
+        }
+
+    if pretrained_setup:
+        full_config.update(
+            {
+                "model": input_config["model"],
+                "pretrained_model_path": input_config["pretrained_model_path"],
+            }
+        )
+    else:
         full_config["training"]["pl_trainer"] = input_config["training"]["pl_trainer"]
-        # Early Stopping
         full_config["training"]["early_stopping"] = input_config["training"][
             "early_stopping"
         ]
-        # Training Phenotypes
-        full_config["training"]["phenotypes"] = {}
-        for pheno in input_config["phenotypes_for_training"]:
-            full_config["training"]["phenotypes"][pheno] = {}
-            # Can optionally specify dictionary of = {"min_seed_genes": 3, "max_seed_genes": None, "pvalue_threshold": None}
-        # Baseline results
-        if "baseline_results" not in full_config:
-            full_config["baseline_results"] = {}
-        full_config["baseline_results"]["options"] = input_config["seed_gene_results"][
-            "result_dirs"
-        ]
-        full_config["baseline_results"]["alpha_seed_genes"] = input_config[
-            "seed_gene_results"
-        ]["alpha_seed_genes"]
-        full_config["baseline_results"]["correction_method"] = input_config[
-            "seed_gene_results"
-        ]["correction_method"]
-    else:
-        full_config["model"] = input_config["model"]
-        full_config["pretrained_model_path"] = input_config["pretrained_model_path"]
+        full_config["training"]["phenotypes"] = {
+            pheno: {} for pheno in input_config["phenotypes_for_training"]
+        }
+        # For each phenotype, you can optionally specify dictionary of = {"min_seed_genes": 3, "max_seed_genes": None, "pvalue_threshold": None}
+        full_config["baseline_results"] = {
+            "options": input_config["seed_gene_results"]["result_dirs"],
+            "alpha_seed_genes": input_config["seed_gene_results"]["alpha_seed_genes"],
+            "correction_method": input_config["seed_gene_results"]["correction_method"],
+        }
 
     with open(output_path, "w") as f:
         yaml.dump(full_config, f)
@@ -472,23 +468,29 @@ def create_sg_discovery_config(
         "dataset_config",
     ]
 
-    if set(input_config.keys()) != set(expected_input_keys):
-        if set(input_config.keys()) - set(expected_input_keys):
-            raise KeyError(
-                (
-                    "Unspecified key(s) present in input YAML file. "
-                    f"The follow extra keys are present: {set(input_config.keys()) - set(expected_input_keys)} "
-                    "Please review DEEPRVAT_DIR/example/config/seed_gene_discovery_input_config.yaml for list of keys."
-                )
+    optional_input_keys = ["sample_file"]
+
+    input_keys_set = set(input_config.keys()) - set(optional_input_keys)
+    expected_keys_set = set(expected_input_keys)
+    extra_keys = input_keys_set - expected_keys_set
+    missing_keys = expected_keys_set - input_keys_set
+
+    if extra_keys:
+        raise KeyError(
+            (
+                "Unspecified key(s) present in input YAML file. "
+                f"The follow extra keys are present: {extra_keys} "
+                "Please review DEEPRVAT_DIR/example/config/seed_gene_discovery_input_config.yaml for list of keys."
             )
-        if set(expected_input_keys) - set(input_config.keys()):
-            raise KeyError(
-                (
-                    "Missing key(s) in input YAML file. "
-                    f"The follow keys are missing: {set(expected_input_keys) - set(input_config.keys())} "
-                    "Please review DEEPRVAT_DIR/example/config/seed_gene_discovery_input_config.yaml for list of keys."
-                )
+        )
+    if missing_keys:
+        raise KeyError(
+            (
+                "Missing key(s) in input YAML file. "
+                f"The follow keys are missing: {missing_keys} "
+                "Please review DEEPRVAT_DIR/example/config/seed_gene_discovery_input_config.yaml for list of keys."
             )
+        )
 
     # Phenotypes
     full_config["phenotypes"] = input_config["phenotypes"]
