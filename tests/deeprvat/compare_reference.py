@@ -105,11 +105,16 @@ def compare_training(
         )
 
         if max_difference > tolerance:
-            diff = [(p2 - p1).abs().max().item() for p1, p2 in zip(model.parameters(), reference_model.parameters())]
-            logger.info("Model and reference model parameter pair difference:\n %s", diff)
+            diff = [
+                (p2 - p1).abs().max().item()
+                for p1, p2 in zip(model.parameters(), reference_model.parameters())
+            ]
+            logger.info(
+                "Model and reference model parameter pair difference:\n %s", diff
+            )
             raise RuntimeError(
                 f"FAIL! Max difference between model and reference parameters (repeat {r}) "
-                f"differs by {max_difference} > {tolerance=}\n"                
+                f"differs by {max_difference} > {tolerance=}\n"
             )
         else:
             logger.info(
@@ -218,10 +223,7 @@ def compare_association(
         for c in string_cols:
             ref = reference_results[c].reset_index(drop=True)
             test = results[c].reset_index(drop=True)
-            assert (
-                (test.isna() & ref.isna())
-                | (test == ref)
-            ).all()
+            assert ((test.isna() & ref.isna()) | (test == ref)).all()
 
         numerical_cols = ["gene", "beta", "pval", "-log10pval", "pval_corrected"]
         all_close = np.allclose(
