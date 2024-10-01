@@ -761,7 +761,6 @@ def run_bagging(
         torch.cuda.manual_seed(seed)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
-        torch.mps.manual_seed(seed) # Only for Apple chips
 
     # if hyperparameter optimization is performed (train(); hpopt_file != None)
     if trial is not None:

@@ -46,9 +46,6 @@ jobs:
       run_training_results_check: true
 
   Reference-Output-Training:
-    # MOVE TO on pull_request.ready_for_review
-    #if: github.event.pull_request.opened == true
-    #if: GITHUB_REF == 'refs/pull/PULL_REQUEST_NUMBER/merge' #'refs/heads/master'
     uses: ./.github/workflows/run-pipeline.yml
     with:
       #branch: main
