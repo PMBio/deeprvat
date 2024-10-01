@@ -105,8 +105,6 @@ def compare_training(
         )
 
         if max_difference > tolerance:
-            #params_pairs = [(p1, p2) for p1, p2 in zip(model.parameters(), reference_model.parameters())]
-            #diff = [np.max(np.abs((np.array(model) - np.array(ref)))) for model,ref in params_pairs]
             diff = [(p2 - p1).abs().max().item() for p1, p2 in zip(model.parameters(), reference_model.parameters())]
             logger.info("Model and reference model parameter pair difference:\n %s", diff)
             raise RuntimeError(

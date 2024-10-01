@@ -653,7 +653,7 @@ class MultiphenoBaggingData(pl.LightningDataModule):
         class_sizes = [idx.shape[0] for idx in class_indices]
         minority_class = 0 if class_sizes[0] < class_sizes[1] else 1
         minority_indices = class_indices[minority_class].detach().numpy()
-        rng = np.random.default_rng(seed=seed)
+        rng = np.random.default_rng(seed=self.seed)
         upsampled_indices = rng.choice(
             minority_indices,
             size=(self.upsampling_factor - 1) * class_sizes[minority_class],
@@ -754,8 +754,14 @@ def run_bagging(
 
     if deterministic:
         logger.info("Setting random seeds for reproducibility")
-        torch.manual_seed(42)
-        random.seed(42)
+        seed = 42
+        torch.manual_seed(seed)
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.cuda.manual_seed(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        torch.mps.manual_seed(seed) # Only for Apple chips
 
     # if hyperparameter optimization is performed (train(); hpopt_file != None)
     if trial is not None:
