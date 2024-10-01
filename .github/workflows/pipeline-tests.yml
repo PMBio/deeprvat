@@ -25,7 +25,6 @@ jobs:
       environment_file: ./deeprvat_env_no_gpu.yml
       prerun_cmd: cp ./example/config/deeprvat_input_pretrained_models_config.yaml ./example/ && ln -s $GITHUB_WORKSPACE/pretrained_models ./example/
 
-
   # Training Pipeline
   Smoke-RunTraining:
     uses: ./.github/workflows/run-pipeline.yml
@@ -48,7 +47,7 @@ jobs:
   Reference-Output-Training:
     uses: ./.github/workflows/run-pipeline.yml
     with:
-      #branch: main
+      branch: main
       pipeline_file: ./pipelines/run_training.snakefile
       environment_file: ./deeprvat_env_no_gpu.yml
       prerun_cmd: cp ./tests/deeprvat/training_association_testing/deeprvat_config.yaml ./example/
