@@ -64,10 +64,8 @@ def get_burden(
     :type agg_models: Dict[str, List[nn.Module]]
     :param device: Device to perform computations on, defaults to "cpu".
     :type device: torch.device
-    :param skip_burdens: Flag to skip burden computation, defaults to False.
-    :type skip_burdens: bool
     :return: Tuple containing burden scores, target y phenotype values, x phenotypes and sample ids.
-    :rtype: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+    :rtype: Tuple[torch.Tensor, torch.Tensor]
 
     .. note::
         Checkpoint models all corresponding to the same repeat are averaged for that repeat.
@@ -1038,11 +1036,10 @@ def compute_burdens(
                 "x_phenotypes": None,
                 "sample": None,
             }
-            this_mode, _, _, _ = get_burden(
+            this_mode, _ = get_burden(
                 empty_batch,
                 agg_models,
                 device=device,
-                skip_burdens=False,
             )
             this_mode = this_mode.flatten()
             center_scale_df = pd.DataFrame(columns=["mode"])
