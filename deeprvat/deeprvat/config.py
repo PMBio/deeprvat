@@ -383,7 +383,9 @@ def create_main_config(
             "alpha": input_config["evaluation"]["alpha"],
         }
         if "center_scale_burdens" in input_config["evaluation"]:
-            full_config["center_scale_burdens"] = input_config["evaluation"]["center_scale_burdens"]
+            full_config["center_scale_burdens"] = input_config["evaluation"][
+                "center_scale_burdens"
+            ]
 
     if pretrained_setup:
         full_config.update(
