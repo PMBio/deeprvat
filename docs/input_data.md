@@ -3,22 +3,19 @@
 
 ## Configuration file
 
-Configuration for all pipelines is specified in the file `deeprvat_input_config.yaml`. When any pipeline is executed, a comprehensive `deeprvat_config.yaml` file is automatically generated based on the `deeprvat_input_config.yaml` input. 
+Configuration for a given pipeline is specified in the respective `deeprvat_input*_config.yaml` file. When the pipeline is executed, a comprehensive `deeprvat_config.yaml` file is automatically generated based on the provided _input config_. The available input configuration files found in the `example/config` directory are:
+  - [deeprvat_input_config.yaml](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_config.yaml) : For training and association testing pipeline.
+  - [deeprvat_input_pretrained_models_config.yaml](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_pretrained_models_config.yaml) : For association testing using pretrained models pipeline.
+  - [deeprvat_input_training_config.yaml](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_training_config.yaml) : For training only pipeline.
 
-In the following, we describe the parameters (both optional and required) that can be specified in the `deeprvat_input_config.yaml` by way of an [example file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_config.yaml), which we explain block by block.
-
-```
-deeprvat_repo_dir: ../..
-```
-
-_Required._ This specifies the path to your copy of the DeepRVAT repository.
+In the following, we describe the parameters (both optional and required) that can be specified in the _input config_ by way of an [example file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_config.yaml), which we explain block by block.
 
 ```
 use_pretrained_models: True
-pretrained_model_path : ../../pretrained_models
+pretrained_model_path : pretrained_models
 ```
 
-These parameters are relevant when using pretrained models. `use_pretrained_models` defaults to `False` if not specified.
+These parameters are relevant when using pretrained models. `use_pretrained_models` defaults to `False` if not specified. Update the `pretrained_model_path` to the path where the `pretrained_models` directory is, if not in the same folder as your current experiment directory.
 
 ```
 phenotypes_for_association_testing:
@@ -280,6 +277,27 @@ _Optional._
 `gtf_file` specifies a GTF file, which must contain all genes present in the file given by `gene_filename`. We recommend using a GTF file from GENCODE.
 
 In `step_1` and `step_2`, the parameters `bgen`, `snplist` and `bsize` control the corresponding options in REGENIE. Additional options for each step of REGENIE may (but need not be) specified as a list under `options`.
+
+### Advanced Configurations
+
+A set of additional parameters, that are not included in the _input config_ file, but are included during the automatic `deeprvat_config.yaml` generation, can be found in [`base_configurations.yaml`](https://github.com/PMBio/deeprvat/blob/main/deeprvat/deeprvat/base_configurations.yaml). To change any of the parameters contained within `base_configurations.yaml`, simply add the desired parameter in the same nested dictionary fashion as it is shown in the `base_configurations.yaml` file to your `deeprvat_input_config.yaml` file with its new value.
+
+The example below shows how to change these advanced configurations.
+
+Parameters in `base_configurations.yaml` that you would like to change:
+```
+n_burden_chunks: 5
+training_data:
+    dataloader_config:
+        batch_size: 64
+```
+Include those parameters, with their associated nested keys, in your respective `deeprvat_input_config.yaml` with your new desired value:
+```
+n_burden_chunks: 6
+training_data:
+    dataloader_config:
+        batch_size: 128
+```
 
 (input-data-formats)=
 ## Input data formats

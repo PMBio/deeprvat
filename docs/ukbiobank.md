@@ -2,8 +2,8 @@
 
 _Note: This section is coming soon!_
 
-## First steps
+<!-- ## First steps -->
 
-## Basic analysis: Using precomputed burdens
+<!-- ## Basic analysis: Using precomputed burdens -->
 
-## Advanced analysis: Custom-trained DeepRVAT model
+<!-- ## Advanced analysis: Custom-trained DeepRVAT model -->

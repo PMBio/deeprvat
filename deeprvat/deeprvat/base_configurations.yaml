@@ -73,7 +73,7 @@ training_data:
 association_testing_data:
     dataset_config:
         min_common_af:
-            MAF: 0.01
+            MAF: 0.001
         use_common_variants: False
         use_rare_variants: True
         rare_embedding:

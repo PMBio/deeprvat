@@ -1,7 +1,14 @@
 config_file_prefix = (
     "cv_split0/deeprvat/" if cv_exp else ""
-)  
+)
 ########### Average regression 
+# rule all_evaluate:
+#     input:
+#         expand("{phenotype}/deeprvat/eval/significant.parquet",
+#                phenotype=phenotypes),
+#         expand("{phenotype}/deeprvat/eval/all_results.parquet",
+#                phenotype=phenotypes),
+
 rule evaluate:
     input:
         associations ='{phenotype}/deeprvat/average_regression_results/burden_associations.parquet',
@@ -43,23 +50,26 @@ rule combine_regression_chunks:
 rule regress:
     input:
         data_config = f"{config_file_prefix}{{phenotype}}/deeprvat/config.yaml",
-        chunks = lambda wildcards: (
-            [] if wildcards.phenotype == phenotypes[0]
-            else expand('{{phenotype}}/deeprvat/burdens/chunk{chunk}.linked',
-                        chunk=range(n_burden_chunks))
-        ) if not cv_exp  else '{phenotype}/deeprvat/burdens/merging.finished',
-        phenotype_0_chunks =  expand(
-            phenotypes[0] + '/deeprvat/burdens/logs/burdens_averaging_{chunk}.finished',
+        chunks_xy =  expand(
+            'burdens/log/burdens_averaging_{chunk}.finished',
             chunk=range(n_avg_chunks)
-        ),
+        ) + ['{phenotype}/deeprvat/xy/x.zarr', '{phenotype}/deeprvat/xy/y.zarr']
+        if not cv_exp
+        else expand('burdens/log/{phenotype}/merging.finished',
+                    phenotype=phenotypes),
+        chunks_burden_average = expand('burdens/log/burdens_averaging_{chunk}.finished',
+                                       chunk=range(n_avg_chunks)),
+        # x = '{phenotype}/deeprvat/xy/x.zarr',
+        # y = '{phenotype}/deeprvat/xy/y.zarr',
     output:
         temp('{phenotype}/deeprvat/average_regression_results/burden_associations_{chunk}.parquet'),
     threads: 2
     resources:
         mem_mb = lambda wildcards, attempt: 28676  + (attempt - 1) * 4098,
     params:
-        burden_file = f'{phenotypes[0]}/deeprvat/burdens/burdens_average.zarr',
-        burden_dir = '{phenotype}/deeprvat/burdens',
+        burden_file = 'burdens/burdens_average.zarr',
+        xy_dir = "{phenotype}/deeprvat/xy",
+        # burden_dir = 'burdens',
         out_dir = '{phenotype}/deeprvat/average_regression_results'
     shell:
         'deeprvat_associate regress '
@@ -67,10 +77,38 @@ rule regress:
         '--chunk {wildcards.chunk} '
         '--n-chunks ' + str(n_regression_chunks) + ' '
         '--use-bias '
-        '--repeat 0 '
-        '--burden-file {params.burden_file} '
+        # '--repeat 0 '
         + do_scoretest +
         '{input.data_config} '
-        '{params.burden_dir} ' 
+        "{params.xy_dir} "
+        "{params.burden_file} "
         '{params.out_dir}'
 
+
+rule average_burdens:
+    input:
+        'burdens/burdens.zarr'
+        if not cv_exp
+        else f'burdens/log/{phenotypes[0]}/merging.finished',
+    output:
+        'burdens/log/burdens_averaging_{chunk}.finished',
+    params:
+        burdens_in = 'burdens/burdens.zarr',
+        burdens_out = 'burdens/burdens_average.zarr',
+        repeats = lambda wildcards: ''.join([f'--repeats {r} ' for r in range(int(n_repeats))])
+    threads: 1
+    resources:
+        mem_mb = lambda wildcards, attempt: 4098 + (attempt - 1) * 4098,
+    priority: 10,
+    shell:
+        ' && '.join([
+            ('deeprvat_associate  average-burdens '
+             + center_scale_burdens +
+             '--n-chunks ' + str(n_avg_chunks) + ' '
+             '--chunk {wildcards.chunk} '
+             '{params.repeats} '
+             '--agg-fct mean  '  #TODO remove this
+             '{params.burdens_in} '
+             '{params.burdens_out}'),
+            'touch {output}'
+        ])

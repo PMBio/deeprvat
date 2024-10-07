@@ -1,16 +1,13 @@
 from pathlib import Path
-from os.path import exists
+from deeprvat.deeprvat.config import create_main_config
 
-if not exists('./deeprvat_config.yaml'):
-    if not config: #--configfile argument was not passed
-        print("Generating deeprvat_config.yaml...")
-        from deeprvat.deeprvat.config import create_main_config
-        create_main_config('deeprvat_input_config.yaml')
-        print("     Finished.")
+create_main_config("deeprvat_input_config.yaml")
 
 configfile: 'deeprvat_config.yaml'
 
 debug_flag = config.get('debug', False)
+deterministic_flag = config.get('deterministic', False) # TODO SHOULD THIS BE HERE?
+deterministic = '--deterministic ' if deterministic_flag else ''
 phenotypes = config['phenotypes']
 phenotypes = list(phenotypes.keys()) if type(phenotypes) == dict else phenotypes
 training_phenotypes = config["training"].get("phenotypes", phenotypes)
@@ -26,8 +23,16 @@ n_repeats = config['n_repeats']
 debug = '--debug ' if debug_flag else ''
 do_scoretest = '--do-scoretest ' if config.get('do_scoretest', False) else ''
 tensor_compression_level = config['training'].get('tensor_compression_level', 1)
-model_path = Path("models")
+model_path = Path(config.get("pretrained_model_path", "pretrained_models"))
 n_parallel_training_jobs = config["training"].get("n_parallel_jobs", 1)
+
+burdens = Path(config.get("burdens", "burdens/burdens_average.zarr"))
+
+regenie_config_step1 = config["regenie_options"]["step_1"]
+regenie_config_step2 = config["regenie_options"]["step_2"]
+regenie_step1_bsize = regenie_config_step1["bsize"]
+regenie_step2_bsize = regenie_config_step2["bsize"]
+
 cv_exp = config.get('cv_exp', False)
 
 wildcard_constraints:
