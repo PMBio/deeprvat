@@ -922,15 +922,13 @@ def compute_burdens_(
             if bottleneck and i > 20:
                 break
 
-        #Calculate Max for this chunk and store for later
+        # Calculate Max for this chunk and store for later
         max_df = pd.DataFrame(columns=["max"])
         for r in range(len(agg_models)):
-            chunk_max = np.max(chunk_burden[:,:,r]) #samples x genes x repeats
+            chunk_max = np.max(chunk_burden[:, :, r])  # samples x genes x repeats
             max_df.loc[r, "max"] = chunk_max
         print(f"Saving Burden Max Scores")
-        max_df.to_csv(
-            f"{Path(cache_dir)}/chunk{chunk}_max.csv", index=False
-        )
+        max_df.to_csv(f"{Path(cache_dir)}/chunk{chunk}_max.csv", index=False)
 
         burdens[:] = chunk_burden[:]
         sample_ids[:] = chunk_sampleid[:]
