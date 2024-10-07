@@ -74,7 +74,7 @@ rule compute_burdens:
         mem_mb = 32000,
         gpus = 1
     shell:
-        ' && '.join([
+        ' '.join([
             ('deeprvat_associate compute-burdens '
              + debug +
              ' --n-chunks '+ str(n_burden_chunks) + ' '
@@ -84,9 +84,8 @@ rule compute_burdens:
              '{input.data_config} '
              '{input.model_config} '
              '{input.checkpoints} '
-             '{params.prefix}/{wildcards.phenotype}/deeprvat/burdens'),
-            'touch {output}'
-        ])
+             '{params.prefix}/burdens'],
+        )
 
 rule reverse_models:
     input:
