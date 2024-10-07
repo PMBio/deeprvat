@@ -83,10 +83,10 @@ def compare_training(
     model_dir = results_dir / "models"
     model_reference_dir = reference_dir / "models"
 
-    with open(model_dir / "config.yaml") as f:
+    with open(model_dir / "model_config.yaml") as f:
         config = yaml.safe_load(f)
 
-    with open(model_reference_dir / "config.yaml") as f:
+    with open(model_reference_dir / "model_config.yaml") as f:
         reference_config = yaml.safe_load(f)
 
     for r in range(n_repeats):
@@ -105,9 +105,16 @@ def compare_training(
         )
 
         if max_difference > tolerance:
+            diff = [
+                (p2 - p1).abs().max().item()
+                for p1, p2 in zip(model.parameters(), reference_model.parameters())
+            ]
+            logger.info(
+                "Model and reference model parameter pair difference:\n %s", diff
+            )
             raise RuntimeError(
                 f"FAIL! Max difference between model and reference parameters (repeat {r}) "
-                f"differs by {max_difference} > {tolerance=}"
+                f"differs by {max_difference} > {tolerance=}\n"
             )
         else:
             logger.info(
@@ -157,7 +164,7 @@ def compare_burdens(
         if not all_close:
             raise RuntimeError(
                 f"FAIL! Max difference between results and reference results "
-                f"(array '{a}') larger than tolerance.\n"
+                f"(array {a}) larger than tolerance.\n"
                 f"{np.max(np.abs(reference_array - array))=}"
             )
 
@@ -180,7 +187,7 @@ def compare_burdens(
             if not all_close:
                 raise RuntimeError(
                     f"FAIL! Max difference between results and reference results "
-                    f"(phenotype {p}, array '{a}') larger than tolerance"
+                    f"(phenotype {p}, array {a}) larger than tolerance"
                 )
 
         # else:
@@ -214,10 +221,9 @@ def compare_association(
         )
         string_cols = ["phenotype", "Method", "Discovery type"]
         for c in string_cols:
-            assert (
-                (results[c].isna() & results[c].isna())
-                | (results[c] == reference_results[c])
-            ).all()
+            ref = reference_results[c].reset_index(drop=True)
+            test = results[c].reset_index(drop=True)
+            assert ((test.isna() & ref.isna()) | (test == ref)).all()
 
         numerical_cols = ["gene", "beta", "pval", "-log10pval", "pval_corrected"]
         all_close = np.allclose(
