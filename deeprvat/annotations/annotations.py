@@ -1781,7 +1781,6 @@ def process_vep(
     necessary_columns = ["chrom", "pos", "ref", "alt", "Gene", "Consequence"] + list(
         types_mapping.keys()
     )
-    necessary_columns_present = [i for i in necessary_columns if i in vep_file.columns]
     if "SpliceAI_pred" in vep_file.columns:
         vep_file["SpliceAI_delta_score"] = vep_file["SpliceAI_pred"].apply(
             calculate_scores_max
@@ -1801,6 +1800,7 @@ def process_vep(
         vep_file[mask.columns] = mask
     else:
         raise ValueError("'Consequence' column expected to be in VEP output")
+    necessary_columns_present = [i for i in necessary_columns if i in vep_file.columns]
     vep_file = vep_file[list(set(necessary_columns_present + all_consequences))]
 
     types_present = dict(
