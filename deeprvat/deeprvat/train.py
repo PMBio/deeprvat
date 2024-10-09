@@ -439,18 +439,14 @@ class MultiphenoDataset(Dataset):
             assert np.array_equal(idx, np.arange(idx[0], idx[-1] + 1))
             slice_ = slice(idx[0], idx[-1] + 1)
 
-            # annotations = (
-            #     self.data[pheno]["input_tensor"][slice_]
-            #     if self.cache_tensors
-            #     else self.data[pheno]["input_tensor_zarr"][slice_, :, :, :]
-            # )
-            annotations = self.data[pheno]["input_tensor_zarr"][slice_, :, :, :]
+            indices = self.samples[pheno][slice_]
+            annotations = self.data[pheno]["input_tensor_zarr"].oindex[indices, :, :, :]
 
             result[pheno] = {
-                "indices": self.samples[pheno][slice_],
-                "covariates": self.data[pheno]["covariates"][slice_],
+                "indices": indices,
+                "covariates": self.data[pheno]["covariates"][indices],
                 "rare_variant_annotations": torch.tensor(annotations),
-                "y": self.data[pheno]["y"][slice_],
+                "y": self.data[pheno]["y"][indices],
             }
 
         return result
