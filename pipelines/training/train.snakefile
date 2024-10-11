@@ -61,7 +61,7 @@ rule train:
         mem_mb = 20000,
         gpus = 1
     shell:
-        f"parallel --jobs {n_parallel_training_jobs} --halt now,fail=1 --results train_repeat{{{{1}}}}_trial{{{{2}}}}/ "
+        f"parallel --jobs {n_parallel_training_jobs} --halt now,fail=1 --results {{params.prefix}}/train_repeat{{{{1}}}}_trial{{{{2}}}}/ "
         'deeprvat_train train ' +
         debug +
         deterministic +
