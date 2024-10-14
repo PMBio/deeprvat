@@ -8,7 +8,6 @@ import sys
 from pathlib import Path
 from pprint import pprint
 from typing import Dict, List, Optional, Tuple
-
 import click
 import numpy as np
 import pandas as pd
