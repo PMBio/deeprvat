@@ -20,20 +20,17 @@ The filenames should then contain the corresponding chromosome and block number.
 (requirements)=
 ## Requirements
 
-BCFtools as well as HTSlib should be installed on the machine, 
-- [CADD](https://github.com/kircherlab/CADD-scripts/tree/master/src/scripts) as well as 
-- [VEP](http://www.ensembl.org/info/docs/tools/vep/script/vep_download.html),  
-- [kipoi-veff2](https://github.com/kipoi/kipoi-veff2)
-- [faatpipe](https://github.com/HealthML/faatpipe), and the
-- [vep-plugins repository](https://github.com/Ensembl/VEP_plugins/)
+BCFtools as well as HTSlib should be installed on the machine, [VEP](http://www.ensembl.org/info/docs/tools/vep/script/vep_download.html) should be installed for running the pipeline. The [faatpipe](https://github.com/HealthML/faatpipe) repo, [kipoi-veff2](https://github.com/kipoi/kipoi-veff2) repo and  [vep-plugins repository](https://github.com/Ensembl/VEP_plugins/) should be cloned. Annotation data for CADD, spliceAI and primateAI should be downloaded. The path to the data may be specified in the corresponding [config file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml). 
+Download paths:
+- [CADD](https://cadd.gs.washington.edu/download): "All possible SNVs of GRCh38/hg38" and "gnomad.genomes.r3.0.indel.tsv.gz" incl. their Tabix Indices
+- [SpliceAI](https://basespace.illumina.com/s/otSPW8hnhaZR): "genome_scores_v1.3"/"spliceai_scores.raw.snv.hg38.vcf.gz" and "spliceai_scores.raw.indel.hg38.vcf.gz" 
+- [PrimateAI](https://basespace.illumina.com/s/yYGFdGih1rXL) PrimateAI supplementary data/"PrimateAI_scores_v0.2_GRCh38_sorted.tsv.bgz"
+- [AlphaMissense](https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz) 
 
-should be installed for running the pipeline, together with the [plugins](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html) for primateAI and spliceAI. Annotation data for CADD, spliceAI and primateAI should be downloaded. The path to the data may be specified in the corresponding [config file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml). 
-
-Also, a reference GTF file containing transcript annotations is required, this can be downloaded from [here](https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz)
+Also a reference GTF file containing transcript annotations is required, this can be downloaded from [here](https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz)
 
 
 ## Configure the annotation pipeline
-
 The snakemake annotation pipeline is configured using a yaml file with the format akin to the [example config file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml).
 
 The config above would use the following directory structure:
