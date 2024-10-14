@@ -233,10 +233,7 @@ rule make_regenie_burdens:
         + debug +
         "--skip-covariates "
         "--skip-phenotypes "
-        "--average-repeats "
         "{params.phenotypes} "
-        # "{input.dataset} "
-        # "{wildcards.phenotype}/deeprvat/burdens "
         "--sample-file {output.sample_file} "
         "--bgen {output.bgen} "
         "--burdens-genes-samples {params.burdens} {params.genes} {params.samples} "
@@ -267,8 +264,6 @@ rule make_regenie_metadata:
         + debug +
         "--skip-burdens "
         "{params.phenotypes}"
-        # "{input.dataset} "
-        # "{wildcards.phenotype}/deeprvat/burdens "
         "--covariate-file {output.covariate_file} "
         "--phenotype-file {output.phenotype_file} "
         "{input.gene_file} "

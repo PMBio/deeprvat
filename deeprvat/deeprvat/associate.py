@@ -297,7 +297,6 @@ def make_regenie_input_(
     skip_burdens: bool,
     burdens_genes_samples: Optional[Tuple[Path, Path, Path]],
     repeat: int,
-    average_repeats: bool,
     phenotype: Tuple[Tuple[str, Path, Path, Path]],
     sample_file: Optional[Path],
     covariate_file: Optional[Path],
@@ -417,15 +416,14 @@ def make_regenie_input_(
             assert burdens_zarr.shape[0] == n_samples
             assert burdens_zarr.shape[1] == n_genes
 
-        if average_repeats:
-            logger.info("Averaging burdens across all repeats")
-            burdens = np.zeros((n_samples, n_genes))
-            for repeat in trange(burdens_zarr.shape[2]):
-                burdens += burdens_zarr[:n_samples, :, repeat]
-            burdens = burdens / burdens_zarr.shape[2]
+        if len(burdens_zarr.shape) == 2:
+            burdens = burdens_zarr[:n_samples, :]
         else:
-            logger.info(f"Using burdens from repeat {repeat}")
-            assert repeat < burdens_zarr.shape[2]
+            if not len(burdens_zarr.shape) == 3 or not burdens_zarr.shape[2] == 1:
+                raise ValueError(
+                    f"Expected {burden_file} to have shape (n_samples, n_genes) "
+                    f"or (n_samples, n_genes, 1), got {burdens_zarr.shape}"
+                )
             burdens = burdens_zarr[:n_samples, :, repeat]
 
         # Read GTF file and get positions for pseudovariants (center of interval [Start, End])
@@ -486,7 +484,6 @@ def make_regenie_input_(
     ),
 )
 @click.option("--repeat", type=int, default=-1)
-@click.option("--average-repeats", is_flag=True)
 @click.option(
     "--phenotype",
     type=(
@@ -511,7 +508,6 @@ def make_regenie_input(
     skip_burdens: bool,
     burdens_genes_samples: Optional[Tuple[Path, Path, Path]],
     repeat: int,
-    average_repeats: bool,
     phenotype: Tuple[Tuple[str, Path, Path]],
     sample_file: Optional[Path],
     covariate_file: Optional[Path],
@@ -527,7 +523,6 @@ def make_regenie_input(
         skip_burdens=skip_burdens,
         burdens_genes_samples=burdens_genes_samples,
         repeat=repeat,
-        average_repeats=average_repeats,
         phenotype=phenotype,
         sample_file=sample_file,
         covariate_file=covariate_file,

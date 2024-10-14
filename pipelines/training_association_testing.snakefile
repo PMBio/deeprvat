@@ -1,7 +1,15 @@
 from pathlib import Path
 from deeprvat.deeprvat.config import create_main_config
+from deeprvat.deeprvat.check_input_data import check_input_data
 
-create_main_config("deeprvat_input_config.yaml")
+input_config_file = "deeprvat_input_config.yaml"
+
+if config.get("skip_sanity_check", False):
+    logger.warning("Skipping sanity check as skip_sanity_check was specified in config")
+else:
+    check_input_data(input_config_file)
+
+create_main_config(input_config_file)
 
 configfile: 'deeprvat_config.yaml'
 
