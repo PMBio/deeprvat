@@ -8,7 +8,6 @@ import sys
 from pathlib import Path
 from pprint import pprint
 from typing import Dict, List, Optional, Tuple
-
 import click
 import numpy as np
 import pandas as pd
@@ -25,8 +24,6 @@ from torch.utils.data import DataLoader, Dataset, Subset
 from tqdm import tqdm, trange
 import zarr
 import re
-import dask.array as da
-
 import deeprvat.deeprvat.models as deeprvat_models
 from deeprvat.data import DenseGTDataset
 
