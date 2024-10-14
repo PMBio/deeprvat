@@ -8,8 +8,6 @@ Welcome to DeepRVAT's documentation!
 
 Rare variant association testing using deep learning and data-driven gene impairment scores.
 
-_Coming soon:_ Overview of the DeepRVAT methodaster
-
 
 How to use this documentation
 ===================================
@@ -37,6 +35,25 @@ Citation
 If you use this package, please cite:
 
 Clarke, Holtkamp et al., “Integration of Variant Annotations Using Deep Set Networks Boosts Rare Variant Association Testing.” Nature Genetics. https://www.nature.com/articles/s41588-024-01919-z
+
+
+Release notes
+====================================
+
+v1.1.0
+------------------------------------
+
+Adjusts the calibration of DeepRVAT scores to differ from previous versions. Each model in the ensemble has its scores linearly adjusted to lie between -1 and 1, with the "no variant" score set to 0. (Previously, scores were between 0 and 1 with "no variant" close to, but not exactly, 0.5.)
+
+This can change the results of association testing and phenotype prediction, giving (in our testing) a slight boost in yield and replication of significant gene-trait associations.
+
+
+v1.0.0
+------------------------------------
+
+First release version.
+
+The results of the DeepRVAT publication can be reproduced using this version of the package.
 
 
 Contact
