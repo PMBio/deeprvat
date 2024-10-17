@@ -1625,14 +1625,10 @@ def average_burdens(
             for r in range(len(repeats)):
                 zero_effect_val = center_scale_df.loc[r, "mode"]
                 repeat_max = max_dfs.loc[r, "max"]
-                # Subtract off zero effect burden value (mode)
-                this_burdens[:, :, r] -= zero_effect_val
                 adjusted_max = repeat_max - zero_effect_val
-                min_val = this_burdens[:, :, r].min()
-                # Scale values between -1 and 1
+                # Subtract off zero effect burden value (mode) and scale
                 this_burdens[:, :, r] = (
-                    2 * ((this_burdens[:, :, r] - min_val) / (adjusted_max - min_val))
-                    - 1
+                    (this_burdens[:, :, r] - zero_effect_val) / adjusted_max
                 )
 
         this_burdens = AGG_FCT[agg_fct](this_burdens, axis=2)
