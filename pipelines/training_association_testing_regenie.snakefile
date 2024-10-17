@@ -16,6 +16,7 @@ training_phenotypes = list(training_phenotypes.keys()) if type(training_phenotyp
 n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
 n_regression_chunks = config.get('n_regression_chunks', 40) if not debug_flag else 2
 n_avg_chunks = config.get('n_avg_chunks', 1)
+center_scale_burdens = '--center-scale-burdens ' if config.get('center_scale_burdens', True) else ''
 n_trials = config['hyperparameter_optimization']['n_trials']
 n_bags = config['training']['n_bags'] if not debug_flag else 3
 n_repeats = config['n_repeats']
@@ -32,7 +33,7 @@ regenie_config_step2 = config["regenie_options"]["step_2"]
 regenie_step1_bsize = regenie_config_step1["bsize"]
 regenie_step2_bsize = regenie_config_step2["bsize"]
 
-cv_exp = False
+cv_exp = config.get('cv_exp', False)
 
 wildcard_constraints:
     repeat="\d+",
