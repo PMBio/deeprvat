@@ -1628,8 +1628,8 @@ def average_burdens(
                 adjusted_max = repeat_max - zero_effect_val
                 # Subtract off zero effect burden value (mode) and scale
                 this_burdens[:, :, r] = (
-                    (this_burdens[:, :, r] - zero_effect_val) / adjusted_max
-                )
+                    this_burdens[:, :, r] - zero_effect_val
+                ) / adjusted_max
 
         this_burdens = AGG_FCT[agg_fct](this_burdens, axis=2)
 
