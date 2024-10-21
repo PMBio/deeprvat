@@ -1151,7 +1151,10 @@ def regress_on_gene_scoretest(
     if np.all(np.abs(burdens) < 1e-6):
         logger.warning(f"Burden for gene {gene} is 0 for all samples; skipping")
         return None
-
+        
+    if np.unique(burdens).shape[0] == 1:
+        logger.warning(f"Burdens for gene {gene} are all constant; skipping")
+        return None
     pv = model_score.pv_alt_model(burdens)
 
     logger.info(f"p-value: {pv}")
