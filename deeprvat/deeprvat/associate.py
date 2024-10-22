@@ -1035,7 +1035,11 @@ def compute_burdens(
     if center_scale_burdens:
         if (chunk == 0) or not chunk:
             # Calculate Mode
-            anno_len = len(data_config[data_key]['dataset_config']['rare_embedding']['config']['annotations'])
+            anno_len = len(
+                data_config[data_key]["dataset_config"]["rare_embedding"]["config"][
+                    "annotations"
+                ]
+            )
             empty_batch = {
                 "rare_variant_annotations": torch.zeros(1, 1, anno_len, 1),
                 "y": None,
