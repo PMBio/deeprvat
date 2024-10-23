@@ -13,6 +13,7 @@ training_phenotypes = []
 n_burden_chunks = config.get('n_burden_chunks', 1) if not debug_flag else 2
 n_regression_chunks = config.get('n_regression_chunks', 40) if not debug_flag else 2
 n_avg_chunks = config.get('n_avg_chunks', 1)
+center_scale_burdens = '--center-scale-burdens ' if config.get('center_scale_burdens', True) else ''
 n_bags = config['training']['n_bags'] if not debug_flag else 3
 n_repeats = config['n_repeats']
 debug = '--debug ' if debug_flag else ''

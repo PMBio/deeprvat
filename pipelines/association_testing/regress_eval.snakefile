@@ -103,6 +103,7 @@ rule average_burdens:
     shell:
         ' && '.join([
             ('deeprvat_associate  average-burdens '
+             + center_scale_burdens +
              '--n-chunks ' + str(n_avg_chunks) + ' '
              '--chunk {wildcards.chunk} '
              '{params.repeats} '
