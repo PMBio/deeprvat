@@ -3,6 +3,7 @@ channels:
   - pytorch
   - conda-forge
   - bioconda
+  - default
 dependencies:
   - click=8.1
   - dask=2023.5
