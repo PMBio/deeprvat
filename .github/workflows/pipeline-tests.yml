@@ -111,7 +111,6 @@ jobs:
       prerun_cmd: cp ./tests/deeprvat/regenie/pretrained/deeprvat_config.yaml ./example/
       dry_run: false
       download_regenie_outputs: true
-      #run_burden_results_check: true
       run_regenie_association_results_check: true
 
   # Association Testing Training
