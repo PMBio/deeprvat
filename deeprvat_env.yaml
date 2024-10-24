@@ -4,7 +4,6 @@ channels:
   - nvidia
   - conda-forge
   - bioconda
-  - defaults
 dependencies:
   - click=8.1
   - cudatoolkit=11.8
