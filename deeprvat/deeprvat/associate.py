@@ -7,7 +7,7 @@ import os
 import sys
 from pathlib import Path
 from pprint import pprint
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import click
 import numpy as np
@@ -288,6 +288,299 @@ def compute_xy(
     zarr.save_array(sample_file, sample_ids)
     zarr.save_array(x_file, x)
     zarr.save_array(y_file, y)
+
+
+def make_regenie_skat_input_(
+    debug: bool,
+    data_config_file: Union[str, Path],
+    model_config_file: Union[str, Path],
+    checkpoint_files: Tuple[Union[str, Path]],
+    genotype_file: pd.DataFrame,
+    out_dir: Union[str, Path],
+):
+    logger.setLevel(logging.INFO)
+
+    out_dir = Path(out_dir)
+
+    with open(data_config_file) as f:
+        data_config = yaml.safe_load(f)
+
+    with open(model_config_file) as f:
+        model_config = yaml.safe_load(f)
+
+    annotation_file = data_config["association_testing_data"]["dataset_config"][
+        "annotation_file"
+    ]
+    thresholds = data_config["association_testing_data"]["dataset_config"][
+        "rare_embedding"
+    ][config]["thresholds"]
+    maf = pd.read_parquet(
+        annotation_file, columns=["id", "chrom", "pos", "ref", "alt", "MAF", "gene_id"]
+    )
+    for col, op in thresholds.items():
+        maf = maf.query(f"{col} {op}")
+
+    # TODO: pass gene_id as well!
+    rare_variant_ids = maf["id"]
+
+    ## Make REGENIE annotation file
+
+    regenie_annotations = maf.copy()
+    regenie_annotations["chrom_pos_ref_alt"] = maf["chrom"].str.cat(
+        maf[["pos", "ref", "alt"]], sep=":"
+    )
+    regenie_annotations.to_csv(
+        out_dir / "regenie_annotations.tsv", sep="\t", index=False, header=False
+    )
+
+    ## Make REGENIE set list file
+
+    regenie_sets = (
+        regenie_annotations[["gene_id", "chrom", "pos", "chrom_pos_ref_alt"]]
+        .group_by("gene_id")
+        .agg(
+            chrom=pd.NamedAgg(column="chrom", aggfunc="first"),
+            pos=pd.NamedAgg(column="pos", aggfunc="min"),
+            variants=pd.NamedAgg(
+                column="chrom_pos_ref_alt", aggfunc=lambda x: ",".join(x)
+            ),
+        )
+    )
+    regenie_sets.to_csv(
+        out_dir / "regenie_set_list.tsv", sep="\t", index=False, header=False
+    )
+
+    ## Make AAF file
+    ##   - Score each variant, use 1 - (DeepRVAT score)
+
+    logger.info("Scoring all rare variants")
+    scores = score_variants(
+        rare_variant_ids, model_config_file, data_config_file, checkpoint_files
+    )
+    # TODO: merge scores into maf dataframe; need to return id, gene_id from score_variants
+
+    ## Make BGEN file
+    ##   - Make zarr file (in memory?) to transpose genotype file (rare variants only)
+    ##   - Make BGEN file
+
+    ## Make BGEN
+
+    # Load data
+    logger.info("Loading computed burdens, covariates, phenotypes and metadata")
+
+    phenotype_names = [p[0] for p in phenotype]
+    dataset_files = [p[1] for p in phenotype]
+    xy_dirs = [p[2] for p in phenotype]
+
+    # load only first sample_ids zarr here
+    sample_ids = zarr.load(xy_dirs[0] / "sample_ids.zarr")
+    covariates = zarr.load(xy_dirs[0] / "x.zarr")
+    ys = [zarr.load(b / "y.zarr") for b in xy_dirs]
+
+    if debug:
+        sample_ids = sample_ids[:1000]
+        covariates = covariates[:1000]
+        ys = [y[:1000] for y in ys]
+
+    n_samples = sample_ids.shape[0]
+    assert covariates.shape[0] == n_samples
+    # assert that ALL y.zarrs are the same lengths as the single sample_ids zarr loaded above
+    assert all([y.shape[0] == n_samples for y in ys])
+
+    # Sanity check: sample_ids and covariates should be consistent for all phenotypes
+    if not debug:
+        for i in range(1, len(phenotype)):
+            assert np.array_equal(sample_ids, zarr.load(xy_dirs[i] / "sample_ids.zarr"))
+
+            this_cov = zarr.load(xy_dirs[i] / "x.zarr")
+            assert this_cov.shape == covariates.shape
+            unequal_rows = np.array(
+                [
+                    i
+                    for i in range(covariates.shape[0])
+                    if not np.array_equal(covariates[i], this_cov[i])
+                ]
+            )
+            for i in unequal_rows:
+                assert np.all(
+                    (np.abs(covariates[i] - this_cov[i]) < 1e-6)
+                    | (np.isnan(covariates[i]) & np.isnan(this_cov[i]))
+                )
+
+    sample_df = pd.DataFrame({"FID": sample_ids, "IID": sample_ids})
+
+    if not skip_covariates:
+        ## Make covariate file
+        logger.info(f"Creating covariate file {covariate_file}")
+        with open(dataset_files[0], "rb") as f:
+            dataset = pickle.load(f)
+
+        covariate_names = dataset.x_phenotypes
+        cov_df = pd.DataFrame(covariates, columns=covariate_names)
+        cov_df = pd.concat([sample_df, cov_df], axis=1)
+        cov_df.to_csv(covariate_file, sep=" ", index=False, na_rep="NA")
+
+    if not skip_phenotypes:
+        ## Make phenotype file
+        logger.info(f"Creating phenotype file {phenotype_file}")
+        pheno_df_list = []
+        for p, y in zip(phenotype_names, ys):
+            pheno_df_list.append(pd.DataFrame({p: y.squeeze()}))
+
+        pheno_df = pd.concat([sample_df] + pheno_df_list, axis=1)
+        pheno_df.to_csv(phenotype_file, sep=" ", index=False, na_rep="NA")
+
+    if not skip_burdens:
+        burden_file, gene_file, b_sample_file = burdens_genes_samples
+
+        genes = np.load(gene_file)
+        n_genes = genes.shape[0]
+
+        sample_ids = zarr.load(
+            b_sample_file
+        )  # Might be different from those for the phenotypes
+        n_samples = sample_ids.shape[0]
+
+        ## Make sample file
+        logger.info(f"Creating sample file {sample_file}")
+        sample_df = pd.DataFrame({"FID": sample_ids, "IID": sample_ids})
+        samples_out = pd.concat(
+            [
+                pd.DataFrame({"ID_1": 0, "ID_2": 0}, index=[0]),
+                sample_df.rename(
+                    columns={
+                        "FID": "ID_1",
+                        "IID": "ID_2",
+                    }
+                ),
+            ]
+        )
+        samples_out.to_csv(sample_file, sep=" ", index=False)
+
+        burdens_zarr = zarr.open(burden_file)
+        if not debug:
+            assert burdens_zarr.shape[0] == n_samples
+            assert burdens_zarr.shape[1] == n_genes
+
+        if average_repeats:
+            logger.info("Averaging burdens across all repeats")
+            burdens = np.zeros((n_samples, n_genes))
+            for repeat in trange(burdens_zarr.shape[2]):
+                burdens += burdens_zarr[:n_samples, :, repeat]
+            burdens = burdens / burdens_zarr.shape[2]
+        else:
+            logger.info(f"Using burdens from repeat {repeat}")
+            assert repeat < burdens_zarr.shape[2]
+            burdens = burdens_zarr[:n_samples, :, repeat]
+
+        # Read GTF file and get positions for pseudovariants (center of interval [Start, End])
+        logger.info(
+            f"Assigning positions to pseudovariants based on provided GTF file {gtf}"
+        )
+        gene_pos = pr.read_gtf(gtf)
+        gene_pos = gene_pos[
+            (gene_pos.Feature == "gene") & (gene_pos.gene_type == "protein_coding")
+        ][["Chromosome", "Start", "End", "gene_id"]].as_df()
+        gene_pos = gene_pos.set_index("gene_id")
+        gene_metadata = pd.read_parquet(gene_metadata_file).set_index("id")
+        this_gene_pos = gene_pos.loc[gene_metadata.loc[genes, "gene"]]
+        pseudovar_pos = (this_gene_pos.End - this_gene_pos.Start).to_numpy().astype(int)
+        ensgids = this_gene_pos.index.to_numpy()
+
+        logger.info(f"Writing pseudovariants to {bgen}")
+        with BgenWriter(
+            bgen,
+            n_samples,
+            samples=list(sample_ids.astype(str)),
+            metadata="Pseudovariants containing DeepRVAT gene impairment scores. One pseudovariant per gene.",
+        ) as f:
+            for i in trange(n_genes):
+                varid = f"pseudovariant_gene_{ensgids[i]}"
+                this_burdens = burdens[:, i]  # Rescale scores to be in range (0, 2)
+                genotypes = np.stack(
+                    (this_burdens, np.zeros(this_burdens.shape), 1 - this_burdens),
+                    axis=1,
+                )
+
+                f.add_variant(
+                    varid=varid,
+                    rsid=varid,
+                    chrom=this_gene_pos.iloc[i].Chromosome,
+                    pos=pseudovar_pos[i],
+                    alleles=[
+                        "A",
+                        "C",
+                    ],  # TODO: This is completely arbitrary, however, we might want to match it to a reference FASTA at some point
+                    genotypes=genotypes,
+                    ploidy=2,
+                    bit_depth=16,
+                )
+
+
+@cli.command()
+@click.option("--debug", is_flag=True)
+@click.option("--skip-covariates", is_flag=True)
+@click.option("--skip-phenotypes", is_flag=True)
+@click.option("--skip-burdens", is_flag=True)
+@click.option(
+    "--burdens-genes-samples",
+    type=(
+        click.Path(path_type=Path, exists=True),
+        click.Path(path_type=Path, exists=True),
+        click.Path(path_type=Path, exists=True),
+    ),
+)
+@click.option("--repeat", type=int, default=-1)
+@click.option("--average-repeats", is_flag=True)
+@click.option(
+    "--phenotype",
+    type=(
+        str,
+        click.Path(exists=True, path_type=Path),
+        click.Path(exists=True, path_type=Path),
+    ),
+    multiple=True,
+)  # phenotype_name, dataset_file, burden_dir
+@click.option("--sample-file", type=click.Path(path_type=Path))
+@click.option("--bgen", type=click.Path(path_type=Path))
+@click.option("--covariate-file", type=click.Path(path_type=Path))
+@click.option("--phenotype-file", type=click.Path(path_type=Path))
+# @click.argument("dataset-file", type=click.Path(exists=True, path_type=Path))
+# @click.argument("burden-dir", type=click.Path(exists=True, path_type=Path))
+@click.argument("gene-metadata-file", type=click.Path(exists=True, path_type=Path))
+@click.argument("gtf", type=click.Path(exists=True, path_type=Path))
+def make_regenie_skat_input(
+    debug: bool,
+    skip_covariates: bool,
+    skip_phenotypes: bool,
+    skip_burdens: bool,
+    burdens_genes_samples: Optional[Tuple[Path, Path, Path]],
+    repeat: int,
+    average_repeats: bool,
+    phenotype: Tuple[Tuple[str, Path, Path]],
+    sample_file: Optional[Path],
+    covariate_file: Optional[Path],
+    phenotype_file: Optional[Path],
+    bgen: Optional[Path],
+    gene_metadata_file: Path,
+    gtf: Path,
+):
+    make_regenie_skat_input_(
+        debug=debug,
+        skip_covariates=skip_covariates,
+        skip_phenotypes=skip_phenotypes,
+        skip_burdens=skip_burdens,
+        burdens_genes_samples=burdens_genes_samples,
+        repeat=repeat,
+        average_repeats=average_repeats,
+        phenotype=phenotype,
+        sample_file=sample_file,
+        covariate_file=covariate_file,
+        phenotype_file=phenotype_file,
+        bgen=bgen,
+        gene_metadata_file=gene_metadata_file,
+        gtf=gtf,
+    )
 
 
 def make_regenie_input_(
@@ -614,6 +907,74 @@ def load_one_model(
     model = model.to(device)
     agg_model = model.agg_model
     return agg_model
+
+
+def score_variants(
+    variant_ids: Iterable[Union[int, np.int16, np.int32, np.int64]],
+    model_config_file: str,
+    data_config_file: str,
+    checkpoint_files: Tuple[str],
+):
+    """
+    Score individual variants using a collection of DeepRVAT checkpoints.
+
+    :param variant_ids: Iterable containing variant IDs to score.
+    :type variant_ids: Iterable[Union[int, np.int16, np.int32, np.int64]]
+    :param model_config_file: Path to the model configuration file.
+    :type model_config_file: str
+    :param data_config_file: Path to the data configuration file.
+    :type data_config_file: str
+    :param checkpoint_files: Paths to checkpoint files.
+    :type checkpoint_files: Tuple[str]
+    :return: checkpoint.reverse file is created if the model should reverse the burden score output.
+    """
+    with open(model_config_file) as f:
+        model_config = yaml.safe_load(f)
+
+    with open(data_config_file) as f:
+        data_config = yaml.safe_load(f)
+
+    annotation_file = data_config["association_testing_data"]["dataset_config"][
+        "annotation_file"
+    ]
+
+    if torch.cuda.is_available():
+        logger.info("Using GPU to score variants")
+        device = torch.device("cuda")
+    else:
+        logger.info("Using CPU to score variants")
+        device = torch.device("cpu")
+
+    variant_df = (
+        pd.read_parquet(
+            annotation_file,
+            columns=data_config["association_testing_data"]["dataset_config"][
+                "rare_embedding"
+            ]["config"]["annotations"],
+        )
+        .set_index("id")
+        .loc[variant_ids]
+        .to_numpy()
+    )
+
+    n_variants = variant_df.shape[0]
+    scores = np.zeros(n_variants)
+    for checkpoint in checkpoint_files:
+        if Path(checkpoint + ".dropped").is_file():
+            # Ignore checkpoints that were chosen to be dropped
+            continue
+
+        agg_model = load_one_model(model_config, checkpoint, device=device)
+        if Path(checkpoint + ".reverse").is_file():
+            agg_model.set_reverse()
+
+        scores += agg_model(
+            torch.tensor(variant_df, dtype=torch.float, device=device).reshape(
+                (n_variants, 1, -1, 1)
+            )
+        ).reshape(n_variants) / len(checkpoint_files)
+
+    return scores
 
 
 @cli.command()
