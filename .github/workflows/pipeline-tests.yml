@@ -34,7 +34,7 @@ jobs:
       prerun_cmd: cp ./tests/deeprvat/training_association_testing/deeprvat_config.yaml ./example/
 
   Pipeline-Tests-RunTraining:
-    needs: [Smoke-RunTraining, Reference-Output-Training]
+    needs: [Smoke-RunTraining] #, Reference-Output-Training]
     uses: ./.github/workflows/run-pipeline.yml
     with:
       pipeline_file: ./pipelines/run_training.snakefile
@@ -44,35 +44,35 @@ jobs:
       download_training_outputs: true
       run_training_results_check: true
 
-  Reference-Output-Training:
-    uses: ./.github/workflows/run-pipeline.yml
-    with:
-      branch: main
-      pipeline_file: ./pipelines/run_training.snakefile
-      environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cp ./tests/deeprvat/training_association_testing/deeprvat_config.yaml ./example/
-      dry_run: false
-      upload_training_outputs: true
+  # Reference-Output-Training:
+  #   uses: ./.github/workflows/run-pipeline.yml
+  #   with:
+  #     branch: main
+  #     pipeline_file: ./pipelines/run_training.snakefile
+  #     environment_file: ./deeprvat_env_no_gpu.yml
+  #     prerun_cmd: cp ./tests/deeprvat/training_association_testing/deeprvat_config.yaml ./example/
+  #     dry_run: false
+  #     upload_training_outputs: true
 
-  Reference-Output-Pretrained:
-    uses: ./.github/workflows/run-pipeline.yml
-    with:
-      branch: main
-      pipeline_file: ./pipelines/association_testing_pretrained.snakefile
-      environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cp ./tests/deeprvat/pretrained/deeprvat_config.yaml ./example/
-      dry_run: false
-      upload_pretrained_outputs: true
+  # Reference-Output-Pretrained:
+  #   uses: ./.github/workflows/run-pipeline.yml
+  #   with:
+  #     branch: main
+  #     pipeline_file: ./pipelines/association_testing_pretrained.snakefile
+  #     environment_file: ./deeprvat_env_no_gpu.yml
+  #     prerun_cmd: cp ./tests/deeprvat/pretrained/deeprvat_config.yaml ./example/
+  #     dry_run: false
+  #     upload_pretrained_outputs: true
   
-  Reference-Output-Pretrained-Regenie:
-    uses: ./.github/workflows/run-pipeline.yml
-    with:
-      branch: main
-      pipeline_file: ./pipelines/association_testing_pretrained_regenie.snakefile
-      environment_file: ./deeprvat_env_no_gpu.yml
-      prerun_cmd: cp ./tests/deeprvat/regenie/pretrained/deeprvat_config.yaml ./example/
-      dry_run: false
-      upload_regenie_outputs: true
+  # Reference-Output-Pretrained-Regenie:
+  #   uses: ./.github/workflows/run-pipeline.yml
+  #   with:
+  #     branch: main
+  #     pipeline_file: ./pipelines/association_testing_pretrained_regenie.snakefile
+  #     environment_file: ./deeprvat_env_no_gpu.yml
+  #     prerun_cmd: cp ./tests/deeprvat/regenie/pretrained/deeprvat_config.yaml ./example/
+  #     dry_run: false
+  #     upload_regenie_outputs: true
 
   # Association Testing Pretrained Pipeline
   Smoke-Association-Testing-Pretrained:
@@ -83,7 +83,7 @@ jobs:
       prerun_cmd: cp ./tests/deeprvat/pretrained/deeprvat_config.yaml ./example/
 
   Pipeline-Tests-Training-Association-Testing:
-    needs: [Smoke-Association-Testing-Pretrained, Reference-Output-Pretrained]
+    needs: [Smoke-Association-Testing-Pretrained] #, Reference-Output-Pretrained]
     uses: ./.github/workflows/run-pipeline.yml
     with:
       pipeline_file: ./pipelines/association_testing_pretrained.snakefile
@@ -103,7 +103,7 @@ jobs:
       prerun_cmd: cp ./tests/deeprvat/regenie/pretrained/deeprvat_config.yaml ./example/
 
   Pipeline-Tests-Association-Testing-Pretrained-Regenie:
-    needs: [Smoke-Association-Testing-Pretrained-Regenie, Reference-Output-Pretrained-Regenie]
+    needs: [Smoke-Association-Testing-Pretrained-Regenie] #, Reference-Output-Pretrained-Regenie]
     uses: ./.github/workflows/run-pipeline.yml
     with:
       pipeline_file: ./pipelines/association_testing_pretrained_regenie.snakefile
