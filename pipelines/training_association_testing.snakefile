@@ -10,6 +10,7 @@ for handler in logging.root.handlers[:]:
 
 configfile: 'deeprvat_config.yaml'
 
+logging_redirct = "> {log.stdout} 2> {log.stderr}" #for Linux-based systems
 debug_flag = config.get('debug', False)
 debug = '--debug ' if debug_flag else ''
 deterministic_flag = config.get('deterministic', False)

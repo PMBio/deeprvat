@@ -22,6 +22,9 @@ rule evaluate:
     params:
         n_combis = 1,
         use_baseline_results = '--use-baseline-results' if 'baseline_results' in config else ''
+    log:
+        stdout="logs/evaluate/{phenotype}.stdout", 
+        stderr="logs/evaluate/{phenotype}.stderr"
     shell:
         'deeprvat_evaluate '
         + debug +
@@ -29,7 +32,8 @@ rule evaluate:
         '--phenotype {wildcards.phenotype} '
         '{input.associations} '
         '{input.data_config} '
-        '{wildcards.phenotype}/deeprvat/eval'
+        '{wildcards.phenotype}/deeprvat/eval '
+        + logging_redirct
 
 
 rule combine_regression_chunks:
@@ -40,11 +44,15 @@ rule combine_regression_chunks:
     threads: 1
     resources:
         mem_mb = lambda wildcards, attempt: 12000 + (attempt - 1) * 4098,
+    log:
+        stdout="logs/combine_regression_chunks/{phenotype}.stdout", 
+        stderr="logs/combine_regression_chunks/{phenotype}.stderr"
     shell:
         'deeprvat_associate combine-regression-results '
         '--model-name repeat_0 ' 
         '{input} '
-        '{output}'
+        '{output} '
+        + logging_redirct
 
 
 rule regress:
@@ -71,6 +79,9 @@ rule regress:
         xy_dir = "{phenotype}/deeprvat/xy",
         # burden_dir = 'burdens',
         out_dir = '{phenotype}/deeprvat/average_regression_results'
+    log:
+        stdout="logs/regress/{phenotype}_regress_{chunk}.stdout", 
+        stderr="logs/regress/{phenotype}_regress_{chunk}.stderr"
     shell:
         'deeprvat_associate regress '
         + debug +
@@ -82,7 +93,8 @@ rule regress:
         '{input.data_config} '
         "{params.xy_dir} "
         "{params.burden_file} "
-        '{params.out_dir}'
+        '{params.out_dir} '
+        + logging_redirct
 
 
 rule average_burdens:
@@ -100,6 +112,9 @@ rule average_burdens:
     resources:
         mem_mb = lambda wildcards, attempt: 4098 + (attempt - 1) * 4098,
     priority: 10,
+    log:
+        stdout="logs/average_burdens/average_burdens_{chunk}.stdout", 
+        stderr="logs/average_burdens/average_burdens_{chunk}.stderr"
     shell:
         ' && '.join([
             ('deeprvat_associate  average-burdens '
@@ -108,6 +123,7 @@ rule average_burdens:
              '{params.repeats} '
              '--agg-fct mean  '  #TODO remove this
              '{params.burdens_in} '
-             '{params.burdens_out}'),
+             '{params.burdens_out}'
+             + logging_redirct),
             'touch {output}'
         ])
