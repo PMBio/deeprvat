@@ -1,7 +1,12 @@
 from pathlib import Path
 from deeprvat.deeprvat.config import create_main_config
+import logging
 
 create_main_config("deeprvat_input_config.yaml")
+
+for handler in logging.root.handlers[:]:
+    #remove duplicate logging handlers from loaded deeprvat.config module
+    logging.root.removeHandler(handler) 
 
 configfile: 'deeprvat_config.yaml'
 
