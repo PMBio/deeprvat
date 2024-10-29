@@ -4,13 +4,9 @@ rule link_config:
     output:
         model_path / 'model_config.yaml'
     threads: 1
-    log:
-        stdout="logs/link_config/link_config.stdout", 
-        stderr="logs/link_config/link_config.stderr"
     shell:
         "ln -rfs {input} {output} "
         # "ln -s repeat_0/model_config.yaml {output}"
-        + logging_redirct
 
 rule best_training_run:
     input:
@@ -28,8 +24,8 @@ rule best_training_run:
     resources:
         mem_mb = 2048,
     log:
-        stdout="logs/best_training_run/{params.prefix}/repeat_{repeat}.stdout", 
-        stderr="logs/best_training_run/{params.prefix}/repeat_{repeat}.stderr"
+        stdout="logs/best_training_run/repeat_{repeat}.stdout", 
+        stderr="logs/best_training_run/repeat_{repeat}.stderr"
     shell:
         (
             'deeprvat_train best-training-run '
@@ -68,11 +64,6 @@ rule train:
     resources:
         mem_mb = 20000,
         gpus = 1
-    log: 
-        stdout=expand("logs/train/{{params.prefix}}/train_repeat{repeat}_trial{trial_number}.stdout",
-            repeat=range(n_repeats), trial_number=range(n_trials)), 
-        stderr=expand("logs/train/{{params.prefix}}/train_repeat{repeat}_trial{trial_number}.stderr",
-            repeat=range(n_repeats), trial_number=range(n_trials)),
     shell:
         f"parallel --jobs {n_parallel_training_jobs} --halt now,fail=1 --results {{params.prefix}}/train_repeat{{{{1}}}}_trial{{{{2}}}}/ "
         'deeprvat_train train ' +
@@ -84,6 +75,5 @@ rule train:
         '{params.prefix}/{model_path}/repeat_{{1}}/trial{{2}} '
         "{params.prefix}/{model_path}/repeat_{{1}}/hyperparameter_optimization.db '&&' "
         "touch {params.prefix}/{model_path}/repeat_{{1}}/trial{{2}}/finished.tmp "
-        + logging_redirct + " "
         "::: " + " ".join(map(str, range(n_repeats))) + " "
         "::: " + " ".join(map(str, range(n_trials)))

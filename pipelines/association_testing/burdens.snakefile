@@ -17,8 +17,8 @@ rule combine_burdens:
     resources:
         mem_mb = lambda wildcards, attempt: 4098 + (attempt - 1) * 4098,
     log:
-        stdout="logs/combine_burdens/{params.prefix}/combine_burdens.stdout", 
-        stderr="logs/combine_burdens/{params.prefix}/combine_burdens.stderr"
+        stdout="logs/combine_burdens/combine_burdens.stdout", 
+        stderr="logs/combine_burdens/combine_burdens.stderr"
     shell:
         ' '.join([
             'deeprvat_associate combine-burden-chunks',
@@ -82,8 +82,8 @@ rule compute_burdens:
         mem_mb = 32000,
         gpus = 1
     log:
-        stdout="logs/compute_burdens/{params.prefix}/compute_burdens_{chunk}.stdout", 
-        stderr="logs/compute_burdens/{params.prefix}/compute_burdens_{chunk}.stderr"
+        stdout="logs/compute_burdens/compute_burdens_{chunk}.stdout", 
+        stderr="logs/compute_burdens/compute_burdens_{chunk}.stderr"
     shell:
         ' '.join([
             'deeprvat_associate compute-burdens '
@@ -118,7 +118,8 @@ rule reverse_models:
             ("deeprvat_associate reverse-models "
              "{input.model_config} "
              "{input.data_config} "
-             "{input.checkpoints}"),
+             "{input.checkpoints} "
+             + logging_redirct),
              "touch {output} "
-             + logging_redirct
+             
         ])

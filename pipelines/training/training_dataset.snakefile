@@ -13,7 +13,7 @@ rule training_dataset:
     priority: 5000
     log:
         stdout="logs/training_dataset/{phenotype}.stdout", 
-        stderr="logs/training_dataset/{phenotype}stderr"
+        stderr="logs/training_dataset/{phenotype}.stderr"
     shell:
         (
             "deeprvat_train make-dataset "
@@ -41,7 +41,7 @@ rule training_dataset_pickle:
         load=16000,
     log:
         stdout="logs/training_dataset_pickle/{phenotype}.stdout", 
-        stderr="logs/training_dataset_pickle/{phenotype}stderr"
+        stderr="logs/training_dataset_pickle/{phenotype}.stderr"
     shell:
         (
             "deeprvat_train make-dataset "
