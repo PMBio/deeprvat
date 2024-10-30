@@ -451,7 +451,14 @@ def make_regenie_input_(
         ) as f:
             for i in trange(n_genes):
                 varid = f"pseudovariant_gene_{ensgids[i]}"
-                this_burdens = burdens[:, i]  # Rescale scores to be in range (0, 2)
+                this_burdens = burdens[:, i]
+
+                # Rescale scores to fill out range [0, 1] (making dosages in [0, 2])
+                min_burden = np.min(this_burdens)
+                max_burden = np.max(this_burdens)
+                this_burdens = (this_burdens - min_burden) / (max_burden - min_burden)
+
+                # REGENIE assumes by default genotypes are stored alt-first
                 genotypes = np.stack(
                     (this_burdens, np.zeros(this_burdens.shape), 1 - this_burdens),
                     axis=1,
