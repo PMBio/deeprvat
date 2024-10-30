@@ -449,9 +449,19 @@ def make_regenie_input_(
             samples=list(sample_ids.astype(str)),
             metadata="Pseudovariants containing DeepRVAT gene impairment scores. One pseudovariant per gene.",
         ) as f:
+            skipped_genes = 0
             for i in trange(n_genes):
                 varid = f"pseudovariant_gene_{ensgids[i]}"
                 this_burdens = burdens[:, i]
+                if np.all(this_burdens == this_burdens[0]):
+                    # burdens are constant, cannot perform association testing
+                    logger.warning(
+                        f"Gene impairment scores for gene {i} ({ensgids[i]}) "
+                        "are all constant. Gene will not be written to BGEN "
+                        "and will be skipped during association testing"
+                    )
+                    skipped_genes += 1
+                    continue
 
                 # Rescale scores to fill out range [0, 1] (making dosages in [0, 2])
                 min_burden = np.min(this_burdens)
@@ -476,6 +486,11 @@ def make_regenie_input_(
                     genotypes=genotypes,
                     ploidy=2,
                     bit_depth=16,
+                )
+
+            if skipped_genes > 0:
+                logger.warning(
+                    f"Skipped {skipped_genes} with constant gene impairment scores"
                 )
 
 
