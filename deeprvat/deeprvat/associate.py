@@ -474,6 +474,15 @@ def make_regenie_input_(
                     axis=1,
                 )
 
+                # TODO: Sanity check, remove in future (?)
+                burden_nan_count = np.sum(np.isnan(this_burdens))
+                genotypes_nan_count = np.sum(np.isnan(genotypes))
+                if burden_nan_count or genotypes_nan_count:
+                    logger.warning(
+                        f"Found NaNs in data for gene {i} ({ensgids[i]}): "
+                        f"{burden_nan_count=}, {genotypes_nan_count=}"
+                    )
+
                 f.add_variant(
                     varid=varid,
                     rsid=varid,
