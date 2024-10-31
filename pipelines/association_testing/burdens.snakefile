@@ -24,7 +24,7 @@ rule combine_burdens:
             'deeprvat_associate combine-burden-chunks',
             '{params.prefix}/burdens/chunks/',
             ' --n-chunks ' + str(n_burden_chunks),
-            '{params.prefix}/burdens',
+            '{params.prefix}/burdens ',
             logging_redirct
         ])
         

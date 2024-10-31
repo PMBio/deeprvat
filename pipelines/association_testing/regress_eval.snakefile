@@ -117,13 +117,13 @@ rule average_burdens:
         stderr="logs/average_burdens/average_burdens_{chunk}.stderr"
     shell:
         ' && '.join([
-            ('deeprvat_associate  average-burdens '
+            ('deeprvat_associate average-burdens '
              '--n-chunks ' + str(n_avg_chunks) + ' '
              '--chunk {wildcards.chunk} '
              '{params.repeats} '
              '--agg-fct mean  '  #TODO remove this
              '{params.burdens_in} '
-             '{params.burdens_out}'
+             '{params.burdens_out} '
              + logging_redirct),
             'touch {output}'
         ])

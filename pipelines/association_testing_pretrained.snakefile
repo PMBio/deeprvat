@@ -4,9 +4,8 @@ import logging
 
 create_main_config("deeprvat_input_pretrained_models_config.yaml")
 
-for handler in logging.root.handlers[:]:
-    #remove duplicate logging handlers from loaded deeprvat.config module
-    logging.root.removeHandler(handler) 
+#remove duplicate logging handlers from loaded deeprvat.config module
+logging.root.handlers.clear()
 
 configfile: 'deeprvat_config.yaml'
 

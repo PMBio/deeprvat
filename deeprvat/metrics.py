@@ -8,7 +8,7 @@ from sklearn.metrics import average_precision_score
 
 logging.basicConfig(
     format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
-    level="INFO",
+    level=logging.INFO,
     stream=sys.stdout,
 )
 logger = logging.getLogger(__name__)

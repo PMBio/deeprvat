@@ -125,7 +125,7 @@ rule regenie_step1:
         "--lowmem "
         "--lowmem-prefix regenie_step1_tmp/deeprvat "
         + " ".join(regenie_config_step1.get("options", [])) + " " +
-        "--out regenie_output/step1/deeprvat 
+        "--out regenie_output/step1/deeprvat "
         + logging_redirct + " ; "
         "rm -rf regenie_step1_tmp "
         

@@ -25,10 +25,10 @@ from torch.utils.data import DataLoader, Dataset, Subset
 from tqdm import tqdm, trange
 import zarr
 import re
-
 import deeprvat.deeprvat.models as deeprvat_models
 from deeprvat.data import DenseGTDataset
 
+logging.root.handlers.clear() # Remove all handlers associated with the root logger object
 logging.basicConfig(
     format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
     level=logging.INFO,
@@ -47,6 +47,9 @@ PLOF_COLS = [
 
 AGG_FCT = {"mean": np.mean, "max": np.max}
 
+@click.group()
+def cli():
+    pass
 
 def get_burden(
     batch: Dict,
@@ -97,11 +100,6 @@ def separate_parallel_results(results: List) -> Tuple[List, ...]:
     :rtype: Tuple[List, ...]
     """
     return tuple(map(list, zip(*results)))
-
-
-@click.group()
-def cli():
-    pass
 
 
 def make_dataset_(
@@ -306,7 +304,6 @@ def make_regenie_input_(
     gene_metadata_file: Path,
     gtf: Path,
 ):
-    logger.setLevel(logging.INFO)
 
     ## Check options
     if not skip_burdens and burdens_genes_samples is None:
@@ -420,7 +417,7 @@ def make_regenie_input_(
         if average_repeats:
             logger.info("Averaging burdens across all repeats")
             burdens = np.zeros((n_samples, n_genes))
-            for repeat in trange(burdens_zarr.shape[2]):
+            for repeat in trange(burdens_zarr.shape[2], file=sys.stdout):
                 burdens += burdens_zarr[:n_samples, :, repeat]
             burdens = burdens / burdens_zarr.shape[2]
         else:
@@ -449,7 +446,7 @@ def make_regenie_input_(
             samples=list(sample_ids.astype(str)),
             metadata="Pseudovariants containing DeepRVAT gene impairment scores. One pseudovariant per gene.",
         ) as f:
-            for i in trange(n_genes):
+            for i in trange(n_genes, file=sys.stdout):
                 varid = f"pseudovariant_gene_{ensgids[i]}"
                 this_burdens = burdens[:, i]  # Rescale scores to be in range (0, 2)
                 genotypes = np.stack(
@@ -747,7 +744,7 @@ def load_models(
     }
 
     if len(checkpoint_files[first_repeat]) > 1:
-        logging.info(
+        logger.info(
             f"  Averaging results from {len(checkpoint_files[first_repeat])} models for each repeat"
         )
 
@@ -1065,7 +1062,7 @@ def combine_burden_chunks_(
     end_id = 0
 
     for i, chunk in tqdm(
-        enumerate(range(0, n_chunks)), desc=f"Merging {n_chunks} chunks"
+        enumerate(range(0, n_chunks)), desc=f"Merging {n_chunks} chunks", file=sys.stdout
     ):
         chunk_dir = burdens_chunks_dir / f"chunk_{chunk}"
 
