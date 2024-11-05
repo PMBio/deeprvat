@@ -26,6 +26,9 @@ rule make_deeprvat_test_config:
         data_config="cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/config.yaml",
     output:
         data_config_test="cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/config_test.yaml",
+    log: 
+        stdout="logs/make_deeprvat_test_config/cv_split{cv_split}_{phenotype}.stdout", 
+        stderr="logs/make_deeprvat_test_config/cv_split{cv_split}_{phenotype}.stderr"
     shell:
         " && ".join(
         [
@@ -47,6 +50,9 @@ use rule association_dataset from deeprvat_workflow as deeprvat_association_data
     output:
         temp("cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/association_dataset.pkl"),
     threads: 4
+    log:
+        stdout="logs/association_dataset/cv_split{cv_split}_{phenotype}.stdout", 
+        stderr="logs/association_dataset/cv_split{cv_split}_{phenotype}.stderr"
 
 use rule association_dataset_burdens from deeprvat_workflow as deeprvat_association_dataset_burdens with:
     input:
@@ -54,6 +60,9 @@ use rule association_dataset_burdens from deeprvat_workflow as deeprvat_associat
     output:
         temp("cv_split{cv_split}/deeprvat/burdens/association_dataset.pkl"),
     threads: 4
+    log:
+        stdout=f"logs/association_dataset_burdens/cv_split{{cv_split}}_{burden_phenotype}.stdout", 
+        stderr=f"logs/association_dataset_burdens/cv_split{{cv_split}}_{burden_phenotype}.stderr"
 
 
 rule combine_test_burdens:
@@ -94,6 +103,9 @@ rule combine_test_burdens:
         ),
     resources:
         mem_mb=lambda wildcards, attempt: 32000 + attempt * 4098 * 2,
+    log:
+        stdout="logs/combine_test_burdens/{phenotype}.stdout", 
+        stderr="logs/combine_test_burdens/{phenotype}.stderr"
     shell:
         " && ".join(
             [
@@ -118,11 +130,17 @@ rule combine_test_burdens:
 use rule combine_burdens from deeprvat_workflow as deeprvat_combine_burdens with:
     params:
         prefix="cv_split{cv_split}/deeprvat",
+    log:
+        stdout="logs/combine_burdens/cv_split{cv_split}.stdout", 
+        stderr="logs/combine_burdens/cv_split{cv_split}.stderr"
 
 
 use rule compute_burdens from deeprvat_workflow as deeprvat_compute_burdens with:
     params:
         prefix="cv_split{cv_split}/deeprvat",
+    log:
+        stdout="logs/compute_burdens/cv_split{cv_split}_burdens_{chunk}.stdout", 
+        stderr="logs/compute_burdens/cv_split{cv_split}_burdens_{chunk}.stderr"
 
 
 use rule compute_xy from deeprvat_workflow as deeprvat_compute_xy with:
@@ -133,6 +151,9 @@ use rule compute_xy from deeprvat_workflow as deeprvat_compute_xy with:
         samples = directory('cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/xy/sample_ids.zarr'),
         x = directory('cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/xy/x.zarr'),
         y = directory('cv_split{cv_split}/deeprvat/{phenotype}/deeprvat/xy/y.zarr'),
+    log:
+        stdout="logs/compute_xy/cv_split{cv_split}_{phenotype}.stdout", 
+        stderr="logs/compute_xy/cv_split{cv_split}_{phenotype}.stderr"
 
 
 use rule reverse_models from deeprvat_workflow as deeprvat_reverse_models
