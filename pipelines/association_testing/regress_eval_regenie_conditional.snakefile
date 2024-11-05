@@ -59,6 +59,9 @@ rule convert_regenie_output:
     threads: 1
     resources:
         mem_mb = 2048
+    log:
+        stdout="logs/convert_regenie_output/convert_regenie_output.stdout",
+        stderr="logs/convert_regenie_output/convert_regenie_output.stderr"
     shell:
         "deeprvat_associate convert-regenie-output "
         "--phenotype {wildcards.phenotype} {input} {output} "
@@ -81,6 +84,9 @@ rule regenie_step2:
     threads: 16
     resources:
         mem_mb = lambda wildcards, attempt: 32768 * attempt
+    log:
+        stdout="logs/regenie_step2/regenie_step2.stdout",
+        stderr="logs/regenie_step2/regenie_step2.stderr",
     shell:
         "regenie "
         "--step 2 "
@@ -110,6 +116,9 @@ rule regenie_step1:
     threads: 24
     resources:
         mem_mb = 16000
+    log:
+        stdout="logs/regenie_step1/regenie_step1.stdout", 
+        stderr="logs/regenie_step1/regenie_step1.stderr"
     shell:
         "mkdir -p regenie_step1_tmp && "
         "regenie "
@@ -244,6 +253,9 @@ rule make_regenie_burdens:
     threads: 8
     resources:
         mem_mb = 64000
+    log:
+        stdout="logs/make_regenie_burdens/make_regenie_burdens.stdout", 
+        stderr="logs/make_regenie_burdens/make_regenie_burdens.stderr"
     shell:
         "deeprvat_associate make-regenie-input "
         + debug +
@@ -273,6 +285,9 @@ rule make_regenie_step2_metadata:
     threads: 1
     resources:
         mem_mb = 16000
+    log:
+        stdout="logs/make_regenie_step2_metadata/make_regenie_step2_metadata.stdout",
+        stderr="logs/make_regenie_step2_metadata/make_regenie_step2_metadata.stderr",
     shell:
         "deeprvat_associate make-regenie-input "
         + debug +
@@ -305,6 +320,9 @@ rule make_regenie_step1_metadata:
     threads: 1
     resources:
         mem_mb = 16000
+    log:
+        stdout="logs/make_regenie_step1_metadata/make_regenie_step1_metadata.stdout",
+        stderr="logs/make_regenie_step1_metadata/make_regenie_step1_metadata.stderr",
     shell:
         "deeprvat_associate make-regenie-input "
         + debug +
@@ -334,6 +352,9 @@ rule average_burdens:
     resources:
         mem_mb = lambda wildcards, attempt: 4098 + (attempt - 1) * 4098,
     priority: 10,
+    log:
+        stdout="logs/average_burdens/average_burdens_{chunk}.stdout", 
+        stderr="logs/average_burdens/average_burdens_{chunk}.stderr"
     shell:
         ' && '.join([
             ('deeprvat_associate  average-burdens '
