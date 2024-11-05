@@ -28,7 +28,7 @@ import re
 import deeprvat.deeprvat.models as deeprvat_models
 from deeprvat.data import DenseGTDataset
 
-logging.root.handlers.clear() # Remove all handlers associated with the root logger object
+logging.root.handlers.clear()  # Remove all handlers associated with the root logger object
 logging.basicConfig(
     format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
     level=logging.INFO,
@@ -47,9 +47,11 @@ PLOF_COLS = [
 
 AGG_FCT = {"mean": np.mean, "max": np.max}
 
+
 @click.group()
 def cli():
     pass
+
 
 def get_burden(
     batch: Dict,
@@ -1062,7 +1064,9 @@ def combine_burden_chunks_(
     end_id = 0
 
     for i, chunk in tqdm(
-        enumerate(range(0, n_chunks)), desc=f"Merging {n_chunks} chunks", file=sys.stdout
+        enumerate(range(0, n_chunks)),
+        desc=f"Merging {n_chunks} chunks",
+        file=sys.stdout,
     ):
         chunk_dir = burdens_chunks_dir / f"chunk_{chunk}"
 
