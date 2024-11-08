@@ -102,12 +102,21 @@ def write_genotype_file(
     variant_matrix: np.ndarray,
     genotype_matrix: np.ndarray,
     count_variants: Optional[np.ndarray] = None,
+    metadata: Optional[str] = None,  # Add metadata parameter
 ):
-    f.create_dataset("samples", data=samples, dtype=h5py.string_dtype())
-    f.create_dataset("variant_matrix", data=variant_matrix, dtype=np.int32)
+def write_genotype_file(
+    f: h5py.File,
+    samples: np.ndarray,
+    variant_matrix: np.ndarray,
+    genotype_matrix: np.ndarray,
+    count_variants: Optional[np.ndarray] = None,
+):
     f.create_dataset("genotype_matrix", data=genotype_matrix, dtype=np.int8)
     if count_variants is not None:
         f.create_dataset("count_variants", data=count_variants, dtype=np.int32)
+    # Remove metadata description field
+    # if metadata is not None:
+    #     f.attrs['metadata'] = metadata
 
 
 @click.group()
