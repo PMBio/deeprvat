@@ -447,7 +447,6 @@ def make_regenie_input_(
             bgen,
             n_samples,
             samples=list(sample_ids.astype(str)),
-            metadata="Pseudovariants containing DeepRVAT gene impairment scores. One pseudovariant per gene.",
         ) as f:
             for i in trange(n_genes):
                 varid = f"pseudovariant_gene_{ensgids[i]}"
