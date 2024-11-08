@@ -464,9 +464,12 @@ def make_regenie_input_(
                     continue
 
                 # Rescale scores to fill out range [0, 1] (making dosages in [0, 2])
-                min_burden = np.min(this_burdens)
-                max_burden = np.max(this_burdens)
-                this_burdens = (this_burdens - min_burden) / (max_burden - min_burden)
+                # TODO:
+                # 1. Warn if burdens are censored to remain > 0
+                # 2. Offset/scale more intelligently to fill out [0, 1] better
+                # 3. (maybe) Allow for setting offset/scale as parameter
+                offset = 0.251
+                this_burdens = np.max(this_burdens - offset, 0)
 
                 # REGENIE assumes by default genotypes are stored alt-first
                 genotypes = np.stack(
