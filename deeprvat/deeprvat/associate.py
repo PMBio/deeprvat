@@ -469,7 +469,7 @@ def make_regenie_input_(
                 # 2. Offset/scale more intelligently to fill out [0, 1] better
                 # 3. (maybe) Allow for setting offset/scale as parameter
                 offset = 0.251
-                this_burdens = np.max(this_burdens - offset, 0)
+                this_burdens = np.maximum(this_burdens - offset, 0)
 
                 # REGENIE assumes by default genotypes are stored alt-first
                 genotypes = np.stack(
