@@ -442,6 +442,7 @@ def make_regenie_input_(
         pseudovar_pos = (this_gene_pos.End - this_gene_pos.Start).to_numpy().astype(int)
         ensgids = this_gene_pos.index.to_numpy()
 
+        median_score = np.median(burdens[:, 0]) # TODO: This is a hack!!!!
         logger.info(f"Writing pseudovariants to {bgen}")
         with BgenWriter(
             bgen,
@@ -468,8 +469,10 @@ def make_regenie_input_(
                 # 1. Warn if burdens are censored to remain > 0
                 # 2. Offset/scale more intelligently to fill out [0, 1] better
                 # 3. (maybe) Allow for setting offset/scale as parameter
-                offset = 0.251
+                offset = median_score
                 this_burdens = np.maximum(this_burdens - offset, 0)
+                max_burden = np.max(this_burdens)
+                this_burdens = this_burdens / max_burden
 
                 # REGENIE assumes by default genotypes are stored alt-first
                 genotypes = np.stack(
