@@ -86,6 +86,9 @@ class BaseModel(pl.LightningModule):
             name: METRICS[name]() for name in self.hparams.metrics["all"]
         }
 
+        self.test_step_outputs = []
+        self.validation_step_outputs = []
+
         self.objective_mode = self.hparams.metrics.get("objective_mode", "min")
         if self.objective_mode == "max":
             self.best_objective = float("-inf")
@@ -174,11 +177,11 @@ class BaseModel(pl.LightningModule):
             and corresponding ground truth values ("y_by_pheno").
         """
         y_by_pheno = {pheno: pheno_batch["y"] for pheno, pheno_batch in batch.items()}
-        return {"y_pred_by_pheno": self(batch), "y_by_pheno": y_by_pheno}
+        pred = {"y_pred_by_pheno": self(batch), "y_by_pheno": y_by_pheno}
+        self.validation_step_outputs.append(pred)
+        return pred
 
-    def validation_epoch_end(
-        self, prediction_y: List[Dict[str, Dict[str, torch.Tensor]]]
-    ):
+    def on_validation_epoch_end(self):
         """
         Evaluate accumulated phenotype predictions at the end of the validation epoch.
 
@@ -193,6 +196,7 @@ class BaseModel(pl.LightningModule):
         :return: None
         :rtype: None
         """
+        prediction_y = self.validation_step_outputs
         y_pred_by_pheno = dict()
         y_by_pheno = dict()
         for result in prediction_y:
@@ -233,6 +237,8 @@ class BaseModel(pl.LightningModule):
             self.best_objective, results[self.hparams.metrics["objective"]].item()
         )
 
+        self.validation_step_outputs.clear() #free memory
+
     def test_step(self, batch: dict, batch_idx: int):
         """
         During testing, we do not compute backward passes, such that we can accumulate
@@ -247,9 +253,11 @@ class BaseModel(pl.LightningModule):
             and corresponding ground truth values ("y").
         :rtype: dict
         """
-        return {"y_pred": self(batch), "y": batch["y"]}
+        pred = {"y_pred": self(batch), "y": batch["y"]}
+        self.test_step_outputs.append(pred)
+        return pred
 
-    def test_epoch_end(self, prediction_y: List[Dict[str, torch.Tensor]]):
+    def on_test_epoch_end(self):
         """
         Evaluate accumulated phenotype predictions at the end of the testing epoch.
 
@@ -257,6 +265,7 @@ class BaseModel(pl.LightningModule):
             and corresponding ground truth values obtained during the testing process.
         :type prediction_y: List[Dict[str, Dict[str, torch.Tensor]]]
         """
+        prediction_y = self.test_step_outputs
         y_pred = torch.cat([p["y_pred"] for p in prediction_y])
         y = torch.cat([p["y"] for p in prediction_y])
 
@@ -268,6 +277,8 @@ class BaseModel(pl.LightningModule):
         self.best_objective = self.objective_operation(
             self.best_objective, results[self.hparams.metrics["objective"]].item()
         )
+
+        self.test_step_outputs.clear() #free memory
 
     def configure_callbacks(self):
         return [ModelSummary()]
