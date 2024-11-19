@@ -7,20 +7,24 @@ channels:
 dependencies:
   - click=8.1
   - cudatoolkit=11.8
+  - cython=0.29
   - dask=2023.5
   - fastparquet=0.5
   - h5py=3.1
   - mkl==2022.1.0
   - numcodecs=0.11
-  - numpy=1.21
+  - numpy=1.24
   - optuna=2.10
   - pandas=1.5
+  - parallel=20230922
+  - pip=23.0.1
+  - plotnine=0.10.1
   - pyarrow=11.0
   - pyranges=0.0.129
   - python=3.8
-  - pytorch=1.13
-  - pytorch-cuda=11
-  - pytorch-lightning=1.5
+  - pytorch=2.4
+  - pytorch-cuda=11.8
+  - pytorch-lightning=2.4
   - pyyaml=5.4
   - regenie=3.4.1
   - scikit-learn=1.1
@@ -29,12 +33,9 @@ dependencies:
   - snakemake=7.17
   - sqlalchemy=1.4
   - statsmodels=0.13
+  - tensorboard=2.14
   - tqdm=4.59
   - zarr=2.13
-  - Cython=0.29
-  - parallel=20230922
-  - pip=23.0.1
-  - plotnine=0.10.1
   - pip:
     - git+https://github.com/HealthML/seak@v0.4.3
     - bgen==1.6.3
