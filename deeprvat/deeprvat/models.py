@@ -237,7 +237,7 @@ class BaseModel(pl.LightningModule):
             self.best_objective, results[self.hparams.metrics["objective"]].item()
         )
 
-        self.validation_step_outputs.clear() #free memory
+        self.validation_step_outputs.clear()  # free memory
 
     def test_step(self, batch: dict, batch_idx: int):
         """
@@ -278,7 +278,7 @@ class BaseModel(pl.LightningModule):
             self.best_objective, results[self.hparams.metrics["objective"]].item()
         )
 
-        self.test_step_outputs.clear() #free memory
+        self.test_step_outputs.clear()  # free memory
 
     def configure_callbacks(self):
         return [ModelSummary()]
