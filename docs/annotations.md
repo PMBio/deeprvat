@@ -22,7 +22,7 @@ The filenames should then contain the corresponding chromosome and block number.
 
 BCFtools as well as HTSlib should be installed on the machine, [VEP](http://www.ensembl.org/info/docs/tools/vep/script/vep_download.html) should be installed for running the pipeline. The [faatpipe](https://github.com/HealthML/faatpipe) repo, [kipoi-veff2](https://github.com/kipoi/kipoi-veff2) repo and  [vep-plugins repository](https://github.com/Ensembl/VEP_plugins/) should be cloned. Annotation data for CADD, spliceAI and primateAI should be downloaded. The path to the data may be specified in the corresponding [config file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml). 
 Download paths:
-- [CADD](https://cadd.gs.washington.edu/download): "All possible SNVs of GRCh38/hg38" and "gnomad.genomes.r3.0.indel.tsv.gz" incl. their Tabix Indices
+- [CADD](https://cadd.gs.washington.edu/download): "All possible SNVs of GRCh38/hg38" and "gnomad.genomes.r3.0.indel.tsv.gz" incl. their Tabix Indices for CADD version 1.6
 - [SpliceAI](https://basespace.illumina.com/s/otSPW8hnhaZR): "genome_scores_v1.3"/"spliceai_scores.raw.snv.hg38.vcf.gz" and "spliceai_scores.raw.indel.hg38.vcf.gz" 
 - [PrimateAI](https://basespace.illumina.com/s/yYGFdGih1rXL) PrimateAI supplementary data/"PrimateAI_scores_v0.2_GRCh38_sorted.tsv.bgz"
 - [AlphaMissense](https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz) 
