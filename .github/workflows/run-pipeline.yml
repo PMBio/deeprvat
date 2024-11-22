@@ -134,7 +134,7 @@ jobs:
         - name: Upload Training Outputs
           id: uploaded_training_outputs
           if: inputs.upload_training_outputs
-          uses: actions/upload-artifact@v4
+          uses: actions/upload-artifact@v4.4.0
           with:
             name: completed_training_outputs
             path: |
@@ -148,7 +148,7 @@ jobs:
         - name: Upload Pretrained Outputs
           id: uploaded_pretrained_outputs
           if: inputs.upload_pretrained_outputs
-          uses: actions/upload-artifact@v4
+          uses: actions/upload-artifact@v4.4.0
           with:
             name: completed_pretrained_outputs
             path: |
@@ -163,7 +163,7 @@ jobs:
         - name: Upload Regenie Outputs
           id: uploaded_regenie_outputs
           if: inputs.upload_regenie_outputs
-          uses: actions/upload-artifact@v4
+          uses: actions/upload-artifact@v4.4.0
           with:
             name: completed_regenie_outputs
             path: |

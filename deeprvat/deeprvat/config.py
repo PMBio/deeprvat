@@ -382,6 +382,10 @@ def create_main_config(
             "correction_method": input_config["evaluation"]["correction_method"],
             "alpha": input_config["evaluation"]["alpha"],
         }
+        if "center_scale_burdens" in input_config["evaluation"]:
+            full_config["center_scale_burdens"] = input_config["evaluation"][
+                "center_scale_burdens"
+            ]
 
     if pretrained_setup:
         full_config.update(

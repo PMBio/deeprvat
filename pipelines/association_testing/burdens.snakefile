@@ -77,15 +77,15 @@ rule compute_burdens:
         ' '.join([
             'deeprvat_associate compute-burdens '
             + debug +
-            ' --n-chunks ' + str(n_burden_chunks) + ' '
+            ' --n-chunks '+ str(n_burden_chunks) + ' '
             '--chunk {wildcards.chunk} '
             '--dataset-file {input.dataset} '
+            + center_scale_burdens +
             '{input.data_config} '
             '{input.model_config} '
             '{input.checkpoints} '
             '{params.prefix}/burdens'],
         )
-
 
 rule reverse_models:
     input:

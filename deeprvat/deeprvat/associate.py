@@ -8,7 +8,6 @@ import sys
 from pathlib import Path
 from pprint import pprint
 from typing import Dict, List, Optional, Tuple
-
 import click
 import numpy as np
 import pandas as pd
@@ -25,7 +24,6 @@ from torch.utils.data import DataLoader, Dataset, Subset
 from tqdm import tqdm, trange
 import zarr
 import re
-
 import deeprvat.deeprvat.models as deeprvat_models
 from deeprvat.data import DenseGTDataset
 
@@ -63,10 +61,8 @@ def get_burden(
     :type agg_models: Dict[str, List[nn.Module]]
     :param device: Device to perform computations on, defaults to "cpu".
     :type device: torch.device
-    :param skip_burdens: Flag to skip burden computation, defaults to False.
-    :type skip_burdens: bool
     :return: Tuple containing burden scores, target y phenotype values, x phenotypes and sample ids.
-    :rtype: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+    :rtype: Tuple[torch.Tensor, torch.Tensor]
 
     .. note::
         Checkpoint models all corresponding to the same repeat are averaged for that repeat.
@@ -922,6 +918,14 @@ def compute_burdens_(
             if bottleneck and i > 20:
                 break
 
+        # Calculate Max for this chunk and store for later
+        max_df = pd.DataFrame(columns=["max"])
+        for r in range(len(agg_models)):
+            chunk_max = np.max(chunk_burden[:, :, r])  # samples x genes x repeats
+            max_df.loc[r, "max"] = chunk_max
+        print(f"Saving Burden Max Scores")
+        max_df.to_csv(f"{Path(cache_dir)}/chunk{chunk}_max.csv", index=False)
+
         burdens[:] = chunk_burden[:]
         sample_ids[:] = chunk_sampleid[:]
 
@@ -940,6 +944,7 @@ def compute_burdens_(
 @click.option("--n-chunks", type=int)
 @click.option("--chunk", type=int)
 @click.option("--dataset-file", type=click.Path(exists=True))
+@click.option("--center-scale-burdens", is_flag=True)
 @click.argument("data-config-file", type=click.Path(exists=True))
 @click.argument("model-config-file", type=click.Path(exists=True))
 @click.argument("checkpoint-files", type=click.Path(exists=True), nargs=-1)
@@ -951,6 +956,7 @@ def compute_burdens(
     n_chunks: Optional[int],
     chunk: Optional[int],
     dataset_file: Optional[str],
+    center_scale_burdens: bool,
     data_config_file: str,
     model_config_file: str,
     checkpoint_files: Tuple[str],
@@ -971,6 +977,8 @@ def compute_burdens(
     :type chunk: Optional[int]
     :param dataset_file: Path to the dataset file, i.e., association_dataset.pkl.
     :type dataset_file: Optional[str]
+    :param center_scale_burdens: Flag to enable calculation of center and scaling parameters for centering and scaling burden results.
+    :type center_scale_burdens: bool
     :param data_config_file: Path to the data configuration file.
     :type data_config_file: str
     :param model_config_file: Path to the model configuration file.
@@ -1022,6 +1030,34 @@ def compute_burdens(
         device=device,
         bottleneck=bottleneck,
     )
+
+    if center_scale_burdens:
+        if (chunk == 0) or not chunk:
+            # Calculate Mode
+            anno_len = len(
+                data_config[data_key]["dataset_config"]["rare_embedding"]["config"][
+                    "annotations"
+                ]
+            )
+            empty_batch = {
+                "rare_variant_annotations": torch.zeros(1, 1, anno_len, 1),
+                "y": None,
+                "x_phenotypes": None,
+                "sample": None,
+            }
+            this_mode, _ = get_burden(
+                empty_batch,
+                agg_models,
+                device=device,
+            )
+            this_mode = this_mode.flatten()
+            center_scale_df = pd.DataFrame(columns=["mode"])
+            for r in range(len(agg_models)):
+                center_scale_df.loc[r, "mode"] = this_mode[r]
+            pprint(f"Calculated Zero-Effect Burden Score :\n {this_mode}")
+            center_scale_df.to_csv(
+                f"{Path(out_dir)}/computed_burdens_stats.csv", index=False
+            )
 
     logger.info("Saving computed burdens, corresponding genes, and targets")
     np.save(Path(out_dir) / "genes.npy", genes)
@@ -1144,7 +1180,6 @@ def regress_on_gene_scoretest(
     :rtype: Tuple[List[str], List[float], List[float]]
     """
     burdens = burdens.reshape(burdens.shape[0], -1)
-    assert np.all(burdens != 0)  # because DeepRVAT burdens are corrently all non-zero
     logger.info(f"Burdens shape: {burdens.shape}")
 
     if np.all(np.abs(burdens) < 1e-6):
@@ -1506,6 +1541,7 @@ def combine_regression_results(
 
 
 @cli.command()
+@click.option("--center-scale-burdens", is_flag=True)
 @click.option("--n-chunks", type=int)
 @click.option("--chunk", type=int)
 @click.option("-r", "--repeats", multiple=True, type=int)
@@ -1513,6 +1549,7 @@ def combine_regression_results(
 @click.argument("burden-file", type=click.Path(exists=True))
 @click.argument("burden-out-file", type=click.Path())
 def average_burdens(
+    center_scale_burdens: bool,
     repeats: Tuple,
     burden_file: str,
     burden_out_file: str,
@@ -1525,6 +1562,20 @@ def average_burdens(
     logger.info(f"Reading burdens to aggregate from {burden_file}")
     burdens = zarr.open(burden_file)
     n_total_samples = burdens.shape[0]
+
+    if center_scale_burdens:
+        center_scale_params_file = (
+            Path(os.path.split(burden_out_file)[0]) / "computed_burdens_stats.csv"
+        )
+        center_scale_df = pd.read_csv(center_scale_params_file)
+
+        max_dfs = pd.DataFrame()
+        max_files_path = Path(os.path.split(burden_out_file)[0]).glob("chunk*_max.csv")
+        for i, filename in enumerate(max_files_path):
+            max_dfs[f"Max_Chunk{i}"] = pd.read_csv(filename)["max"]
+        # compute max across all chunks
+        max_dfs["max"] = max_dfs.max(axis=1)
+
     if chunk is not None:
         if n_chunks is None:
             raise ValueError("n_chunks must be specified if chunk is not None")
@@ -1543,7 +1594,7 @@ def average_burdens(
         f"Computing result for chunk {chunk} out of {n_chunks} in range {chunk_start}, {chunk_end}"
     )
 
-    batch_size = 100
+    batch_size = 1000
     logger.info(f"Batch size: {batch_size}")
     n_batches = n_samples // batch_size + (n_samples % batch_size != 0)
 
@@ -1572,6 +1623,21 @@ def average_burdens(
         end_idx = min(start_idx + batch_size, chunk_end)
         print(start_idx, end_idx)
         this_burdens = np.take(burdens[start_idx:end_idx, :, :], repeats, axis=2)
+
+        # Double-check zarr creation - no computed burdens should equal zero
+        assert np.all(this_burdens != 0)
+
+        if center_scale_burdens:
+            print("Centering and Scaling Burdens before aggregating")
+            for r in range(len(repeats)):
+                zero_effect_val = center_scale_df.loc[r, "mode"]
+                repeat_max = max_dfs.loc[r, "max"]
+                adjusted_max = repeat_max - zero_effect_val
+                # Subtract off zero effect burden value (mode) and scale
+                this_burdens[:, :, r] = (
+                    this_burdens[:, :, r] - zero_effect_val
+                ) / adjusted_max
+
         this_burdens = AGG_FCT[agg_fct](this_burdens, axis=2)
 
         burdens_new[start_idx:end_idx, :, 0] = this_burdens

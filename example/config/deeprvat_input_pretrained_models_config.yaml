@@ -52,6 +52,7 @@ y_transformation: quantile_transform
 evaluation:
   correction_method: Bonferroni
   alpha: 0.05
+  center_scale_burdens: True
 
 # Subsetting samples for association testing
 #sample_files:
