@@ -35,6 +35,9 @@ rule config:
         association_only=lambda wildcards: f"--association-only"
         if wildcards.phenotype not in training_phenotypes
         else " ",
+    log: 
+        stdout="logs/config/config_{phenotype}.stdout", 
+        stderr="logs/config/config_{phenotype}.stderr"
     shell:
         (
             "deeprvat_config update-config "
@@ -44,5 +47,6 @@ rule config:
             "{params.baseline_out} "
             "{params.seed_genes_out} "
             "{input.data_config} "
-            "{output.data_config}"
+            "{output.data_config} "
+            + logging_redirct
         )

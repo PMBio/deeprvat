@@ -5,7 +5,7 @@ rule link_config:
         model_path / 'model_config.yaml'
     threads: 1
     shell:
-        "ln -rfs {input} {output}"
+        "ln -rfs {input} {output} "
         # "ln -s repeat_0/model_config.yaml {output}"
 
 rule best_training_run:
@@ -23,6 +23,9 @@ rule best_training_run:
     threads: 1
     resources:
         mem_mb = 2048,
+    log:
+        stdout="logs/best_training_run/repeat_{repeat}.stdout", 
+        stderr="logs/best_training_run/repeat_{repeat}.stderr"
     shell:
         (
             'deeprvat_train best-training-run '
@@ -30,7 +33,8 @@ rule best_training_run:
             '{params.prefix}/{model_path}/repeat_{wildcards.repeat} '
             '{params.prefix}/{model_path}/repeat_{wildcards.repeat}/best '
             '{params.prefix}/{model_path}/repeat_{wildcards.repeat}/hyperparameter_optimization.db '
-            '{output.model_config}'
+            '{output.model_config} '
+            + logging_redirct
         )
 
 rule train:

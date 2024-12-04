@@ -15,6 +15,9 @@ rule evaluate:
         mem_mb = 16000,
     params:
         use_baseline_results = '--use-baseline-results' if 'baseline_results' in config else ''
+    log:
+        stdout="logs/evaluate/{phenotype}.stdout", 
+        stderr="logs/evaluate/{phenotype}.stderr"
     shell:
         'deeprvat_evaluate '
         + debug +
@@ -22,7 +25,8 @@ rule evaluate:
         '--phenotype {wildcards.phenotype} '
         '{input.associations} '
         '{input.data_config} '
-        '{wildcards.phenotype}/deeprvat/eval'
+        '{wildcards.phenotype}/deeprvat/eval '
+        + logging_redirct
 
 rule all_regenie:
     input:
@@ -45,10 +49,14 @@ rule convert_regenie_output:
     threads: 1
     resources:
         mem_mb = 2048
+    log:
+        stdout="logs/convert_regenie_output/convert_regenie_output.stdout",
+        stderr="logs/convert_regenie_output/convert_regenie_output.stderr"
     shell:
         "deeprvat_associate convert-regenie-output "
         "{params.pheno_options} "
-        "{params.gene_file}"
+        "{params.gene_file} "
+        + logging_redirct
 
 rule regenie_step2:
     input:
@@ -68,6 +76,9 @@ rule regenie_step2:
     threads: 16
     resources:
         mem_mb = 16384
+    log:
+        stdout="logs/regenie_step2/regenie_step2.stdout",
+        stderr="logs/regenie_step2/regenie_step2.stderr",
     shell:
         "regenie "
         "--step 2 "
@@ -80,7 +91,8 @@ rule regenie_step2:
         f"--bsize {regenie_step2_bsize} "
         "--threads 16 "
         + " ".join(regenie_config_step2.get("options", [])) + " " +
-        "--out regenie_output/step2/deeprvat"
+        "--out regenie_output/step2/deeprvat "
+        + logging_redirct
 
 rule regenie_step1:
     input:
@@ -96,6 +108,9 @@ rule regenie_step1:
     threads: 24
     resources:
         mem_mb = 16000
+    log:
+        stdout="logs/regenie_step1/regenie_step1.stdout", 
+        stderr="logs/regenie_step1/regenie_step1.stderr"
     shell:
         "mkdir -p regenie_step1_tmp && "
         "regenie "
@@ -110,8 +125,10 @@ rule regenie_step1:
         "--lowmem "
         "--lowmem-prefix regenie_step1_tmp/deeprvat "
         + " ".join(regenie_config_step1.get("options", [])) + " " +
-        "--out regenie_output/step1/deeprvat ; "
-        "rm -rf regenie_step1_tmp"
+        "--out regenie_output/step1/deeprvat "
+        + logging_redirct + " ; "
+        "rm -rf regenie_step1_tmp "
+        
 
 
 # rule regenie_step1_runl1:
@@ -228,6 +245,9 @@ rule make_regenie_burdens:
     threads: 8
     resources:
         mem_mb = 64000
+    log:
+        stdout="logs/make_regenie_burdens/make_regenie_burdens.stdout", 
+        stderr="logs/make_regenie_burdens/make_regenie_burdens.stderr"
     shell:
         "deeprvat_associate make-regenie-input "
         + debug +
@@ -242,6 +262,7 @@ rule make_regenie_burdens:
         "--burdens-genes-samples {params.burdens} {params.genes} {params.samples} "
         "{input.gene_file} "
         "{input.gtf_file} "
+        + logging_redirct
 
 rule make_regenie_metadata:
     input:
@@ -262,6 +283,9 @@ rule make_regenie_metadata:
     threads: 1
     resources:
         mem_mb = 16000
+    log:
+        stdout="logs/make_regenie_metadata/make_regenie_metadata.stdout",
+        stderr="logs/make_regenie_metadata/make_regenie_metadata.stderr",
     shell:
         "deeprvat_associate make-regenie-input "
         + debug +
@@ -273,6 +297,7 @@ rule make_regenie_metadata:
         "--phenotype-file {output.phenotype_file} "
         "{input.gene_file} "
         "{input.gtf_file} "
+        + logging_redirct
 
 
 rule average_burdens:
@@ -290,6 +315,9 @@ rule average_burdens:
     resources:
         mem_mb = lambda wildcards, attempt: 4098 + (attempt - 1) * 4098,
     priority: 10,
+    log:
+        stdout="logs/average_burdens/average_burdens_{chunk}.stdout", 
+        stderr="logs/average_burdens/average_burdens_{chunk}.stderr"
     shell:
         ' && '.join([
             ('deeprvat_associate  average-burdens '
@@ -298,6 +326,7 @@ rule average_burdens:
              '{params.repeats} '
              '--agg-fct mean  '  #TODO remove this
              '{params.burdens_in} '
-             '{params.burdens_out}'),
+             '{params.burdens_out} '
+             + logging_redirct),
             'touch {output}'
         ])

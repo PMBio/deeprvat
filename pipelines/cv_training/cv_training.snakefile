@@ -18,6 +18,9 @@ rule spread_config:
     threads: 1
     resources:
         mem_mb = 1024,
+    log: 
+        stdout="logs/spread_config/cv_split{cv_split}.stdout", 
+        stderr="logs/spread_config/cv_split{cv_split}.stderr"
     shell:
         ' && '.join([
             conda_check,
@@ -48,7 +51,9 @@ use rule link_config from deeprvat_workflow as deeprvat_link_config
 use rule best_training_run from deeprvat_workflow as deeprvat_best_training_run with:
     params:
         prefix = 'cv_split{cv_split}/deeprvat'
-
+    log:
+        stdout="logs/best_training_run/cv_split{cv_split}_repeat_{repeat}.stdout", 
+        stderr="logs/best_training_run/cv_split{cv_split}_repeat_{repeat}.stderr"
 
 use rule train from deeprvat_workflow as deeprvat_train with:
     priority: 1000
@@ -85,9 +90,9 @@ use rule config from deeprvat_workflow as deeprvat_config with:
         baseline_out = lambda wildcards: f'--baseline-results-out cv_split{wildcards.cv_split}/deeprvat/{wildcards.phenotype}/deeprvat/baseline_results.parquet' if wildcards.phenotype in training_phenotypes else ' ',
         seed_genes_out = lambda wildcards: f'--seed-genes-out cv_split{wildcards.cv_split}/deeprvat/{wildcards.phenotype}/deeprvat/seed_genes.parquet' if wildcards.phenotype in training_phenotypes else ' ',
         association_only = lambda wildcards: f'--association-only' if wildcards.phenotype not in training_phenotypes else ' '
+    log: 
+        stdout="logs/config/cv_split{cv_split}_{phenotype}.stdout", 
+        stderr="logs/config/cv_split{cv_split}_{phenotype}.stderr"
 
 use rule create_main_config from deeprvat_workflow as deeprvat_create_main_config
-
-
-
 

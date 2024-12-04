@@ -9,7 +9,7 @@ from pathlib import Path
 from pprint import pformat, pprint
 from tempfile import TemporaryDirectory
 from typing import Dict, Optional, Tuple, Union
-
+import re
 import click
 import math
 import numpy as np
@@ -37,10 +37,9 @@ from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset, Subset
 from tqdm import tqdm
 
-
 logging.basicConfig(
     format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
-    level="INFO",
+    level=logging.INFO,
     stream=sys.stdout,
 )
 logger = logging.getLogger(__name__)
@@ -872,20 +871,20 @@ def run_bagging(
                 trainer.fit(model, dm)
             except RuntimeError as e:
                 # if batch_size is choosen to big, it will be reduced until it fits the GPU
-                logging.error(f"Caught RuntimeError: {e}")
+                logger.error(f"Caught RuntimeError: {e}")
                 if str(e).find("CUDA out of memory") != -1:
                     if dm.hparams.batch_size > 4:
-                        logging.error(
+                        logger.error(
                             "Retrying training with half the original batch size"
                         )
                         gc.collect()
                         torch.cuda.empty_cache()
                         dm.hparams.batch_size = dm.hparams.batch_size // 2
                     else:
-                        logging.error("Batch size is already <= 4, giving up")
+                        logger.error("Batch size is already <= 4, giving up")
                         raise RuntimeError("Could not find small enough batch size")
                 else:
-                    logging.error(f"Caught unknown error: {e}")
+                    logger.error(f"Caught unknown error: {e}")
                     raise e
             else:
                 break
@@ -1167,7 +1166,21 @@ def best_training_run(
         config = yaml.safe_load(f)
 
     with open(config_file_out, "w") as f:
-        yaml.dump({"model": config["model"]}, f)
+        yaml.dump(
+            {
+                "model": config["model"],
+                "rare_variant_annotations": config["training_data"]["dataset_config"][
+                    "rare_embedding"
+                ]["config"]["annotations"],
+                "training_data_thresholds": {
+                    k: str(re.sub(f"^{k} ", "", v))
+                    for k, v in config["training_data"]["dataset_config"][
+                        "rare_embedding"
+                    ]["config"]["thresholds"].items()
+                },
+            },
+            f,
+        )
 
     n_bags = config["training"]["n_bags"] if not debug else 3
     for k in range(n_bags):

@@ -11,6 +11,9 @@ rule training_dataset:
         mem_mb=lambda wildcards, attempt: 32000 + 12000 * attempt,
         load=16000,
     priority: 5000
+    log:
+        stdout="logs/training_dataset/{phenotype}.stdout", 
+        stderr="logs/training_dataset/{phenotype}.stderr"
     shell:
         (
             "deeprvat_train make-dataset "
@@ -22,7 +25,8 @@ rule training_dataset:
             "{input.data_config} "
             "{output.input_tensor} "
             "{output.covariates} "
-            "{output.y}"
+            "{output.y} "
+            + logging_redirct
         )
 
 
@@ -35,11 +39,15 @@ rule training_dataset_pickle:
     resources:
         mem_mb=40000,  # lambda wildcards, attempt: 38000 + 12000 * attempt
         load=16000,
+    log:
+        stdout="logs/training_dataset_pickle/{phenotype}.stdout", 
+        stderr="logs/training_dataset_pickle/{phenotype}.stderr"
     shell:
         (
             "deeprvat_train make-dataset "
             "--pickle-only "
             "--training-dataset-file {output} "
             "{input} "
-            "dummy dummy dummy"
+            "dummy dummy dummy "
+            + logging_redirct
         )

@@ -16,12 +16,16 @@ rule combine_burdens:
     threads: 1
     resources:
         mem_mb = lambda wildcards, attempt: 4098 + (attempt - 1) * 4098,
+    log:
+        stdout="logs/combine_burdens/combine_burdens.stdout", 
+        stderr="logs/combine_burdens/combine_burdens.stderr"
     shell:
         ' '.join([
             'deeprvat_associate combine-burden-chunks',
             '{params.prefix}/burdens/chunks/',
             ' --n-chunks ' + str(n_burden_chunks),
-            '{params.prefix}/burdens',
+            '{params.prefix}/burdens ',
+            logging_redirct
         ])
         
 rule all_xy:
@@ -42,6 +46,9 @@ rule compute_xy:
     threads: 8
     resources:
         mem_mb = lambda wildcards, attempt: 20480 + (attempt - 1) * 4098,
+    log:
+        stdout="logs/compute_xy/{phenotype}.stdout", 
+        stderr="logs/compute_xy/{phenotype}.stderr"
     shell:
         ' && '.join([
             ('deeprvat_associate compute-xy '
@@ -49,7 +56,8 @@ rule compute_xy:
              '{input.data_config} '
              "{output.samples} "
              "{output.x} "
-             "{output.y}")
+             "{output.y} "
+             + logging_redirct)
         ])
 
 
@@ -73,6 +81,9 @@ rule compute_burdens:
     resources:
         mem_mb = 32000,
         gpus = 1
+    log:
+        stdout="logs/compute_burdens/compute_burdens_{chunk}.stdout", 
+        stderr="logs/compute_burdens/compute_burdens_{chunk}.stderr"
     shell:
         ' '.join([
             'deeprvat_associate compute-burdens '
@@ -83,7 +94,8 @@ rule compute_burdens:
             '{input.data_config} '
             '{input.model_config} '
             '{input.checkpoints} '
-            '{params.prefix}/burdens'],
+            '{params.prefix}/burdens '
+            + logging_redirct ],
         )
 
 
@@ -98,11 +110,16 @@ rule reverse_models:
     threads: 4
     resources:
         mem_mb = 20480,
+    log:
+        stdout="logs/reverse_models/reverse_models.stdout", 
+        stderr="logs/reverse_models/reverse_models.stderr"
     shell:
         " && ".join([
             ("deeprvat_associate reverse-models "
              "{input.model_config} "
              "{input.data_config} "
-             "{input.checkpoints}"),
-             "touch {output}"
+             "{input.checkpoints} "
+             + logging_redirct),
+             "touch {output} "
+             
         ])

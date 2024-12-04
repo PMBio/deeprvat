@@ -1,10 +1,15 @@
 from pathlib import Path
 from deeprvat.deeprvat.config import create_main_config
+import logging
 
 create_main_config("deeprvat_input_config.yaml")
 
+#remove duplicate logging handlers from loaded deeprvat.config module
+logging.root.handlers.clear()
+
 configfile: 'deeprvat_config.yaml'
 
+logging_redirct = "1> {log.stdout} 2> {log.stderr}" #for Linux-based systems
 debug_flag = config.get('debug', False)
 debug = '--debug ' if debug_flag else ''
 deterministic_flag = config.get('deterministic', False)
