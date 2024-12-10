@@ -2031,7 +2031,10 @@ def create_gene_id_file(gtf_filepath: str, out_file: str):
 @click.argument("out_file", type=click.Path())
 @click.option("--keep_unfilled", type=click.Path(), default=None)
 def select_rename_fill_annotations(
-    annotation_columns_yaml_file: str, annotations_path: str, out_file: str, keep_unfilled: str
+    annotation_columns_yaml_file: str,
+    annotations_path: str,
+    out_file: str,
+    keep_unfilled: str,
 ):
     """
     Select, rename, and fill missing values in annotation columns based on a YAML configuration file.
@@ -2054,7 +2057,8 @@ def select_rename_fill_annotations(
         annotations_path, columns=list(set(prior_names + key_cols))
     )
     anno_df.rename(columns=column_name_mapping, inplace=True)
-    if (keep_unfilled is not None): anno_df.to_parquet(keep_unfilled)
+    if keep_unfilled is not None:
+        anno_df.to_parquet(keep_unfilled)
     anno_df.fillna(fill_value_mapping, inplace=True)
     anno_df.to_parquet(out_file)
 
