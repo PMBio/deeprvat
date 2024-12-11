@@ -587,6 +587,7 @@ rule select_rename_fill_columns:
     params: 
         annotations_in=rules.compute_plof_column.params.annotations_out,
         annotations_out = anno_dir / "annotations.parquet",
+        unfilled = lambda w: f"--keep_unfilled {anno_dir / 'unfilled_annotations.parquet'}" if (config.get('keep_unfilled')) else ""
     resources:
         mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
     shell:
@@ -597,6 +598,7 @@ rule select_rename_fill_columns:
                 "{input.yaml_file}",
                 "{params.annotations_in}",
                 "{params.annotations_out}",
+                "{params.unfilled}"
             ]
         ) +" && touch {output.chckpt}"
 
