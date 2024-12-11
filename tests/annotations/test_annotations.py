@@ -735,6 +735,7 @@ def test_select_rename_fill_annotations(
         written_results, expected_results[written_results.columns], check_exact=False
     )
 
+
 @pytest.mark.parametrize(
     "test_data_name_dir, yaml_file, annotations, expected, expected_unfilled",
     [
@@ -766,8 +767,7 @@ def test_select_rename_fill_annotations_unfilled(
         annotations_path.as_posix(),
         output_path.as_posix(),
         "--keep_unfilled",
-        unfilled_path
-
+        unfilled_path,
     ]
     result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
     assert result.exit_code == 0
@@ -780,7 +780,9 @@ def test_select_rename_fill_annotations_unfilled(
         written_results, expected_results[written_results.columns], check_exact=False
     )
     assert written_unfilled.shape == expected_unfilled.shape
-    assert_frame_equal(written_unfilled, expected_unfilled[written_unfilled.columns],check_exact=False)
+    assert_frame_equal(
+        written_unfilled, expected_unfilled[written_unfilled.columns], check_exact=False
+    )
 
 
 @pytest.mark.parametrize(
