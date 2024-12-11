@@ -745,7 +745,7 @@ def deepsea_pca(
     X = df[deepSEAcols].to_numpy()
     del df
     logger.info(
-        "checking wether input contains data frame with pre-calculated means and SDs"
+        "checking whether input contains data frame with pre-calculated means and SDs"
     )
     if os.path.exists(means_sd_df):
         logger.info("standardizing values using existing mean and SD")
@@ -2043,7 +2043,7 @@ def select_rename_fill_annotations(
     - annotation_columns_yaml_file (str): Path to the YAML file containing name and fill value mappings.
     - annotations_path (str): Path to the annotations file.
     - out_file (str): Path to save the modified annotations file.
-    - wether to keep annotations data frame containing NA values before filling them
+    - keep_unfilled (str, optional): Path to save annotations data frame containing NA values before filling them
     """
 
     logger.info(
