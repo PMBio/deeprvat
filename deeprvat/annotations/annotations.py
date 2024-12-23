@@ -21,7 +21,8 @@ from sklearn.decomposition import PCA
 from tqdm import tqdm, trange
 from fastparquet import ParquetFile
 import yaml
-
+import lzma
+import pysam
 
 def precision(y_true, y_pred):
     """
@@ -817,17 +818,17 @@ def deepsea_pca(
 @click.argument("output-dir", type=click.Path(exists=True))
 @click.argument("genomefasta", type=click.Path(exists=True))
 @click.argument("pybedtools_tmp_dir", type=click.Path(exists=True))
-@click.argument("saved_deepripe_models_path", type=click.Path(exists=True))
+@click.argument("seq_output_file", type=click.Path())
 @click.argument("n_jobs", type=int)
-@click.argument("saved-model-type", type=str)
-def scorevariants_deepripe(
+@click.argument("seq-len", type=int)
+def encodeseqs_deepripe(
     variants_file: str,
     output_dir: str,
     genomefasta: str,
     pybedtools_tmp_dir: str,
-    saved_deepripe_models_path: str,
+    seq_output_file: str,
     n_jobs: int,
-    saved_model_type: str = "parclip",
+    seq_len: int,
 ):
     """
     Score variants using deep learning models trained on PAR-CLIP and eCLIP data.
@@ -865,6 +866,38 @@ def scorevariants_deepripe(
     os.mkdir(tmp_path)
     pybedtools.set_tempdir(tmp_path)
 
+
+
+    if not os.path.exists(bed_file):
+        convert2bed(variants_file, output_dir)
+
+    variant_bed = pybedtools.BedTool(bed_file)
+    print(f"Encoding seqs for: {bed_file}")
+    encode_sequences(variant_bed, genomefasta, seq_output_file, seq_len, n_jobs)
+
+    
+
+
+
+
+
+
+@cli.command()
+@click.argument("variants-file", type=click.Path(exists=True))
+@click.argument("output-dir", type=click.Path(exists=True))
+@click.argument("saved_deepripe_models_path", type=click.Path(exists=True))
+@click.argument("encoded-seq-path", type=click.Path(exists=True))
+@click.argument("batch-size", type=int)
+@click.argument("saved-model-type", type=str)
+def scorevariants_deepripe(
+    variants_file: str,
+    output_dir: str,
+    saved_deepripe_models_path: str,
+    encoded_seq_path: str,
+    batch_size: int = 512,
+    saved_model_type: str = "parclip",
+):
+    file_name = variants_file.split("/")[-1]
     ### reading variants to score
     df_variants = pd.read_csv(
         variants_file,
@@ -872,13 +905,8 @@ def scorevariants_deepripe(
         header=None,
         names=["chr", "pos", "Uploaded_variant", "ref", "alt"],
     )
-
-    if not os.path.exists(bed_file):
-        convert2bed(variants_file, output_dir)
-
-    variant_bed = pybedtools.BedTool(bed_file)
-    print(f"Scoring variants for: {bed_file}")
-
+    batch_size = 512
+    logger.info(f"batch size is {batch_size}")
     ### paths for experiments
     saved_models_dict = {
         "parclip": "parclip_model",
@@ -939,11 +967,11 @@ def scorevariants_deepripe(
     current_model_type = list_of_model_groups[saved_model_type]
     predictions = deepripe_score_variant_onlyseq_all(
         current_model_type,
-        variant_bed,
-        genomefasta,
+        encoded_seq_path,
         seq_len=model_seq_len[saved_model_type],
-        n_jobs=n_jobs,
+        batch_size=batch_size
     )
+
 
     for choice in current_model_type.keys():
         print(choice)
@@ -1109,8 +1137,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def deepripe_score_variant_onlyseq_all(
-    model_group, variant_bed, genomefasta, seq_len=200, batch_size=1024, n_jobs=32
+def encode_sequences(
+    variant_bed, genomefasta, encoded_seq_output_path, seq_len=200, n_jobs=32, 
 ):
     """
     Compute variant scores using a deep learning model for each specified variant.
@@ -1127,7 +1155,6 @@ def deepripe_score_variant_onlyseq_all(
         dict: A dictionary containing variant scores for each choice in the model_group.
               Each entry has the choice name as the key and the corresponding scores as the value.
     """
-    predictions = {}
 
     # Parallelize the encoding of variant bedlines
     encoded_seqs_list = Parallel(n_jobs=n_jobs, verbose=10)(
@@ -1144,6 +1171,16 @@ def deepripe_score_variant_onlyseq_all(
     ]
 
     # Concatenate encoded sequences
+    with lzma.open(encoded_seq_output_path, "wb") as f:
+        pickle.dump(encoded_seqs_list, f)
+
+
+def deepripe_score_variant_onlyseq_all(model_group, encoded_seq_path, seq_len=200, batch_size=512):
+    predictions = {}
+
+    with lzma.open(encoded_seq_path, "rb") as f:
+        encoded_seqs_list = pickle.load(f)
+
     encoded_seqs = tf.concat(encoded_seqs_list, 0)
 
     logger.info("Computing predictions")
@@ -1154,7 +1191,7 @@ def deepripe_score_variant_onlyseq_all(
         for i in range(4):
             cropped_seqs = encoded_seqs[:, i : i + seq_len, :]
             model, _ = model_group[choice]
-            pred = model.predict_on_batch(cropped_seqs)
+            pred = model.predict(cropped_seqs, batch_size = batch_size)
             wild_indices = tf.range(pred.shape[0], delta=2)
             mut_indices = tf.range(1, pred.shape[0], delta=2)
             pred_wild = pred[wild_indices, :]
@@ -1614,6 +1651,56 @@ def concatenate_deepsea(
 
                 raise ValueError
 
+@cli.command()
+@click.argument("vep_header_line", type=int)
+@click.argument("vep_file", type=click.Path(exists=True))
+@click.argument("variant_file", type=click.Path(exists=True))
+@click.argument("vcf_file", type=click.Path(exists=True))
+@click.argument("out_file", type=click.Path())
+@click.argument("column_yaml", type=click.Path(exists=True))
+def merge_annotations_no_deepripe(
+    vep_header_line: int,
+    vep_file: str,
+    variant_file: str,
+    vcf_file: str,
+    out_file: str,
+    column_yaml: str,
+):
+    """
+    Merge VEP, DeepRipe (parclip, hg2, k5), and variant files into one dataFrame and save result as parquet file
+
+    Parameters:
+    - vep_header_line (int): Line number of the header line in the VEP output file.
+    - vep_file (str): Path to the VEP file.
+    - variant_file (str): Path to the variant file.
+    - vcf_file (str): vcf file containing chrom, pos, ref and alt information
+    - out_file (str): Path to save the merged output file in Parquet format.
+    - column yaml file
+
+    Returns:
+    None
+
+    Example:
+    $ python annotations.py merge_annotations 1 vep_file.tsv deepripe_parclip.csv deepripe_hg2.csv deepripe_k5.csv variant_file.tsv merged_output.parquet --vepcols_to_retain="AlphaMissense,PolyPhen"
+    """
+    # load vep file
+    _, _, _, _, _, types_mapping = readYamlColumns(column_yaml)
+    vep_df = pd.read_csv(vep_file, header=vep_header_line, sep="\t", na_values="-")
+
+    vep_df = process_vep(
+        vep_file=vep_df, vcf_file=vcf_file, types_mapping=types_mapping
+    )
+    logger.info(f"vep_df shape is {vep_df.shape}")
+    logger.info(f"reading in {variant_file}")
+    variants = pd.read_parquet(variant_file)
+
+    logger.info("merge vep to variants M:1")
+    ca = vep_df.merge(
+        variants, how="left", on=["chrom", "pos", "ref", "alt"], validate="m:1"
+    )
+    del vep_df
+    ca.to_parquet(out_file, compression="zstd")
+
 
 @cli.command()
 @click.argument("vep_header_line", type=int)
@@ -2052,6 +2139,51 @@ def select_rename_fill_annotations(
     anno_df.fillna(fill_value_mapping, inplace=True)
     anno_df.to_parquet(out_file)
 
+def one_hot_encode(sequence):
+    encoding = {'A': [1, 0, 0, 0], 'C': [0, 1, 0, 0], 'G': [0, 0, 1, 0], 'T': [0, 0, 0, 1]}
+    return [encoding[base] if base in encoding else [0, 0, 0, 0] for base in sequence]
+
+def fetch_flanking_sequence(fasta, chrom, pos, ref, alt, flank_size=75):
+    # Fetch reference sequence with flanking region
+    start = pos - flank_size-2
+    end = pos + flank_size + 2 + max(len(ref), len(alt))  # Adjust for reference length
+    reference_seq = fasta.fetch(chrom, start, end)
+
+    ref_seq = (reference_seq[:flank_size+1]+ref+reference_seq[flank_size+1 + len(ref):])[0:(flank_size*2)+4]
+    alt_seq = (reference_seq[:flank_size+1] + alt + reference_seq[flank_size+1 + len(ref):])[0:(flank_size*2)+4]
+    return ref_seq, alt_seq
+
+
+@cli.command()
+@click.argument("vcf_file", type=click.Path(exists=True))
+@click.argument("fasta_file", type=click.Path(exists=True))
+@click.argument("out_file", type=click.Path())
+@click.argument("seq_length", type=int)
+def flank_encode_vcf(vcf_file, fasta_file, out_file, seq_length):
+    fasta = pysam.FastaFile(fasta_file)
+    vcf = pysam.VariantFile(vcf_file)
+
+    sequences = []
+    for record in vcf:
+        chrom = record.chrom
+        pos = record.pos
+        ref = record.ref
+        for alt in record.alts:
+            # Fetch the 150bp sequences for both reference and alternative alleles
+            ref_seq, alt_seq = fetch_flanking_sequence(fasta, chrom, pos, ref, alt, flank_size= int(seq_length/2))
+            
+            # One-hot encode the sequences
+            ref_encoded = one_hot_encode(ref_seq)
+            alt_encoded = one_hot_encode(alt_seq)
+
+            # Append the pair to the list
+            sequences.append([ref_encoded, alt_encoded])
+    fasta.close()
+    
+    with lzma.open(out_file, 'wb') as f:
+        pickle.dump(sequences, f)
 
 if __name__ == "__main__":
     cli()
+
+
