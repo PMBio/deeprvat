@@ -217,7 +217,9 @@ def train_(
 
         while True:
             try:
-                # actual training of the model
+                import ipdb
+
+                ipdb.set_trace()
                 trainer.fit(model, dm)
             except RuntimeError as e:
                 # if batch_size is choosen to big, it will be reduced until it fits the GPU

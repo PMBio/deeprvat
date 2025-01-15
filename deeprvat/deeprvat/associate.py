@@ -5,6 +5,7 @@ import math
 import pickle
 import os
 import sys
+import time
 from pathlib import Path
 from pprint import pprint
 from typing import Dict, Iterable, List, Literal, Optional, Set, Tuple, Union
@@ -18,6 +19,7 @@ import torch.nn as nn
 import statsmodels.api as sm
 import yaml
 from bgen import BgenWriter
+from joblib import Parallel, delayed
 from numcodecs import Blosc, JSON
 
 # from seak import scoretest
@@ -802,7 +804,6 @@ def compute_burdens_(
     checkpoint_files: Iterable[PathLike],
     variant_set_file: Optional[Set[int]] = None,  # TODO: read from file in config
     agg_type: Literal["max", "sum"] = "sum",  # TODO: read from file in config
-    shuffle: bool = True,  # TODO: read from file in config
     num_workers: int = True,  # TODO: read from file in config
     device: torch.device = torch.device("cpu"),
     compression_level: int = 1,
@@ -876,10 +877,10 @@ def compute_burdens_(
     ]
 
     dl = DataLoader(
-        ds,
-        shuffle=shuffle,
+        Subset(ds, range(500)),  # TODO: no subset
         num_workers=num_workers,
         pin_memory=torch.cuda.is_available(),
+        shuffle=False,
         batch_size=None,  # No automatic batching
         batch_sampler=None,  # No automatic batching
     )
@@ -897,7 +898,9 @@ def compute_burdens_(
     with torch.no_grad():
         for i, batch in tqdm(enumerate(dl), file=sys.stdout, total=(len(ds))):
             this_burdens = get_burden(batch, agg_models, device=device)
-            scores[batch["sample_slice"], batch["region_idx"]] = this_burdens
+
+            # TODO: Write to disk
+            # scores[batch["sample_slice"], batch["region_idx"]] = this_burdens
 
     if torch.cuda.is_available():
         logger.info(
