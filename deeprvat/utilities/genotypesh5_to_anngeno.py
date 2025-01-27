@@ -71,6 +71,12 @@ def _convert_genotypes_h5(
 
 
 @click.command()
+@click.option("--batch-size", type=int, default=100)
+@click.option("--max-samples", type=int)
+@click.argument("variant-file", type=click.Path(exists=True, path_type=Path))
+@click.argument("phenotype-file", type=click.Path(exists=True, path_type=Path))
+@click.argument("genotype-file", type=click.Path(exists=True, path_type=Path))
+@click.argument("out-file", type=click.Path(path_type=Path))
 def convert_genotypes_h5(
     variant_file: PathLike,
     phenotype_file: PathLike,
