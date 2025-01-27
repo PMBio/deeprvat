@@ -90,7 +90,7 @@ class AnnGenoDataset:
         training_regions: Optional[Dict[int, np.ndarray]] = None,
         covariates: Optional[List[str]] = None,
         standardize_covariates: bool = True,
-        phenotypes: Optional[List[str]] = None,
+        # phenotypes: Optional[List[str]] = None,
         quantile_transform_phenotypes: bool = True,  # TODO: This is different from current default
         annotation_columns: Optional[List[str]] = None,
         variant_set: Optional[Set[int]] = None,
@@ -119,12 +119,14 @@ class AnnGenoDataset:
         self.dtype = dtype
         self.mask_type = mask_type
         self.standardize_covariates = standardize_covariates
+        # TODO: Implement this
         self.quantile_transform_phenotypes = quantile_transform_phenotypes
 
         if self.training_mode:
-            if training_regions is None or covariates is None or phenotypes is None:
+            if training_regions is None or covariates is None:  # or phenotypes is None:
                 raise ValueError(
-                    "training_regions, covariate and phenotypes must be provided if training_mode=True"
+                    "training_regions and covariates "
+                    "must be provided if training_mode=True"
                 )
 
             # Store regions
@@ -136,12 +138,7 @@ class AnnGenoDataset:
             region_sizes = [self.anngeno.masked_region_sizes[k] for k in self.regions]
             region_boundaries = np.concatenate([[0], np.cumsum(region_sizes)])
             region_indices = zip(region_boundaries[:-1], region_boundaries[1:])
-            self.gene_indices = dict(
-                zip(
-                    self.training_regions.keys(),
-                    region_indices,
-                )
-            )
+            self.gene_indices = dict(zip(self.training_regions.keys(), region_indices))
 
             n_variants = region_boundaries[-1]
             n_genes = self.regions.shape[0]
@@ -152,7 +149,7 @@ class AnnGenoDataset:
                 self.variant_gene_mask[start:stop, i] = 1
 
             self.covariate_cols = covariates
-            self.phenotype_cols = phenotypes
+            self.phenotype_cols = list(self.training_regions.keys())
 
             # Build gene-to-phenotype mask for MaskedLinear layer
             n_phenos = len(self.training_regions)
@@ -185,13 +182,6 @@ class AnnGenoDataset:
         self.sample_batch_size = min(self.sample_batch_size, self.n_samples)
 
         if self.training_mode:
-            # # TODO: Use anngeno.get_phenotypes()
-            # phenotype_df = pd.read_parquet(
-            #     self.anngeno.attrs["phenotype_filename"],
-            #     columns=covariates + phenotypes,
-            # )
-            # if sample_set is not None:
-            #     phenotype_df = phenotype_df.query("sample in @sample_set")
             self.phenotype_df = self.anngeno.get_phenotypes(
                 columns=self.covariate_cols + self.phenotype_cols
             )
