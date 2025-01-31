@@ -100,7 +100,7 @@ class AnnGenoDataset:
         self.training_mode = training_mode
 
         self.anngeno = AnnGeno(filename=filename, filemode="r")
-        self.anngeno.compute_regions(
+        self.anngeno.subset_annotations(
             annotation_columns=annotation_columns, variant_set=variant_set
         )
 
@@ -130,22 +130,29 @@ class AnnGenoDataset:
                 )
 
             # Store regions
+            # TODO: This is inefficient if training genes have some overlap
+            #       across different phenotypes
             self.training_regions = training_regions
-            # TODO: What if there are overlapping genes?
             self.regions = np.concatenate(list(self.training_regions.values()))
 
             # region_boundaries = np.cumsum([r.shape[0] for r in self.regions])
-            region_sizes = [self.anngeno.masked_region_sizes[k] for k in self.regions]
-            region_boundaries = np.concatenate([[0], np.cumsum(region_sizes)])
-            region_indices = zip(region_boundaries[:-1], region_boundaries[1:])
-            self.gene_indices = dict(zip(self.training_regions.keys(), region_indices))
+            region_sizes = [
+                int(self.anngeno.masked_region_sizes[k]) for k in self.regions
+            ]
+            region_boundaries = [0] + [int(x) for x in np.cumsum(region_sizes)]
+            region_indices = list(zip(region_boundaries[:-1], region_boundaries[1:]))
+            # self.gene_indices = dict(
+            #     zip(self.regions, region_indices)
+            #     # zip(self.training_regions.keys(), region_indices)
+            # )
 
             n_variants = region_boundaries[-1]
             n_genes = self.regions.shape[0]
             self.variant_gene_mask = torch.zeros(
                 (n_variants, n_genes), dtype=self.dtype
             )
-            for i, (_, (start, stop)) in enumerate(self.gene_indices.items()):
+            # for i, (start, stop) in enumerate(self.gene_indices.items()):
+            for i, (start, stop) in enumerate(region_indices):
                 self.variant_gene_mask[start:stop, i] = 1
 
             self.covariate_cols = covariates
@@ -153,16 +160,25 @@ class AnnGenoDataset:
 
             # Build gene-to-phenotype mask for MaskedLinear layer
             n_phenos = len(self.training_regions)
-            self.gene_phenotype_mask = torch.zeros(
-                (n_phenos, n_genes), dtype=torch.bool
+            pheno_gene_count = {
+                pheno: len(regions) for pheno, regions in self.training_regions.items()
+            }
+            pheno_gene_cumulative = np.concatenate(
+                [[0], np.cumsum(list(pheno_gene_count.values()))]
             )
-            for i, (start, stop) in enumerate(self.gene_indices.values()):
-                self.gene_phenotype_mask[i, start:stop] = True
+            pheno_gene_indices = zip(
+                pheno_gene_cumulative[:-1], pheno_gene_cumulative[1:]
+            )
+            self.gene_phenotype_mask = torch.zeros(
+                (n_phenos, n_genes), dtype=torch.float32
+            )
+            for i, (start, stop) in enumerate(pheno_gene_indices):
+                self.gene_phenotype_mask[i, start:stop] = 1
             self.gene_covariatephenotype_mask = torch.cat(
                 (
                     torch.ones(
                         (len(self.phenotype_cols), len(self.covariate_cols)),
-                        dtype=torch.bool,
+                        dtype=torch.float32,
                     ),
                     self.gene_phenotype_mask,
                 ),
@@ -172,7 +188,7 @@ class AnnGenoDataset:
             # Use all regions
             self.regions = self.anngeno.region_ids
 
-        self.n_regions = self.regions.shape[0]
+        self.n_regions = len(self.regions)
         self.set_samples(sample_set)
 
     def set_samples(self, sample_set: Optional[Set[str]]):
@@ -182,9 +198,9 @@ class AnnGenoDataset:
         self.sample_batch_size = min(self.sample_batch_size, self.n_samples)
 
         if self.training_mode:
-            self.phenotype_df = self.anngeno.get_phenotypes(
-                columns=self.covariate_cols + self.phenotype_cols
-            )
+            self.phenotype_df = self.anngeno.phenotypes[
+                ["sample"] + self.covariate_cols + self.phenotype_cols
+            ]
 
             # TODO: Sanity check, can be removed or moved to test
             assert np.array_equal(self.phenotype_df["sample"].to_numpy(), self.samples)
@@ -223,7 +239,7 @@ class AnnGenoDataset:
 
         sample_slice = slice(
             sample_idx * self.sample_batch_size,
-            (sample_idx + 1) * self.sample_batch_size,
+            min((sample_idx + 1) * self.sample_batch_size, self.n_samples),
         )
 
         if self.cache_genotypes:
@@ -265,7 +281,6 @@ class AnnGenoDataset:
         #     result["max_mask"] = max_mask
 
         result["sample_slice"] = sample_slice
-        result["samples"] = self.samples[sample_slice]
         result["variant_gene_mask"] = None
 
         if self.training_mode:
