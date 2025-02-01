@@ -28,7 +28,8 @@ from hypothesis import Phase, given, settings
 #     pass
 
 
-# TODO: Implement
+# TODO: Check that regions are correct
+#       Check that all samples are iterated over
 # Check output of __getitem__
 # Sometimes use sample_set
 # Sometimes use cache_regions
@@ -139,17 +140,77 @@ def test_getitem_training(
                 )
 
 
-# TODO: Implement
+# TODO: check that all samples and regions are iterated over
 # Check output of __getitem__
 # Sometimes use sample_set
-# Sometimes use cache_regions
-# @given(
-#     anngeno_args_and_genotypes=anngeno_args_and_genotypes(),
-#     batch_proportion=st.floats(min_value=0, max_value=1, exclude_min=True),
-#     cache_genotypes=st.booleans(),
-# )
-# @settings(phases=[Phase.explicit, Phase.reuse, Phase.generate, Phase.target])
-# def test_getitem_testing():
-#     # use __getitem__
-#     # compare to results from using AnnGeno.get_region(), AnnGeno.phenotypes, AnnGeno.annotations
-#     pass
+# Sometimes use cache_regions - but not yet, this has a BUG
+@given(
+    anngeno_args_and_genotypes=anngeno_args_and_genotypes(min_annotations=1),
+    batch_proportion=st.floats(min_value=0, max_value=1, exclude_min=True),
+    # cache_genotypes=st.booleans(),
+)
+@settings(phases=[Phase.explicit, Phase.reuse, Phase.generate, Phase.target])
+def test_getitem_gis_computation(anngeno_args_and_genotypes, batch_proportion):
+    # use __getitem__
+    anngeno_args = anngeno_args_and_genotypes["anngeno_args"]
+    genotypes = anngeno_args_and_genotypes["genotypes"]
+
+    variant_ids = anngeno_args["variant_metadata"]["id"]
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        filename = Path(tmpdirname) / anngeno_args["filename"]
+        anngeno_args["filename"] = filename
+        ag = AnnGeno(**anngeno_args)
+
+        ag.set_samples(
+            slice(None),
+            genotypes,
+            variant_ids=variant_ids,
+        )
+
+        # Can only use ag.subset_samples in read-only mode
+        del ag
+        ag = AnnGeno(filename=filename)
+
+        if sample_subset := anngeno_args_and_genotypes.get("sample_subset", None):
+            ag.subset_samples(sample_subset)
+
+        ag.subset_annotations(
+            annotation_columns=anngeno_args_and_genotypes.get(
+                "annotation_columns", None
+            ),
+            variant_set=anngeno_args_and_genotypes.get("variant_set", None),
+        )
+
+        # TODO: construct dataaset and iterate through it
+        batch_size = math.ceil(batch_proportion * ag.sample_count)
+        agd = AnnGenoDataset(
+            filename=filename,
+            sample_batch_size=batch_size,
+            mask_type="sum",  # TODO: Test max
+            quantile_transform_phenotypes=False,  # TODO: test this function
+            annotation_columns=anngeno_args_and_genotypes.get(
+                "annotation_columns", None
+            ),
+            variant_set=anngeno_args_and_genotypes.get("variant_set", None),
+            sample_set=anngeno_args_and_genotypes.get("sample_subset", None),
+        )
+
+        # if cache_genotypes:
+        #     agd.cache_regions(compress=True)
+
+        dl = DataLoader(
+            agd,
+            batch_size=None,  # No automatic batching
+            batch_sampler=None,  # No automatic batching
+        )
+
+        for batch in dl:
+            # compare to results from using AnnGeno.get_region()
+            reference = ag.get_region(batch["region"], batch["sample_slice"])
+
+            assert np.array_equal(
+                batch["genotypes"], reference["genotypes"].astype(np.float32)
+            )
+            assert np.allclose(
+                batch["annotations"], reference["annotations"].astype(np.float32)
+            )

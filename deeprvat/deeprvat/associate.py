@@ -868,7 +868,10 @@ def compute_burdens_(
     )  # TODO: Use AnnGenoDataModule, stage="associate"
 
     logger.info("Caching genotypes to memory")
-    ds.anngeno.cache_genotypes()  # TODO: Parametrize whether to do this
+
+    # TODO: Decide whether to do this.
+    # Current implementation has a bug; also, does it help with overall execution time?
+    # ds.anngeno.cache_genotypes()
 
     logger.info("Loading models")
     # agg_models = load_models(model_config, checkpoint_files, device=device)

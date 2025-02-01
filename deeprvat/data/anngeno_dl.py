@@ -235,7 +235,7 @@ class AnnGenoDataset:
             region_idx = idx % self.n_regions
             regions = [self.regions[region_idx]]
             sample_idx = idx // self.n_regions
-            result["region_idx"] = region_idx
+            result["region"] = self.regions[region_idx]
 
         sample_slice = slice(
             sample_idx * self.sample_batch_size,
@@ -243,10 +243,11 @@ class AnnGenoDataset:
         )
 
         if self.cache_genotypes:
+            # BUG: This doesn't work. Should modify get_region to use cached genotypes/annotations
             slice_cache = self.anngeno.get_cached_regions(sample_slice=sample_slice)
-            genotypes = torch.tensor(slice_cache["genotypes"], dtype=self.dtype)
+            genotypes = torch.tensor(slice_cache["genotypes"][:], dtype=self.dtype)
             annotations = torch.tensor(
-                slice_cache["annotations"], dtype=self.dtype
+                slice_cache["annotations"][:], dtype=self.dtype
             )  # TODO: these actually only need to be fetched once
         else:
             by_gene = [
@@ -293,7 +294,9 @@ class AnnGenoDataset:
         return result
 
     def cache_regions(self, compress: bool = False):
-        self.anngeno.cache_regions(self.regions, compress=compress)
+        raise NotImplementedError  # TODO: A correct implementation of this
+
+        self.anngeno.cache_regions(self.regions, compress=compress, dtype=self.dtype)
         self.cache_genotypes = True
 
 
