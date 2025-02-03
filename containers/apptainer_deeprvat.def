@@ -1,0 +1,29 @@
+Bootstrap: docker
+From: mambaorg/micromamba:2.0-ubuntu22.04
+
+%files
+    deeprvat_env.yaml /opt/deeprvat_env.yaml
+%environment
+    export MAMBA_ROOT_PREFIX=/opt/conda
+    export PATH="$MAMBA_ROOT_PREFIX/bin:$PATH"
+%post
+    apt-get -y update && apt-get -y install cargo g++
+    micromamba install -q -y -n base -f /opt/deeprvat_env.yaml
+    micromamba clean --all --yes
+
+    micromamba run -n base git clone https://github.com/PMBio/deeprvat /opt/deeprvat
+    micromamba run -n base pip install -e /opt/deeprvat
+%runscript
+    exec micromamba run -n base "$@"
+%labels
+    OWNER: https://github.com/PMBio/deeprvat
+    EnvironmentFile: /opt/deeprvat_env.yaml
+%help
+    This container containes the deepRVAT repository and the relevant
+    Python environment created from an environment file.
+    To run Python from the environment:
+        apptainer run my_environment.sif python
+    To see the environment file used to create the environment:
+        apptainer run my_environment.sif cat /opt/deeprvat_env.yaml
+    To see what packags are in the environment:
+        apptainer run my_environment.sif micromamba list
