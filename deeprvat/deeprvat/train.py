@@ -71,7 +71,7 @@ def cli():
 
 def train_(
     config: Dict,
-    training_regions: Dict[int, np.ndarray],
+    training_regions: Dict[str, np.ndarray],
     log_dir: str,
     sample_set: Optional[Set[str]] = None,
     checkpoint_file: Optional[str] = None,
@@ -157,9 +157,9 @@ def train_(
 
         # load datamodule
         covariates = config["covariates"]
-        phenotypes = config["training"]["phenotypes"]
-        if isinstance(phenotypes, dict):
-            phenotypes = list(phenotypes.keys())
+        # phenotypes = config["training"]["phenotypes"]
+        # if isinstance(phenotypes, dict):
+        #     phenotypes = list(phenotypes.keys())
         annotation_columns = config.get("annotations", None)
         dm = AnnGenoDataModule(
             anngeno_filename,
@@ -167,7 +167,7 @@ def train_(
             train_proportion=train_proportion,
             sample_set=sample_set,
             covariates=covariates,
-            phenotypes=phenotypes,
+            # phenotypes=phenotypes,
             annotation_columns=annotation_columns,
             **config["training"][
                 "dataloader_config"
@@ -182,7 +182,7 @@ def train_(
             n_annotations=len(annotation_columns),
             n_covariates=len(covariates),
             n_genes=sum([rs.shape[0] for rs in training_regions.values()]),
-            n_phenotypes=len(phenotypes),
+            n_phenotypes=len(training_regions),
             gene_covariatephenotype_mask=dm.gene_covariatephenotype_mask,
             **config["model"].get("kwargs", {}),
         )
@@ -217,9 +217,6 @@ def train_(
 
         while True:
             try:
-                import ipdb
-
-                ipdb.set_trace()
                 trainer.fit(model, dm)
             except RuntimeError as e:
                 # if batch_size is choosen to big, it will be reduced until it fits the GPU

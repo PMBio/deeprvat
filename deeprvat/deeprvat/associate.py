@@ -867,10 +867,9 @@ def compute_burdens_(
         annotation_columns=config.get("annotations", None),
     )  # TODO: Use AnnGenoDataModule, stage="associate"
 
-    logger.info("Caching genotypes to memory")
-
     # TODO: Decide whether to do this.
     # Current implementation has a bug; also, does it help with overall execution time?
+    # logger.info("Caching genotypes to memory")
     # ds.anngeno.cache_genotypes()
 
     logger.info("Loading models")
