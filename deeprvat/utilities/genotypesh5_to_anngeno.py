@@ -29,7 +29,7 @@ def _convert_genotypes_h5(
     max_samples: Optional[int] = None,
 ):
     logger.info("Reading sample IDs")
-    samples = pd.read_parquet(phenotype_file).index.astype(str).to_numpy()
+    samples = pd.read_parquet(phenotype_file).index.to_numpy().astype(str)
     if max_samples is not None:
         samples = samples[:max_samples]
     n_samples = len(samples)

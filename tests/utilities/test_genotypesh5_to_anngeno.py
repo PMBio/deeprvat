@@ -52,7 +52,7 @@ def genotypes(draw):
 
     samples = draw(
         arrays(
-            dtype=object,
+            dtype=str,
             shape=n_samples,
             elements=st.text(alphabet=BASIC_ALPHABET, min_size=1),
             unique=True,
@@ -129,7 +129,9 @@ def test_genotypesh5_to_anngeno(genotypes, batch_size):
 
         # Write genotypes.h5 file
         with h5py.File(tmppath / "genotypes.h5", "w") as f:
-            f.create_dataset("samples", data=samples, dtype=h5py.string_dtype())
+            f.create_dataset(
+                "samples", data=samples.astype(object), dtype=h5py.string_dtype()
+            )
             f.create_dataset(
                 "variant_matrix", data=sparse_variant_matrix, dtype=np.int32
             )

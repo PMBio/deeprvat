@@ -87,7 +87,7 @@ class AnnGenoDataset:
         mask_type: Literal["max", "sum"] = "max",
         # gene_batch_size: int = 1,
         training_mode: bool = False,
-        training_regions: Optional[Dict[int, np.ndarray]] = None,
+        training_regions: Optional[Dict[str, np.ndarray]] = None,
         covariates: Optional[List[str]] = None,
         standardize_covariates: bool = True,
         # phenotypes: Optional[List[str]] = None,
@@ -294,8 +294,6 @@ class AnnGenoDataset:
         return result
 
     def cache_regions(self, compress: bool = False):
-        raise NotImplementedError  # TODO: A correct implementation of this
-
         self.anngeno.cache_regions(self.regions, compress=compress, dtype=self.dtype)
         self.cache_genotypes = True
 
@@ -306,12 +304,12 @@ class AnnGenoDataModule(pl.LightningDataModule):
         anngeno_filename: PathLike,
         num_workers: int = 0,
         batch_size: Optional[int] = None,
-        training_regions: Optional[Dict[int, np.ndarray]] = None,
+        training_regions: Optional[Dict[str, np.ndarray]] = None,
         variant_set: Optional[Set[int]] = None,
         mask_type: Literal["max", "sum"] = "max",
         covariates: Optional[List[str]] = None,
         standardize_covariates: bool = True,
-        phenotypes: Optional[List[str]] = None,
+        # phenotypes: Optional[List[str]] = None,
         quantile_transform_phenotypes: bool = True,  # TODO: This is different from current default
         annotation_columns: Optional[List[str]] = None,
         sample_set: Optional[Set[str]] = None,
@@ -340,7 +338,7 @@ class AnnGenoDataModule(pl.LightningDataModule):
                 mask_type=self.hparams.mask_type,
                 covariates=self.hparams.covariates,
                 standardize_covariates=self.hparams.standardize_covariates,
-                phenotypes=self.hparams.phenotypes,
+                # phenotypes=self.hparams.phenotypes,
                 quantile_transform_phenotypes=self.hparams.quantile_transform_phenotypes,
                 annotation_columns=self.hparams.annotation_columns,
                 training_mode=True,

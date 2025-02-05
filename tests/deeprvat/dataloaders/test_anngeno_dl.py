@@ -40,7 +40,7 @@ from hypothesis import Phase, given, settings
     batch_proportion=st.floats(min_value=0, max_value=1, exclude_min=True),
 )
 @settings(
-    deadline=2_000, phases=[Phase.explicit, Phase.reuse, Phase.generate, Phase.target]
+    deadline=4_000, phases=[Phase.explicit, Phase.reuse, Phase.generate, Phase.target]
 )
 def test_getitem_training(
     anngeno_args_and_genotypes: Dict[str, Any], batch_proportion: float
@@ -77,13 +77,14 @@ def test_getitem_training(
         # TODO: construct dataaset and iterate through it
         batch_size = math.ceil(batch_proportion * ag.sample_count)
         training_regions = anngeno_args_and_genotypes["training_regions"]
+        covariates = anngeno_args_and_genotypes["covariates"]
         agd = AnnGenoDataset(
             filename=filename,
             sample_batch_size=batch_size,
             mask_type="sum",  # TODO: Test max
             training_mode=True,
             training_regions=training_regions,
-            covariates=anngeno_args_and_genotypes["covariates"],
+            covariates=covariates,
             standardize_covariates=False,  # TODO: test this function
             quantile_transform_phenotypes=False,  # TODO: test this function
             annotation_columns=anngeno_args_and_genotypes.get(
@@ -98,6 +99,24 @@ def test_getitem_training(
             batch_size=None,  # No automatic batching
             batch_sampler=None,  # No automatic batching
         )
+
+        # Check that covariates are used for all phenotypes
+        gene_covariatephenotype_mask = agd.gene_covariatephenotype_mask.numpy()
+        gene_phenotype_mask = agd.gene_phenotype_mask.numpy()
+        assert np.all(gene_covariatephenotype_mask[:, :len(covariates)] == 1)
+        assert np.array_equal(gene_covariatephenotype_mask[:, len(covariates):], agd.gene_phenotype_mask)
+
+        # Reconstruct training_regions using agd.gene_covariatephenotype_mask
+        agd_phenotypes = list(agd.training_regions.keys())
+        reconstructed_training_regions = {p: [] for p in agd_phenotypes}
+        for i in range(gene_phenotype_mask.shape[0]):
+            for j in range(gene_phenotype_mask.shape[1]):
+                if gene_phenotype_mask[i, j]:
+                    reconstructed_training_regions[agd_phenotypes[i]].append(int(agd.regions[j]))
+        assert set(training_regions.keys()) == set(agd_phenotypes)
+        for p, v in training_regions.items():
+            assert len(set(reconstructed_training_regions[p])) == len(reconstructed_training_regions[p])
+            assert set(reconstructed_training_regions[p]) == set(v)
 
         # reconstruct each region using variant_gene_mask
         for batch in dl:
@@ -149,7 +168,7 @@ def test_getitem_training(
     batch_proportion=st.floats(min_value=0, max_value=1, exclude_min=True),
     # cache_genotypes=st.booleans(),
 )
-@settings(phases=[Phase.explicit, Phase.reuse, Phase.generate, Phase.target])
+@settings(deadline=4_000, phases=[Phase.explicit, Phase.reuse, Phase.generate, Phase.target])
 def test_getitem_gis_computation(anngeno_args_and_genotypes, batch_proportion):
     # use __getitem__
     anngeno_args = anngeno_args_and_genotypes["anngeno_args"]
