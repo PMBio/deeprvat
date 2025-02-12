@@ -2022,6 +2022,10 @@ def create_gene_id_file(gtf_filepath: str, out_file: str):
         .reset_index()
         .rename(columns={"gene_id": "gene", "index": "id"})
     )
+    cols = gtf.columns
+    gtf[["gene_base", "feature"]] = gtf["gene"].str.split(".", expand=True)
+    gtf.drop_duplicates(subset=["gene_base"], inplace=True)
+    gtf = gtf[cols]
     gtf.to_parquet(out_file)
 
 

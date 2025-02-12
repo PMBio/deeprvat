@@ -552,6 +552,11 @@ def test_calculate_maf(test_data_name_dir, annotations, expected, tmp_path):
             "gencode.v44.annotation.gtf.gz",
             "protein_coding_genes.parquet",
         ),
+        (
+            "create_gene_id_file_GRCh37_47",
+            "gencode.v47lift37.basic.annotation.gtf.gz",
+            "protein_coding_genes.parquet",
+        ),
     ],
 )
 def test_create_gene_id_file(test_data_name_dir, gtf_file, expected, tmp_path):
