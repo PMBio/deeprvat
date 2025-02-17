@@ -1,9 +1,10 @@
 import logging
+import numpy as np
 import torch.nn.functional as F
 import sys
 from collections import OrderedDict
 from pprint import pprint
-from typing import Any, Dict, List, Optional, Self
+from typing import Any, Dict, List, Optional, Self, Union
 
 import torch
 import torch.nn as nn
@@ -55,7 +56,8 @@ class BaseModel(pl.LightningModule):
         n_annotations: int,
         n_covariates: int,
         n_genes: int,
-        n_phenotypes: int,
+        # n_phenotypes: int,
+        training_regions: Optional[Dict[str, np.ndarray]],
         agg_only: bool = False,
         stage: str = "train",
         **kwargs,
@@ -84,10 +86,12 @@ class BaseModel(pl.LightningModule):
             "n_annotations",
             "n_covariates",
             "n_genes",
-            "n_phenotypes",
+            # "n_phenotypes",
+            # "training_regions",
             "agg_only",
             "stage",
         )
+        self.training_regions = training_regions
 
         self.metric_fns = {
             name: METRICS[name](
@@ -151,6 +155,9 @@ class BaseModel(pl.LightningModule):
             based on the predictions.
         :raises RuntimeError: If NaNs are found in the training loss.
         """
+        import ipdb
+
+        ipdb.set_trace()
         # calls DeepSet.forward()
         y_pred = self(batch)  # n_samples x n_phenos
         results = dict()
@@ -370,9 +377,10 @@ class DeepSetAgg(pl.LightningModule):
 
     def forward(
         self,
-        genotypes: torch.Tensor,
-        annotations: torch.Tensor,
-        variant_gene_mask: torch.Tensor,
+        batch: Dict[str, torch.Tensor],
+        # genotypes: torch.Tensor,
+        # annotations: torch.Tensor,
+        # variant_gene_mask: torch.Tensor,
     ) -> torch.Tensor:
         """
         Perform a forward pass through the model.
@@ -383,28 +391,36 @@ class DeepSetAgg(pl.LightningModule):
         :returns: Burden scores
         :rtype: tensor
         """
-        x = self.phi(annotations)  # variants x phi_latent
-        del annotations
+        x = self.phi(batch["annotations"])  # variants x phi_latent
 
         # TODO: test both cases for correctness
         if self.pool == "sum":
-            if variant_gene_mask is None:
-                x = torch.matmul(genotypes, x)  # samples x phi_latent
+            if batch["variant_gene_mask"] is None:
+                x = torch.matmul(
+                    batch["genotypes"], x
+                )  # samples x variants x phi_latent
                 x = x.reshape(
                     (x.shape[0], 1, x.shape[1])
                 )  # samples x genes x phi_latent
             else:
                 x = torch.einsum(
-                    "ij,jk->ijk", genotypes, x
+                    "ij,jk->ijk", batch["genotypes"], x
                 )  # samples x variants x phi_latent
-                x = torch.einsum(
-                    "ijk,jl->ilk", x, variant_gene_mask
-                )  # samples x genes x phi_latent
+                # x = torch.einsum(
+                #     "ijk,jl->ilk", x, batch["variant_gene_mask"]
+                # )  # samples x genes x phi_latent
+                x = torch.cat(
+                    [
+                        torch.sum(z, dim=1, keepdim=True)
+                        for z in torch.split(x, batch["region_widths"], dim=1)
+                    ],
+                    dim=1,
+                )
         else:
             raise NotImplementedError  # TODO: Implement!
             # TODO: Maybe make this mask within dataloader
             max_mask = (
-                torch.where(genotypes, 0, float("-inf"))
+                torch.where(batch["genotypes"], 0, float("-inf"))
                 .type(x.type())
                 .to(x.device)
                 .requires_grad_(False)
@@ -412,7 +428,7 @@ class DeepSetAgg(pl.LightningModule):
             # Multiply variant embeddings with genotypes along variant dim
             # Add max_mask - will use broadcasting along embedding (last) dim
             x = torch.max(
-                torch.einsum("ijl,lk->ijkl", genotypes, x) + max_mask, dim=1
+                torch.einsum("ijl,lk->ijkl", batch["genotypes"], x) + max_mask, dim=1
             ).values
 
         x = self.rho(x).squeeze(dim=2)  # samples x genes
@@ -425,45 +441,38 @@ class DeepSetAgg(pl.LightningModule):
         return x
 
 
-class MaskedLinear(nn.Linear):
-    """Linear layer that allows for masking of weights preventing
-    backpropagation through masked network connections. Masked
-    weights initialized to zero.
-
-    Uses a binary mask. i.e. -
-    mask = torch.tensor([
-        [0, 1, 1, 1],
-        [0, 1, 1, 1],
-        [0, 1, 1, 1],
-        ],
-        dtype=torch.float32)
+def forward_single_gene_reference(
+    self,
+    genotypes: torch.Tensor,  # samples x variants
+    annotations: torch.Tensor,  # variants x annotations
+) -> torch.Tensor:
     """
+    Perform a forward pass through the model - reference implementation,
+    works for a single gene only.
 
-    def __init__(
-        self,
-        in_features: int,
-        out_features: int,
-        mask: torch.Tensor,
-        bias: bool = True,
-        device=None,
-        dtype=None,
-    ) -> None:
-        super().__init__(in_features, out_features, bias, device, dtype)
-        self.mask = mask
-        if self.mask is not None:
-            with torch.no_grad():
-                self.weight *= self.mask
+    :param x: Batched input data
+    :type x: tensor
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        if self.mask is not None:
-            return F.linear(input, self.weight * self.mask, self.bias)
-        else:
-            return F.linear(input, self.weight, self.bias)
+    :returns: Burden scores
+    :rtype: tensor
+    """
+    variant_embeddings = [
+        self.phi(annotations[i]).squeeze() for i in range(annotations.shape[0])
+    ]
 
-    # def to(self, *args, **kwargs) -> Self:
-    #     import ipdb; ipdb.set_trace()
-    #     self.mask = self.mask.to(*args, **kwargs)
-    #     return super().to(*args, **kwargs)
+    gene_embeddings = torch.zeros(genotypes.shape[0], variant_embeddings[0].shape[0])
+    for i in range(genotypes.shape[0]):
+        for j in range(genotypes.shape[1]):
+            gene_embeddings[i] += genotypes[i][j] * variant_embeddings[j]
+
+    x = self.rho(gene_embeddings).squeeze()  # shape (samples, )
+
+    if self.reverse:
+        x = -x
+    if self.use_sigmoid:
+        x = torch.sigmoid(x)
+
+    return x
 
 
 class DeepSet(BaseModel):
@@ -480,10 +489,11 @@ class DeepSet(BaseModel):
         n_annotations: int,
         n_covariates: int,
         n_genes: int,
-        n_phenotypes: int,
-        gene_covariatephenotype_mask: Optional[torch.Tensor] = None,
+        # n_phenotypes: int,
+        # gene_covariatephenotype_mask: Optional[torch.Tensor] = None,
+        training_regions: Optional[Dict[str, np.ndarray]],
         agg_model: Optional[nn.Module] = None,
-        use_sigmoid: bool = False,
+        # use_sigmoid: bool = False,
         reverse: bool = False,
         **kwargs,
     ):
@@ -510,7 +520,12 @@ class DeepSet(BaseModel):
         :param kwargs: Additional keyword arguments.
         """
         super().__init__(
-            config, n_annotations, n_covariates, n_genes, n_phenotypes, **kwargs
+            config,
+            n_annotations,
+            n_covariates,
+            n_genes,
+            training_regions,  # n_phenotypes,
+            **kwargs,
         )
 
         logger.info("Initializing DeepSet model with parameters:")
@@ -519,6 +534,7 @@ class DeepSet(BaseModel):
         activation = get_hparam(self, "activation", "LeakyReLU")
         pool = get_hparam(self, "pool", "sum")
         dropout = get_hparam(self, "dropout", None)
+        use_sigmoid = get_hparam(self, "use_sigmoid", False)
 
         # self.agg_model compresses a batch
         # from: samples x genes x annotations x variants
@@ -542,14 +558,26 @@ class DeepSet(BaseModel):
         # afterwards genes are concatenated with covariates
         # to: samples x (genes + covariates)
 
-        # Use phenotype_mask to only train the weights relevant for each phenotype
-        self.gene_pheno = MaskedLinear(
-            self.hparams.n_covariates + self.hparams.n_genes,
-            self.hparams.n_phenotypes,
-            gene_covariatephenotype_mask,
-        )
+        if training_regions is not None:
+            self.phenotypes = list(training_regions.keys())
+            self.training_region_splits = [
+                regions.shape[0] for regions in training_regions.values()
+            ]
 
-    def forward(self, batch):
+            # # Use phenotype_mask to only train the weights relevant for each phenotype
+            # self.gene_pheno = MaskedLinear(
+            #     self.hparams.n_covariates + self.hparams.n_genes,
+            #     self.hparams.n_phenotypes,
+            #     gene_covariatephenotype_mask,
+            # )
+            self.gene_pheno = nn.ModuleDict(
+                {
+                    pheno: nn.Linear(n_covariates + regions.shape[0], 1)
+                    for pheno, regions in training_regions.items()
+                }
+            )
+
+    def forward(self, batch) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
         """
         Forward pass through the model.
 
@@ -564,18 +592,82 @@ class DeepSet(BaseModel):
         :rtype: dict
         """
         x = self.agg_model(
-            batch["genotypes"],  # samples x variants
-            batch["annotations"],  # samples x genes
-            batch["variant_gene_mask"],  # variants x genes
+            batch
+            # batch["genotypes"],  # samples x variants
+            # batch["annotations"],  # samples x genes
+            # batch["variant_gene_mask"],  # variants x genes
         )  # samples x genes
 
         if not self.hparams.agg_only:
-            x = torch.cat(
-                (batch["covariates"], x), dim=1
-            )  # samples x (covariates + genes)
-            x = self.gene_pheno(x).squeeze(dim=1)  # samples x genes
+            x_regions = torch.split(x, self.training_region_splits, dim=1)
+            result = torch.cat(
+                [
+                    self.gene_pheno[self.phenotypes[i]](
+                        torch.cat((batch["covariates"], x_regions[i]), dim=1)
+                    )
+                    for i in range(len(self.phenotypes))
+                ],
+                dim=1,
+            )
+        else:
+            result = x
 
-        return x
+        return result
+
+    def forward_reference(
+        self, batch, training_regions: Dict[str, np.ndarray]
+    ) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
+        """
+        Forward pass through the model - reference implementation.
+
+        :param batch: Dictionary of phenotypes, each containing the following keys:
+            - indices (tensor): Indices for the underlying dataframe.
+            - covariates (tensor): Covariates of samples, e.g., age. Content: samples x covariates.
+            - rare_variant_annotations (tensor): Annotated genomic variants. Content: samples x genes x annotations x variants.
+            - y (tensor): Actual phenotypes (ground truth data).
+        :type batch: dict
+
+        :returns: Dictionary containing predicted phenotypes
+        :rtype: dict
+        """
+        assert batch["regions"] == np.concatenate(list(training_regions.values()))
+        assert len(batch["regions"]) == len(batch["region_widths"])
+        assert len(batch["region_widths"]) == len(training_regions)
+        assert [
+            x == len(y)
+            for x, y in zip(batch["region_widths"], training_regions.values())
+        ]
+
+        genotypes_by_gene = torch.split(
+            batch["genotypes"], batch["region_widths"], dim=1
+        )
+        annotations_by_gene = torch.split(
+            batch["annotations"], batch["region_widths"], dim=0
+        )
+        gene_scores = torch.cat(
+            [
+                self.agg_model.forward_single_gene_reference(g, a)
+                for g, a in zip(genotypes_by_gene, annotations_by_gene)
+            ]
+        )
+
+        if not self.hparams.agg_only:
+            # TODO: Split gene_scores, compute for each phenotype
+
+            x_regions = torch.split(x, self.training_region_splits, dim=1)
+            result = torch.cat(
+                [
+                    self.gene_pheno[self.phenotypes[i]](
+                        torch.cat((batch["covariates"], x_regions[i]), dim=1)
+                    )
+                    for i in range(len(self.phenotypes))
+                ],
+                dim=1,
+            )
+        else:
+            result = x
+
+        return result
 
 
 class LinearAgg(pl.LightningModule):

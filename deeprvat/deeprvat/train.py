@@ -182,8 +182,9 @@ def train_(
             n_annotations=len(annotation_columns),
             n_covariates=len(covariates),
             n_genes=sum([rs.shape[0] for rs in training_regions.values()]),
-            n_phenotypes=len(training_regions),
-            gene_covariatephenotype_mask=dm.gene_covariatephenotype_mask,
+            # n_phenotypes=len(training_regions),
+            # gene_covariatephenotype_mask=dm.gene_covariatephenotype_mask,
+            training_regions=training_regions,
             **config["model"].get("kwargs", {}),
         )
 
@@ -207,8 +208,8 @@ def train_(
 
         # initialize trainer, which will call background functionality
         trainer_config = config["training"].get("pl_trainer", {})
-        if trainer_config.get("accelerator", None) == "gpu":  # TODO: HACK, fix
-            model.gene_pheno.mask = model.gene_pheno.mask.to("cuda:0")
+        # if trainer_config.get("accelerator", None) == "gpu":  # TODO: HACK, fix
+        #     model.gene_pheno.mask = model.gene_pheno.mask.to("cuda:0")
         trainer = pl.Trainer(
             logger=tb_logger,
             callbacks=callbacks,
@@ -361,7 +362,7 @@ def train(
     if sample_file is not None:
         logger.info(f"Using training samples from {sample_file}")
         with open(sample_file, "rb") as f:
-            sample_set = set(pickle.load(f)["training_samples"])
+            sample_set = set(pickle.load(f))
         if debug:
             sample_set = set(list(sample_set)[:1000])
     else:

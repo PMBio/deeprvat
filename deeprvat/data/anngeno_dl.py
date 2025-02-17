@@ -1,4 +1,6 @@
 import logging
+import pickle
+from tqdm import tqdm, trange
 import sys
 import math
 import random
@@ -9,6 +11,7 @@ from typing import Dict, Iterable, List, Literal, Optional, Set, Union
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
+import sklearn.preprocessing as pp
 import torch
 from anngeno.anngeno import (
     AnnGeno,
@@ -31,18 +34,16 @@ def standardize(x: torch.Tensor, dim: int) -> torch.Tensor:
     return (x - means) / stds
 
 
-def quantile_transform(x, dim, seed=1) -> torch.Tensor:
+def quantile_transform(x, seed=1):
     """
-    Gaussian quantile transform for values in a torch.Tensor.
+    Gaussian quantile transform for values in a pandas Series.
 
-    :param x: Input tensor.
-    :type x: torch.Tensor
-    :param dim: Dimension over which to transform.
-    :type dim: int
+    :param x: Input pandas Series.
+    :type x: pd.Series
     :param seed: Random seed.
     :type seed: int
-    :return: Transformed tensor.
-    :rtype: torch.Tensor
+    :return: Transformed Series.
+    :rtype: pd.Series
 
     .. note::
         "nan" values are kept
@@ -55,7 +56,7 @@ def quantile_transform(x, dim, seed=1) -> torch.Tensor:
     is_nan = np.isnan(x_transform)
     n_quantiles = np.sum(~is_nan)
 
-    x_transform[~is_nan] = quantile_transform(
+    x_transform[~is_nan] = pp.quantile_transform(
         x_transform[~is_nan].reshape([-1, 1]),
         n_quantiles=n_quantiles,
         subsample=n_quantiles,
@@ -100,11 +101,14 @@ class AnnGenoDataset:
         self.training_mode = training_mode
 
         self.anngeno = AnnGeno(filename=filename, filemode="r")
-        self.anngeno.subset_annotations(
-            annotation_columns=annotation_columns, variant_set=variant_set
-        )
 
-        self.cache_genotypes = False
+        if annotation_columns is not None:
+            self.anngeno.subset_annotations(annotation_columns)
+
+        if variant_set is not None:
+            self.anngeno.subset_variants(variant_set)
+
+        self.results_cached = False
 
         self.samples = self.anngeno.samples
         self.n_samples = len(self.samples)
@@ -158,32 +162,32 @@ class AnnGenoDataset:
             self.covariate_cols = covariates
             self.phenotype_cols = list(self.training_regions.keys())
 
-            # Build gene-to-phenotype mask for MaskedLinear layer
-            n_phenos = len(self.training_regions)
-            pheno_gene_count = {
-                pheno: len(regions) for pheno, regions in self.training_regions.items()
-            }
-            pheno_gene_cumulative = np.concatenate(
-                [[0], np.cumsum(list(pheno_gene_count.values()))]
-            )
-            pheno_gene_indices = zip(
-                pheno_gene_cumulative[:-1], pheno_gene_cumulative[1:]
-            )
-            self.gene_phenotype_mask = torch.zeros(
-                (n_phenos, n_genes), dtype=torch.float32
-            )
-            for i, (start, stop) in enumerate(pheno_gene_indices):
-                self.gene_phenotype_mask[i, start:stop] = 1
-            self.gene_covariatephenotype_mask = torch.cat(
-                (
-                    torch.ones(
-                        (len(self.phenotype_cols), len(self.covariate_cols)),
-                        dtype=torch.float32,
-                    ),
-                    self.gene_phenotype_mask,
-                ),
-                dim=1,
-            )
+            # # Build gene-to-phenotype mask for MaskedLinear layer
+            # n_phenos = len(self.training_regions)
+            # pheno_gene_count = {
+            #     pheno: len(regions) for pheno, regions in self.training_regions.items()
+            # }
+            # pheno_gene_cumulative = np.concatenate(
+            #     [[0], np.cumsum(list(pheno_gene_count.values()))]
+            # )
+            # pheno_gene_indices = zip(
+            #     pheno_gene_cumulative[:-1], pheno_gene_cumulative[1:]
+            # )
+            # self.gene_phenotype_mask = torch.zeros(
+            #     (n_phenos, n_genes), dtype=torch.float32
+            # )
+            # for i, (start, stop) in enumerate(pheno_gene_indices):
+            #     self.gene_phenotype_mask[i, start:stop] = 1
+            # self.gene_covariatephenotype_mask = torch.cat(
+            #     (
+            #         torch.ones(
+            #             (len(self.phenotype_cols), len(self.covariate_cols)),
+            #             dtype=torch.float32,
+            #         ),
+            #         self.gene_phenotype_mask,
+            #     ),
+            #     dim=1,
+            # )
         else:
             # Use all regions
             self.regions = self.anngeno.region_ids
@@ -201,6 +205,10 @@ class AnnGenoDataset:
             self.phenotype_df = self.anngeno.phenotypes[
                 ["sample"] + self.covariate_cols + self.phenotype_cols
             ]
+            if self.quantile_transform_phenotypes:
+                logger.info("Quantile transforming phenotypes")
+                for p in tqdm(self.phenotype_cols):
+                    self.phenotype_df[p] = quantile_transform(self.phenotype_df[p])
 
             # TODO: Sanity check, can be removed or moved to test
             assert np.array_equal(self.phenotype_df["sample"].to_numpy(), self.samples)
@@ -226,6 +234,9 @@ class AnnGenoDataset:
     def __getitem__(self, idx: int) -> Dict[str, np.ndarray]:
         # start = time.process_time()
 
+        if self.results_cached:
+            return self.cache[idx]
+
         result = {}
 
         if self.training_mode:
@@ -242,38 +253,40 @@ class AnnGenoDataset:
             min((sample_idx + 1) * self.sample_batch_size, self.n_samples),
         )
 
-        if self.cache_genotypes:
-            # BUG: This doesn't work. Should modify get_region to use cached genotypes/annotations
-            slice_cache = self.anngeno.get_cached_regions(sample_slice=sample_slice)
-            genotypes = torch.tensor(slice_cache["genotypes"][:], dtype=self.dtype)
-            annotations = torch.tensor(
-                slice_cache["annotations"][:], dtype=self.dtype
-            )  # TODO: these actually only need to be fetched once
-        else:
-            by_gene = [
-                self.anngeno.get_region(r, sample_slice=sample_slice) for r in regions
-            ]
-            genotypes = torch.concatenate(
-                [torch.tensor(x["genotypes"], dtype=self.dtype) for x in by_gene],
-                axis=1,
+        # if self.results_cached:
+        # # BUG: This doesn't work when training_mode=False. Should modify AnnGeno.get_region to use cached genotypes/annotations
+        # slice_cache, region_widths = self.anngeno.get_cached_regions(
+        #     sample_slice=sample_slice  # TODO: , observed_only=True
+        # )
+        # genotypes = torch.tensor(slice_cache["genotypes"][:], dtype=self.dtype)
+        # annotations = torch.tensor(
+        #     slice_cache["annotations"][:], dtype=self.dtype
+        # )  # TODO: these actually only need to be fetched once
+        # else:
+        by_gene = [
+            self.anngeno.get_region(
+                r, sample_slice=sample_slice, observed_only=self.training_mode
             )
-            annotations = torch.concatenate(
-                [
-                    torch.tensor(x["annotations"].to_numpy(), dtype=self.dtype)
-                    for x in by_gene
-                ],
-                axis=0,
-            )
-            del by_gene
-
-        # # apply gene_mask to genotypes
-        # # TODO: Do this in model (on GPU)
-        # genotypes = torch.einsum(
-        #     "ij,jk->ijk", genotypes, self.gene_mask
-        # )  # samples x variants x genes
+            for r in regions
+        ]
+        genotypes = torch.concatenate(
+            [torch.tensor(x["genotypes"], dtype=self.dtype) for x in by_gene],
+            axis=1,
+        )
+        region_widths = [x["genotypes"].shape[1] for x in by_gene]
+        annotations = torch.concatenate(
+            [
+                torch.tensor(x["annotations"].to_numpy(), dtype=self.dtype)
+                for x in by_gene
+            ],
+            axis=0,
+        )
+        del by_gene
 
         result["genotypes"] = genotypes
         result["annotations"] = annotations
+        result["regions"] = regions
+        result["region_widths"] = region_widths
 
         # # TODO: Could also do this within model class
         # if self.mask_type == "max":
@@ -293,9 +306,18 @@ class AnnGenoDataset:
 
         return result
 
-    def cache_regions(self, compress: bool = False):
-        self.anngeno.cache_regions(self.regions, compress=compress, dtype=self.dtype)
-        self.cache_genotypes = True
+    def cache_results(self, compress: bool = False, cache_file: PathLike = None):
+        logger.info("Caching data")
+        if cache_file is not None and Path(cache_file).exists():
+            logger.info(f"Loading cache from file: {cache_file}")
+            with open(cache_file, "rb") as f:
+                self.cache = pickle.load(f)
+
+        self.cache = [self[i] for i in trange(len(self))]
+        self.results_cached = True
+        if cache_file is not None:
+            with open(cache_file, "wb") as f:
+                pickle.dump(self.cache, f)
 
 
 class AnnGenoDataModule(pl.LightningDataModule):
@@ -364,9 +386,9 @@ class AnnGenoDataModule(pl.LightningDataModule):
             )
             self.train_dataset.set_samples(train_samples)
 
-            self.gene_covariatephenotype_mask = (
-                self.train_dataset.gene_covariatephenotype_mask
-            )
+            # self.gene_covariatephenotype_mask = (
+            #     self.train_dataset.gene_covariatephenotype_mask
+            # )
 
             # Pass sample_set's and options along to AnnGenoDataset
             logger.info("Instantiating validation dataset")
@@ -375,8 +397,8 @@ class AnnGenoDataModule(pl.LightningDataModule):
             )
 
             if self.hparams.cache_genotypes:
-                self.train_dataset.cache_regions(compress=self.hparams.compress_cache)
-                self.val_dataset.cache_regions(compress=self.hparams.compress_cache)
+                self.train_dataset.cache_results(compress=self.hparams.compress_cache)
+                self.val_dataset.cache_results(compress=self.hparams.compress_cache)
 
             self.setup_done["fit"] = True
         else:
