@@ -155,9 +155,6 @@ class BaseModel(pl.LightningModule):
             based on the predictions.
         :raises RuntimeError: If NaNs are found in the training loss.
         """
-        import ipdb
-
-        ipdb.set_trace()
         # calls DeepSet.forward()
         y_pred = self(batch)  # n_samples x n_phenos
         results = dict()
