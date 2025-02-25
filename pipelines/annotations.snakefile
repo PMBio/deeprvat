@@ -192,7 +192,7 @@ rule all:
         annotations = anno_dir / 'annotations.parquet'
 
 if not gene_id_file:
-    gene_id_file = anno_tmp_dir / "protein_coding_genes.parquet"
+    gene_id_file = fasta_dir / "protein_coding_genes.parquet"
 
     rule create_gene_id_file:
         input:
