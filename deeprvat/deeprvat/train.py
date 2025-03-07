@@ -74,6 +74,7 @@ def train_(
     training_regions: Dict[str, np.ndarray],
     log_dir: str,
     sample_set: Optional[Set[str]] = None,
+    variant_set: Optional[Set[int]] = None,
     checkpoint_file: Optional[str] = None,
     trial: Optional[optuna.trial.Trial] = None,
     trial_id: Optional[int] = None,
@@ -166,6 +167,7 @@ def train_(
             training_regions=training_regions,
             train_proportion=train_proportion,
             sample_set=sample_set,
+            variant_set=variant_set,
             covariates=covariates,
             # phenotypes=phenotypes,
             annotation_columns=annotation_columns,
@@ -296,6 +298,7 @@ def train_(
 @click.option("--n-trials", type=int, default=1)
 @click.option("--trial-id", type=int)
 @click.option("--sample-file", type=click.Path(exists=True, path_type=Path))
+@click.option("--variant-file", type=click.Path(exists=True, path_type=Path))
 @click.option(
     "--phenotype",
     type=(str, click.Path(exists=True, path_type=Path)),
@@ -309,7 +312,8 @@ def train(
     deterministic: bool,
     n_trials: int,
     trial_id: Optional[int],
-    sample_file: Optional[str],
+    sample_file: Optional[Path],
+    variant_file: Optional[Path],
     phenotype: Tuple[Tuple[str, Path]],
     config_file: Path,
     log_dir: str,
@@ -368,6 +372,13 @@ def train(
     else:
         sample_set = None
 
+    if variant_file is not None:
+        logger.info(f"Using training variants from {variant_file}")
+        with open(variant_file, "rb") as f:
+            variant_set = set(pickle.load(f))
+    else:
+        variant_set = None
+
     training_regions = {
         pheno: pd.read_parquet(region_file)["id"].to_numpy()
         for pheno, region_file in phenotype
@@ -380,6 +391,9 @@ def train(
             training_regions,
             log_dir,
             sample_set=sample_set,
+            variant_set=variant_set,
+            trial=trial,
+            trial_id=trial_id,
             debug=debug,
             deterministic=deterministic,
         )
@@ -418,6 +432,7 @@ def train(
                 training_regions,
                 log_dir,
                 sample_set=sample_set,
+                variant_set=variant_set,
                 trial=trial,
                 trial_id=trial_id,
                 debug=debug,

@@ -11,103 +11,25 @@ from hypothesis.extra.numpy import arrays
 from hypothesis.extra.pandas import column, data_frames, indexes
 
 from deeprvat.utilities.genotypesh5_to_anngeno import _convert_genotypes_h5
+from anngeno.test_utils import (
+    anngeno_args_and_genotypes,
+    indexed_array_equal,
+)
 
 
-# NOTE: This is somewhat arbritrary but a little more readable
-BASIC_ALPHABET = string.ascii_letters + string.digits + "_-:.<>|"
-
-
-def sort_by_index(x, index):
-    index_argsort = np.argsort(index)
-    return x[index_argsort]
-
-
-def indexed_array_equal(
-    x: np.ndarray, x_index: np.ndarray, y: np.ndarray, y_index: np.ndarray
-) -> bool:
-    assert len(x_index.shape) == 1
-    assert len(y_index.shape) == 1
-    assert len(np.unique(x_index)) == len(x_index)
-    assert len(np.unique(y_index)) == len(y_index)
-
-    return (
-        x_index.shape[0] == x.shape[0]
-        and y_index.shape[0] == y.shape[0]
-        and x.shape == y.shape
-        and set(x_index) == set(y_index)
-        and (
-            np.array_equal(sort_by_index(x, x_index), sort_by_index(y, y_index))
-            if (x.dtype == np.dtype("O") or y.dtype == np.dtype("O"))
-            else np.array_equal(
-                sort_by_index(x, x_index), sort_by_index(y, y_index), equal_nan=True
-            )
-        )
-    )
-
-
-@st.composite
-def genotypes(draw):
-    n_samples = draw(st.integers(min_value=1, max_value=100))
-    n_variants = draw(st.integers(min_value=1, max_value=1000))
-
-    samples = draw(
-        arrays(
-            dtype=str,
-            shape=n_samples,
-            elements=st.text(alphabet=BASIC_ALPHABET, min_size=1),
-            unique=True,
-        )
-    )
-
-    variant_metadata = draw(
-        data_frames(
-            columns=[
-                column(
-                    name="chrom",
-                    elements=st.one_of(
-                        st.just("chr1"),
-                        st.just("chr2"),
-                        st.just("4"),
-                        st.just("5"),
-                        st.just("chrX"),
-                    ),
-                ),
-                column(name="pos", elements=st.integers(min_value=0, max_value=1e9)),
-                column(
-                    name="ref",
-                    elements=st.text(alphabet=("A", "C", "G", "T"), min_size=1),
-                ),
-                column(
-                    name="alt",
-                    elements=st.text(alphabet=("A", "C", "G", "T"), min_size=1),
-                ),
-                # variant_ids,
-            ],
-            index=indexes(
-                elements=st.integers(min_value=0, max_value=2000),
-                min_size=n_variants,
-                max_size=n_variants,
-            ),
-        )
-    )
-
-    genotype_matrix = draw(
-        arrays(
-            np.uint8,
-            (n_samples, n_variants),
-            elements=st.integers(min_value=0, max_value=2),
-        )
-    )
-
-    return samples, variant_metadata, genotype_matrix
-
-
-@given(genotypes=genotypes(), batch_size=st.integers(min_value=1, max_value=110))
+@given(
+    anngeno_args_and_genotypes=anngeno_args_and_genotypes(),
+    batch_size=st.integers(min_value=1, max_value=110),
+)
 @settings(
     deadline=2_000, phases=[Phase.explicit, Phase.reuse, Phase.generate, Phase.target]
 )
-def test_genotypesh5_to_anngeno(genotypes, batch_size):
-    samples, variant_metadata, genotype_matrix = genotypes
+def test_genotypesh5_to_anngeno(anngeno_args_and_genotypes, batch_size):
+    anngeno_args = anngeno_args_and_genotypes["anngeno_args"]
+    genotype_matrix = anngeno_args_and_genotypes["genotypes"]
+    samples = anngeno_args["samples"]
+    variant_metadata = anngeno_args["variant_metadata"]
+
     variant_metadata["id"] = np.arange(len(variant_metadata))
 
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -173,7 +95,7 @@ def test_genotypesh5_to_anngeno(genotypes, batch_size):
 
         assert indexed_array_equal(
             h5_genotypes.T,
-            variant_metadata["id"].to_numpy(),
+            ag.make_variant_ids(variant_metadata),
             ag[:, :].T,
             ag.variant_metadata["id"].to_numpy(),
         )

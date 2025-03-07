@@ -281,7 +281,6 @@ class AnnGenoDataset:
             ],
             axis=0,
         )
-        del by_gene
 
         result["genotypes"] = genotypes
         result["annotations"] = annotations
@@ -300,7 +299,8 @@ class AnnGenoDataset:
         if self.training_mode:
             result["covariates"] = self.covariates[sample_slice]
             result["phenotypes"] = self.phenotypes[sample_slice]
-            result["variant_gene_mask"] = self.variant_gene_mask
+            observed_mask = np.concatenate([x["observed_mask"] for x in by_gene])
+            result["variant_gene_mask"] = self.variant_gene_mask[observed_mask]
 
         # print(f"getitem total: {time.process_time() - start}")
 

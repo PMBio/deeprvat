@@ -50,10 +50,15 @@ def _convert_genotypes_h5(
         # TODO: Rewrite below here to reflect changes in AnnGeno
         logger.info("Initializing AnnGeno object")
         ag = AnnGeno(
-            out_file, filemode="w", samples=samples, variant_metadata=variant_metadata
+            out_file,
+            filemode="w",
+            samples=samples,
+            variant_metadata=variant_metadata.drop(columns="id"),
         )
 
         logger.info("Transforming genotype file")
+        variant_ids = ag.make_variant_ids(variant_metadata.sort_values("id"))
+        reindexer = ag.variant_id_reindexer(variant_ids)
         for start_idx in trange(0, n_samples, batch_size, desc="Chunks"):
             end_idx = min(start_idx + batch_size, n_samples)
             sample_slice = slice(start_idx, end_idx)
@@ -63,11 +68,11 @@ def _convert_genotypes_h5(
                 gts = gt_matrix[i, gt_matrix[i] != -1]
 
                 genotypes_dense = np.zeros(n_variants, dtype=np.uint8)
-                genotypes_dense[ag.variant_col_by_id[ids]] = gts
+                genotypes_dense[ids] = gts
 
                 this_genotypes.append(genotypes_dense)
 
-            ag.set_samples(sample_slice, np.stack(this_genotypes, axis=0))
+            ag.set_samples(sample_slice, np.stack(this_genotypes, axis=0)[:, reindexer])
 
 
 @click.command()

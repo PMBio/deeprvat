@@ -259,7 +259,7 @@ class AnnGenoDataset:
         regions_nonzero_variant = []
         regions_genotypes = []
         annotations = []
-        for r in tqdm(regions):
+        for r in regions:
             this_region = self.anngeno.get_region(
                 r, sample_slice=sample_slice, observed_only=True
             )
@@ -280,7 +280,7 @@ class AnnGenoDataset:
         padded_annotations = np.zeros(
             (n_samples, n_regions, n_annotations, max_variants), dtype=np.float32
         )
-        for region, anno in tqdm(enumerate(annotations), total=len(annotations)):
+        for region, anno in enumerate(annotations):
             for sample, variant, genotype in zip(
                 regions_nonzero_sample[region],
                 regions_nonzero_variant[region],

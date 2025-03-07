@@ -10,6 +10,12 @@ from anngeno import AnnGeno
 from anngeno.test_utils import anngeno_args_and_genotypes
 from hypothesis import Phase, given, settings
 
+from anngeno.test_utils import (
+    anngeno_args_and_genotypes,
+    indexed_array_equal,
+    dataframe_is_permutation,
+)
+
 
 # TODO: Implement
 # Check that entries with 1 in AnnGenoDataset.variant_gene_mask correspond
@@ -48,16 +54,16 @@ def test_getitem_training(
     anngeno_args = anngeno_args_and_genotypes["anngeno_args"]
     genotypes = anngeno_args_and_genotypes["genotypes"]
 
-    variant_ids = anngeno_args["variant_metadata"]["id"]
+    variant_ids = AnnGeno.make_variant_ids(anngeno_args["variant_metadata"])
     with tempfile.TemporaryDirectory() as tmpdirname:
         filename = Path(tmpdirname) / anngeno_args["filename"]
         anngeno_args["filename"] = filename
         ag = AnnGeno(**anngeno_args)
 
+        reindexer = ag.variant_id_reindexer(variant_ids)
         ag.set_samples(
             slice(None),
-            genotypes,
-            variant_ids=variant_ids,
+            genotypes[:, reindexer],
         )
 
         # Can only use ag.subset_samples in read-only mode
@@ -135,7 +141,9 @@ def test_getitem_training(
         for batch in dl:
             for i, region in enumerate(agd.regions):
                 # compare to results from using AnnGeno.get_region(), AnnGeno.phenotypes, AnnGeno.annotations
-                reference = ag.get_region(region, batch["sample_slice"])
+                reference = ag.get_region(
+                    region, batch["sample_slice"], observed_only=True
+                )
                 region_mask = (
                     batch["variant_gene_mask"][:, i].cpu().numpy().astype(np.bool)
                 )
@@ -189,16 +197,16 @@ def test_getitem_gis_computation(anngeno_args_and_genotypes, batch_proportion):
     anngeno_args = anngeno_args_and_genotypes["anngeno_args"]
     genotypes = anngeno_args_and_genotypes["genotypes"]
 
-    variant_ids = anngeno_args["variant_metadata"]["id"]
+    variant_ids = AnnGeno.make_variant_ids(anngeno_args["variant_metadata"])
     with tempfile.TemporaryDirectory() as tmpdirname:
         filename = Path(tmpdirname) / anngeno_args["filename"]
         anngeno_args["filename"] = filename
         ag = AnnGeno(**anngeno_args)
 
+        reindexer = ag.variant_id_reindexer(variant_ids)
         ag.set_samples(
             slice(None),
-            genotypes,
-            variant_ids=variant_ids,
+            genotypes[:, reindexer],
         )
 
         # Can only use ag.subset_samples in read-only mode
