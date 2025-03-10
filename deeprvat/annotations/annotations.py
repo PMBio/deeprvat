@@ -1988,7 +1988,7 @@ def add_gene_ids(gene_id_file: str, annotations_path: str, out_file: str):
     """
     genes = pd.read_parquet(gene_id_file)
     genes[["gene_base", "feature"]] = genes["gene"].str.split(".", expand=True)
-    genes=genes[['id','gene_base']]
+    genes = genes[["id", "gene_base"]]
     genes.rename(columns={"id": "gene_id"}, inplace=True)
     annotations = pd.read_parquet(annotations_path)
     len_anno = len(annotations)
