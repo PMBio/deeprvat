@@ -27,7 +27,10 @@ Download paths:
 - [PrimateAI](https://basespace.illumina.com/s/yYGFdGih1rXL) PrimateAI supplementary data/"PrimateAI_scores_v0.2_GRCh38_sorted.tsv.bgz"
 - [AlphaMissense](https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz) 
 
-Also a reference GTF file containing transcript annotations is required, this can be downloaded from [here](https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz)
+Further requirements:
+- A reference GTF file containing transcript annotations is required, this can be downloaded from [here](https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz). 
+- A file containing all genes, which deeprvat should consider together with a unique integer id for each gene. This file may be created manually by the user or automatically using the gtf file as input to create a gene id file for all protein coding genes. See [here](#geneid) for more details.
+
 
 
 ## Configure the annotation pipeline
@@ -38,6 +41,7 @@ The config above would use the following directory structure:
 |--reference
 |   |-- fasta file
 |   |-- GTF file 
+|   |-- gene id file
 
 |-- preprocessing_workdir
 |   |-- norm
@@ -80,6 +84,7 @@ A GTF file as described in [requirements](#requirements) and the FASTA file used
 The output is stored in the `output_dir/annotations` folder and any temporary files in the `tmp` subfolder. All repositories used including VEP with its corresponding cache as well as plugins are stored in `repo_dir`.
 Data for VEP plugins and the CADD cache are stored in `annotation_data`. 
 
+(running)=
 ## Running the annotation pipeline on example data
 
 
@@ -139,6 +144,22 @@ or
 af_mode : 'af_gnomadg'
 ```
 to the config file.
+
+(geneid)=
+## Gene id file
+as mentioned in the [requirements](#requirements) section, the pipeline expects a parquet file contiaining all genes that deeprvat should consider, together with a unique integer id for each gene. 
+This file can be created automatically using a GTF file as input. The output is then a parquet file in the expected format containing all protein coding genes of the provided GTF file.
+To automatically create the gene id file, make sure the annotation environment (mentioned [here](#running) ) is active and run
+```
+deeprvat_annotations create-gene-id-file deeprvat/example/annotations/reference/gencode.v44.annotation.gtf.gz deeprvat/example/annotations/reference/protein_coding_genes.parquet
+```  
+with `deeprvat/example/annotations/reference/gencode.v44.annotation.gtf.gz` pointing to any downloaded GTF file and `deeprvat/example/annotations/reference/protein_coding_genes.parquet` pointing to the desired output path, which has to be specified in the config file. 
+
+Alternatively, when the user want to select a specific set of genes to consider, the gene id file may be created by the user. The file is expected to have two columns:
+- column`gene`:`str` name for each gene
+- column `id`:`int` unique id for each gene
+Each row represents a gene the user want to include in the analysis.
+
 
 ## References
 

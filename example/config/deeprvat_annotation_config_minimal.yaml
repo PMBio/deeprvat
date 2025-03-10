@@ -6,6 +6,7 @@
 fasta_dir : reference
 fasta_file_name : GRCh38.primary_assembly.genome.fa
 gtf_file_name : gencode.v44.annotation.gtf.gz
+gene_id_parquet: reference/protein_coding_genes.parquet
 
 source_variant_file_pattern :  chr{chr}test
 source_variant_file_type: 'bcf'
@@ -24,6 +25,7 @@ kipoiveff_repo_dir : repo_dir/kipoi-veff2
 faatpipe_repo_dir : repo_dir/faatpipe
 vep_repo_dir : repo_dir/ensembl-vep
 preprocessing_workdir : preprocessing_workdir
+
 include_absplice : False
 include_deepSEA : False
 vep_online: True
