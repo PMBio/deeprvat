@@ -125,7 +125,7 @@ You can add/remove VEP plugins in the `additional_vep_plugin_cmds` part of the c
     - 0
     - float
 ```
-Here `CADD_RAW` is the name of the column of the VEP output when the plugin is used, it is then renamed in the final annotation dataframe to `CADD_raw`, all `NA` values are set to `0` and the values are of type `float`. 
+Here `CADD_RAW` is the name of the column of the VEP output when the plugin is used, it is then renamed in the final annotation data frame to `CADD_raw`, all `NA` values are set to `0` and the values are of type `float`. 
 
 You can also modify the `example/config/annotation_colnames_filling_values.yaml` file to choose custom filling values for each of the annotations. 
 For each of the annotations the second value represents the value to use to fill in `NA` values, i.e. in the example above, in the `CADD_raw` column `NA` values are filled using `0`. 
@@ -135,7 +135,7 @@ keep_unfilled: True
 ```
  to the [config file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml).
 
-You can also change the way the allele frequencies are calculated by adding `af_mode` key to the [config file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml). By default, the allele frequencies are calculated from the data the annotation pipeline is run with. To use gnomade or gnomadg allele frequncies (from VEP ) instead, add 
+You can also change the way the allele frequencies are calculated by adding `af_mode` key to the [config file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml). By default, the allele frequencies are calculated from the data the annotation pipeline is run with. To use gnomade or gnomadg allele frequencies (from VEP ) instead, add 
 ```shell
 af_mode : 'af_gnomade'
 ```
@@ -147,7 +147,7 @@ to the config file.
 
 (geneid)=
 ## Gene id file
-as mentioned in the [requirements](#requirements) section, the pipeline expects a parquet file contiaining all genes that deeprvat should consider, together with a unique integer id for each gene. 
+As mentioned in the [requirements](#requirements) section, the pipeline expects a parquet file containing all genes that deeprvat should consider, together with a unique integer id for each gene. 
 This file can be created automatically using a GTF file as input. The output is then a parquet file in the expected format containing all protein coding genes of the provided GTF file.
 To automatically create the gene id file, make sure the annotation environment (mentioned [here](#running) ) is active and run
 ```
