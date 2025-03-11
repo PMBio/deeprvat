@@ -156,16 +156,25 @@ class BaseModel(pl.LightningModule):
         :raises RuntimeError: If NaNs are found in the training loss.
         """
         # calls DeepSet.forward()
-        y_pred = self(batch)  # n_samples x n_phenos
-        results = dict()
+        y_pred = self(batch).flatten()  # shape (n_samples * n_phenos, )
+        y_true = batch["phenotypes"].flatten()  # shape (n_samples x n_phenos, )
+        non_nan_mask = ~y_true.isnan()
+        n_non_nan = non_nan_mask.sum()
+
         # for all metrics we want to evaluate (specified in config)
-        y_true = batch["phenotypes"]
+        results = dict()
         for name, fn in self.metric_fns.items():
             # compute mean loss across samples and phenotypes
             # ignore loss where true phenotype is NaN
-            unreduced_loss = torch.where(y_true.isnan(), 0, fn(y_pred, y_true))
-            results[name] = unreduced_loss.sum() / (~y_true.isnan()).sum()
+            if n_non_nan == 0:
+                logger.warning("All target values are NaN in this step")
+                results[name] = 0
+            else:
+                unreduced_loss = fn(y_pred[non_nan_mask], y_true[non_nan_mask])
+                results[name] = unreduced_loss.sum() / n_non_nan if n_non_nan > 0 else 0
+
             self.log(f"train_{name}", results[name])
+
         # set loss from which we compute backward passes
         loss = results[self.hparams.metrics["loss"]]
         if torch.isnan(loss):
