@@ -9,7 +9,7 @@ This pipeline is based on [snakemake](https://snakemake.readthedocs.io/en/stable
 ## Output 
 This pipeline outputs a parquet file including all annotations as well as a file containing IDs to all protein coding genes needed to run DeepRVAT. 
 Apart from this the pipeline outputs a PCA transformation matrix for deepSEA as well as means and standard deviations used to standardize deepSEA scores before PCA analysis. This is helpful to recreate results using a different dataset. 
-Furthermore, the pipeline outputs one annotation file for VEP, CADD, DeepRiPe, DeepSea and Absplice for each input vcf-file. The tool then creates concatenates the files, performs PCA on the deepSEA scores and merges the result into a single file. 
+Furthermore, the pipeline outputs one annotation file for VEP, CADD, DeepRiPe, DeepSea and AbSplice for each input vcf-file. The tool then creates concatenates the files, performs PCA on the deepSEA scores and merges the result into a single file. 
 
 ## Input
 
@@ -118,7 +118,7 @@ Modify the path in the [config file](https://github.com/PMBio/deeprvat/blob/main
 
 ## Configuring the annotation pipeline
 
-You can add/remove VEP plugins in the `additional_vep_plugin_cmds` part of the config by adding /removing plugin commands to be added to the vep run command. You can omit absplice/deepSea by setting `include_absplice`/ `include_deepSEA` to `False`in the config. When you add/remove annotations you have to alter the values in `example/config/annotation_colnames_filling_values.yaml`. This file consist of  the names of the columns of the tool used, the name to be used in the output data frame, the default value replacing all `NA` values as well as the data type, for example:
+You can add/remove VEP plugins in the `additional_vep_plugin_cmds` part of the config by adding /removing plugin commands to be added to the vep run command. You can omit abSplice and/or deepSea by setting `include_absplice`/ `include_deepSEA` to `False`in the config. When you add/remove annotations you have to alter the values in `example/config/annotation_colnames_filling_values.yaml`. This file consist of  the names of the columns of the tool used, the name to be used in the output data frame, the default value replacing all `NA` values as well as the data type, for example:
 ```shell
   'CADD_RAW' : 
     - 'CADD_raw'
