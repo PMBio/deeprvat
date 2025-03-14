@@ -44,7 +44,7 @@ genome_assembly = config.get("genome_assembly") or "GRCh38"
 fasta_dir = Path(config["fasta_dir"])
 fasta_file_name = config["fasta_file_name"]
 gtf_file = fasta_dir / config["gtf_file_name"]
-gene_id_file = config.get("gene_id_parquet")
+gene_id_file = config["gene_id_parquet"]
 
 deeprvat_parent_path = Path(config["deeprvat_repo_dir"])
 annotation_python_file = (
@@ -191,20 +191,6 @@ rule all:
         chckpt = anno_dir / 'chckpts' / 'select_rename_fill_columns.chckpt',
         annotations = anno_dir / 'annotations.parquet'
 
-if not gene_id_file:
-    gene_id_file = anno_tmp_dir / "protein_coding_genes.parquet"
-
-    rule create_gene_id_file:
-        input:
-            gtf_file,
-        output:
-            gene_id_file,
-        resources:
-            mem_mb=lambda wildcards, attempt: 15_000 * (attempt + 1),
-        shell:
-            " ".join(
-                [f"deeprvat_annotations", "create-gene-id-file", "{input}", "{output}"]
-            )
 
 rule extract_with_header:
     input:

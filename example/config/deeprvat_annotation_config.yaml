@@ -25,6 +25,7 @@ kipoiveff_repo_dir : repo_dir/kipoi-veff2
 faatpipe_repo_dir : repo_dir/faatpipe
 vep_repo_dir : repo_dir/ensembl-vep
 preprocessing_workdir : ../preprocess/workdir
+gene_id_parquet: reference/protein_coding_genes.parquet
 additional_vep_plugin_cmds:
   cadd : CADD,annotation_data/cadd/whole_genome_SNVs.tsv.gz,annotation_data/cadd/gnomad.genomes.r3.0.indel.tsv.gz
   spliceAI : SpliceAI,snv=annotation_data/spliceAI/spliceai_scores.raw.snv.hg38.vcf.gz,indel=annotation_data/spliceAI/spliceai_scores.raw.indel.hg38.vcf.gz

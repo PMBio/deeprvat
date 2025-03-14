@@ -9,7 +9,7 @@ This pipeline is based on [snakemake](https://snakemake.readthedocs.io/en/stable
 ## Output 
 This pipeline outputs a parquet file including all annotations as well as a file containing IDs to all protein coding genes needed to run DeepRVAT. 
 Apart from this the pipeline outputs a PCA transformation matrix for deepSEA as well as means and standard deviations used to standardize deepSEA scores before PCA analysis. This is helpful to recreate results using a different dataset. 
-Furthermore, the pipeline outputs one annotation file for VEP, CADD, DeepRiPe, DeepSea and Absplice for each input vcf-file. The tool then creates concatenates the files, performs PCA on the deepSEA scores and merges the result into a single file. 
+Furthermore, the pipeline outputs one annotation file for VEP, CADD, DeepRiPe, DeepSea and AbSplice for each input vcf-file. The tool then creates concatenates the files, performs PCA on the deepSEA scores and merges the result into a single file. 
 
 ## Input
 
@@ -27,7 +27,10 @@ Download paths:
 - [PrimateAI](https://basespace.illumina.com/s/yYGFdGih1rXL) PrimateAI supplementary data/"PrimateAI_scores_v0.2_GRCh38_sorted.tsv.bgz"
 - [AlphaMissense](https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz) 
 
-Also a reference GTF file containing transcript annotations is required, this can be downloaded from [here](https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz)
+Further requirements:
+- A reference GTF file containing transcript annotations is required, this can be downloaded from [here](https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz). 
+- A file containing all genes, which deeprvat should consider together with a unique integer id for each gene. This file may be created manually by the user or automatically using the gtf file as input to create a gene id file for all protein coding genes. See [here](#geneid) for more details.
+
 
 
 ## Configure the annotation pipeline
@@ -38,6 +41,7 @@ The config above would use the following directory structure:
 |--reference
 |   |-- fasta file
 |   |-- GTF file 
+|   |-- gene id file
 
 |-- preprocessing_workdir
 |   |-- norm
@@ -80,6 +84,7 @@ A GTF file as described in [requirements](#requirements) and the FASTA file used
 The output is stored in the `output_dir/annotations` folder and any temporary files in the `tmp` subfolder. All repositories used including VEP with its corresponding cache as well as plugins are stored in `repo_dir`.
 Data for VEP plugins and the CADD cache are stored in `annotation_data`. 
 
+(running)=
 ## Running the annotation pipeline on example data
 
 
@@ -113,14 +118,14 @@ Modify the path in the [config file](https://github.com/PMBio/deeprvat/blob/main
 
 ## Configuring the annotation pipeline
 
-You can add/remove VEP plugins in the `additional_vep_plugin_cmds` part of the config by adding /removing plugin commands to be added to the vep run command. You can omit absplice/deepSea by setting `include_absplice`/ `include_deepSEA` to `False`in the config. When you add/remove annotations you have to alter the values in `example/config/annotation_colnames_filling_values.yaml`. This file consist of  the names of the columns of the tool used, the name to be used in the output data frame, the default value replacing all `NA` values as well as the data type, for example:
+You can add/remove VEP plugins in the `additional_vep_plugin_cmds` part of the config by adding /removing plugin commands to be added to the vep run command. You can omit abSplice and/or deepSea by setting `include_absplice`/ `include_deepSEA` to `False`in the config. When you add/remove annotations you have to alter the values in `example/config/annotation_colnames_filling_values.yaml`. This file consist of  the names of the columns of the tool used, the name to be used in the output data frame, the default value replacing all `NA` values as well as the data type, for example:
 ```shell
   'CADD_RAW' : 
     - 'CADD_raw'
     - 0
     - float
 ```
-Here `CADD_RAW` is the name of the column of the VEP output when the plugin is used, it is then renamed in the final annotation dataframe to `CADD_raw`, all `NA` values are set to `0` and the values are of type `float`. 
+Here `CADD_RAW` is the name of the column of the VEP output when the plugin is used, it is then renamed in the final annotation data frame to `CADD_raw`, all `NA` values are set to `0` and the values are of type `float`. 
 
 You can also modify the `example/config/annotation_colnames_filling_values.yaml` file to choose custom filling values for each of the annotations. 
 For each of the annotations the second value represents the value to use to fill in `NA` values, i.e. in the example above, in the `CADD_raw` column `NA` values are filled using `0`. 
@@ -130,7 +135,7 @@ keep_unfilled: True
 ```
  to the [config file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml).
 
-You can also change the way the allele frequencies are calculated by adding `af_mode` key to the [config file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml). By default, the allele frequencies are calculated from the data the annotation pipeline is run with. To use gnomade or gnomadg allele frequncies (from VEP ) instead, add 
+You can also change the way the allele frequencies are calculated by adding `af_mode` key to the [config file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml). By default, the allele frequencies are calculated from the data the annotation pipeline is run with. To use gnomade or gnomadg allele frequencies (from VEP ) instead, add 
 ```shell
 af_mode : 'af_gnomade'
 ```
@@ -139,6 +144,22 @@ or
 af_mode : 'af_gnomadg'
 ```
 to the config file.
+
+(geneid)=
+## Gene id file
+As mentioned in the [requirements](#requirements) section, the pipeline expects a parquet file containing all genes that deeprvat should consider, together with a unique integer id for each gene. 
+This file can be created automatically using a GTF file as input. The output is then a parquet file in the expected format containing all protein coding genes of the provided GTF file.
+To automatically create the gene id file, make sure the annotation environment (mentioned [here](#running) ) is active and run
+```
+deeprvat_annotations create-gene-id-file deeprvat/example/annotations/reference/gencode.v44.annotation.gtf.gz deeprvat/example/annotations/reference/protein_coding_genes.parquet
+```  
+with `deeprvat/example/annotations/reference/gencode.v44.annotation.gtf.gz` pointing to any downloaded GTF file and `deeprvat/example/annotations/reference/protein_coding_genes.parquet` pointing to the desired output path, which has to be specified in the config file. 
+
+Alternatively, when the user want to select a specific set of genes to consider, the gene id file may be created by the user. The file is expected to have two columns:
+- column`gene`:`str` name for each gene
+- column `id`:`int` unique id for each gene
+Each row represents a gene the user want to include in the analysis.
+
 
 ## References
 
