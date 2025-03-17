@@ -198,7 +198,8 @@ training:
     Apolipoprotein_B: {}
   pl_trainer:
     check_val_every_n_epoch: 1
-    gpus: 1
+    accelerator: gpu
+    devices: 1
     log_every_n_steps: 1
     max_epochs: 1000
     min_epochs: 50
