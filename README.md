@@ -14,7 +14,7 @@ Please consult our [documentation](https://deeprvat.readthedocs.io/en/latest/)
 
 If you use this package, please cite:
 
-Clarke, B., Holtkamp, E. et al. Integration of variant annotations using deep set networks boosts rare variant association testing. *Nat Genet* 56, 2271–2280 (2024). https://doi.org/10.1038/s41588-024-01919-z
+Clarke, B., Holtkamp, E. et al. Integration of variant annotations using deep set networks boosts rare variant association testing. *Nat Genet* **56**, 2271–2280 (2024). https://doi.org/10.1038/s41588-024-01919-z
 
 
 ## Credits
