@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools >= 59.5.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deeprvat"
+version = "1.1.0"
+authors = [
+    { name="Brian Clarke", email="brian.clarke@dkfz.de" },
+    { name="Eva Holtkamp", email="eva.holtkamp@cit.tum.de" },
+    { name="Hakime Öztürk", email="hakime.oeztuerk@embl.de" },
+    { name="Marcel Mück", email="marcel.mueck@dkfz.de" },
+    { name="Magnus Wahlberg", email="magnus.wahlberg@dkfz.de" },
+    { name="Kayla Meyer", email="kayla.meyer@dkfz.de" },
+    { name="Felix Munzlinger", email="felix.munzlinger@dkfz.de" },
+]
+description = "Rare variant association testing using deep learning and data-driven burden scores"
+readme = "README.md"
+requires-python = ">=3.8,<3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "License :: OSI Approved :: MIT License",
+]
+license = {file = "LICENSE.md"}
+
+[project.urls]
+Homepage = "https://github.com/PMBio/deeprvat"
+Issues = "https://github.com/PMBio/deeprvat/issues"
+
+[tool.setuptools.packages.find]
+# where = ["deeprvat"]
+include = ["deeprvat*"]
+
+[project.scripts]
+deeprvat_config="deeprvat.deeprvat.config:cli"
+deeprvat_train="deeprvat.deeprvat.train:cli"
+deeprvat_associate="deeprvat.deeprvat.associate:cli"
+deeprvat_preprocess="deeprvat.preprocessing.preprocess:cli"
+deeprvat_annotations="deeprvat.annotations.annotations:cli"
+deeprvat_evaluate="deeprvat.deeprvat.evaluate:evaluate"
+seed_gene_pipeline="deeprvat.seed_gene_discovery.seed_gene_discovery:cli"
+seed_gene_evaluate="deeprvat.seed_gene_discovery.evaluate:cli"
+deeprvat_cv_utils="deeprvat.cv_utils:cli"
