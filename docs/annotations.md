@@ -160,6 +160,9 @@ Alternatively, when the user want to select a specific set of genes to consider,
 - column `id`:`int` unique id for each gene
 Each row represents a gene the user want to include in the analysis.
 
+## Manually adding precomputed and downloaded AbSplice scores
+Instead of running the absplice part of the annotation pipeline, users can include `include_absplice: false` in the annotation config file and manually add Absplice annotations after the pipeline ran through. To do this, after downloading and unpacking the precomputed absplice scores from [zenodo](https://zenodo.org/records/10781457), and running the annotation pipeline without absplice, users can run `deeprvat_annotations aggregate_and_concat_absplice` inside the `deeprvat_annotations` environment with `--absplice-dir` pointing to the unpacked directory containing the absplice scores and `--ab-splice-agg-score-file` pointing to the path where the intermediate aggregated absplice scores should be saved.
+Run `deeprvat_annotations merge_absplice_scores` afterwards with the annotations, variants and `protein_coding_genes.parquet` as well as the aggregated absplice scores as input. Finally state where you want the output annotation file stored (`--output`).
 
 ## References
 
