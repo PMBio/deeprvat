@@ -165,6 +165,7 @@ def test_add_ids_dask(
 #     expected_scores = pd.read_parquet(expected_out_scores_file)
 #     assert_frame_equal(written_results, expected_scores, check_exact=False)
 
+
 @pytest.mark.parametrize(
     "test_data_name_dir, deapseascores_file, pca_file, mean_sds_file, expected_out_df",
     [
@@ -882,17 +883,21 @@ def test_compute_plof(test_data_name_dir, annotations_in, expected, tmp_path):
         ),
     ],
 )
-def test_aggregate_absplice_manually(test_data_name_dir, absplice_dir, expected, tmp_path):
-    current_test_data_dir = tests_data_dir / "aggregate_absplice_manually" / test_data_name_dir
+def test_aggregate_absplice_manually(
+    test_data_name_dir, absplice_dir, expected, tmp_path
+):
+    current_test_data_dir = (
+        tests_data_dir / "aggregate_absplice_manually" / test_data_name_dir
+    )
     absplice_dir_path = current_test_data_dir / "input" / absplice_dir
     expected_path = current_test_data_dir / "expected" / expected
     output_path = tmp_path / "out.parquet"
     cli_runner = CliRunner()
     cli_parameters = [
         "aggregate-and-concat-absplice",
-        '--absplice-dir', 
+        "--absplice-dir",
         absplice_dir_path.as_posix(),
-        '--ab-splice-agg-score-file',
+        "--ab-splice-agg-score-file",
         output_path.as_posix(),
     ]
     result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
@@ -903,7 +908,6 @@ def test_aggregate_absplice_manually(test_data_name_dir, absplice_dir, expected,
     assert_frame_equal(
         written_results, expected_results[written_results.columns], check_exact=False
     )
-
 
 
 @pytest.mark.parametrize(
@@ -919,23 +923,38 @@ def test_aggregate_absplice_manually(test_data_name_dir, absplice_dir, expected,
         )
     ],
 )
-def test_merge_absplice_scores_manually(test_data_name_dir, annotations_in, variants_in, genes_in, absplice_in, expected, tmp_path):
-    current_test_data_dir = tests_data_dir /  "merge_absplice_scores_manually" / test_data_name_dir
-    annotations_in_path = current_test_data_dir / "input" /  annotations_in
-    variants_in_path = current_test_data_dir / "input" /  variants_in
-    genes_in_path = current_test_data_dir / "input" /  genes_in
-    splice_in_path = current_test_data_dir / "input" /  absplice_in
-    expected_path = current_test_data_dir /"expected"/ expected
+def test_merge_absplice_scores_manually(
+    test_data_name_dir,
+    annotations_in,
+    variants_in,
+    genes_in,
+    absplice_in,
+    expected,
+    tmp_path,
+):
+    current_test_data_dir = (
+        tests_data_dir / "merge_absplice_scores_manually" / test_data_name_dir
+    )
+    annotations_in_path = current_test_data_dir / "input" / annotations_in
+    variants_in_path = current_test_data_dir / "input" / variants_in
+    genes_in_path = current_test_data_dir / "input" / genes_in
+    splice_in_path = current_test_data_dir / "input" / absplice_in
+    expected_path = current_test_data_dir / "expected" / expected
     output_path = tmp_path / "splice_anno.parquet"
 
     cli_runner = CliRunner()
     cli_parameters = [
         "merge-absplice-scores",
-        "--annotations", annotations_in_path.as_posix(),
-        "--variants", variants_in_path.as_posix(),
-        "--genes", genes_in_path.as_posix(),
-        "--ab-splice-agg-score-file", splice_in_path.as_posix(),
-        "--output", output_path.as_posix(),
+        "--annotations",
+        annotations_in_path.as_posix(),
+        "--variants",
+        variants_in_path.as_posix(),
+        "--genes",
+        genes_in_path.as_posix(),
+        "--ab-splice-agg-score-file",
+        splice_in_path.as_posix(),
+        "--output",
+        output_path.as_posix(),
         "--verbose",
     ]
 
@@ -953,6 +972,8 @@ def test_merge_absplice_scores_manually(test_data_name_dir, annotations_in, vari
     assert written_results.shape == expected_results.shape, "Shapes mismatch"
     assert_frame_equal(
         written_results.sort_values(by=["id"]).reset_index(drop=True),
-        expected_results[written_results.columns].sort_values(by=["id"]).reset_index(drop=True),
-        check_exact=False
+        expected_results[written_results.columns]
+        .sort_values(by=["id"])
+        .reset_index(drop=True),
+        check_exact=False,
     )

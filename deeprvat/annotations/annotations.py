@@ -25,6 +25,7 @@ import duckdb
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+
 def precision(y_true, y_pred):
     """
     Calculate precision, a metric for the accuracy of the positive predictions.
@@ -2073,10 +2074,23 @@ def select_rename_fill_annotations(
 if __name__ == "__main__":
     cli()
 
+
 @cli.command()
-@click.option('--absplice-dir', type=click.Path(exists=True, file_okay=False, dir_okay=True), required=True, help='Path to the directory containing AbSplice outputs')
-@click.option('--ab-splice-agg-score-file', type=click.Path(), required=True, help='Path to save the aggregated AbSplice score file')
-def aggregate_and_concat_absplice(absplice_dir:str, ab_splice_agg_score_file:str) -> None:
+@click.option(
+    "--absplice-dir",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    required=True,
+    help="Path to the directory containing AbSplice outputs",
+)
+@click.option(
+    "--ab-splice-agg-score-file",
+    type=click.Path(),
+    required=True,
+    help="Path to save the aggregated AbSplice score file",
+)
+def aggregate_and_concat_absplice(
+    absplice_dir: str, ab_splice_agg_score_file: str
+) -> None:
     """
     Aggregates AbSplice scores from multiple files in a directory and saves them to a single Parquet file.
     This function performs the following steps:
@@ -2094,42 +2108,81 @@ def aggregate_and_concat_absplice(absplice_dir:str, ab_splice_agg_score_file:str
     None
     """
     abs_splice_res_dir = Path(absplice_dir)
-    
-    tissue_agg_function = 'max'
+
+    tissue_agg_function = "max"
     if not Path(ab_splice_agg_score_file).exists():
-        #logger.info(f"removing existing file {ab_splice_agg_score_file}")
-        #os.remove(ab_splice_agg_score_file)
+        # logger.info(f"removing existing file {ab_splice_agg_score_file}")
+        # os.remove(ab_splice_agg_score_file)
         for i, chrom_file in enumerate(os.listdir(abs_splice_res_dir)):
-            logger.info(f'Reading file {chrom_file}')
-            #ab_splice_res = pd.read_parquet(abs_splice_res_dir/ chrom_file).reset_index()
-            ab_splice_res = pd.read_table(abs_splice_res_dir/ chrom_file).reset_index()
+            logger.info(f"Reading file {chrom_file}")
+            # ab_splice_res = pd.read_parquet(abs_splice_res_dir/ chrom_file).reset_index()
+            ab_splice_res = pd.read_table(abs_splice_res_dir / chrom_file).reset_index()
             #### aggregate tissue specific ab splice scores
-            ab_splice_res['AbSplice_DNA'] = np.max(ab_splice_res[[i for i in ab_splice_res.columns if 'AbSplice_DNA' in i]], axis=1)
-            ab_splice_res['pos'] = ab_splice_res['pos'].astype(int)
+            ab_splice_res["AbSplice_DNA"] = np.max(
+                ab_splice_res[
+                    [i for i in ab_splice_res.columns if "AbSplice_DNA" in i]
+                ],
+                axis=1,
+            )
+            ab_splice_res["pos"] = ab_splice_res["pos"].astype(int)
             logger.info(f"Number of rows of ab_splice df {len(ab_splice_res)}")
-            #merged = ab_splice_res.merge(current_annotations, how = 'left', on = ['chrom', 'pos', 'ref', 'alt'])
-            res = ab_splice_res[['chrom', 'pos', 'ref', 'alt',  'gene_id', 'AbSplice_DNA']]
+            # merged = ab_splice_res.merge(current_annotations, how = 'left', on = ['chrom', 'pos', 'ref', 'alt'])
+            res = ab_splice_res[
+                ["chrom", "pos", "ref", "alt", "gene_id", "AbSplice_DNA"]
+            ]
             del ab_splice_res
             table = pa.Table.from_pandas(res)
-            if i==0:
+            if i == 0:
                 logger.info(f"creating new file {ab_splice_agg_score_file}")
                 pqwriter = pq.ParquetWriter(ab_splice_agg_score_file, table.schema)
             pqwriter.write_table(table)
             del res
-                        
+
         if pqwriter:
             pqwriter.close()
 
+
 @cli.command()
-@click.option('--annotations', type=click.Path(exists=True), required=True, help='Path to annotations.parquet')
-@click.option('--variants', type=click.Path(exists=True), required=True, help='Path to variants.parquet')
-@click.option('--genes', type=click.Path(exists=True), required=True, help='Path to genes.parquet')
-@click.option('--ab-splice-agg-score-file', type=click.Path(exists=True), required=True, help='Path to splice.parquet')
-@click.option('--output', type=click.Path(), required=True, help='Path to output splice_anno.parquet')
-@click.option('--verbose', is_flag=True, help='Enable verbose logging')
-@click.option('--mem-limit', type=int, default = 0, help='memory limit for duck DB in GB')
-@click.option('--fill-nan', is_flag=True, help='Fill AbSplice_DNA NA values with 0')
-def merge_absplice_scores(annotations, variants, genes, ab_splice_agg_score_file, output, verbose, mem_limit, fill_nan):
+@click.option(
+    "--annotations",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to annotations.parquet",
+)
+@click.option(
+    "--variants",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to variants.parquet",
+)
+@click.option(
+    "--genes", type=click.Path(exists=True), required=True, help="Path to genes.parquet"
+)
+@click.option(
+    "--ab-splice-agg-score-file",
+    type=click.Path(exists=True),
+    required=True,
+    help="Path to splice.parquet",
+)
+@click.option(
+    "--output",
+    type=click.Path(),
+    required=True,
+    help="Path to output splice_anno.parquet",
+)
+@click.option("--verbose", is_flag=True, help="Enable verbose logging")
+@click.option("--mem-limit", type=int, default=0, help="memory limit for duck DB in GB")
+@click.option("--fill-nan", is_flag=True, help="Fill AbSplice_DNA NA values with 0")
+def merge_absplice_scores(
+    annotations,
+    variants,
+    genes,
+    ab_splice_agg_score_file,
+    output,
+    verbose,
+    mem_limit,
+    fill_nan,
+):
     """
     Processes and merges sbsplice scores to annotation parquet file
 
@@ -2161,7 +2214,7 @@ def merge_absplice_scores(annotations, variants, genes, ab_splice_agg_score_file
     None
     """
 
-    con = duckdb.connect(database=':memory:')
+    con = duckdb.connect(database=":memory:")
 
     if mem_limit > 0:
         logger.info(f"Setting memory limit to {mem_limit}GB")
@@ -2171,72 +2224,82 @@ def merge_absplice_scores(annotations, variants, genes, ab_splice_agg_score_file
     if verbose:
         logger.info(f"Loading and transforming {genes}...")
 
-    con.execute(f'''
+    con.execute(
+        f"""
         CREATE TEMP TABLE genes_mod AS 
         SELECT 
             id AS gene_id,
             split_part(gene, '.', 1) AS gene,
             split_part(gene, '.', 2) AS exon
         FROM read_parquet('{genes}');
-    ''')
-
+    """
+    )
 
     if verbose:
         logger.info(f"Loading {annotations}...")
 
-
-    all_columns = con.execute(f"SELECT * FROM read_parquet('{annotations}') LIMIT 0").fetchdf().columns.tolist()
-    exclude_columns = {'chrom', 'pos', 'ref', 'alt', 'AbSplice_DNA'}
+    all_columns = (
+        con.execute(f"SELECT * FROM read_parquet('{annotations}') LIMIT 0")
+        .fetchdf()
+        .columns.tolist()
+    )
+    exclude_columns = {"chrom", "pos", "ref", "alt", "AbSplice_DNA"}
     selected_columns = [col for col in all_columns if col not in exclude_columns]
-    select_clause = ', '.join(selected_columns)
-    con.execute(f'''
+    select_clause = ", ".join(selected_columns)
+    con.execute(
+        f"""
         CREATE TEMP TABLE annotations AS 
         SELECT {select_clause}
         FROM read_parquet('{annotations}');
-    ''')
-
+    """
+    )
 
     if verbose:
         logger.info("Merging genes_mod with annotations...")
-    con.execute('''
+    con.execute(
+        """
         CREATE TEMP TABLE merged1 AS
         SELECT a.*, g.gene, g.exon
         FROM annotations a
         LEFT JOIN genes_mod g
         ON a.gene_id = g.gene_id;
-    ''')
-
+    """
+    )
 
     if verbose:
         logger.info(f"Loading {variants}...")
-    con.execute(f'''
+    con.execute(
+        f"""
         CREATE TEMP TABLE variants AS 
         SELECT * FROM read_parquet('{variants}');
-    ''')
-
+    """
+    )
 
     if verbose:
         logger.info("Merging merged1 with variants...")
-    con.execute('''
+    con.execute(
+        """
         CREATE TEMP TABLE merged2 AS
         SELECT m1.*, v.chrom, v.pos, v.ref, v.alt
         FROM merged1 m1
         LEFT JOIN variants v
         ON m1.id = v.id;
-    ''')
-
+    """
+    )
 
     if verbose:
         logger.info(f"Loading {ab_splice_agg_score_file}...")
-    con.execute(f'''
+    con.execute(
+        f"""
         CREATE TEMP TABLE splice AS 
         SELECT * FROM read_parquet('{ab_splice_agg_score_file}');
-    ''')
-
+    """
+    )
 
     if verbose:
         logger.info("Merging merged2 with absplice scores...")
-    con.execute('''
+    con.execute(
+        """
         CREATE TEMP TABLE final_merge AS
         SELECT m2.*, s.AbSplice_DNA
         FROM merged2 m2
@@ -2246,34 +2309,39 @@ def merge_absplice_scores(annotations, variants, genes, ab_splice_agg_score_file
             AND m2.ref = s.ref
             AND m2.alt = s.alt
             AND m2.gene = s.gene_id;
-    ''')
+    """
+    )
 
     if fill_nan:
         if verbose:
             print(f"Filling NULL values in splice column with 0...")
-        con.execute(f'''
+        con.execute(
+            f"""
             UPDATE final_merge
             SET AbSplice_DNA = 0
             WHERE AbSplice_DNA IS NULL;
-        ''')
-
+        """
+        )
 
     if verbose:
         logger.info(f"Saving final merged table to {output}...")
-    con.execute(f"""
+    con.execute(
+        f"""
         COPY final_merge TO '{output}' (FORMAT 'parquet');
-    """)
+    """
+    )
 
     logger.info(f"Successfully saved final merged table to {output}")
-
 
 
 @cli.command()
 @click.argument("annotation_file", type=click.Path(exists=True))
 @click.argument("variant_file", type=click.Path(exists=True))
 @click.argument("out_file", type=click.Path())
-@click.option('--mem-limit', type=int, default = 0, help='memory limit for duck DB in GB')
-def add_ids_duckdb(annotation_file: str, variant_file: str, out_file: str, mem_limit: int = 0):
+@click.option("--mem-limit", type=int, default=0, help="memory limit for duck DB in GB")
+def add_ids_duckdb(
+    annotation_file: str, variant_file: str, out_file: str, mem_limit: int = 0
+):
     """
     Add identifiers from a variant file to an annotation file using DuckDB and save the result.
 
@@ -2303,15 +2371,16 @@ def add_ids_duckdb(annotation_file: str, variant_file: str, out_file: str, mem_l
     -------
     $ python annotations.py add_ids_duckdb annotation_data.parquet variant_data.parquet processed_data.parquet
     """
-    con = duckdb.connect(database=':memory:')
+    con = duckdb.connect(database=":memory:")
 
     if mem_limit > 0:
         logger.info(f"Setting memory limit to {mem_limit}GB")
         # Set memory limit for DuckDB
         con.execute(f"SET memory_limit = '{mem_limit}GB'")
-        
+
     # Read and transform the annotation data
-    con.execute(f"""
+    con.execute(
+        f"""
         CREATE TEMP TABLE annotation AS
         SELECT
             "#CHROM" AS chrom,
@@ -2321,7 +2390,8 @@ def add_ids_duckdb(annotation_file: str, variant_file: str, out_file: str, mem_l
             ID AS variant_name,
             *
         FROM read_parquet('{annotation_file}');
-    """)
+    """
+    )
     # con.execute(f"""
     #     CREATE TEMP TABLE annotation AS
     #     SELECT
@@ -2335,30 +2405,38 @@ def add_ids_duckdb(annotation_file: str, variant_file: str, out_file: str, mem_l
     # """)
 
     # Drop duplicate rows based on key columns
-    con.execute("""
+    con.execute(
+        """
         CREATE TEMP TABLE annotation_dedup AS
         SELECT DISTINCT ON (chrom, pos, ref, alt) *
         FROM annotation;
-    """)
+    """
+    )
 
     # Read the variant data
-    con.execute(f"""
+    con.execute(
+        f"""
         CREATE TEMP TABLE variants AS
         SELECT * FROM read_parquet('{variant_file}');
-    """)
+    """
+    )
 
     # Merge the two tables
-    con.execute("""
+    con.execute(
+        """
         CREATE TEMP TABLE merged AS
         SELECT a.*, v.*
         FROM annotation_dedup a
         LEFT JOIN variants v
         USING (chrom, pos, ref, alt);
-    """)
+    """
+    )
 
     # Save the final result
-    con.execute(f"""
+    con.execute(
+        f"""
         COPY merged TO '{out_file}' (FORMAT 'parquet', COMPRESSION 'zstd');
-    """)
+    """
+    )
 
     print(f"Successfully saved merged file to {out_file}")
