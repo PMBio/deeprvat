@@ -2322,5 +2322,3 @@ def merge_absplice_scores(
     )
 
     logger.info(f"Successfully saved final merged table to {output}")
-
-
