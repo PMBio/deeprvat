@@ -906,11 +906,11 @@ def test_aggregate_absplice_manually(
     expected_results = pd.read_parquet(expected_path)
     assert written_results.shape == expected_results.shape
     assert_frame_equal(
-        written_results.sort_values(by=["chrom", "pos", "ref", "alt"]).reset_index(
+        written_results.sort_values(by=["chrom", "pos", "ref", "alt", "gene_id"]).reset_index(
             drop=True
         ),
         expected_results[written_results.columns]
-        .sort_values(by=["chrom", "pos", "ref", "alt"])
+        .sort_values(by=["chrom", "pos", "ref", "alt", "gene_id"])
         .reset_index(drop=True),
         check_exact=False,
     )
