@@ -114,58 +114,6 @@ def test_add_ids_dask(
     assert_frame_equal(written_results, expected_scores, check_exact=False)
 
 
-# @pytest.mark.parametrize(
-#     "test_data_name_dir, deapseascores_file, variant_file, out_df, expected_out_df",
-#     [
-#         (
-#             "add_ids_small",
-#             "deepseascores.parquet",
-#             "variants.parquet",
-#             "out_df.parquet",
-#             "expected.parquet",
-#         ),
-#         (
-#             "add_ids_medium",
-#             "deepseascores.parquet",
-#             "variants.parquet",
-#             "out_df.parquet",
-#             "expected.parquet",
-#         ),
-#     ],
-# )
-# def test_add_ids_duckdb(
-#     test_data_name_dir,
-#     deapseascores_file,
-#     variant_file,
-#     out_df,
-#     expected_out_df,
-#     tmp_path,
-# ):
-#     cli_runner = CliRunner()
-
-#     current_test_data_dir = tests_data_dir / "add_ids_duckdb" / test_data_name_dir
-
-#     deepsea_score_file = current_test_data_dir / "input" / deapseascores_file
-#     variant_path = current_test_data_dir / "input" / variant_file
-#     out_scores_file = tmp_path / out_df
-#     expected_out_scores_file = current_test_data_dir / "expected" / expected_out_df
-
-#     cli_parameters = [
-#         "add-ids-duckdb",
-#         deepsea_score_file.as_posix(),
-#         variant_path.as_posix(),
-#         out_scores_file.as_posix(),
-#     ]
-
-#     result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
-#     assert result.exit_code == 0
-
-#     written_results = pd.read_parquet(out_scores_file)
-
-#     expected_scores = pd.read_parquet(expected_out_scores_file)
-#     assert_frame_equal(written_results, expected_scores, check_exact=False)
-
-
 @pytest.mark.parametrize(
     "test_data_name_dir, deapseascores_file, pca_file, mean_sds_file, expected_out_df",
     [
@@ -906,9 +854,9 @@ def test_aggregate_absplice_manually(
     expected_results = pd.read_parquet(expected_path)
     assert written_results.shape == expected_results.shape
     assert_frame_equal(
-        written_results.sort_values(by=["chrom", "pos", "ref", "alt", "gene_id"]).reset_index(
-            drop=True
-        ),
+        written_results.sort_values(
+            by=["chrom", "pos", "ref", "alt", "gene_id"]
+        ).reset_index(drop=True),
         expected_results[written_results.columns]
         .sort_values(by=["chrom", "pos", "ref", "alt", "gene_id"])
         .reset_index(drop=True),
