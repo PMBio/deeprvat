@@ -2097,14 +2097,12 @@ def aggregate_and_concat_absplice(
     1. Iterates through all files in the specified directory.
     2. Reads each file and aggregates the AbSplice scores using the specified aggregation function.
     3. Saves the final aggregated scores to a specified Parquet file.
-    Parameters
-    ----------
-    absplice_dir : str
-        Path to the directory containing AbSplice outputs.
-    ab_splice_agg_score_file : str
-        Path to save the aggregated AbSplice score file.
-    Returns
-    -------
+
+    Parameters:
+    - absplice_dir (str): Path to the directory containing AbSplice outputs.
+    - ab_splice_agg_score_file (str): Path to save the aggregated AbSplice score file.
+
+    Returns:
     None
     """
     abs_splice_res_dir = Path(absplice_dir)
@@ -2194,23 +2192,15 @@ def merge_absplice_scores(
     5. Loads splice.parquet and merges it with the previous result on columns 'chrom', 'pos', 'ref', 'alt', and 'gene_id'.
     6. Saves the final merged table to a specified output parquet file.
 
-    Parameters
-    ----------
-    annotations : str
-        Path to the annotations.parquet file.
-    variants : str
-        Path to the variants.parquet file.
-    genes : str
-        Path to the genes.parquet file.
-    splice : str
-        Path to the splice.parquet file.
-    output : str
-        Path to save the output splice_anno.parquet file.
-    verbose : bool
-        If True, prints detailed logging information at each step.
+    Parameters:
+    - annotations (str):  Path to the annotations.parquet file.
+    - variants (str):  Path to the variants.parquet file.
+    - genes (str):  Path to the genes.parquet file.
+    - splice (str):  Path to the splice.parquet file.
+    - output (str):  Path to save the output splice_anno.parquet file.
+    - verbose (bool):  If True, prints detailed logging information at each step.
 
-    Returns
-    -------
+    Returns:
     None
     """
 
@@ -2345,30 +2335,22 @@ def add_ids_duckdb(
     """
     Add identifiers from a variant file to an annotation file using DuckDB and save the result.
 
-    Parameters
-    ----------
-    annotation_file : str
-        Path to the input annotation file in Parquet format.
-    variant_file : str
-        Path to the input variant file in Parquet format.
-    out_file : str
-        Path to save the processed data in Parquet format.
-    mem_limit: int
-        Memory limit for DuckDB in GB. Default is 0 (no limit).
+    Parameters:
+    - annotation_file (str): Path to the input annotation file in Parquet format.
+    - variant_file (str): Path to the input variant file in Parquet format.
+    - out_file (str): Path to save the processed data in Parquet format.
+    - mem_limit (int): Memory limit for DuckDB in GB. Default is 0 (no limit).
 
-    Returns
-    -------
+    Returns:
     None
 
-    Notes
-    -----
+    Notes:
     - The function uses DuckDB to read and process large files efficiently.
     - It renames columns for compatibility and drops duplicates based on key columns.
     - Merges the tables inside DuckDB.
     - Saves the result as a Parquet file with ZSTD compression.
 
-    Example
-    -------
+    Example:
     $ python annotations.py add_ids_duckdb annotation_data.parquet variant_data.parquet processed_data.parquet
     """
     con = duckdb.connect(database=":memory:")
