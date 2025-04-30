@@ -2115,11 +2115,10 @@ def aggregate_and_concat_absplice(
             logger.info(f"Reading file {chrom_file}")
             # ab_splice_res = pd.read_parquet(abs_splice_res_dir/ chrom_file).reset_index()
             ab_splice_res = pd.read_table(abs_splice_res_dir / chrom_file).reset_index()
+            absplice_columns = [i for i in ab_splice_res.columns if "AbSplice_DNA" in i]
             #### aggregate tissue specific ab splice scores
             ab_splice_res["AbSplice_DNA"] = np.max(
-                ab_splice_res[
-                    [i for i in ab_splice_res.columns if "AbSplice_DNA" in i]
-                ],
+                ab_splice_res[absplice_columns],
                 axis=1,
             )
             ab_splice_res["pos"] = ab_splice_res["pos"].astype(int)
