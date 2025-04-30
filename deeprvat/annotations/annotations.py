@@ -2139,8 +2139,6 @@ def aggregate_and_concat_absplice(
             pqwriter.close()
 
 
-
-
 @cli.command()
 @click.option(
     "--annotations",
