@@ -2120,7 +2120,7 @@ def aggregate_and_concat_absplice(
             ]
             #### aggregate tissue specific ab splice scores
             ab_splice_res["AbSplice_DNA"] = np.max(
-                ab_splice_res[absplice_columns],
+                ab_splice_res[absplice_columns].values,
                 axis=1,
             )
             ab_splice_res["pos"] = ab_splice_res["pos"].astype(int)
