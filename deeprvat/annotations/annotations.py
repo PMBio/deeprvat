@@ -657,7 +657,7 @@ def filter_annotations_by_exon_distance(
     logger.info("adding exons to annotations (1:M merge)")
 
     merged = anno_df.merge(gtf, how="left", on="gene_id")
-    del anno_df
+    del anno_df, gtf
 
     logger.info(
         "adding positons of start and end of each exon relative to variant position to df"
