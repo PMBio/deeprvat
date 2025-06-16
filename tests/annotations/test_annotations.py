@@ -819,3 +819,115 @@ def test_compute_plof(test_data_name_dir, annotations_in, expected, tmp_path):
     assert_frame_equal(
         written_results, expected_results[written_results.columns], check_exact=False
     )
+
+
+@pytest.mark.parametrize(
+    "test_data_name_dir, absplice_dir, expected",
+    [
+        (
+            "aggregate_abplice_manually_medium",
+            "absplice_dir",
+            "aggregated_absplice_scores_expected.parquet",
+        ),
+    ],
+)
+def test_aggregate_absplice_manually(
+    test_data_name_dir, absplice_dir, expected, tmp_path
+):
+    current_test_data_dir = (
+        tests_data_dir / "aggregate_absplice_manually" / test_data_name_dir
+    )
+    absplice_dir_path = current_test_data_dir / "input" / absplice_dir
+    expected_path = current_test_data_dir / "expected" / expected
+    output_path = tmp_path / "out.parquet"
+    cli_runner = CliRunner()
+    cli_parameters = [
+        "aggregate-and-concat-absplice",
+        "--absplice-dir",
+        absplice_dir_path.as_posix(),
+        "--ab-splice-agg-score-file",
+        output_path.as_posix(),
+    ]
+    result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
+    assert result.exit_code == 0
+    written_results = pd.read_parquet(output_path)
+    expected_results = pd.read_parquet(expected_path)
+    assert written_results.shape == expected_results.shape
+    assert_frame_equal(
+        written_results.sort_values(
+            by=["chrom", "pos", "ref", "alt", "gene_id"]
+        ).reset_index(drop=True),
+        expected_results[written_results.columns]
+        .sort_values(by=["chrom", "pos", "ref", "alt", "gene_id"])
+        .reset_index(drop=True),
+        check_exact=False,
+    )
+
+
+@pytest.mark.parametrize(
+    "test_data_name_dir, annotations_in, variants_in, genes_in, absplice_in, expected",
+    [
+        (
+            "merge_absplice_scores_medium",
+            "annotations.parquet",
+            "variants.parquet",
+            "protein_coding_genes.parquet",
+            "aggregated_absplice_scores.parquet",
+            "expected.parquet",
+        )
+    ],
+)
+def test_merge_absplice_scores_manually(
+    test_data_name_dir,
+    annotations_in,
+    variants_in,
+    genes_in,
+    absplice_in,
+    expected,
+    tmp_path,
+):
+    current_test_data_dir = (
+        tests_data_dir / "merge_absplice_scores_manually" / test_data_name_dir
+    )
+    annotations_in_path = current_test_data_dir / "input" / annotations_in
+    variants_in_path = current_test_data_dir / "input" / variants_in
+    genes_in_path = current_test_data_dir / "input" / genes_in
+    splice_in_path = current_test_data_dir / "input" / absplice_in
+    expected_path = current_test_data_dir / "expected" / expected
+    output_path = tmp_path / "splice_anno.parquet"
+
+    cli_runner = CliRunner()
+    cli_parameters = [
+        "merge-absplice-scores",
+        "--annotations",
+        annotations_in_path.as_posix(),
+        "--variants",
+        variants_in_path.as_posix(),
+        "--genes",
+        genes_in_path.as_posix(),
+        "--ab-splice-agg-score-file",
+        splice_in_path.as_posix(),
+        "--output",
+        output_path.as_posix(),
+        "--verbose",
+    ]
+
+    # Add '--fill-splice-nan' if testing the fill_splice_merge case
+    if "fill_splice" in test_data_name_dir:
+        cli_parameters.extend(["--fill-splice-nan", "--fill-value", "0"])
+
+    result = cli_runner.invoke(annotations_cli, cli_parameters, catch_exceptions=False)
+
+    assert result.exit_code == 0, f"CLI failed: {result.output}"
+
+    written_results = pd.read_parquet(output_path)
+    expected_results = pd.read_parquet(expected_path)
+
+    assert written_results.shape == expected_results.shape, "Shapes mismatch"
+    assert_frame_equal(
+        written_results.sort_values(by=["id"]).reset_index(drop=True),
+        expected_results[written_results.columns]
+        .sort_values(by=["id"])
+        .reset_index(drop=True),
+        check_exact=False,
+    )
