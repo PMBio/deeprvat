@@ -2,7 +2,7 @@
 
 For using the pretrained DeepRVAT model provided as part of the package, or a custom pretrained model, we have setup pipelines for running only the association testing stage. This includes creating the association dataset files, computing gene impairment scores, regression, and evaluation. 
 
-_**Important note:**_ DeepRVAT currently supports association testing using REGENIE or SEAK. Because REGENIE is actively maintained and gives better control for ancestry effects, as well as other aspects of genetic background, association testing with SEAK is _deprecated_. Note especially that for binary phenotypes, REGENIE _must_ be used.
+_**Important note:**_ DeepRVAT currently supports association testing using REGENIE or SEAK. Because REGENIE is actively maintained and gives better control for ancestry effects, as well as other aspects of genetic background, association testing with SEAK is _deprecated_ and will be removed in a future version. Note especially that for binary phenotypes, REGENIE _must_ be used.
 
 
 ## Association testing with REGENIE
