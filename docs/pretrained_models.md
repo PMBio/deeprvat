@@ -2,10 +2,23 @@
 
 For using the pretrained DeepRVAT model provided as part of the package, or a custom pretrained model, we have setup pipelines for running only the association testing stage. This includes creating the association dataset files, computing gene impairment scores, regression, and evaluation. 
 
+_**Important note:**_ DeepRVAT currently supports association testing using REGENIE or SEAK. Because REGENIE is actively maintained and gives better control for ancestry effects, as well as other aspects of genetic background, association testing with SEAK is _deprecated_. Note especially that for binary phenotypes, REGENIE _must_ be used.
 
-## Configuration and input files
 
-Configuration parameters must be specified in `deeprvat_input_pretrained_models_config.yaml`, see [example file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_pretrained_models_config.yaml). For details on the meanings of the parameters and the format of input files, see [here](input_data).
+## Association testing with REGENIE
+
+For specifics on input files and options for REGENIE steps 1 and 2, please refer to the [REGENIE documentation](https://rgcgithub.github.io/regenie/).
+
+### Configuration and input files
+
+Configuration parameters must be specified in `deeprvat_input_pretrained_models_config.yaml` (rename the example file). For details on the meanings of the parameters and the format of input files, see [here](input_data).
+
+For an example, refer to [this configuration file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_config_regenie.yaml) (rename or link it to `deeprvat_input_pretrained_models_config.yaml` in your working directory), which includes REGENIE-specific parameters for steps 1 and 2. Importantly, specify
+```
+regenie_options:
+  regenie_exp: True
+  gtf_file: path/to/annotation_file.gtf.gz
+```
 
 To use pretrained models, you must specify `use_pretrained_models: True` in your `deeprvat_input_pretrained_models_config.yaml` configuration file. Additionally, provide the path to pretrained models (an output of the training pipeline) in the parameter `pretrained_model_path`. Within the `pretrained_model_path` directory, there must be a `config.yaml` file in that directory with the following set of specified keys that were used for training the pretrained models; `rare_variant_annotations`, `training_data_thresholds`, and `model` . See [example file](https://github.com/PMBio/deeprvat/blob/main/pretrained_models/model_config.yaml).
 
@@ -35,8 +48,57 @@ cv_options (optional)
 
 Note that the file specified by `annotation_filename` must contain a column corresponding to each annotation in the list `rare_variant_annotations` from `deeprvat/pretrained_models/model_config.yaml`. 
 
+You can set any parameter explained in the [REGENIE documentation](https://rgcgithub.github.io/regenie/) via the config.
+Most importantly, for association testing of binary traits use `--bt` in Step 2. For imbalanced traits, we also recommend Firth logistic regression:
+```
+step_2:
+        options:
+            - "--bt"
+            - "--firth --approx --pThresh 0.01"
 
-## Executing the pipeline
+```
+For quantitative traits:
+```
+step_2:
+        options:
+            - "--qt"
+```
+
+### Run REGENIE
+
+
+```
+cd experiment
+ln -s [path_to_deeprvat]/pretrained_models
+snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/association_testing_pretrained.snakefile
+```
+
+
+<!-- ### Testing multiple sub-cohorts -->
+
+<!-- For testing multiple sub-cohorts, remember that REGENIE Step 1 (compute intense) only needs to be executed once per sample and phenotype. We suggest running REGENIE Step 1 on all samples and phenotypes initially and then linking the output as `regenie_output/step1/` in each experiment directory for testing a sub-cohort. -->
+
+<!-- Samples to be considered when testing sub-cohorts can be provided via `keep_samples.txt` which look like  -->
+
+<!-- ```  -->
+<!-- 12345 12345 -->
+<!-- 56789 56789 -->
+<!-- ```` -->
+<!-- for keeping two samples with ids `12345` and `56789` -->
+
+## Association testing with SEAK
+
+### Configuration file
+
+Follow the instructions as above, but specify
+```
+regenie_options:
+  regenie_exp: False
+```
+
+For an example, see [this configuration file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_pretrained_models_config.yaml)
+
+### Executing the pipeline
 
 ```
 snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/association_testing_pretrained.snakefile
@@ -45,76 +107,4 @@ snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/association_testing_pret
 Replace `[path_to_deeprvat]` with the path to your copy of the DeepRVAT repository.
 
 
-## Running the association testing pipeline with REGENIE
-
-_Coming soon_
-
-<!---
-
-#### Input data
-For running with REGENIE, in addition to the default input data, the following REGENIE specific files should also be included in your `experiment` directory:
-
-
-To run REGENIE Step 1
-- `.sample` Inclusion file that lists individuals to retain in the analysis
-- `.sniplist` Inclusion file that lists IDs of variants to keep
-- `.bgen` input genetic data file
-- `.bgen.bgi` index bgi file corresponding to input BGEN file
-
-For these REGENIE specific files, please refer to the [REGENIE documentation](https://rgcgithub.github.io/regenie/).
-
-For running REGENIE Step 2:
-- `gtf file` gencode gene annotation gtf file 
-- `keep_samples.txt` (optional file of samples to include)
-- `protein_coding_genes.parquet`
-
-#### Config file
-
-Use the `[path_to_deeprvat]/example/config_regenie.yaml` as `config.yaml` which includes REGENIE specific parameters. 
-You can set any parameter explained in the [REGENIE documentation](https://rgcgithub.github.io/regenie/) via this config.
-Most importantly, for association testing of binary traits use:
-```
-step_2:
-        options:
-            - "--bt"
-            - "--firth --approx --pThresh 0.01"
-
-```
-and for quantitative traits:
-```
-step_2:
-        options:
-            - "--qt"
-```
-
-#### Run REGENIE
-
-
-```
-cd experiment
-ln -s [path_to_deeprvat]/pretrained_models
-snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/association_testing_pretrained.snakefile
-```
-
-
-#### Testing multiple sub-chohorts
-For testing multiple sub-cohorts, remember that REGENIE Step 1 (compute intense) only needs to be executed once per sample and phenotype. We suggest running REGENIE Step 1 on all samples and phenotypes initially and then linking the output as `regenie_output/step1/` in each experiment directory for testing a sub-cohort.
-
-Samples to be considered when testing sub-cohorts can be provided via `keep_samples.txt` which look like 
-
-``` 
-12345 12345
-56789 56789
-````
-for keeping two samples with ids `12345` and `56789`
-
-### Running the association testing pipeline with SEAK
-
-```shell
-cd experiment
-ln -s [path_to_deeprvat]/pretrained_models
-snakemake -j 1 --snakefile [path_to_deeprvat]/pipelines/association_testing_pretrained.snakefile
-```
-
---->
 
