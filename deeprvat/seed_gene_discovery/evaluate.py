@@ -44,10 +44,8 @@ def evaluate_(associations: Dict[str, pd.DataFrame], alpha: float):
             logger.info("Only using genes with EAC > 50")
             result = result.query("EAC > 50")
             if result["pval"].isna().sum() > 0:
-                logger.info(
-                    "Attention: still NA pvals after EAC filtering\
-                            Removing remaining NA pvals"
-                )
+                logger.info("Attention: still NA pvals after EAC filtering\
+                            Removing remaining NA pvals")
                 result = result.dropna(subset=["pval"])
             corrected_result = pval_correction(
                 result, alpha, correction_type=correction_type

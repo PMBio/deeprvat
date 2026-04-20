@@ -2215,16 +2215,14 @@ def merge_absplice_scores(
     if verbose:
         logger.info(f"Loading and transforming {genes}...")
 
-    con.execute(
-        f"""
+    con.execute(f"""
         CREATE TEMP TABLE genes_mod AS 
         SELECT 
             id AS gene_id,
             split_part(gene, '.', 1) AS gene,
             split_part(gene, '.', 2) AS exon
         FROM read_parquet('{genes}');
-    """
-    )
+    """)
 
     if verbose:
         logger.info(f"Loading {annotations}...")
@@ -2237,60 +2235,49 @@ def merge_absplice_scores(
     exclude_columns = {"chrom", "pos", "ref", "alt", "AbSplice_DNA"}
     selected_columns = [col for col in all_columns if col not in exclude_columns]
     select_clause = ", ".join(selected_columns)
-    con.execute(
-        f"""
+    con.execute(f"""
         CREATE TEMP TABLE annotations AS 
         SELECT {select_clause}
         FROM read_parquet('{annotations}');
-    """
-    )
+    """)
 
     if verbose:
         logger.info("Merging genes_mod with annotations...")
-    con.execute(
-        """
+    con.execute("""
         CREATE TEMP TABLE merged1 AS
         SELECT a.*, g.gene, g.exon
         FROM annotations a
         LEFT JOIN genes_mod g
         ON a.gene_id = g.gene_id;
-    """
-    )
+    """)
 
     if verbose:
         logger.info(f"Loading {variants}...")
-    con.execute(
-        f"""
+    con.execute(f"""
         CREATE TEMP TABLE variants AS 
         SELECT * FROM read_parquet('{variants}');
-    """
-    )
+    """)
 
     if verbose:
         logger.info("Merging merged1 with variants...")
-    con.execute(
-        """
+    con.execute("""
         CREATE TEMP TABLE merged2 AS
         SELECT m1.*, v.chrom, v.pos, v.ref, v.alt
         FROM merged1 m1
         LEFT JOIN variants v
         ON m1.id = v.id;
-    """
-    )
+    """)
 
     if verbose:
         logger.info(f"Loading {ab_splice_agg_score_file}...")
-    con.execute(
-        f"""
+    con.execute(f"""
         CREATE TEMP TABLE splice AS 
         SELECT * FROM read_parquet('{ab_splice_agg_score_file}');
-    """
-    )
+    """)
 
     if verbose:
         logger.info("Merging merged2 with absplice scores...")
-    con.execute(
-        """
+    con.execute("""
         CREATE TEMP TABLE final_merge AS
         SELECT m2.*, s.AbSplice_DNA
         FROM merged2 m2
@@ -2300,26 +2287,21 @@ def merge_absplice_scores(
             AND m2.ref = s.ref
             AND m2.alt = s.alt
             AND m2.gene = s.gene_id;
-    """
-    )
+    """)
 
     if fill_nan:
         if verbose:
             print(f"Filling NULL values in splice column with 0...")
-        con.execute(
-            f"""
+        con.execute(f"""
             UPDATE final_merge
             SET AbSplice_DNA = 0
             WHERE AbSplice_DNA IS NULL;
-        """
-        )
+        """)
 
     if verbose:
         logger.info(f"Saving final merged table to {output}...")
-    con.execute(
-        f"""
+    con.execute(f"""
         COPY final_merge TO '{output}' (FORMAT 'parquet');
-    """
-    )
+    """)
 
     logger.info(f"Successfully saved final merged table to {output}")
