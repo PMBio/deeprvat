@@ -11,9 +11,9 @@ For specifics on input files and options for REGENIE steps 1 and 2, please refer
 
 ### Configuration and input files
 
-Configuration parameters must be specified in `deeprvat_input_pretrained_models_config.yaml` (rename the example file). For details on the meanings of the parameters and the format of input files, see [here](input_data).
+Configuration parameters must be specified in `deeprvat_input_pretrained_models_config.yaml`. For details on the meanings of the parameters and the format of input files, see [here](input_data).
 
-For an example, refer to [this configuration file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_config_regenie.yaml) (rename or link it to `deeprvat_input_pretrained_models_config.yaml` in your working directory), which includes REGENIE-specific parameters for steps 1 and 2. Importantly, specify
+For an example, refer to [this configuration file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_pretrained_models_config.yaml), which includes REGENIE-specific parameters for steps 1 and 2. Importantly, specify
 ```
 regenie_options:
   regenie_exp: True
@@ -64,7 +64,7 @@ step_2:
             - "--qt"
 ```
 
-### Run REGENIE
+### Run DeepRVAT gene impairment scoring followed by REGENIE
 
 
 ```
@@ -96,7 +96,7 @@ regenie_options:
   regenie_exp: False
 ```
 
-For an example, see [this configuration file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_pretrained_models_config.yaml)
+For an example, see [this configuration file](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_input_pretrained_models_config_seak.yaml) (rename or link it to `deeprvat_input_pretrained_models_config.yaml` in your working directory).
 
 ### Executing the pipeline
 
