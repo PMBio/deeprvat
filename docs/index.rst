@@ -8,7 +8,7 @@ Welcome to DeepRVAT's documentation!
 
 Rare variant association testing using deep learning and data-driven gene impairment scores.
 
-_Coming soon:_ Overview of the DeepRVAT methodaster
+_Coming soon:_ Overview of the DeepRVAT method
 
 
 How to use this documentation

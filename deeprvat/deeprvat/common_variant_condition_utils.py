@@ -15,7 +15,6 @@ import yaml
 import shutil
 import os
 
-
 compression_level = 1
 
 logging.basicConfig(

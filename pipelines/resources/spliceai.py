@@ -1,7 +1,6 @@
 from spliceai_rocksdb.spliceAI import SpliceAI
 import snakemake
 
-
 if snakemake.params["lookup_only"]:
     model = SpliceAI(db_path=snakemake.params["db_path"])
 else:

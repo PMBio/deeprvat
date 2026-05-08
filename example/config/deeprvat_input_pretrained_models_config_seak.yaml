@@ -60,16 +60,4 @@ evaluation:
 
 #Additional settings if using the REGENIE integration
 regenie_options:
-  regenie_exp: True
-  gtf_file: gencode.v38.basic.annotation.gtf.gz
-  step_1:
-      bgen: imputation.bgen
-      snplist: imputation.snplist
-      bsize: 1000
-      options:
-          - "--sample imputation.sample"
-          - "--qt"
-  step_2:
-      bsize: 400
-      options:
-          - "--qt"
+  regenie_exp: False
