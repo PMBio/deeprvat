@@ -196,7 +196,7 @@ training:
     Platelet_count: {}
   pl_trainer:
     check_val_every_n_epoch: 1
-    gpus: 0
+    accelerator: cpu
     log_every_n_steps: 1
     max_epochs: 1000
     min_epochs: 50

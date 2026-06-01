@@ -100,7 +100,8 @@ seed_gene_results: #baseline_results
 # DeepRVAT training settings
 training:
   pl_trainer: #PyTorch Lightening trainer settings
-      gpus: 1
+      accelerator: gpu
+      devices: 1
       precision: 16
       min_epochs: 50
       max_epochs: 1000
