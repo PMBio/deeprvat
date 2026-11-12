@@ -803,7 +803,7 @@ def deepsea_pca(
 
     logger.info("Writing values to data frame")
     pca_df = pd.DataFrame(
-        X_pca, columns=[f"DeepSEA_PC_{i}" for i in range(1, n_components + 1)]
+        X_pca, columns=[f"DeepSEA_PC_{i}" for i in range(1, X_pca.shape[1] + 1)]
     )
     del X_pca
     logger.info("adding key values to data frame")
