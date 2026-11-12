@@ -17,6 +17,9 @@ annotation_columns_yaml_file: ../../example/config/annotation_colnames_filling_v
 source_variant_dir : ../preprocess/workdir/norm/bcf
 anno_tmp_dir : output_dir/annotations/tmp
 anno_dir : output_dir/annotations
+# DeepSEA standardization + PCA used to train the pretrained models; remove both lines to fit a new PCA on your variants
+deepSEA_pca_object: ../../pretrained_models/deepSEA_PCA/pca.npy
+deepSEA_means_and_sds: ../../pretrained_models/deepSEA_PCA/deepSEA_means_SDs.parquet
 
 vep_cache_dir : repo_dir/ensembl-vep/cache/
 vep_plugin_dir : repo_dir/ensembl-vep/Plugins

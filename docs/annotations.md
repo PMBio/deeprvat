@@ -8,7 +8,7 @@ This pipeline is based on [snakemake](https://snakemake.readthedocs.io/en/stable
 
 ## Output 
 This pipeline outputs a parquet file including all annotations as well as a file containing IDs to all protein coding genes needed to run DeepRVAT. 
-Apart from this the pipeline outputs a PCA transformation matrix for deepSEA as well as means and standard deviations used to standardize deepSEA scores before PCA analysis. This is helpful to recreate results using a different dataset. 
+Apart from this the pipeline outputs a PCA transformation matrix for deepSEA as well as means and standard deviations used to standardize deepSEA scores before PCA analysis. This is helpful to recreate results using a different dataset. If the config keys `deepSEA_pca_object` and `deepSEA_means_and_sds` point to existing files, these are used instead of fitting a new PCA. When using the pretrained DeepRVAT models, set them to the files in `pretrained_models/deepSEA_PCA` (see [pretrained models](pretrained_models.md)).
 Furthermore, the pipeline outputs one annotation file for VEP, CADD, DeepRiPe, DeepSea and AbSplice for each input vcf-file. The tool then creates concatenates the files, performs PCA on the deepSEA scores and merges the result into a single file. 
 
 ## Input
