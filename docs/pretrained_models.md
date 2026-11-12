@@ -48,6 +48,12 @@ cv_options (optional)
 
 Note that the file specified by `annotation_filename` must contain a column corresponding to each annotation in the list `rare_variant_annotations` from `deeprvat/pretrained_models/model_config.yaml`. 
 
+The annotations `DeepSEA_PC_1` to `DeepSEA_PC_6` must be computed with the same DeepSEA standardization and PCA projection that were used to train the pretrained models. Otherwise the [annotation pipeline](annotations.md) fits a new PCA on your variants, whose components (including their order and sign) differ from those seen in training. The files are provided in `pretrained_models/deepSEA_PCA` and are already set in the [example annotation config](https://github.com/PMBio/deeprvat/blob/main/example/config/deeprvat_annotation_config.yaml). If you use your own annotation config, set them there:
+```
+deepSEA_pca_object: path/to/deeprvat/pretrained_models/deepSEA_PCA/pca.npy
+deepSEA_means_and_sds: path/to/deeprvat/pretrained_models/deepSEA_PCA/deepSEA_means_SDs.parquet
+```
+
 You can set any parameter explained in the [REGENIE documentation](https://rgcgithub.github.io/regenie/) via the config.
 Most importantly, for association testing of binary traits use `--bt` in Step 2. For imbalanced traits, we also recommend Firth logistic regression:
 ```
